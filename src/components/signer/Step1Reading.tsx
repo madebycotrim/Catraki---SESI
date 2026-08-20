@@ -1,6 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ArrowDown, ShieldCheck, ChevronRight, FileSignature, CheckCircle2, FileText, Info } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import React from 'react';
+import { ChevronRight, ShieldCheck, Info, Eye } from 'lucide-react';
 
 interface Step1ReadingProps {
   document: {
@@ -18,147 +17,163 @@ interface Step1ReadingProps {
 }
 
 export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed }) => {
-  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const handleScroll = () => {
-    if (!scrollContainerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-    
-    // Considerando uma margem de erro pequena para o scroll no final
-    if (scrollHeight <= clientHeight || scrollTop + clientHeight >= scrollHeight - 50) {
-      setHasScrolledToBottom(true);
-    }
-  };
-
-  useEffect(() => {
-    handleScroll();
-  }, []);
+  const dataHoje = new Intl.DateTimeFormat('pt-BR', {
+    day:   '2-digit',
+    month: 'long',
+    year:  'numeric',
+    timeZone: 'America/Sao_Paulo',
+  }).format(new Date());
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
-      
-      {/* Header do Wizard */}
-      <div className="text-center space-y-3">
-        <div className="inline-flex items-center justify-center p-3 bg-blue-50 rounded-full mb-2">
-          <FileSignature className="w-8 h-8 text-sesi-primary" />
-        </div>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
-          Análise do Termo de Consentimento
-        </h2>
-        <p className="text-slate-500 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
-          Para prosseguirmos com a assinatura digital, é obrigatória a leitura integral do documento abaixo.
-        </p>
-      </div>
-
-      {/* Caixa do Documento */}
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden relative group">
-        
-        {/* Barra superior de status do doc */}
-        <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <FileText className="w-5 h-5 text-slate-400" />
-            <div>
-              <span className="block text-[10px] uppercase font-bold tracking-widest text-slate-500">Documento</span>
-              <span className="text-sm font-semibold text-slate-700">{document.procedure_title}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs font-mono text-slate-500 bg-white px-3 py-1.5 rounded border border-slate-200">
-            <span className="font-sans font-semibold uppercase tracking-wider text-[10px]">ID:</span>
-            {document.id}
-          </div>
-        </div>
-
-        {/* Resumo Rápido */}
-        <div className="bg-blue-50/50 px-6 py-4 border-b border-blue-100 flex items-start gap-3">
-          <Info className="w-5 h-5 text-sesi-primary shrink-0 mt-0.5" />
-          <p className="text-sm text-slate-700 leading-relaxed font-medium">
-            <strong className="text-sesi-primary">Resumo:</strong> {document.procedure_description}
-          </p>
-        </div>
-
-        {/* Área de Leitura com Scroll */}
-        <div className="relative">
-          <div 
-            ref={scrollContainerRef}
-            onScroll={handleScroll}
-            className="p-6 sm:p-12 overflow-y-auto max-h-[55vh] bg-white scroll-smooth"
-            style={{ 
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#CBD5E1 transparent'
-            }}
-          >
-            {/* O próprio Markdown */}
-            <div className="prose prose-slate prose-sm sm:prose-base max-w-none 
-                            prose-headings:font-bold prose-headings:text-slate-900 prose-headings:tracking-tight 
-                            prose-h3:text-lg prose-h3:uppercase prose-h3:border-b prose-h3:border-slate-100 prose-h3:pb-2
-                            prose-p:text-slate-600 prose-p:leading-relaxed prose-p:text-justify
-                            prose-strong:text-slate-800 prose-strong:font-bold
-                            prose-li:text-slate-600 marker:text-sesi-primary">
-              <ReactMarkdown>{document.content_markdown}</ReactMarkdown>
-            </div>
-
-            {/* Metadados ao final do documento */}
-            <div className="mt-16 pt-8 border-t border-dashed border-slate-300 text-center space-y-4">
-              <div className="inline-block bg-slate-50 border border-slate-200 rounded-lg p-4 w-full max-w-lg">
-                <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
-                  Assinatura Eletrônica (Hash Criptográfico)
-                </span>
-                <span className="block text-xs font-mono text-slate-700 break-all bg-white border border-slate-100 p-2 rounded">
-                  {document.content_sha256}
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 max-w-lg mx-auto leading-relaxed">
-                {document.legal_notice}
-              </p>
-            </div>
-          </div>
-
-          {/* Gradiente sutil inferior para indicar mais conteúdo se não scrollou */}
-          {!hasScrolledToBottom && (
-            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
-          )}
-        </div>
-      </div>
-
-      {/* Painel de Ação Flutuante/Fixo */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-5 transition-all">
-        <div className="flex-1 w-full">
-          {!hasScrolledToBottom ? (
-            <div className="flex items-center gap-3 bg-amber-50 text-amber-800 p-3.5 rounded-xl border border-amber-200/60">
-              <div className="bg-amber-100 p-1.5 rounded-lg shrink-0 animate-bounce">
-                <ArrowDown className="w-5 h-5 text-amber-700" />
-              </div>
-              <p className="text-sm font-semibold">
-                Para assinar, é necessário rolar o documento até o final.
-              </p>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 bg-green-50 text-green-800 p-3.5 rounded-xl border border-green-200/60 transition-all duration-500 animate-in fade-in">
-              <div className="bg-green-100 p-1.5 rounded-lg shrink-0">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-              </div>
-              <p className="text-sm font-semibold">
-                Leitura concluída com sucesso. Você pode prosseguir.
-              </p>
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={onProceed}
-          disabled={!hasScrolledToBottom}
-          className={`w-full sm:w-auto px-8 py-4 flex items-center justify-center gap-3 font-bold rounded-xl transition-all duration-300 ${
-            hasScrolledToBottom
-              ? 'bg-sesi-primary hover:bg-blue-800 text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer'
-              : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-          }`}
+    <div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-2 pb-8">
+      {/* Mesa / Fundo claro e moderno */}
+      <div
+        style={{
+          background: '#f1f5f9',
+          padding:    '28px 20px',
+          borderRadius: '8px',
+          boxShadow:  'inset 0 2px 4px rgba(0,0,0,0.06)',
+          border:     '1px solid #e2e8f0',
+        }}
+      >
+        {/* Folha A4 */}
+        <div
+          style={{
+            background: '#fff',
+            paddingTop:    '113px',
+            paddingLeft:   '113px',
+            paddingRight:  '76px',
+            paddingBottom: '100px',
+            fontFamily: "'Arial', 'Helvetica Neue', sans-serif",
+            fontSize:    '11pt',
+            lineHeight:  '1.6',
+            color:       '#000',
+            minHeight:   '297mm',
+            position:    'relative',
+            boxShadow:   '0 4px 32px rgba(0,0,0,0.22), 0 1.5px 6px rgba(0,0,0,0.12)',
+          }}
         >
-          <span>Avançar para Assinatura</span>
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </div>
+          {/* Cabeçalho com logo oficial */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            marginBottom: '32px',
+            paddingBottom: '20px',
+            borderBottom: '3px solid #034b7f',
+          }}>
+            <img
+              src="/logo-1linha.svg"
+              alt="SESI Saúde"
+              style={{ height: '52px', objectFit: 'contain' }}
+            />
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: '9pt', color: '#555', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Escola Cidadã: Saúde em Movimento
+              </p>
+              <p style={{ fontSize: '9pt', color: '#333', margin: 0, fontWeight: 'bold' }}>
+                Doc. nº {document.id}
+              </p>
+              <p style={{ fontSize: '8pt', color: '#888', margin: 0 }}>
+                {dataHoje}
+              </p>
+            </div>
+          </div>
 
+          {/* Título Principal */}
+          <div className="text-center mb-8">
+            <h1 style={{ fontSize: '11pt', fontWeight: 'bold', margin: 0, textTransform: 'uppercase', color: '#000', whiteSpace: 'nowrap' }}>
+              Bem-vindo(a) ao Projeto Escola Cidadã: Saúde em Movimento
+            </h1>
+          </div>
+
+          {/* Corpo da Carta de Boas-Vindas */}
+          <div className="space-y-6 text-slate-800 text-justify" style={{ textIndent: '1.25cm' }}>
+            <p className="m-0 leading-relaxed">
+              Prezado(a) Responsável,<br />
+              Sabemos que a saúde e a segurança do(a) seu filho(a) são as suas maiores prioridades. É com esse mesmo cuidado que a Escola CEMEIT, em parceria com a <strong>Universidade de Brasília (UnB)</strong>, o <strong>SESI-DF</strong> e a <strong>Finatec</strong>, traz até você esta iniciativa 100% gratuita de cuidado preventivo, saúde e cidadania.
+            </p>
+
+            <p className="m-0 leading-relaxed">
+              Criamos este ambiente digital para que você possa autorizar o atendimento do(a) estudante com total transparência e comodidade, direto do seu celular, sem a necessidade de imprimir papéis.
+            </p>
+
+            {/* Subseção: Por que estou no sistema Catraki? */}
+            <div className="space-y-2 pt-2" style={{ textIndent: 0 }}>
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-sesi-primary shrink-0" /> Por que estou no sistema Catraki?
+              </h2>
+              <p className="leading-relaxed pl-6 text-slate-700 m-0">
+                O Catraki é a plataforma digital oficial utilizada para o registro desta autorização. Para garantir que o documento possua total validade jurídica, o sistema coleta os dados necessários de forma criptografada. Nossa infraestrutura conta com tecnologia de ponta, tornando o ambiente altamente seguro contra qualquer tipo de invasão hacker ou vazamento de dados, em rigoroso cumprimento à Lei Geral de Proteção de Dados (LGPD). Os prontuários e informações de saúde do(a) estudante são confidenciais e acessados exclusivamente pela equipe médica.
+              </p>
+            </div>
+
+            {/* Subseção: O que você precisará autorizar? */}
+            <div className="space-y-2 pt-2" style={{ textIndent: 0 }}>
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                <Info className="w-4 h-4 text-sesi-primary shrink-0" /> O que você precisará autorizar?
+              </h2>
+              <p className="leading-relaxed pl-6 text-slate-700 m-0">
+                Na próxima etapa, tenha em mãos o seu CPF e o CPF do(a) estudante. Você precisará registrar suas escolhas sobre três pontos fundamentais:
+              </p>
+              <ul className="list-disc pl-12 text-slate-700 space-y-1.5 leading-relaxed font-medium">
+                <li>
+                  <strong className="text-slate-950">Atendimento de Saúde (Obrigatório):</strong> Autorização para que nossa equipe realize as consultas, triagens e avaliações clínicas no(a) aluno(a).
+                </li>
+                <li>
+                  <strong className="text-slate-950">Tratamento de Dados (Obrigatório):</strong> Permissão legal para o registro e armazenamento seguro do prontuário médico.
+                </li>
+                <li>
+                  <strong className="text-slate-950">Uso de Imagem (Opcional):</strong> Autorização para o registro de fotos institucionais do evento. A recusa desta opção não impede o atendimento do(a) estudante.
+                </li>
+              </ul>
+            </div>
+
+            {/* Subseção: Como proceder? */}
+            <div className="space-y-2 pt-2" style={{ textIndent: 0 }}>
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                <Eye className="w-4 h-4 text-sesi-primary shrink-0" /> Como proceder?
+              </h2>
+              <p className="leading-relaxed pl-6 text-slate-700 m-0">
+                Leia as próximas telas com atenção, marque as suas opções e, ao final, clique no botão de assinatura digital para concluir. O processo inteiro leva menos de 2 minutos.
+              </p>
+            </div>
+
+            {/* Botão de ação integrado na folha A4 */}
+            <div className="pt-8 border-t border-slate-100 flex justify-end" style={{ textIndent: 0 }}>
+              <button
+                id="btn-avancar-leitura"
+                onClick={onProceed}
+                className="w-full sm:w-auto px-6 py-3 bg-sesi-primary hover:bg-blue-900 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
+              >
+                Acessar Formulário de Autorização
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Barra institucional no final da folha */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+            <img
+              src="/barra.jpg"
+              alt="Barra institucional SESI"
+              style={{ width: '100%', display: 'block', objectFit: 'cover' }}
+            />
+          </div>
+
+          {/* Número de página */}
+          <div style={{
+            position: 'absolute',
+            top:   '76px',
+            right: '76px',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '10pt',
+            color: '#000',
+          }}>
+            1
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -7,10 +7,10 @@ import {
   ExternalLink,
   Users,
   AlertTriangle,
-  Check,
-  Trash2
+  Check
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
+
 
 interface AdminDashboardProps {
   onNavigateToSignerToken: (token: string) => void;
@@ -55,7 +55,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const globalLinkToken = 'projeto-escola-cidada-2026';
 
   const handleCopyGlobalLink = () => {
-    const link = `${window.location.origin}/signer?token=${globalLinkToken}`;
+    const link = 'https://catraki.com.br/escolacidada/cemeit';
     navigator.clipboard.writeText(link);
     setCopiedGlobal(true);
     setTimeout(() => setCopiedGlobal(false), 2000);
@@ -67,12 +67,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       auth.activity.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleClearData = () => {
-    if (confirm('Tem certeza que deseja apagar todos os dados armazenados localmente? Isso simula um reset na base de dados.')) {
-      localStorage.clear();
-      window.location.reload();
-    }
-  };
+
 
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

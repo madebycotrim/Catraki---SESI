@@ -5,7 +5,7 @@ import { Step3OtpAndSignature } from './Step3OtpAndSignature.tsx';
 import { Step4Success } from './Step4Success.tsx';
 import { apiClient } from '../../lib/api.ts';
 import { Loader2, AlertTriangle } from 'lucide-react';
-import type { SignerRelationship } from '../../lib/types.ts';
+
 
 interface SignerWizardProps {
   initialToken?: string;
@@ -75,85 +75,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
 
   return (
     <div className="w-full space-y-10">
-      {/* Barra de Progresso das Etapas (Stepper Premium) */}
-      <div className="w-full max-w-4xl mx-auto mt-6 mb-8 px-2 sm:px-10">
-        <div className="relative flex items-center justify-between">
-          
-          {/* Linha Base (Cinza) */}
-          <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-200 rounded-full -translate-y-6"></div>
-          
-          {/* Linha Preenchida (Azul SESI) */}
-          <div 
-            className="absolute top-1/2 left-0 h-1 bg-sesi-primary rounded-full -translate-y-6 transition-all duration-700 ease-in-out"
-            style={{ width: `${(Math.max(1, step) - 1) * 33.33}%` }} 
-          ></div>
 
-          {/* Etapa 1 */}
-          <div className="relative flex flex-col items-center flex-1 z-10 group">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-500 shadow-sm ${
-              step >= 1 ? 'bg-sesi-primary text-white ring-4 ring-white scale-110 shadow-md' : 'bg-slate-100 text-slate-400 ring-4 ring-white'
-            }`}>
-              {step > 1 ? (
-                <svg className="w-6 h-6 text-white animate-in zoom-in" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-              ) : '1'}
-            </div>
-            <span className={`text-[11px] sm:text-xs font-extrabold uppercase tracking-widest mt-4 transition-colors ${
-              step >= 1 ? 'text-sesi-primary' : 'text-slate-400'
-            }`}>
-              Leitura
-            </span>
-          </div>
-
-          {/* Etapa 2 */}
-          <div className="relative flex flex-col items-center flex-1 z-10">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-500 shadow-sm ${
-              step >= 2 ? 'bg-sesi-primary text-white ring-4 ring-white scale-110 shadow-md' : 'bg-white border-2 border-slate-200 text-slate-400 ring-4 ring-white'
-            }`}>
-              {step > 2 ? (
-                <svg className="w-6 h-6 text-white animate-in zoom-in" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-              ) : '2'}
-            </div>
-            <span className={`text-[11px] sm:text-xs font-extrabold uppercase tracking-widest mt-4 transition-colors ${
-              step >= 2 ? 'text-sesi-primary' : 'text-slate-400'
-            }`}>
-              Identificação
-            </span>
-          </div>
-
-          {/* Etapa 3 */}
-          <div className="relative flex flex-col items-center flex-1 z-10">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-500 shadow-sm ${
-              step >= 3 ? 'bg-sesi-primary text-white ring-4 ring-white scale-110 shadow-md' : 'bg-white border-2 border-slate-200 text-slate-400 ring-4 ring-white'
-            }`}>
-              {step > 3 ? (
-                <svg className="w-6 h-6 text-white animate-in zoom-in" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-              ) : '3'}
-            </div>
-            <span className={`text-[11px] sm:text-xs font-extrabold uppercase tracking-widest mt-4 transition-colors ${
-              step >= 3 ? 'text-sesi-primary' : 'text-slate-400'
-            }`}>
-              Assinatura
-            </span>
-          </div>
-
-          {/* Etapa 4 */}
-          <div className="relative flex flex-col items-center flex-1 z-10">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-500 shadow-sm ${
-              step === 4 ? 'bg-sesi-green text-white ring-4 ring-white scale-110 shadow-md' : 'bg-white border-2 border-slate-200 text-slate-400 ring-4 ring-white'
-            }`}>
-              {step === 4 ? (
-                <svg className="w-6 h-6 text-white animate-in zoom-in" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-              ) : '4'}
-            </div>
-            <span className={`text-[11px] sm:text-xs font-extrabold uppercase tracking-widest mt-4 transition-colors ${
-              step === 4 ? 'text-sesi-green' : 'text-slate-400'
-            }`}>
-              Comprovante
-            </span>
-          </div>
-
-        </div>
-      </div>
 
       {/* Renderização Condicional da Etapa Atual */}
       {step === 1 && (

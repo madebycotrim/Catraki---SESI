@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from './components/common/Header.tsx';
 import { SignerWizard } from './components/signer/SignerWizard.tsx';
 import { PublicValidator } from './components/validator/PublicValidator.tsx';
@@ -6,23 +6,60 @@ import { AdminDashboard } from './components/admin/AdminDashboard.tsx';
 import { RevocationPortal } from './components/revocation/RevocationPortal.tsx';
 
 export function App() {
-  const [currentView, setCurrentView] = useState<'signer' | 'validator' | 'admin' | 'revoke'>('admin');
-  const [activeSignerToken, setActiveSignerToken] = useState('demo-token-sesi-audiometria-2026');
+  const [currentView, setCurrentView] = useState<'signer' | 'validator' | 'admin' | 'revoke'>('signer');
+  const [activeSignerToken, setActiveSignerToken] = useState('projeto-escola-cidada-2026');
   const [activeValidatorHash, setActiveValidatorHash] = useState('');
+
+  // Sincroniza a URL inicial e lida com botão de avançar/voltar do navegador
+  useEffect(() => {
+    const tratarRota = () => {
+      const path = window.location.pathname;
+      if (path === '/escolacidada/cemeit') {
+        setCurrentView('signer');
+      } else if (path.startsWith('/validar/')) {
+        const hash = path.substring('/validar/'.length);
+        setActiveValidatorHash(hash);
+        setCurrentView('validator');
+      } else if (path === '/validar') {
+        setCurrentView('validator');
+      } else if (path === '/revogar') {
+        setCurrentView('revoke');
+      } else if (path === '/admin') {
+        setCurrentView('admin');
+      } else {
+        // Redireciona a raiz (/) ou qualquer rota desconhecida para o termo
+        setCurrentView('signer');
+        window.history.replaceState({}, '', '/escolacidada/cemeit');
+      }
+    };
+
+    tratarRota();
+    window.addEventListener('popstate', tratarRota);
+    return () => window.removeEventListener('popstate', tratarRota);
+  }, []);
+
+  const navegarParaView = (view: 'signer' | 'validator' | 'admin' | 'revoke', path: string) => {
+    setCurrentView(view);
+    window.history.pushState({}, '', path);
+  };
 
   const navigateToSigner = (token?: string) => {
     if (token) setActiveSignerToken(token);
-    setCurrentView('signer');
+    navegarParaView('signer', '/escolacidada/cemeit');
   };
 
   const navigateToValidator = (hash?: string) => {
-    if (hash) setActiveValidatorHash(hash);
-    setCurrentView('validator');
+    if (hash) {
+      setActiveValidatorHash(hash);
+      navegarParaView('validator', `/validar/${hash}`);
+    } else {
+      navegarParaView('validator', '/validar');
+    }
   };
 
   const navigateToRevoke = (token?: string) => {
     if (token) setActiveSignerToken(token);
-    setCurrentView('revoke');
+    navegarParaView('revoke', '/revogar');
   };
 
   const isPublicView = currentView === 'signer' || currentView === 'validator' || currentView === 'revoke';
@@ -32,22 +69,18 @@ export function App() {
       
       {/* Header Superior - Oculto para pais (visão pública) */}
       {!isPublicView && (
-        <Header currentView={currentView} onNavigate={(v) => setCurrentView(v as any)} />
+        <Header 
+          currentView={currentView} 
+          onNavigate={(v) => {
+            if (v === 'admin') navegarParaView('admin', '/admin');
+            else if (v === 'signer') navegarParaView('signer', '/escolacidada/cemeit');
+            else if (v === 'validator') navegarParaView('validator', '/validar');
+          }} 
+        />
       )}
 
       {/* Conteúdo Principal */}
       <main className={`flex-1 flex flex-col w-full ${isPublicView ? 'items-center pt-12' : ''}`}>
-        
-        {/* Logo minimalista para as telas públicas (pais) */}
-        {isPublicView && (
-          <div className="mb-10 flex flex-col items-center justify-center">
-            <img 
-              src="https://sesitocantins.com.br/wp-content/uploads/2025/08/SESI-SAUDE-28-e1755405422745-1024x595.png" 
-              alt="Logo SESI Saúde" 
-              className="h-12 w-auto object-contain"
-            />
-          </div>
-        )}
 
         {currentView === 'signer' && (
           <div className="w-full max-w-4xl p-4 sm:p-8">
@@ -61,7 +94,10 @@ export function App() {
 
         {currentView === 'validator' && (
           <div className="w-full p-4 sm:p-8 max-w-4xl mx-auto">
-            <PublicValidator initialHash={activeValidatorHash} onNavigateToSigner={() => setCurrentView('signer')} />
+            <PublicValidator 
+              initialHash={activeValidatorHash} 
+              onNavigateToSigner={() => navigateToSigner()} 
+            />
           </div>
         )}
 
@@ -78,7 +114,7 @@ export function App() {
           <div className="w-full p-4 sm:p-8 max-w-4xl mx-auto">
             <RevocationPortal
               token={activeSignerToken}
-              onBack={() => setCurrentView('signer')}
+              onBack={() => navigateToSigner()}
             />
           </div>
         )}

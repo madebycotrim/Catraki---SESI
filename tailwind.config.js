@@ -18,7 +18,9 @@ export default {
         sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       }
     },
+  },
   plugins: [
-    require("tailwindcss-animate")
+    require("tailwindcss-animate"),
+    require('@tailwindcss/typography'),
   ],
 }

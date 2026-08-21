@@ -121,7 +121,11 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
             signerEmail: formData.signerEmail || 'responsavel@email.com',
             signerPhone: formData.signerPhone,
             signerRelationship: formData.signerRelationship,
-            identityMethod: 'manual_review'
+            identityMethod: 'manual_review',
+            minorCpf: formData.minorCpf,
+            minorSeries: formData.minorSeries,
+            minorClass: formData.minorClass,
+            minorTurn: formData.minorTurn,
           }}
           onSuccess={(result) => {
             setSignResult(result);

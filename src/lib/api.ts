@@ -268,7 +268,7 @@ export const apiClient = {
         revoked_reason: doc.revoked_reason,
         manual_review_status: review?.status || null,
         manual_review_notes: review?.review_notes || null,
-        legal_notice: 'Assinatura Eletrônica Avançada (Decreto Federal nº 10.543/2020 e Lei nº 14.063/2020)',
+        legal_notice: 'Assinatura Eletrônica (MP nº 2.200-2/2001 e Lei nº 14.063/2020)',
       },
     };
   },
@@ -423,7 +423,7 @@ export const apiClient = {
   },
 
   /**
-   * Submete a assinatura eletrônica avançada com hash chain
+   * Submete a assinatura eletrônica com hash chain e registro probatório
    */
   async signDocument(payload: {
     token: string;
@@ -432,8 +432,14 @@ export const apiClient = {
     signer_cpf: string;
     signer_relationship: any;
     signer_email?: string;
+    signer_phone?: string;
+    signer_address?: string;
     minor_name?: string;
     minor_birth_date?: string;
+    minor_cpf?: string;
+    minor_series?: string;
+    minor_class?: string;
+    minor_turn?: string;
     institution_name?: string;
     auth_health?: 'yes' | 'no';
     auth_data?: 'yes' | 'no';
@@ -641,8 +647,8 @@ export const apiClient = {
       validation: {
         valid: true,
         validation_code: validationCode,
-        legal_notice: 'Assinatura Eletrônica Avançada (Decreto Federal nº 10.543/2020 e Lei nº 14.063/2020)',
-        signature_type: 'Assinatura Eletrônica Avançada (Dec. 10.543/2020)',
+        legal_notice: 'Assinatura Eletrônica (MP nº 2.200-2/2001 e Lei nº 14.063/2020)',
+        signature_type: 'Assinatura Eletrônica (MP nº 2.200-2/2001 e Lei nº 14.063/2020)',
         document_id: audit.document_id,
         manifest_sha256: audit.manifest_sha256,
         content_sha256: audit.content_sha256_at_signing,
@@ -707,11 +713,31 @@ export const apiClient = {
   // ==========================================================================
   // FUNÇÕES ADMINISTRATIVAS (RBAC)
   // ==========================================================================
+  // HELPERS DE AUTENTICAÇÃO E CABEÇALHOS
+  // ==========================================================================
+
+  getAuthHeaders(customHeaders: Record<string, string> = {}): Record<string, string> {
+    const token = this.getAdminToken();
+    const headers: Record<string, string> = { ...customHeaders };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  },
+
+  // ==========================================================================
+  // ENDPOINTS ADMINISTRATIVOS (BACKEND HONO / CLOUDFLARE D1)
+  // ==========================================================================
 
   async getAdminTemplates(): Promise<any> {
     try {
-      const resp = await fetch(`${API_BASE}/admin/templates`);
+      const resp = await fetch(`${API_BASE}/admin/templates`, {
+        headers: this.getAuthHeaders(),
+      });
       if (resp.ok) return await resp.json();
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
     } catch {}
     return { success: true, templates: getTemplates() };
   },
@@ -720,10 +746,13 @@ export const apiClient = {
     try {
       const resp = await fetch(`${API_BASE}/admin/templates`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(templateData),
       });
       if (resp.ok) return await resp.json();
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
     } catch {}
 
     const newTmpl: DocumentTemplate = {
@@ -746,8 +775,13 @@ export const apiClient = {
 
   async getAdminDocuments(): Promise<any> {
     try {
-      const resp = await fetch(`${API_BASE}/admin/documents`);
+      const resp = await fetch(`${API_BASE}/admin/documents`, {
+        headers: this.getAuthHeaders(),
+      });
       if (resp.ok) return await resp.json();
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
     } catch {}
     return { success: true, documents: getDocuments() };
   },
@@ -756,10 +790,13 @@ export const apiClient = {
     try {
       const resp = await fetch(`${API_BASE}/admin/documents`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(docData),
       });
       if (resp.ok) return await resp.json();
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
     } catch {}
 
     const templates = getTemplates();
@@ -808,8 +845,13 @@ export const apiClient = {
 
   async getAdminManualReviews(): Promise<any> {
     try {
-      const resp = await fetch(`${API_BASE}/admin/manual-reviews`);
+      const resp = await fetch(`${API_BASE}/admin/manual-reviews`, {
+        headers: this.getAuthHeaders(),
+      });
       if (resp.ok) return await resp.json();
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
     } catch {}
     return { success: true, reviews: getManualReviews() };
   },
@@ -818,10 +860,13 @@ export const apiClient = {
     try {
       const resp = await fetch(`${API_BASE}/admin/manual-reviews/${reviewId}/action`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ action, notes }),
       });
       if (resp.ok) return await resp.json();
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
     } catch {}
 
     const reviews = getManualReviews();
@@ -837,8 +882,13 @@ export const apiClient = {
 
   async verifyAuditChain(): Promise<{ success: boolean; verification: ChainVerificationResult; total_blocks_audited: number }> {
     try {
-      const resp = await fetch(`${API_BASE}/admin/verify-chain`);
+      const resp = await fetch(`${API_BASE}/admin/verify-chain`, {
+        headers: this.getAuthHeaders(),
+      });
       if (resp.ok) return await resp.json();
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
     } catch {}
 
     const logs = getAuditLogs();
@@ -852,16 +902,26 @@ export const apiClient = {
 
   async getAdminAuditLogs(): Promise<any> {
     try {
-      const resp = await fetch(`${API_BASE}/admin/audit-logs`);
+      const resp = await fetch(`${API_BASE}/admin/audit-logs`, {
+        headers: this.getAuthHeaders(),
+      });
       if (resp.ok) return await resp.json();
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
     } catch {}
     return { success: true, logs: getAuditLogs() };
   },
 
   async getAdminLgpdRequests(): Promise<any> {
     try {
-      const resp = await fetch(`${API_BASE}/admin/lgpd-requests`);
+      const resp = await fetch(`${API_BASE}/admin/lgpd-requests`, {
+        headers: this.getAuthHeaders(),
+      });
       if (resp.ok) return await resp.json();
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
     } catch {}
     return { success: true, requests: getLgpdRequests() };
   },
@@ -908,8 +968,13 @@ export const apiClient = {
 
   async getAdminInstitutions(): Promise<{ success: boolean; institutions: Institution[] }> {
     try {
-      const resp = await fetch(`${API_BASE}/admin/institutions`);
+      const resp = await fetch(`${API_BASE}/admin/institutions`, {
+        headers: this.getAuthHeaders(),
+      });
       if (resp.ok) return await resp.json();
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
     } catch {}
     return { success: true, institutions: getInstitutions() };
   },
@@ -918,10 +983,13 @@ export const apiClient = {
     try {
       const resp = await fetch(`${API_BASE}/admin/institutions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(data),
       });
       if (resp.ok) return await resp.json();
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
     } catch {}
 
     const list = getInstitutions();
@@ -953,8 +1021,14 @@ export const apiClient = {
 
   async deleteAdminInstitution(id: string): Promise<any> {
     try {
-      const resp = await fetch(`${API_BASE}/admin/institutions/${id}`, { method: 'DELETE' });
+      const resp = await fetch(`${API_BASE}/admin/institutions/${id}`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders(),
+      });
       if (resp.ok) return await resp.json();
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
     } catch {}
 
     const list = getInstitutions();
@@ -966,6 +1040,15 @@ export const apiClient = {
   // ==========================================================================
   // AUTENTICAÇÃO SSO MICROSOFT & GESTÃO DE SESSÃO ADMIN
   // ==========================================================================
+
+  _authErrorListeners: [] as Array<() => void>,
+
+  addAuthErrorListener(listener: () => void): () => void {
+    this._authErrorListeners.push(listener);
+    return () => {
+      this._authErrorListeners = this._authErrorListeners.filter((l) => l !== listener);
+    };
+  },
 
   getAdminToken(): string | null {
     if (typeof window === 'undefined') return null;
@@ -995,6 +1078,11 @@ export const apiClient = {
     localStorage.removeItem('catraki_admin_user');
     sessionStorage.removeItem('ms_code_verifier');
     sessionStorage.removeItem('ms_state');
+    this._authErrorListeners.forEach((l) => {
+      try {
+        l();
+      } catch {}
+    });
   },
 
   /**

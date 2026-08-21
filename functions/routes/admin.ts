@@ -332,7 +332,7 @@ adminRouter.get('/verify-chain', requireAuth(['admin_master', 'dpo']), async (c)
   });
 });
 
-adminRouter.get('/audit-logs', requireAuth(['admin_master', 'dpo']), async (c) => {
+adminRouter.get('/audit-logs', requireAuth(['admin_master', 'dpo', 'operador']), async (c) => {
   const db = c.env.DB;
   const logs = await db.prepare(
     `SELECT a.id, a.document_id, a.signed_at, a.signer_name, a.signer_cpf_masked, a.signer_relationship,
@@ -385,7 +385,7 @@ adminRouter.post('/lgpd-requests/:id/respond', requireAuth(['admin_master', 'dpo
 // GESTÃO DE INSTITUIÇÕES / ESCOLAS (ROTEAMENTO DINÂMICO)
 // ============================================================================
 
-adminRouter.get('/institutions', requireAuth(['operador', 'admin_master']), async (c) => {
+adminRouter.get('/institutions', requireAuth(['operador', 'admin_master', 'dpo']), async (c) => {
   const db = c.env.DB;
   const list = await db.prepare('SELECT * FROM institutions ORDER BY name ASC').all<any>();
   return c.json({ success: true, institutions: list.results });

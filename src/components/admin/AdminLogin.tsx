@@ -45,122 +45,69 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
   };
 
   return (
-    <div className="py-8 px-3 sm:px-6 flex items-center justify-center animate-in fade-in duration-300">
+    <div className="py-4 sm:py-8 px-2 sm:px-6 flex items-center justify-center animate-in fade-in duration-300">
       
-      {/* ─── Folha A5 — Proporção Real ABNT (148mm x 210mm | Relação 1:1.414) ─── */}
-      <div
-        className="w-full max-w-[540px] animate-in zoom-in-95 duration-200"
-        style={{
-          background: '#ffffff',
-          minHeight: '764px',
-          paddingTop: '42px',
-          paddingLeft: '44px',
-          paddingRight: '44px',
-          paddingBottom: '52px',
-          fontFamily: "'Arial', 'Helvetica Neue', sans-serif",
-          fontSize: '9.5pt',
-          lineHeight: '1.5',
-          color: '#0f172a',
-          position: 'relative',
-          borderRadius: '0px',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          overflow: 'hidden',
-          border: '1px solid #e2e8f0',
-        }}
-      >
+      {/* ─── Folha A5 Responsiva (148mm x 210mm) ─── */}
+      <div className="document-sheet-a5 w-full max-w-[540px] flex flex-col justify-between overflow-hidden">
         {/* Bloco Superior e Conteúdo */}
         <div>
           {/* Cabeçalho Institucional A5 */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              marginBottom: '20px',
-              paddingBottom: '14px',
-              borderBottom: '2.5px solid #034b7f',
-            }}
-          >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 mb-5 pb-3 border-b-2 border-[#034b7f]">
             <div>
               <img
                 src="/logo-1linha.svg"
                 alt="SESI Saúde"
-                style={{ height: '38px', objectFit: 'contain' }}
+                className="h-8 sm:h-9 w-auto object-contain"
               />
-              <span style={{ display: 'block', fontSize: '7pt', color: '#64748b', marginTop: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <span className="block text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">
                 Departamento Regional do Distrito Federal
               </span>
             </div>
 
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '4px', marginBottom: '4px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#16a34a' }} />
-                <span style={{ fontSize: '7pt', fontWeight: 'bold', color: '#166534', textTransform: 'uppercase' }}>Sistema Oficial</span>
+            <div className="text-left sm:text-right">
+              <div className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full mb-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                <span className="text-[10px] font-bold text-emerald-800 uppercase">Sistema Oficial</span>
               </div>
-              <p style={{ fontSize: '7.5pt', color: '#64748b', margin: 0 }}>
+              <p className="text-[10px] text-slate-400 m-0">
                 {dataHoje}
               </p>
             </div>
           </div>
 
           {/* Título Oficial do Documento */}
-          <div style={{ textAlign: 'center', marginBottom: '22px' }}>
-            <h1 style={{
-              fontSize: '11pt',
-              fontWeight: 'bold',
-              color: '#034b7f',
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              margin: '0 0 4px',
-            }}>
+          <div className="text-center mb-5">
+            <h1 className="text-xs sm:text-sm md:text-[11pt] font-bold text-[#034b7f] uppercase tracking-tight m-0">
               Credencial de Acesso • Gestão de Assinaturas
             </h1>
-            <p style={{ fontSize: '8.5pt', color: '#475569', margin: 0 }}>
+            <p className="text-[11px] sm:text-xs text-slate-600 mt-1 m-0">
               Escola Cidadã — Saúde em Movimento • Painel Gestor
             </p>
           </div>
 
           {/* Mensagem de Erro (se houver) */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-xs text-red-800 flex items-start gap-2 mb-4">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 flex items-start gap-2 mb-4">
               <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
               <p className="m-0 leading-relaxed font-medium">{error}</p>
             </div>
           )}
 
           {/* Cláusula e Declaração de Uso */}
-          <div style={{
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderLeft: '4px solid #034b7f',
-            padding: '12px 14px',
-            marginBottom: '20px',
-            fontSize: '8.5pt',
-            color: '#334155',
-            lineHeight: '1.5',
-          }}>
-            <p style={{ margin: '0 0 4px', fontWeight: 'bold', color: '#034b7f' }}>
+          <div className="bg-slate-50 border border-slate-200 border-l-4 border-l-[#034b7f] rounded-r-xl p-3.5 sm:p-4 mb-4 text-xs text-slate-700 leading-relaxed">
+            <p className="m-0 mb-1 font-bold text-[#034b7f] uppercase text-[11px]">
               AUTENTICAÇÃO CORPORATIVA EXCLUSIVA
             </p>
-            <p style={{ margin: 0 }}>
+            <p className="m-0 text-slate-600">
               O acesso a este ambiente é restrito aos gestores credenciados para emissão, validação e auditoria dos termos de autorização para procedimentos em estudantes.
             </p>
           </div>
 
           {/* Módulo Central de Autenticação Microsoft */}
-          <div style={{
-            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-            border: '1.5px solid #cbd5e1',
-            padding: '20px 18px',
-            marginBottom: '20px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '14px' }}>
-              <Lock style={{ width: '15px', height: '15px', color: '#034b7f' }} />
-              <span style={{ fontSize: '8pt', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#1e293b' }}>
+          <div className="bg-gradient-to-b from-white to-slate-50 border border-slate-300 rounded-xl p-4 sm:p-5 mb-5 shadow-xs">
+            <div className="flex items-center justify-center gap-2 mb-3.5">
+              <Lock className="w-4 h-4 text-sesi-primary" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
                 Entrar com Conta Institucional
               </span>
             </div>
@@ -170,8 +117,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
               type="button"
               onClick={handleMicrosoftLogin}
               disabled={loading}
-              className="w-full py-3.5 px-5 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs border border-slate-300 shadow-sm hover:shadow transition-all flex items-center justify-center gap-3 cursor-pointer group disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ borderRadius: '0px' }}
+              className="w-full py-3 sm:py-3.5 px-4 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-900 font-bold text-xs sm:text-sm border border-slate-300 rounded-xl shadow-xs hover:shadow transition-all flex items-center justify-center gap-2.5 cursor-pointer group disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -188,18 +134,18 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
                     <path d="M11 11H20V20H11V11Z" fill="#FFB900" />
                   </svg>
                   <span className="text-slate-900">Entrar com conta corporativa Microsoft</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                 </>
               )}
             </button>
 
             {/* Domínio Autorizado */}
-            <div style={{ marginTop: '14px', textAlign: 'center' }}>
-              <span style={{ display: 'block', fontSize: '7pt', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+            <div className="mt-3.5 text-center">
+              <span className="block text-[10px] text-slate-500 uppercase tracking-wider mb-1.5 font-semibold">
                 Domínio Institucional Homologado
               </span>
-              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px' }}>
-                <span style={{ background: '#e0f2fe', color: '#034b7f', fontSize: '7.5pt', fontWeight: 'bold', padding: '3px 12px', border: '1px solid #bae6fd' }}>
+              <div className="flex flex-wrap justify-center gap-1.5">
+                <span className="bg-sky-50 text-sesi-primary text-xs font-mono font-bold px-3 py-1 rounded-md border border-sky-200">
                   @sistemafibra.org.br
                 </span>
               </div>
@@ -207,50 +153,35 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
           </div>
 
           {/* Grid de Conformidade e Auditoria Legal */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
-            gap: '8px',
-            fontSize: '7.5pt',
-            color: '#475569',
-            borderTop: '1px solid #e2e8f0',
-            paddingTop: '14px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <FileCheck2 style={{ width: '14px', height: '14px', color: '#034b7f', flexShrink: 0 }} />
-              <span><strong>Lei 14.063/2020</strong><br />Assinatura Avançada</span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-slate-600 border-t border-slate-200 pt-3.5">
+            <div className="flex items-center gap-2 p-1.5 rounded-lg bg-slate-50/70 border border-slate-100">
+              <FileCheck2 className="w-4 h-4 text-sesi-primary shrink-0" />
+              <span className="text-[11px] leading-tight"><strong>Lei 14.063/2020</strong><br />Assinatura Eletrônica</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <ShieldCheck style={{ width: '14px', height: '14px', color: '#16a34a', flexShrink: 0 }} />
-              <span><strong>LGPD Art. 18</strong><br />Sigilo de Dados</span>
+            <div className="flex items-center gap-2 p-1.5 rounded-lg bg-slate-50/70 border border-slate-100">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="text-[11px] leading-tight"><strong>LGPD Art. 18</strong><br />Sigilo de Dados</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <Building2 style={{ width: '14px', height: '14px', color: '#0284c7', flexShrink: 0 }} />
-              <span><strong>Entra ID (M365)</strong><br />OAuth 2.0 PKCE</span>
+            <div className="flex items-center gap-2 p-1.5 rounded-lg bg-slate-50/70 border border-slate-100">
+              <Building2 className="w-4 h-4 text-sky-600 shrink-0" />
+              <span className="text-[11px] leading-tight"><strong>Entra ID (M365)</strong><br />OAuth 2.0 PKCE</span>
             </div>
           </div>
         </div>
 
         {/* Rodapé e Barra Institucional */}
-        <div style={{ marginTop: '24px' }}>
+        <div className="mt-6 pt-4 relative">
           {/* Número de página (canto superior direito ABNT) */}
-          <div style={{
-            position: 'absolute',
-            top:   '20px',
-            right: '44px',
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '8.5pt',
-            color: '#94a3b8',
-          }}>
+          <div className="absolute top-3 right-4 font-sans text-xs text-slate-400">
             1
           </div>
 
           {/* Barra institucional no final da folha A5 */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, overflow: 'hidden' }}>
+          <div className="absolute bottom-0 left-0 right-0 overflow-hidden">
             <img
               src="/barra.jpg"
               alt="Barra institucional SESI"
-              style={{ width: '100%', height: '24px', display: 'block', objectFit: 'cover', objectPosition: 'center' }}
+              className="w-full h-4 sm:h-5 object-cover object-center block"
             />
           </div>
         </div>
@@ -259,3 +190,4 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
     </div>
   );
 };
+

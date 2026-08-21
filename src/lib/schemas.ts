@@ -101,11 +101,11 @@ export function formatUserAgent(ua?: string): string {
 }
 
 /**
- * Gera um identificador de protocolo único para o documento no formato oficial DOC-AAAA-XXXXXX
+ * Gera um identificador de protocolo único para o documento no formato oficial SESI-AAAA-XXXXXX
  */
 export function generateUniqueDocId(year = new Date().getFullYear()): string {
   const randomNum = Math.floor(100000 + Math.random() * 900000);
-  return `DOC-${year}-${randomNum}`;
+  return `SESI-${year}-${randomNum}`;
 }
 
 // ============================================================================
@@ -185,6 +185,12 @@ export const SignDocumentSchema = z.object({
   signer_email: z.string().email().optional(),
   minor_name: z.string().optional(),
   minor_birth_date: z.string().optional(),
+  minor_cpf: z.string().optional(),
+  minor_series: z.string().optional(),
+  minor_class: z.string().optional(),
+  minor_turn: z.string().optional(),
+  signer_phone: z.string().optional(),
+  signer_address: z.string().optional(),
   institution_name: z.string().optional(),
   auth_health: z.enum(['yes', 'no']).optional(),
   auth_data: z.enum(['yes', 'no']).optional(),

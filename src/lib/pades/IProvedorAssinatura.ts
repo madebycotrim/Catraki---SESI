@@ -1,5 +1,5 @@
 /**
- * Contratos do Padrão Strategy para Provedores de Assinatura Digital ICP-Brasil
+ * Contratos do Padrão Strategy para Provedores de Assinatura Eletrônica
  * Permite alternar entre Certificado A1 (PKCS#12 em memória) e Provedores em Nuvem (PSC)
  */
 

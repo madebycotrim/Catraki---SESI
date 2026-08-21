@@ -83,251 +83,245 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
   }).format(new Date());
 
   return (
-    <div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-2 sm:px-4 pb-12 pt-2">
-      {/* Botão de Impressão (Clean) */}
-      <div className="flex justify-end gap-2 mb-4 px-1 no-print">
+    <div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-1 sm:px-4 pb-10 pt-1">
+      {/* Botões de Ação Superior (Clean) */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 mb-4 px-1 no-print">
         <button
           onClick={handlePrintVoucher}
-          className="text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
+          className="text-xs sm:text-sm font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
         >
-          <Download className="w-3.5 h-3.5" />
-          Salvar em PDF
+          <Download className="w-4 h-4" />
+          <span>Salvar em PDF</span>
         </button>
         <button
           onClick={handlePrintVoucher}
-          className="text-xs font-bold bg-sesi-primary hover:bg-blue-900 text-white px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
+          className="text-xs sm:text-sm font-bold bg-sesi-primary hover:bg-blue-900 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
         >
-          <Printer className="w-3.5 h-3.5" />
-          Imprimir Comprovante (A4)
+          <Printer className="w-4 h-4" />
+          <span>Imprimir Comprovante (A4)</span>
         </button>
       </div>
 
-      {/* Folha A4 — Padrão ABNT (210mm x 297mm | Margens: Sup/Esq 30mm, Inf/Dir 20mm) */}
-      <div
-        className="p-6 sm:p-0"
-        style={{
-          background: '#ffffff',
-          paddingTop: '80px',
-          paddingLeft: '80px',
-          paddingRight: '60px',
-          paddingBottom: '80px',
-          fontFamily: "'Arial', 'Helvetica Neue', sans-serif",
-          fontSize: '11pt',
-          lineHeight: '1.6',
-          color: '#000',
-          minHeight: '297mm',
-          position: 'relative',
-          borderRadius: '0px',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
-        }}
-      >
-          {/* Cabeçalho oficial */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            marginBottom: '28px',
-            paddingBottom: '16px',
-            borderBottom: '3px solid #034b7f',
-          }}>
-            <img
-              src="/logo-1linha.svg"
-              alt="SESI Saúde"
-              style={{ height: '46px', objectFit: 'contain' }}
-            />
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '8.5pt', color: '#555', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Escola Cidadã — Saúde em Movimento
-              </p>
-              <p style={{ fontSize: '9pt', color: '#1e293b', margin: 0, fontWeight: 'bold' }}>
-                Comprovante de Assinatura
-              </p>
-              <p style={{ fontSize: '8pt', color: '#888', margin: 0 }}>
-                {dataHoje}
-              </p>
-            </div>
-          </div>
-
-          {/* Título do Recibo */}
-          <div className="text-center mb-6 pb-3 border-b border-slate-100">
-            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded text-xs font-bold uppercase tracking-wider mb-2">
-              <ShieldCheck className="w-3.5 h-3.5" /> Assinatura Concluída
-            </div>
-            <h1 className="text-base font-bold uppercase tracking-wide text-slate-900 m-0">
-              RECIBO DE ASSINATURA ELETRÔNICA AVANÇADA
-            </h1>
-            <p className="text-xs text-slate-500 mt-1">
-              Comprovante de manifestação de consentimento e aceite eletrônico.
+      {/* Folha A4 — Padrão ABNT Responsivo */}
+      <div className="document-sheet-a4">
+        {/* Cabeçalho oficial */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 pb-4 border-b-2 sm:border-b-3 border-[#034b7f]">
+          <img
+            src="/logo-1linha.svg"
+            alt="SESI Saúde"
+            className="h-8 sm:h-11 w-auto object-contain"
+          />
+          <div className="text-left sm:text-right">
+            <p className="text-[10px] sm:text-[8.5pt] text-slate-500 m-0 uppercase tracking-wider font-semibold">
+              Escola Cidadã — Saúde em Movimento
             </p>
-          </div>
-
-          {/* Banner de Envio de Cópia por E-mail */}
-          <div className="mb-6 bg-emerald-50/90 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-3 text-emerald-950">
-            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
-              <MailCheck className="w-4 h-4" />
-            </div>
-            <div className="space-y-0.5">
-              <strong className="text-xs font-bold uppercase tracking-wide block text-emerald-950">
-                Cópia do Comprovante Enviada por E-mail
-              </strong>
-              <p className="text-xs text-emerald-800 m-0 leading-relaxed">
-                Uma via completa deste termo assinado e o código de autenticidade foram enviados para: <span className="font-bold underline text-emerald-950">{signerEmail || 'seu e-mail informado'}</span>.
-              </p>
-            </div>
-          </div>
-
-          {/* Dados Principais do Evento */}
-          <div className="space-y-5 text-xs sm:text-sm">
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-2.5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Estudante</span>
-                  <strong className="text-slate-800 font-semibold">{minorName}</strong>
-                </div>
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Responsável Legal</span>
-                  <strong className="text-slate-800 font-semibold">{signerName}</strong>
-                </div>
-                <div className="sm:col-span-2">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Projeto / Atividade</span>
-                  <strong className="text-slate-800 font-semibold">{procedureTitle}</strong>
-                </div>
-                <div className="sm:col-span-2 pt-1 border-t border-slate-200">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Status Jurídico</span>
-                  <span className="inline-flex items-center font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded text-[11px] mt-0.5">
-                    ASSINADO ELETRONICAMENTE E VÁLIDO ✓
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Metadados Técnicos e Segurança */}
-            <div className="border border-slate-200 rounded-lg p-4 bg-slate-50/50 space-y-3">
-              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 flex items-center gap-2 m-0 border-b border-slate-200 pb-2">
-                <FileText className="w-4 h-4 text-sesi-primary" /> Evidências de Autenticidade
-              </h3>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-center">
-                
-                {/* Dados da assinatura */}
-                <div className="lg:col-span-2 space-y-2.5">
-                  
-                  {/* TOKEN ÚNICO AMIGÁVEL */}
-                  <div className="bg-blue-50/80 p-3 border-2 border-blue-200 rounded-xl flex items-center justify-between">
-                    <div>
-                      <span className="text-slate-500 block text-[9px] font-bold uppercase tracking-wider mb-0.5">
-                        Código Único de Validação:
-                      </span>
-                      <span className="font-mono text-base font-extrabold text-sesi-primary tracking-wider">
-                        {validationCode}
-                      </span>
-                    </div>
-                    <button
-                      onClick={handleCopyCode}
-                      className="px-3 py-1.5 bg-white border border-blue-200 text-[11px] text-sesi-primary hover:bg-blue-50 font-bold rounded-lg transition-colors flex items-center gap-1 shadow-sm"
-                    >
-                      {copiedCode ? 'Copiado ✓' : 'Copiar Código'}
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div className="bg-white p-2 border border-slate-200 rounded sm:col-span-2">
-                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-sesi-primary" /> Data e Hora (UTC):
-                      </span>
-                      <span className="font-mono text-[11px] font-bold text-slate-700">
-                        {new Date(signResult.signed_at_utc || signResult.signed_at || new Date().toISOString()).toLocaleString('pt-BR', { timeZone: 'UTC' })} UTC
-                      </span>
-                    </div>
-                    
-                    <div className="bg-white p-2 border border-slate-200 rounded">
-                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Endereço IP:</span>
-                      <span className="font-mono text-[11px] font-bold text-slate-700">{signResult.ip_address || '189.126.217.88'}</span>
-                    </div>
-
-                    <div className="bg-white p-2 border border-slate-200 rounded">
-                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Localização:</span>
-                      <span className="font-mono text-[11px] font-bold text-slate-700">{signResult.geo_city ? `${signResult.geo_city}, ${signResult.geo_region || 'DF'}` : 'Brasília, DF'}</span>
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* QR Code de Validação */}
-                <div className="flex flex-col items-center justify-center p-3 bg-white border border-slate-200 rounded-xl text-center h-full">
-                  {qrCodeDataUrl ? (
-                    <img
-                      src={qrCodeDataUrl}
-                      alt="QR Code de Autenticidade"
-                      className="w-24 h-24 bg-white p-1 border border-slate-200 mb-1.5 rounded"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 bg-slate-100 flex items-center justify-center text-slate-300 mb-1.5 border border-slate-200 rounded">
-                      <QrCode className="w-7 h-7" />
-                    </div>
-                  )}
-                  <span className="text-[10px] font-bold text-slate-800 uppercase tracking-wider mb-0.5">Validação Pública</span>
-                  <span className="text-[8px] text-slate-400 leading-tight">Escaneie para consultar autenticidade imediata.</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Aviso legal do recibo */}
-            <p style={{
-              marginTop: '20px',
-              fontFamily: 'Arial, sans-serif',
-              fontSize: '7.5pt',
-              color: '#888',
-              lineHeight: 1.4,
-              textAlign: 'center'
-            }}>
-              Recibo emitido eletronicamente em conformidade com o Artigo 10, Parágrafo 2º da MP 2.200-2/2001 e Lei 14.063/2020. A integridade pode ser confirmada no portal informando o código <strong>{validationCode}</strong>.
+            <p className="text-xs sm:text-[9pt] text-slate-800 m-0 font-bold">
+              Comprovante de Assinatura
             </p>
-
-            {/* Botoes de Acao */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6 border-t border-slate-200 mt-6 no-print">
-              <button
-                type="button"
-                onClick={() => onNavigateToValidator(validationCode)}
-                className="w-full sm:w-auto px-5 py-2.5 bg-sesi-primary hover:bg-blue-900 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-md"
-              >
-                Verificar Autenticidade no Portal
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
-
-              <button
-                type="button"
-                onClick={onNavigateToRevoke}
-                className="text-[10px] font-semibold text-slate-500 hover:text-amber-700 underline flex items-center gap-1 transition-colors"
-              >
-                <AlertCircle className="w-3.5 h-3.5" />
-                Revogar consentimento (Art. 18 LGPD)
-              </button>
-            </div>
-
-          </div>
-
-          {/* ─── Barra institucional no final da folha ─── */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, overflow: 'hidden' }}>
-            <img
-              src="/barra.jpg"
-              alt="Barra institucional SESI"
-              style={{ width: '100%', height: '36px', display: 'block', objectFit: 'cover', objectPosition: 'center' }}
-            />
-          </div>
-
-          {/* ─── Número de página (canto superior direito ABNT) ─── */}
-          <div style={{
-            position: 'absolute',
-            top:   '36px',
-            right: '60px',
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '9.5pt',
-            color: '#64748b',
-          }}>
-            4
+            <p className="text-[10px] sm:text-[8pt] text-slate-500 m-0">
+              {dataHoje}
+            </p>
           </div>
         </div>
+
+        {/* Título do Recibo */}
+        <div className="text-center mb-5 sm:mb-6 pb-3 border-b border-slate-100">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-[11px] sm:text-xs font-bold uppercase tracking-wider mb-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" /> 
+            <span>Assinatura Concluída</span>
+          </div>
+          <h1 className="text-sm sm:text-base font-bold uppercase tracking-wide text-slate-900 m-0">
+            RECIBO DE ASSINATURA ELETRÔNICA
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Comprovante de manifestação de consentimento e aceite eletrônico.
+          </p>
+        </div>
+
+        {/* Banner de Envio de Cópia por E-mail */}
+        <div className="mb-5 sm:mb-6 bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 sm:p-3.5 flex items-start gap-3 text-emerald-950">
+          <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+            <MailCheck className="w-4 h-4" />
+          </div>
+          <div className="space-y-0.5 text-xs sm:text-sm">
+            <strong className="text-xs sm:text-sm font-bold uppercase tracking-wide block text-emerald-950">
+              Cópia do Comprovante Enviada por E-mail
+            </strong>
+            <p className="text-xs text-emerald-800 m-0 leading-relaxed">
+              Uma via completa deste termo assinado e o código de autenticidade foram enviados para: <span className="font-bold underline text-emerald-950 break-all">{signerEmail || 'seu e-mail informado'}</span>.
+            </p>
+          </div>
+        </div>
+
+        {/* Dados Principais do Evento */}
+        <div className="space-y-4 sm:space-y-5 text-xs sm:text-sm">
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 sm:p-4 space-y-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs sm:text-sm">
+              <div>
+                <span className="block text-[10px] font-bold text-slate-400 uppercase">Estudante</span>
+                <strong className="text-slate-800 font-semibold">{minorName}</strong>
+              </div>
+              <div>
+                <span className="block text-[10px] font-bold text-slate-400 uppercase">Responsável Legal</span>
+                <strong className="text-slate-800 font-semibold">{signerName}</strong>
+              </div>
+              <div className="sm:col-span-2">
+                <span className="block text-[10px] font-bold text-slate-400 uppercase">Projeto / Atividade</span>
+                <strong className="text-slate-800 font-semibold">{procedureTitle}</strong>
+              </div>
+              <div className="sm:col-span-2 pt-1.5 border-t border-slate-200">
+                <span className="block text-[10px] font-bold text-slate-400 uppercase">Status Jurídico</span>
+                <span className="inline-flex items-center font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded text-xs mt-0.5">
+                  ASSINADO ELETRONICAMENTE E VÁLIDO ✓
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Metadados Técnicos e Segurança */}
+          <div className="border border-slate-200 rounded-xl p-3.5 sm:p-4 bg-slate-50/50 space-y-3">
+            <h3 className="font-bold text-xs sm:text-sm uppercase tracking-wider text-slate-800 flex items-center gap-2 m-0 border-b border-slate-200 pb-2">
+              <FileText className="w-4 h-4 text-sesi-primary" /> 
+              <span>Evidências de Autenticidade</span>
+            </h3>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-stretch">
+              
+              {/* Dados da assinatura */}
+              <div className="lg:col-span-2 space-y-2.5">
+                
+                {/* TOKEN ÚNICO AMIGÁVEL */}
+                <div className="bg-blue-50/80 p-3 sm:p-3.5 border-2 border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div>
+                    <span className="text-slate-500 block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-0.5">
+                      Código Único de Validação:
+                    </span>
+                    <span className="font-mono text-base sm:text-lg font-extrabold text-sesi-primary tracking-wider break-all">
+                      {validationCode}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleCopyCode}
+                    className="px-3.5 py-2 bg-white border border-blue-200 text-xs text-sesi-primary hover:bg-blue-50 font-bold rounded-lg transition-colors flex items-center justify-center gap-1 shadow-xs cursor-pointer active:scale-95"
+                  >
+                    {copiedCode ? 'Copiado ✓' : 'Copiar Código'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="bg-white p-2.5 border border-slate-200 rounded-lg sm:col-span-2">
+                    <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-sesi-primary" /> Data e Hora (UTC):
+                    </span>
+                    <span className="font-mono text-xs font-bold text-slate-700">
+                      {new Date(signResult.signed_at_utc || signResult.signed_at || new Date().toISOString()).toLocaleString('pt-BR', { timeZone: 'UTC' })} UTC
+                    </span>
+                  </div>
+                  
+                  <div className="bg-white p-2.5 border border-slate-200 rounded-lg">
+                    <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Endereço IP:</span>
+                    <span className="font-mono text-xs font-bold text-slate-700 break-all">{signResult.ip_address || '189.126.217.88'}</span>
+                  </div>
+
+                  <div className="bg-white p-2.5 border border-slate-200 rounded-lg">
+                    <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Localização:</span>
+                    <span className="font-mono text-xs font-bold text-slate-700">{signResult.geo_city ? `${signResult.geo_city}, ${signResult.geo_region || 'DF'}` : 'Brasília, DF'}</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* QR Code de Validação */}
+              <div className="flex flex-col items-center justify-center p-3.5 bg-white border border-slate-200 rounded-xl text-center h-full">
+                {qrCodeDataUrl ? (
+                  <img
+                    src={qrCodeDataUrl}
+                    alt="QR Code de Autenticidade"
+                    className="w-24 h-24 sm:w-28 sm:h-28 bg-white p-1 border border-slate-200 mb-2 rounded-lg"
+                  />
+                ) : (
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 bg-slate-100 flex items-center justify-center text-slate-300 mb-2 border border-slate-200 rounded-lg">
+                    <QrCode className="w-8 h-8" />
+                  </div>
+                )}
+                <span className="text-[10px] font-bold text-slate-800 uppercase tracking-wider mb-0.5">Validação Pública</span>
+                <span className="text-[9px] text-slate-400 leading-tight">Escaneie para consultar autenticidade imediata.</span>
+              </div>
+            </div>
+
+            {/* HASH DO MANIFESTO (SHA-256) ABAIXO DE ENDEREÇO E QR CODE (LARGURA TOTAL) */}
+            <div className="w-full bg-white p-3 border border-slate-200 rounded-lg">
+              <span className="text-slate-400 block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" /> Resumo Criptográfico do Manifesto (Hash SHA-256):
+              </span>
+              <span className="font-mono text-[10px] sm:text-xs font-bold text-slate-700 break-all select-all block leading-relaxed">
+                {signResult.manifest_sha256}
+              </span>
+            </div>
+          </div>
+
+          {/* Bloco Probatório Oficial Estilo Clicksign com a Marca Catraki */}
+          <div className="mt-5 pt-4 border-t border-slate-200 text-left">
+            <div className="flex flex-col sm:flex-row items-start gap-3 mb-3">
+              <div className="w-12 h-11 bg-sesi-primary rounded-lg text-white font-black flex flex-col items-center justify-center shrink-0 shadow-xs">
+                <span className="text-[10px] tracking-tight leading-none">CATRAKI</span>
+                <span className="text-[6.5px] font-bold tracking-widest text-blue-200 uppercase mt-0.5">SESI</span>
+              </div>
+              <div className="space-y-1 text-xs sm:text-sm">
+                <div className="font-bold text-slate-900 leading-snug">
+                  Documento assinado eletronicamente com validade jurídica.
+                </div>
+                <div className="text-slate-600 text-xs leading-relaxed">
+                  Para conferir a validade, acesse <span className="text-sesi-primary font-bold">https://www.catraki.com.br/validar</span> e utilize o código <strong className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">{validationCode}</strong>.
+                </div>
+                <div className="text-slate-500 text-[10px] sm:text-xs leading-normal">
+                  As assinaturas eletrônicas têm validade jurídica prevista na <strong>Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º)</strong> e na <strong>Lei Federal nº 14.063/2020 (Art. 4º, II)</strong>.
+                </div>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-dashed border-slate-200 text-[9.5px] sm:text-[10px] text-slate-400 text-left sm:text-justify leading-relaxed">
+              Este Log de Auditoria é exclusivo e deve ser considerado parte integrante do documento nº <strong className="text-slate-600">{validationCode}</strong>, com os efeitos probatórios prescritos pela legislação de assinaturas eletrônicas na plataforma Catraki.
+            </div>
+          </div>
+
+          {/* Botoes de Acao */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6 border-t border-slate-200 mt-6 no-print">
+            <button
+              type="button"
+              onClick={() => onNavigateToValidator(validationCode)}
+              className="w-full sm:w-auto px-6 py-3 bg-sesi-primary hover:bg-blue-900 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] cursor-pointer"
+            >
+              <span>Verificar Autenticidade no Portal</span>
+              <ExternalLink className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={onNavigateToRevoke}
+              className="text-xs font-semibold text-slate-500 hover:text-amber-700 underline flex items-center gap-1.5 transition-colors py-2"
+            >
+              <AlertCircle className="w-3.5 h-3.5" />
+              <span>Revogar consentimento (Art. 18 LGPD)</span>
+            </button>
+          </div>
+
+        </div>
+
+        {/* Barra institucional no final da folha */}
+        <div className="absolute bottom-0 left-0 right-0 overflow-hidden">
+          <img
+            src="/barra.jpg"
+            alt="Barra institucional SESI"
+            className="w-full h-6 sm:h-9 object-cover object-center block"
+          />
+        </div>
+
+        {/* Número de página (canto superior direito ABNT) */}
+        <div className="absolute top-4 sm:top-9 right-4 sm:right-12 font-sans text-xs text-slate-400">
+          4
+        </div>
+      </div>
     </div>
   );
 };
+

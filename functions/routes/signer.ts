@@ -52,8 +52,9 @@ signerRouter.get('/doc/:token', async (c) => {
     const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
 
     if (template) {
+      const randomNum = Math.floor(100000 + Math.random() * 900000);
       doc = {
-        id: `DOC-AUTO-${Date.now()}`,
+        id: `SESI-${new Date().getFullYear()}-${randomNum}`,
         status: 'pending',
         minor_name: 'Estudante',
         minor_birth_date: '2010-01-01',
@@ -104,7 +105,7 @@ signerRouter.get('/doc/:token', async (c) => {
       revoked_reason: doc.revoked_reason,
       manual_review_status: manualReview?.status || null,
       manual_review_notes: manualReview?.review_notes || null,
-      legal_notice: 'Assinatura Eletrônica Avançada (Decreto Federal nº 10.543/2020 e Lei nº 14.063/2020)',
+      legal_notice: 'Assinatura Eletrônica (MP nº 2.200-2/2001 e Lei nº 14.063/2020)',
     },
   });
 });
@@ -235,7 +236,8 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   if (!doc) {
     const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
     if (template) {
-      const newDocId = `DOC-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+      const randomNum = Math.floor(100000 + Math.random() * 900000);
+      const newDocId = `SESI-${new Date().getFullYear()}-${randomNum}`;
       await db.prepare(
         `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+3 years'), datetime('now', '+1 year'))`
@@ -251,7 +253,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   if (doc.otp_resend_count >= 8) {
     return c.json({
       success: false,
-      error: 'Limite de tentativas de envio de código excedido para este documento. Entre em contato com o suporte do SESI Saúde.',
+      error: 'Limite de tentativas de envio de código excedido para este documento. Entre em contato com o suporte da plataforma Catraki.',
       code: 'OTP_RESEND_EXCEEDED',
     }, 429);
   }
@@ -290,7 +292,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
         body: JSON.stringify({
           from: fromAddress,
           to: [targetEmail],
-          subject: `Código de Confirmação: ${otpCode} — SESI Saúde`,
+          subject: `Código de Confirmação: ${otpCode} — Catraki`,
           html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
             <div style="border-bottom: 2px solid #034b7f; padding-bottom: 12px; margin-bottom: 20px;">
               <h2 style="color: #034b7f; margin: 0; font-size: 18px; font-weight: bold;">Escola Cidadã — Saúde em Movimento</h2>
@@ -307,7 +309,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
               ⏱️ <strong>Validade:</strong> Este código expira em 5 minutos. Se você não solicitou este procedimento, por favor desconsidere este e-mail.
             </p>
             <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 11px; color: #94a3b8; text-align: center;">
-              Assinatura Eletrônica Avançada • Lei Federal nº 14.063/2020 • SESI DR-DF
+              Assinatura Eletrônica Avançada • Lei Federal nº 14.063/2020 • Plataforma Catraki
             </div>
           </div>`,
         }),
@@ -402,7 +404,7 @@ signerRouter.post('/otp/verify', async (c) => {
 
 /**
  * POST /api/signer/sign
- * Operação atômica e idempotente de assinatura avançada com hash chain e TSA
+ * Operação atômica e idempotente de assinatura eletrônica com hash chain e TSA
  */
 signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix: 'sign_doc' }), async (c) => {
   const body = await c.req.json();
@@ -596,6 +598,10 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const targetEmail = parsed.data.signer_email;
   const studentName = parsed.data.minor_name || doc.minor_name || 'Estudante';
   const studentBirth = parsed.data.minor_birth_date || doc.minor_birth_date || '';
+  const studentCpf = parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : '';
+  const studentSeries = parsed.data.minor_series ? `${parsed.data.minor_series}${parsed.data.minor_class ? ` - Turma ${parsed.data.minor_class}` : ''}` : '';
+  const studentTurn = parsed.data.minor_turn || '';
+  const signerPhone = parsed.data.signer_phone || '';
   const institutionName = parsed.data.institution_name || 'Escola Participante do Projeto';
   const authImageStatus = parsed.data.auth_image === 'yes';
 
@@ -617,103 +623,187 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
           from: fromAddress,
           to: [targetEmail],
           subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
-          html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px; border: 1px solid #cbd5e1; border-radius: 12px; background: #ffffff; color: #1e293b;">
-            
-            {/* Cabeçalho Institucional */}
-            <div style="border-bottom: 3px solid #034b7f; padding-bottom: 16px; margin-bottom: 24px; text-align: left;">
-              <div style="font-size: 20px; font-weight: 800; color: #034b7f; letter-spacing: -0.02em;">Escola Cidadã — Saúde em Movimento</div>
-              <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">
-                Serviço Social da Indústria • Departamento Regional do Distrito Federal (DR-DF)
+          html: `<div style="background-color: #f1f5f9; padding: 30px 12px; font-family: Arial, Helvetica, sans-serif; color: #1e293b; line-height: 1.6;">
+            <div style="max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); padding: 38px 34px; position: relative;">
+              
+              <!-- Número de Página ABNT (Canto Superior Direito) -->
+              <div style="text-align: right; font-size: 10px; color: #94a3b8; font-family: Arial, sans-serif; margin-bottom: 8px;">
+                Página 1 de 1 • Padrão ABNT
               </div>
-            </div>
 
-            {/* Título do Documento */}
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px; text-align: center;">
-              <h2 style="color: #034b7f; margin: 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em;">
-                COMPROVANTE DE AUTORIZAÇÃO E TERMO DE CONSENTIMENTO
-              </h2>
-              <p style="margin: 6px 0 0 0; font-size: 12px; color: #166534; font-weight: 700;">
-                ✓ ASSINATURA ELETRÔNICA AVANÇADA CONCLUÍDA COM SUCESSO
-              </p>
-            </div>
-
-            {/* 1. Qualificação e Declaração */}
-            <div style="margin-bottom: 20px; font-size: 13.5px; line-height: 1.6; color: #334155; background: #ffffff; padding: 4px 0;">
-              <p style="margin: 0 0 12px 0;">
-                Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong>, declaro que <strong>AUTORIZO</strong> a participação do(a) estudante <strong>${studentName}</strong>${studentBirth ? ` (nascido(a) em ${studentBirth})` : ''}, matriculado(a) na instituição <strong>${institutionName}</strong>, nas ações assistenciais e preventivas de saúde.
-              </p>
-            </div>
-
-            {/* 2. Painel de Autorizações Digitais */}
-            <div style="margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-              <div style="background: #034b7f; color: #ffffff; padding: 10px 14px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">
-                2. PAINEL DE AUTORIZAÇÕES DIGITAIS (Seleção e Consentimento)
+              <!-- Cabeçalho Oficial ABNT -->
+              <div style="border-bottom: 2.5px solid #034b7f; padding-bottom: 14px; margin-bottom: 22px;">
+                <div style="font-size: 16px; font-weight: 800; color: #034b7f; letter-spacing: -0.01em; text-transform: uppercase;">
+                  ESCOLA CIDADÃ — SAÚDE EM MOVIMENTO
+                </div>
+                <div style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 3px;">
+                  Serviço Social da Indústria • Departamento Regional do Distrito Federal (DR-DF)
+                </div>
+                <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
+                  Cooperação Técnica: Universidade de Brasília (UnB) • SESI-DF • Finatec
+                </div>
               </div>
-              <div style="padding: 14px; background: #ffffff; font-size: 12.5px; line-height: 1.5; space-y: 12px;">
+
+              <!-- Título do Documento -->
+              <div style="text-align: center; margin-bottom: 20px;">
+                <h1 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin: 0 0 4px 0; letter-spacing: 0.03em;">
+                  COMPROVANTE DE AUTORIZAÇÃO E TERMO DE CONSENTIMENTO
+                </h1>
+                <div style="font-size: 11px; font-weight: 600; color: #334155; margin-bottom: 8px;">
+                  Autorização para Ações Assistenciais e Preventivas de Saúde
+                </div>
+                <div style="display: inline-block; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; padding: 4px 12px; font-size: 11px; font-weight: 700; color: #065f46;">
+                  ✓ ASSINATURA ELETRÔNICA CONCLUÍDA COM SUCESSO
+                </div>
+              </div>
+
+              <!-- 1. Qualificação e Declaração Formal (Recuo ABNT) -->
+              <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify; background-color: #ffffff;">
+                <p style="margin: 0; text-indent: 28px;">
+                  Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth || 'Data não informada'}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhone ? `, telefone de contato <strong>${signerPhone}</strong>` : ''}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeries ? `, Série/Turma: <strong>${studentSeries}</strong>` : ''}${studentTurn ? `, Turno: <strong>${studentTurn}</strong>` : ''}, declaro sob as penas da lei que <strong>AUTORIZO</strong> realizar o atendimento e triagens de saúde do(a) estudante <strong>sem a presença do responsável legal</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>.
+                </p>
+              </div>
+
+              <!-- 2. Painel de Autorizações Digitais -->
+              <div style="margin-bottom: 18px; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden;">
+                <div style="background-color: #034b7f; color: #ffffff; padding: 7px 12px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;">
+                  2. PAINEL DE AUTORIZAÇÕES DIGITAIS (Seleção e Consentimento)
+                </div>
+                <div style="padding: 12px 14px; background-color: #ffffff; font-size: 12px;">
+                  
+                  <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9;">
+                    <div style="font-weight: 700; color: #0f172a; font-size: 11.5px; margin-bottom: 2px;">A. SOBRE O ATENDIMENTO DE SAÚDE</div>
+                    <div style="color: #166534; font-weight: 700; font-size: 11px; margin-bottom: 3px;">[ ✓ SIM — AUTORIZADO ]</div>
+                    <div style="color: #475569; font-size: 11px; line-height: 1.5; text-align: justify;">Autorizo a realização de triagens preventivas, exames clínicos, acuidade visual e avaliação bucal no âmbito da campanha "Saúde em Movimento".</div>
+                  </div>
+
+                  <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9;">
+                    <div style="font-weight: 700; color: #0f172a; font-size: 11.5px; margin-bottom: 2px;">B. SOBRE OS DADOS PESSOAIS E DE SAÚDE</div>
+                    <div style="color: #166534; font-weight: 700; font-size: 11px; margin-bottom: 3px;">[ ✓ SIM — AUTORIZADO ]</div>
+                    <div style="color: #475569; font-size: 11px; line-height: 1.5; text-align: justify;">Autorizo expressamente o tratamento dos dados pessoais e de saúde para fins exclusivos de assistência e proteção da saúde (LGPD - Arts. 7º e 11).</div>
+                  </div>
+
+                  <div>
+                    <div style="font-weight: 700; color: #0f172a; font-size: 11.5px; margin-bottom: 2px;">C. SOBRE O USO DE IMAGEM E VOZ</div>
+                    <div style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700; font-size: 11px; margin-bottom: 3px;">
+                      ${authImageStatus ? '[ ✓ SIM — AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}
+                    </div>
+                    <div style="color: #475569; font-size: 11px; line-height: 1.5; text-align: justify;">
+                      ${authImageStatus ? 'Autorizo a captação e veiculação de imagem e voz para fins institucionais e pedagógicos do projeto.' : 'Opção por não autorizar o uso de imagem e voz.'}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- 3. Compromissos e Direitos do Titular -->
+              <div style="margin-bottom: 18px; border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden;">
+                <div style="background-color: #f8fafc; color: #334155; padding: 7px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #e2e8f0;">
+                  3. COMPROMISSOS E DIREITOS DO TITULAR DOS DADOS (LGPD)
+                </div>
+                <div style="padding: 12px 14px; font-size: 11.5px; line-height: 1.6; color: #475569; background-color: #ffffff; text-align: justify;">
+                  <p style="margin: 0 0 6px 0; text-indent: 18px;"><strong>Finalidade e Proteção:</strong> Os dados coletados não serão comercializados, repassados a terceiros alheios ao projeto ou utilizados para fins discriminatórios.</p>
+                  <p style="margin: 0; text-indent: 18px;"><strong>Direito de Revogação:</strong> O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação do consentimento a qualquer momento através do contato com a direção da escola ou coordenação do projeto.</p>
+                </div>
+              </div>
+
+              <!-- 4. Card de Verificação Online & Protocolo de Assinatura (Estilo Assinafy / Banco Safra) -->
+              <div style="background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
                 
-                <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
-                  <div style="font-weight: 700; color: #0f172a; margin-bottom: 2px;">A. SOBRE O ATENDIMENTO DE SAÚDE</div>
-                  <div style="color: #166534; font-weight: 700; font-size: 11.5px; margin-bottom: 4px;">[ ✓ SIM - AUTORIZADO ]</div>
-                  <div style="color: #475569; font-size: 11.5px;">Autorizo a realização de triagens preventivas, exames clínicos, acuidade visual e avaliação bucal no âmbito da campanha "Saúde em Movimento".</div>
-                </div>
-
-                <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
-                  <div style="font-weight: 700; color: #0f172a; margin-bottom: 2px;">B. SOBRE OS DADOS PESSOAIS E DE SAÚDE</div>
-                  <div style="color: #166534; font-weight: 700; font-size: 11.5px; margin-bottom: 4px;">[ ✓ SIM - AUTORIZADO ]</div>
-                  <div style="color: #475569; font-size: 11.5px;">Autorizo expressamente o tratamento dos dados pessoais e de saúde para fins exclusivos de assistência e proteção da saúde (LGPD - Arts. 7º e 11).</div>
-                </div>
-
-                <div>
-                  <div style="font-weight: 700; color: #0f172a; margin-bottom: 2px;">C. SOBRE O USO DE IMAGEM E VOZ</div>
-                  <div style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700; font-size: 11.5px; margin-bottom: 4px;">
-                    ${authImageStatus ? '[ ✓ SIM - AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}
-                  </div>
-                  <div style="color: #475569; font-size: 11.5px;">
-                    ${authImageStatus ? 'Autorizo a captação e veiculação de imagem e voz para fins institucionais e pedagógicos do projeto.' : 'Opção por não autorizar o uso de imagem e voz.'}
+                <!-- Título com Linha Divisória -->
+                <div style="border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
+                  <div style="font-size: 14px; font-weight: 800; color: #0f172a; letter-spacing: -0.01em;">
+                    Verificação online
                   </div>
                 </div>
 
-              </div>
-            </div>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <!-- Coluna Esquerda: Metadados e Evidências Criptográficas -->
+                    <td style="vertical-align: top; padding-right: 14px; font-size: 11.5px; line-height: 1.6; color: #334155;">
+                      <div style="margin-bottom: 3px;">
+                        <span style="color: #64748b; font-weight: 700;">Documento:</span> <strong>Termo de Consentimento — Escola Cidadã</strong>
+                      </div>
+                      <div style="margin-bottom: 5px;">
+                        <span style="color: #64748b; font-weight: 700;">URL de verificação:</span> <a href="https://www.catraki.com.br/validar/${validationCode}" style="color: #034b7f; text-decoration: underline; font-weight: 600;">https://www.catraki.com.br/validar</a>
+                      </div>
 
-            {/* 3. Compromissos e Direitos do Titular */}
-            <div style="margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-              <div style="background: #f8fafc; color: #334155; padding: 10px 14px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #e2e8f0;">
-                3. COMPROMISSOS E DIREITOS DO TITULAR DOS DADOS (LGPD)
-              </div>
-              <div style="padding: 14px; font-size: 12px; line-height: 1.5; color: #475569; background: #ffffff;">
-                <p style="margin: 0 0 8px 0;"><strong>Finalidade e Proteção:</strong> Os dados coletados não serão comercializados, repassados a terceiros alheios ao projeto ou utilizados para fins discriminatórios.</p>
-                <p style="margin: 0;"><strong>Direito de Revogação:</strong> O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação do consentimento a qualquer momento através do contato com a direção da escola ou coordenação do projeto.</p>
-              </div>
-            </div>
+                      <!-- Destaque do Hash SHA-256 no estilo Assinafy -->
+                      <div style="margin: 6px 0 8px 0; background-color: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; padding: 6px 10px;">
+                        <span style="color: #034b7f; font-weight: 800; font-size: 11px;">Hash:</span> 
+                        <span style="font-family: monospace; font-size: 10px; font-weight: bold; color: #034b7f; word-break: break-all; letter-spacing: 0.02em;">${manifestSha256}</span>
+                      </div>
 
-            {/* 4. Trilha de Auditoria e Validade Jurídica */}
-            <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; margin-bottom: 24px; font-size: 11.5px; line-height: 1.6; color: #034b7f;">
-              <div style="font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px;">
-                4. TRILHA DE AUDITORIA E INTEGRIDADE CRIPTOGRÁFICA
+                      <div style="margin-bottom: 3px;">
+                        <span style="color: #64748b; font-weight: 700;">Número do documento:</span> <span style="font-family: monospace; font-weight: bold; color: #034b7f; font-size: 12px;">${validationCode}</span>
+                      </div>
+                      <div style="margin-bottom: 3px;">
+                        <span style="color: #64748b; font-weight: 700;">Signatário:</span> <strong>${signer_name}</strong> (CPF: ${cpfMasked} • ${signer_relationship})
+                      </div>
+                      <div style="margin-bottom: 3px;">
+                        <span style="color: #64748b; font-weight: 700;">Autenticação:</span> Código OTP de 6 dígitos via e-mail (${targetEmail})
+                      </div>
+                      <div style="margin-bottom: 3px;">
+                        <span style="color: #64748b; font-weight: 700;">Data e Hora (Oficial):</span> ${dataFormatada}
+                      </div>
+                      <div style="margin-bottom: 3px;">
+                        <span style="color: #64748b; font-weight: 700;">Endereço IP:</span> <span style="font-family: monospace; font-size: 11px;">${ipAddress}</span> • Brasília, DF
+                      </div>
+                    </td>
+
+                    <!-- Coluna Direita: QR Code de Validação Pública -->
+                    <td style="width: 115px; vertical-align: middle; text-align: center; border-left: 1px solid #f1f5f9; padding-left: 12px;">
+                      <a href="https://www.catraki.com.br/validar/${validationCode}" style="text-decoration: none; display: inline-block;">
+                        <img 
+                          src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&margin=0&color=034b7f&data=https%3A%2F%2Fwww.catraki.com.br%2Fvalidar%2F${validationCode}" 
+                          alt="QR Code de Validação" 
+                          style="width: 96px; height: 96px; display: block; border: 1px solid #e2e8f0; border-radius: 6px; padding: 3px; background: #ffffff;"
+                        />
+                      </a>
+                      <div style="font-size: 8px; font-weight: 800; color: #034b7f; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 5px;">
+                        VALIDAÇÃO PÚBLICA
+                      </div>
+                    </td>
+                  </tr>
+                </table>
               </div>
-              <div>• <strong>Código de Validação Oficial:</strong> <span style="font-family: monospace; font-size: 13px; font-weight: bold; background: #ffffff; padding: 2px 6px; border-radius: 4px; border: 1px solid #93c5fd;">${validationCode}</span></div>
-              <div>• <strong>Data e Hora da Assinatura:</strong> ${dataFormatada}</div>
-              <div>• <strong>Autenticação de Autoria:</strong> Código de Segurança Eletrônico (OTP 6 Dígitos via E-mail)</div>
-              <div>• <strong>Endereço IP Registrado:</strong> ${ipAddress}</div>
-              <div style="word-break: break-all; margin-top: 4px;">• <strong>Hash do Manifesto (SHA-256):</strong> <span style="font-family: monospace; font-size: 10px; color: #334155;">${manifestSha256}</span></div>
-              <div style="margin-top: 8px; font-size: 10.5px; color: #0369a1;">
-                <strong>Amparo Legal:</strong> Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º), Lei Federal nº 14.063/2020 (Art. 4º, II) e Lei nº 13.709/2018 (LGPD).
+
+              <!-- Botão de Consulta Online -->
+              <div style="text-align: center; margin-bottom: 24px;">
+                <a href="https://www.catraki.com.br/validar/${validationCode}" style="display: inline-block; background-color: #034b7f; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 12.5px; padding: 12px 26px; border-radius: 5px; box-shadow: 0 2px 5px rgba(3, 75, 127, 0.25);">
+                  Validar e Consultar Comprovante Online →
+                </a>
               </div>
-            </div>
 
-            {/* Botão de Consulta Online */}
-            <div style="text-align: center; margin-bottom: 20px;">
-              <a href="https://www.catraki.com.br/validar/${validationCode}" style="display: inline-block; background: #034b7f; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 13px; padding: 12px 24px; border-radius: 6px; shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                Validar e Consultar Comprovante Online →
-              </a>
-            </div>
+              <!-- Bloco Probatório Oficial Estilo Clicksign com a Marca Catraki -->
+              <div style="border-top: 1.5px solid #cbd5e1; padding-top: 16px; margin-top: 24px; font-size: 11px; color: #475569; line-height: 1.55;">
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+                  <tr>
+                    <td style="width: 56px; vertical-align: top; padding-right: 12px;">
+                      <div style="width: 52px; height: 50px; background-color: #034b7f; border-radius: 6px; text-align: center; color: #ffffff; padding: 7px 0; box-sizing: border-box;">
+                        <div style="font-size: 11px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.2;">CATRAKI</div>
+                        <div style="font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.9; margin-top: 2px;">SESI</div>
+                      </div>
+                    </td>
+                    <td style="vertical-align: top;">
+                      <div style="font-weight: 800; color: #0f172a; font-size: 12px; margin-bottom: 2px;">
+                        Documento assinado com validade jurídica.
+                      </div>
+                      <div style="color: #334155; font-size: 11px; margin-bottom: 4px;">
+                        Para conferir a validade, acesse <a href="https://www.catraki.com.br/validar/${validationCode}" style="color: #034b7f; font-weight: 700; text-decoration: underline;">https://www.catraki.com.br/validar</a> e utilize o código <strong>${validationCode}</strong>.
+                      </div>
+                      <div style="color: #64748b; font-size: 10px; line-height: 1.4;">
+                        As assinaturas eletrônicas têm validade jurídica prevista na <strong>Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º)</strong> e na <strong>Lei Federal nº 14.063/2020 (Art. 4º, II)</strong>.
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+                <div style="padding-top: 10px; border-top: 1px dashed #e2e8f0; font-size: 10px; color: #94a3b8; line-height: 1.5; text-align: justify;">
+                  Este Log é exclusivo e deve ser considerado parte integrante do documento nº <strong>${validationCode}</strong>, com os efeitos probatórios prescritos pela legislação de assinaturas eletrônicas na plataforma Catraki.
+                </div>
+              </div>
 
-            {/* Rodapé */}
-            <div style="border-top: 1px solid #e2e8f0; padding-top: 14px; font-size: 11px; color: #94a3b8; text-align: center;">
-              Este é um e-mail automático comprobatório de assinatura eletrônica emitido pela plataforma Catraki — SESI Saúde.
             </div>
-
           </div>`,
         }),
       });

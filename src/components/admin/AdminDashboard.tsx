@@ -305,38 +305,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   return (
-    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="p-2 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
       {/* Header Corporativo */}
-      <div className="bg-white border border-slate-200 p-6 sm:p-8 rounded-xl shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
+      <div className="bg-white border border-slate-200 p-4 sm:p-6 lg:p-8 rounded-2xl shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative overflow-hidden">
         
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-blue-50 border border-blue-100 text-blue-700 text-[10px] font-bold tracking-widest uppercase mb-3">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-blue-50 border border-blue-100 text-blue-700 text-[10px] font-bold tracking-widest uppercase mb-2 sm:mb-3">
             <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
             </span>
-            SISTEMA SESI SAÚDE ATIVO
+            PLATAFORMA CATRAKI ATIVA
           </div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
             Painel Gestor
           </h1>
-          <p className="text-slate-500 mt-1 text-sm max-w-xl">
+          <p className="text-slate-500 mt-1 text-xs sm:text-sm max-w-xl leading-relaxed">
             Acompanhamento de autorizações e gestão de escolas participantes da campanha "Saúde em Movimento".
           </p>
         </div>
         
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 relative z-10">
+        <div className="flex flex-col items-stretch sm:items-end gap-2.5 relative z-10">
           {/* Card do Usuário Logado */}
           {currentUser && (
-            <div className="flex items-center gap-3 px-3.5 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs shadow-xs">
+            <div className="flex items-center gap-3 px-3.5 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs shadow-xs w-full sm:w-auto">
               <div className="w-8 h-8 rounded-lg bg-sesi-primary text-white font-bold flex items-center justify-center text-xs shadow-xs shrink-0">
                 {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
               </div>
               <div className="text-left min-w-0">
-                <div className="font-bold text-slate-800 leading-tight flex items-center gap-2">
-                  <span className="truncate max-w-[180px] sm:max-w-[240px]">{currentUser.name}</span>
-                  <span className="px-2 py-0.5 bg-blue-100 text-sesi-primary text-[10px] font-bold rounded-full uppercase tracking-wider shrink-0">
+                <div className="font-bold text-slate-800 leading-tight flex items-center gap-1.5">
+                  <span className="truncate max-w-[200px] md:max-w-[320px]">{currentUser.name}</span>
+                  <span className="px-1.5 py-0.5 bg-blue-100 text-sesi-primary text-[9px] font-bold rounded-full uppercase tracking-wider shrink-0">
                     {currentUser.role === 'admin_master' ? 'Master' : 'Gestor'}
                   </span>
                 </div>
@@ -345,10 +345,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
-          <div className="flex items-center gap-2">
+          {/* Botões de Ação Abaixo do Card do Usuário */}
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button 
               onClick={() => setShowNewSchoolModal(true)}
-              className="flex-1 md:flex-none px-4 py-2.5 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm hover:shadow transition-all cursor-pointer"
+              className="flex-1 sm:flex-none px-4 py-2 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs hover:shadow transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Cadastrar Nova Escola</span>
@@ -358,40 +359,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <button
                 onClick={onLogout}
                 title="Sair do Painel Gestor"
-                className="px-3 py-2.5 bg-white border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 text-slate-600 font-medium text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 text-slate-600 font-medium text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
               >
                 <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Sair</span>
+                <span>Sair</span>
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Navegação entre Abas */}
-      <div className="flex border-b border-slate-200 gap-4">
+      {/* Navegação entre Abas (Scrollável no Mobile) */}
+      <div className="flex border-b border-slate-200 gap-2 sm:gap-4 overflow-x-auto pb-px">
         <button
           onClick={() => setActiveTab('authorizations')}
-          className={`pb-3 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${
+          className={`pb-3 px-2 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
             activeTab === 'authorizations'
               ? 'border-sesi-primary text-sesi-primary'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          <FileText className="w-4 h-4" />
-          <span>Autorizações Assinadas ({filteredAuths.length})</span>
+          <FileText className="w-4 h-4 shrink-0" />
+          <span>Autorizações ({filteredAuths.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('schools')}
-          className={`pb-3 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${
+          className={`pb-3 px-2 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
             activeTab === 'schools'
               ? 'border-sesi-primary text-sesi-primary'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          <Building2 className="w-4 h-4" />
-          <span>Escolas & Links de Acesso ({institutions.length})</span>
+          <Building2 className="w-4 h-4 shrink-0" />
+          <span>Escolas & Links ({institutions.length})</span>
         </button>
       </div>
 
@@ -400,17 +401,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="space-y-4">
           
           {/* Caixa de Pesquisa e Filtros Avançados */}
-          <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/90 space-y-4">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200/90 space-y-4">
             
             {/* Linha 1: Barra de Busca + Dropdowns de Filtro */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
               
               {/* Input de Busca */}
               <div className="relative group">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Buscar aluno, responsável ou código..."
+                  placeholder="Buscar aluno, responsável..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium placeholder:text-slate-400 focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all"
@@ -423,7 +424,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <select
                   value={selectedInstitution}
                   onChange={(e) => setSelectedInstitution(e.target.value)}
-                  className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none"
+                  className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none truncate"
                 >
                   <option value="all">Todas as Escolas</option>
                   {institutions.map((inst) => (
@@ -441,11 +442,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <select
                   value={selectedImageOption}
                   onChange={(e) => setSelectedImageOption(e.target.value as any)}
-                  className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none"
+                  className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none truncate"
                 >
-                  <option value="all">Imagem: Todas as Opções</option>
-                  <option value="authorized">📸 Imagem: Apenas Autorizada (Sim)</option>
-                  <option value="not_authorized">🚫 Imagem: Não Autorizada (Não)</option>
+                  <option value="all">Imagem: Todas</option>
+                  <option value="authorized">📸 Imagem: Autorizada</option>
+                  <option value="not_authorized">🚫 Imagem: Não Autorizada</option>
                 </select>
                 <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
               </div>
@@ -456,7 +457,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <select
                   value={selectedDateRange}
                   onChange={(e) => setSelectedDateRange(e.target.value as any)}
-                  className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none"
+                  className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none truncate"
                 >
                   <option value="all">Período: Todo o Histórico</option>
                   <option value="today">📅 Assinadas Hoje</option>
@@ -475,7 +476,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-sesi-primary font-bold rounded-lg border border-blue-100">
                   <Users className="w-3.5 h-3.5" />
-                  <span>{filteredAuths.length} autorizações encontradas</span>
+                  <span>{filteredAuths.length} autorizações</span>
                 </span>
 
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-800 font-bold rounded-lg border border-emerald-100">
@@ -485,21 +486,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {/* Botões de Ação: Excel / CSV e ZIP de PDFs */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <button
                   onClick={handleExportCsv}
                   title="Exportar dados consolidados em planilha Excel/CSV"
-                  className="flex-1 sm:flex-none px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                  className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
                 >
                   <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                  <span>Exportar Excel / CSV</span>
+                  <span>Exportar CSV</span>
                 </button>
 
                 <button
                   onClick={handleExportZipPdfs}
                   disabled={isExportingZip || filteredAuths.length === 0}
                   title="Baixar todos os termos assinados filtrados em um arquivo ZIP"
-                  className="flex-1 sm:flex-none px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isExportingZip ? (
                     <>
@@ -519,66 +520,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           </div>
 
-          {/* Tabela de Autorizações */}
+          {/* Tabela de Autorizações com Rolagem Horizontal Suave */}
           <div className="bg-white rounded-2xl shadow-xs border border-slate-200/90 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
-                    <th className="px-6 py-4">Paciente / Aluno</th>
-                    <th className="px-6 py-4">Responsável Legal</th>
-                    <th className="px-6 py-4">Instituição / Escola</th>
-                    <th className="px-6 py-4">Data Assinatura</th>
-                    <th className="px-6 py-4">Autorizações LGPD</th>
-                    <th className="px-6 py-4 text-right">Ação</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Paciente / Aluno</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Responsável Legal</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Instituição / Escola</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Data Assinatura</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Autorizações LGPD</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4 text-right">Ação</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
                   {filteredAuths.length > 0 ? (
                     filteredAuths.map((auth) => (
                       <tr 
                         key={auth.id} 
                         className="hover:bg-slate-50/70 transition-colors"
                       >
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-3.5 sm:py-4">
                           <div>
-                            <div className="font-bold text-sm text-slate-800">{auth.studentName}</div>
+                            <div className="font-bold text-slate-900 text-xs sm:text-sm">{auth.studentName}</div>
                             <div className="text-[11px] text-slate-400 font-mono mt-0.5">{auth.validationCode || auth.id}</div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-3.5 sm:py-4">
                           <div className="text-xs text-slate-700 font-medium">
                             <span className="font-bold">{auth.parentName}</span>
                             <div className="text-[11px] text-slate-400 font-mono mt-0.5">{auth.parentCpfMasked} ({auth.relationship})</div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-3.5 sm:py-4">
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold">
-                            <Building2 className="w-3.5 h-3.5 text-slate-500" />
-                            {auth.institutionName}
+                            <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span className="truncate max-w-[150px]">{auth.institutionName}</span>
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="text-xs text-slate-600 font-medium">
+                        <td className="px-4 sm:px-6 py-3.5 sm:py-4">
+                          <span className="text-xs text-slate-600 font-medium whitespace-nowrap">
                             {auth.dateSent}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-3.5 sm:py-4">
                           <div className="flex flex-col gap-1">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 whitespace-nowrap">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                               Saúde & Dados: Sim
                             </span>
-                            <span className={`inline-flex items-center gap-1 text-[10.5px] font-semibold ${auth.authImage ? 'text-blue-700' : 'text-slate-500'}`}>
-                              <Camera className="w-3 h-3" />
+                            <span className={`inline-flex items-center gap-1 text-[10.5px] font-semibold whitespace-nowrap ${auth.authImage ? 'text-blue-700' : 'text-slate-500'}`}>
+                              <Camera className="w-3 h-3 shrink-0" />
                               Imagem: {auth.authImage ? 'Autorizada (Sim)' : 'Não Autorizada'}
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-4 sm:px-6 py-3.5 sm:py-4 text-right">
                           <button
                             onClick={() => onNavigateToValidatorHash(auth.hash!)}
-                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-blue-50 hover:text-sesi-primary hover:border-blue-200 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer"
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-blue-50 hover:text-sesi-primary hover:border-blue-200 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
                           >
                             <FileText className="w-3.5 h-3.5" /> 
                             <span>Ver Detalhes</span>
@@ -588,7 +589,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-6 py-16 text-center">
+                      <td colSpan={6} className="px-6 py-12 sm:py-16 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <AlertTriangle className="w-8 h-8 text-slate-300 mb-3" />
                           <h3 className="text-sm font-bold text-slate-700 mb-1">Nenhuma autorização encontrada</h3>
@@ -609,7 +610,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ABA 2: GESTÃO DE ESCOLAS & INSTITUIÇÕES */}
       {activeTab === 'schools' && (
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 leading-relaxed flex items-start gap-3">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 sm:p-4 text-xs text-blue-900 leading-relaxed flex items-start gap-3">
             <LinkIcon className="w-5 h-5 text-sesi-primary shrink-0 mt-0.5" />
             <div>
               <strong>Como funciona o roteamento por escola:</strong> Qualquer link no formato <code className="bg-blue-100 px-1.5 py-0.5 rounded font-mono text-blue-950 font-bold">/autorizar/[slug-da-escola]</code> carrega o termo de consentimento personalizado com o nome daquela instituição de ensino. Basta cadastrar a escola abaixo e copiar o link para enviar aos pais!
@@ -624,7 +625,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               return (
                 <div 
                   key={inst.id}
-                  className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4 flex flex-col justify-between hover:border-slate-300 transition-colors"
+                  className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4 flex flex-col justify-between hover:border-slate-300 transition-colors"
                 >
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-3">
@@ -647,10 +648,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       )}
                     </div>
 
-                    <h3 className="font-bold text-slate-800 text-base leading-snug">
+                    <h3 className="font-bold text-slate-800 text-sm sm:text-base leading-snug">
                       {inst.name}
                     </h3>
-                    <p className="text-xs text-slate-500 font-mono break-all bg-slate-50 p-2 rounded border border-slate-100">
+                    <p className="text-xs text-slate-500 font-mono break-all bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                       {directUrl}
                     </p>
                   </div>
@@ -658,7 +659,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                     <button
                       onClick={() => handleCopySchoolLink(inst.id)}
-                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                      className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                         isCopied 
                           ? 'bg-emerald-600 text-white border border-emerald-700'
                           : 'bg-sesi-primary hover:bg-blue-800 text-white'
@@ -670,7 +671,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     <button
                       onClick={() => onNavigateToSignerToken('projeto-escola-cidada-2026', inst.id)}
-                      className="py-2 px-3 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+                      className="py-2.5 px-3.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
                       title="Abrir formulário desta escola"
                     >
                       <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
@@ -686,33 +687,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* MODAL: CADASTRAR NOVA ESCOLA */}
       {showNewSchoolModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-6 border border-slate-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-5 border border-slate-200 my-auto max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-sesi-primary flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-sesi-primary flex items-center justify-center shrink-0">
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-slate-800 text-base">Cadastrar Nova Escola</h2>
-                  <p className="text-xs text-slate-500">Crie um link exclusivo para uma instituição</p>
+                  <h2 className="font-bold text-slate-800 text-sm sm:text-base">Cadastrar Nova Escola</h2>
+                  <p className="text-[11px] sm:text-xs text-slate-500">Crie um link exclusivo para uma instituição</p>
                 </div>
               </div>
               <button 
                 onClick={() => setShowNewSchoolModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-lg font-bold p-1"
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold p-1 rounded-lg hover:bg-slate-100"
               >
                 ✕
               </button>
             </div>
 
             {schoolFormError && (
-              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-medium">
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium">
                 {schoolFormError}
               </div>
             )}
 
-            <form onSubmit={handleCreateSchool} className="space-y-4">
+            <form onSubmit={handleCreateSchool} className="space-y-3.5">
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-slate-700 uppercase">
                   Nome Completo da Escola <span className="text-red-500">*</span>
@@ -723,11 +724,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   placeholder="Ex: Centro Educacional 03 de Sobradinho"
                   value={newSchoolData.name}
                   onChange={(e) => setNewSchoolData({ ...newSchoolData, name: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-sesi-primary"
+                  className="w-full px-3 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-sesi-primary"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-slate-700 uppercase">
                     Sigla / Nome Curto <span className="text-red-500">*</span>
@@ -738,7 +739,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     placeholder="Ex: CED 03 Sobradinho"
                     value={newSchoolData.short_name}
                     onChange={(e) => setNewSchoolData({ ...newSchoolData, short_name: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-sesi-primary"
+                    className="w-full px-3 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-sesi-primary"
                   />
                 </div>
 
@@ -751,12 +752,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     placeholder="Ex: ced03 (opcional)"
                     value={newSchoolData.id}
                     onChange={(e) => setNewSchoolData({ ...newSchoolData, id: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg font-mono focus:outline-none focus:border-sesi-primary"
+                    className="w-full px-3 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl font-mono focus:outline-none focus:border-sesi-primary"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-slate-700 uppercase">Cidade</label>
                   <input
@@ -764,7 +765,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     placeholder="Ex: Sobradinho"
                     value={newSchoolData.city}
                     onChange={(e) => setNewSchoolData({ ...newSchoolData, city: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-sesi-primary"
+                    className="w-full px-3 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-sesi-primary"
                   />
                 </div>
 
@@ -776,22 +777,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     placeholder="DF"
                     value={newSchoolData.state}
                     onChange={(e) => setNewSchoolData({ ...newSchoolData, state: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-sesi-primary"
+                    className="w-full px-3 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-sesi-primary"
                   />
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowNewSchoolModal(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer text-center"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold bg-sesi-primary hover:bg-blue-800 text-white rounded-lg transition-colors shadow-sm"
+                  className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-sesi-primary hover:bg-blue-800 text-white rounded-xl transition-colors shadow-xs cursor-pointer text-center"
                 >
                   Salvar Escola e Gerar Link
                 </button>
@@ -804,3 +805,4 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     </div>
   );
 };
+

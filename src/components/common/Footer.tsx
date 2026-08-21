@@ -16,10 +16,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <span>Conformidade Jurídica & Regulatória</span>
           </div>
           <p className="leading-relaxed text-slate-400">
-            Sistema desenvolvido em estrita conformidade com a <strong>MP 2.200-2/2001</strong>, <strong>Decreto Federal nº 10.543/2020</strong> (Assinatura Eletrônica Avançada), <strong>Marco Civil da Internet (Lei 12.965/2014)</strong> e <strong>Art. 299 do Código Penal</strong>.
+            Sistema desenvolvido em estrita conformidade com a <strong>MP 2.200-2/2001 (Art. 10, § 2º)</strong>, <strong>Lei Federal nº 14.063/2020</strong> (Assinatura Eletrônica), <strong>Marco Civil da Internet (Lei 12.965/2014)</strong> e <strong>Art. 299 do Código Penal</strong>.
           </p>
           <div className="p-2.5 rounded-lg bg-blue-950/40 border border-blue-900/40 text-[11px] text-blue-300/90 leading-relaxed">
-            <strong>Aviso de Validade:</strong> As assinaturas geradas nesta plataforma constituem assinaturas eletrônicas avançadas mediante envio de código de segurança por e-mail, declaração de responsabilidade e registro digital de integridade, nos termos do Art. 10, § 2º da MP 2.200-2/2001 e Art. 4º, II da Lei 14.063/2020, sem necessidade de certificado ICP-Brasil.
+            <strong>Aviso de Validade:</strong> As assinaturas geradas nesta plataforma constituem assinaturas eletrônicas válidas mediante envio de código de segurança por e-mail, declaração de responsabilidade e registro de integridade, nos termos do Art. 10, § 2º da MP 2.200-2/2001 e Lei 14.063/2020, sem necessidade de certificado ICP-Brasil.
           </div>
         </div>
 
@@ -63,7 +63,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
       <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500">
         <div>
-          © {new Date().getFullYear()} SESI Saúde. Todos os direitos reservados.
+          © {new Date().getFullYear()} Catraki. Todos os direitos reservados. Plataforma tecnológica operada por Catraki.
         </div>
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1">

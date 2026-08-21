@@ -23,7 +23,7 @@ export interface IResultadoAssinaturaPAdES {
 }
 
 /**
- * Serviço de Assinatura Digital PAdES em conformidade com o padrão ICP-Brasil (DOC-ICP-15.01)
+ * Serviço de Assinatura Eletrônica PAdES
  * Realiza manipulação de baixo nível de bytes de PDF, injeção de ByteRange e montagem do contêiner PKCS#7/CMS.
  */
 export class PAdESSignerService {
@@ -39,7 +39,7 @@ export class PAdESSignerService {
     opcoes: IOpcoesAssinaturaPAdES = {}
   ): Promise<IResultadoAssinaturaPAdES> {
     const {
-      razao = 'Documento assinado digitalmente no padrão ICP-Brasil (PAdES)',
+      razao = 'Documento assinado eletronicamente (PAdES)',
       localizacao = 'São Paulo, Brasil',
       aplicarCarimboTempo = true,
       validarLcr = true,

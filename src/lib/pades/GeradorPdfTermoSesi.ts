@@ -157,7 +157,7 @@ export class GeradorPdfTermoSesi {
 
     // 5. Seção 4 - Assinatura e Trilha de Validação
     y -= 30;
-    page.drawText('4. DECLARAÇÃO E ASSINATURA ELETRÔNICA AVANÇADA (LEI 14.063/2020)', {
+    page.drawText('4. DECLARAÇÃO E ASSINATURA ELETRÔNICA (MP 2.200-2/2001 E LEI 14.063/2020)', {
       x: margemEsquerda,
       y,
       size: 10,
@@ -220,7 +220,7 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 10;
-    page.drawText('Assinatura Eletrônica Avançada confirmada via 2FA / OTP (Lei nº 14.063/2020)', {
+    page.drawText('Assinatura Eletrônica com validade jurídica (MP 2.200-2/2001 e Lei nº 14.063/2020)', {
       x: margemEsquerda,
       y,
       size: 7.5,
@@ -239,10 +239,10 @@ export class GeradorPdfTermoSesi {
     });
 
     // Rodapé
-    page.drawText('Documento assinado em conformidade com MP 2.200-2/2001, Lei 14.063/2020 e LGPD (Lei 13.709/2018).', {
+    page.drawText('Documento assinado eletronicamente através da plataforma Catraki com validade jurídica (MP 2.200-2/2001 e Lei 14.063/2020).', {
       x: margemEsquerda,
       y: 25,
-      size: 7,
+      size: 6.5,
       font: fontRegular,
       color: corCinza,
     });

@@ -65,7 +65,7 @@ app.post('/send-otp', async (c) => {
           html: `<div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;">
             <div style="border-bottom: 2px solid #034b7f; padding-bottom: 12px; margin-bottom: 16px;">
               <h2 style="color: #034b7f; margin: 0; font-size: 18px;">Escola Cidadã — Saúde em Movimento</h2>
-              <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Código de Assinatura Digital</span>
+              <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Código de Assinatura Eletrônica</span>
             </div>
             <p style="color: #334155; font-size: 14px; line-height: 1.6;">Olá!</p>
             <p style="color: #334155; font-size: 14px; line-height: 1.6;">Seu código de segurança para assinar a autorização do(a) estudante <strong>${nomeAluno}</strong> é:</p>
@@ -74,7 +74,7 @@ app.post('/send-otp', async (c) => {
             </div>
             <p style="color: #64748b; font-size: 12px; line-height: 1.5;">Este código expira em 5 minutos. Se você não solicitou esta autorização, desconsidere esta mensagem.</p>
             <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 12px; font-size: 11px; color: #94a3b8; text-align: center;">
-              Assinatura Eletrônica Avançada — Lei nº 14.063/2020 • SESI DF
+              Assinatura Eletrônica — MP nº 2.200-2/2001 e Lei nº 14.063/2020 • Plataforma Catraki
             </div>
           </div>`,
         }),
@@ -247,8 +247,8 @@ app.post('/send-test-email', async (c) => {
 app.get('/health', (c) => {
   return c.json({
     status: 'healthy',
-    service: 'SESI Saúde — Sistema de Assinatura Eletrônica (Cloudflare Pages Functions)',
-    legal_standard: 'Assinatura Eletrônica Avançada (Art. 10, § 2º da MP 2.200-2/2001 e Art. 4º, II da Lei 14.063/2020)',
+    service: 'Plataforma Catraki — Assinatura Eletrônica (Cloudflare Pages Functions)',
+    legal_standard: 'Assinatura Eletrônica (Art. 10, § 2º da MP 2.200-2/2001 e Lei nº 14.063/2020)',
     lgpd_compliance: 'Art. 11, I c/c Art. 14, § 1º (Menores de 18 Anos)',
     timestamp: new Date().toISOString(),
   });
@@ -258,7 +258,7 @@ app.get('/health', (c) => {
 app.notFound((c) => {
   return c.json({
     success: false,
-    error: 'Recurso não encontrado na API do SESI Saúde.',
+    error: 'Recurso não encontrado na API da plataforma Catraki.',
     code: 'NOT_FOUND',
   }, 404);
 });

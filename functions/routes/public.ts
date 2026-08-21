@@ -49,7 +49,7 @@ publicRouter.get('/validate/:query', async (c) => {
     return c.json({
       success: false,
       valid: false,
-      error: 'Código de autenticidade não localizado na cadeia de custódia oficial do SESI Saúde.',
+      error: 'Código de autenticidade não localizado na cadeia de custódia oficial da plataforma Catraki.',
       code: 'MANIFEST_NOT_FOUND',
     }, 404);
   }
@@ -61,8 +61,8 @@ publicRouter.get('/validate/:query', async (c) => {
 
   const response: PublicValidationResponse = {
     valid: true,
-    legal_notice: 'Assinatura Eletrônica Avançada (Art. 4º, II da Lei nº 14.063/2020 e MP 2.200-2/2001)',
-    signature_type: 'Assinatura Eletrônica Avançada (Lei 14.063/2020)',
+    legal_notice: 'Assinatura Eletrônica (MP nº 2.200-2/2001 e Lei nº 14.063/2020)',
+    signature_type: 'Assinatura Eletrônica (MP nº 2.200-2/2001 e Lei nº 14.063/2020)',
     document_id: record.document_id,
     manifest_sha256: record.manifest_sha256,
     content_sha256: record.content_sha256_at_signing,

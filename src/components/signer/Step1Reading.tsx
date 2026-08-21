@@ -27,146 +27,119 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
   }).format(new Date());
 
   return (
-    <div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-2 sm:px-4 pb-12 pt-2">
-      {/* Folha A4 — Padrão ABNT (210mm x 297mm | Margens: Sup/Esq 30mm, Inf/Dir 20mm) */}
-      <div
-        className="p-6 sm:p-0"
-        style={{
-          background: '#ffffff',
-          paddingTop: '80px',
-          paddingLeft: '80px',
-          paddingRight: '60px',
-          paddingBottom: '80px',
-          fontFamily: "'Arial', 'Helvetica Neue', sans-serif",
-          fontSize: '11pt',
-          lineHeight: '1.6',
-          color: '#000',
-          minHeight: '297mm',
-          position: 'relative',
-          borderRadius: '0px',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
-        }}
-      >
-          {/* Cabeçalho com logo oficial */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            marginBottom: '28px',
-            paddingBottom: '16px',
-            borderBottom: '3px solid #034b7f',
-          }}>
-            <img
-              src="/logo-1linha.svg"
-              alt="SESI Saúde"
-              style={{ height: '46px', objectFit: 'contain' }}
-            />
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '8.5pt', color: '#555', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Escola Cidadã — Saúde em Movimento
-              </p>
-              <p style={{ fontSize: '9pt', color: '#1e293b', margin: 0, fontWeight: 'bold' }}>
-                Doc. nº {document.id}
-              </p>
-              <p style={{ fontSize: '8pt', color: '#888', margin: 0 }}>
-                {dataHoje}
-              </p>
-            </div>
-          </div>
-
-          {/* Título Principal */}
-          <div className="text-center mb-8">
-            <h1 style={{ fontSize: '12pt', fontWeight: 'bold', margin: 0, textTransform: 'uppercase', color: '#000' }}>
-              BEM-VINDO(A) AO PROJETO ESCOLA CIDADÃ — SAÚDE EM MOVIMENTO
-            </h1>
-          </div>
-
-          {/* Corpo da Carta de Boas-Vindas */}
-          <div className="space-y-6 text-slate-800 text-justify" style={{ textIndent: '1.25cm' }}>
-            <p className="m-0 leading-relaxed">
-              Prezado(a) Responsável,<br />
-              Sabemos que a saúde e a segurança do(a) seu filho(a) são as suas maiores prioridades. É com esse mesmo cuidado que {institution?.name ? <strong>{institution.name}</strong> : 'a sua Escola'}, em parceria com a <strong>Universidade de Brasília (UnB)</strong>, o <strong>SESI-DF</strong> e a <strong>Finatec</strong>, traz até você esta iniciativa 100% gratuita de cuidado preventivo, saúde e cidadania.
+    <div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-1 sm:px-4 pb-10 pt-1">
+      {/* Folha A4 — Padrão ABNT Responsivo */}
+      <div className="document-sheet-a4">
+        {/* Cabeçalho com logo oficial */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 pb-4 border-b-2 sm:border-b-3 border-[#034b7f]">
+          <img
+            src="/logo-1linha.svg"
+            alt="SESI Saúde"
+            className="h-8 sm:h-11 w-auto object-contain"
+          />
+          <div className="text-left sm:text-right">
+            <p className="text-[10px] sm:text-[8.5pt] text-slate-500 m-0 uppercase tracking-wider font-semibold">
+              Escola Cidadã — Saúde em Movimento
             </p>
-
-            <p className="m-0 leading-relaxed">
-              Criamos este ambiente digital para que você possa autorizar o atendimento do(a) estudante com total transparência e comodidade, direto do seu celular, sem a necessidade de imprimir papéis.
+            <p className="text-xs sm:text-[9pt] text-slate-800 m-0 font-bold">
+              Doc. nº {document.id}
             </p>
-
-            {/* Subseção: Por que estou no sistema Catraki? */}
-            <div className="space-y-2 pt-2" style={{ textIndent: 0 }}>
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-sesi-primary shrink-0" /> Por que estou no sistema Catraki?
-              </h2>
-              <p className="leading-relaxed pl-6 text-slate-700 m-0">
-                O Catraki é a plataforma digital utilizada para a formalização e registro desta autorização eletrônica. Para atender aos requisitos de conformidade da Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018), as comunicações utilizam conexão segura criptografada (HTTPS) e validação de identidade por código temporário de segurança enviado ao seu e-mail, sem a necessidade de criar conta ou memorizar senhas. Os dados coletados e os prontuários de atendimento destinam-se exclusivamente ao acompanhamento clínico realizado pelos profissionais de saúde responsáveis.
-              </p>
-            </div>
-
-            {/* Subseção: O que você precisará autorizar? */}
-            <div className="space-y-2 pt-2" style={{ textIndent: 0 }}>
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
-                <Info className="w-4 h-4 text-sesi-primary shrink-0" /> O que você precisará autorizar?
-              </h2>
-              <p className="leading-relaxed pl-6 text-slate-700 m-0">
-                Na próxima etapa, tenha em mãos o seu CPF e o CPF do(a) estudante. Você precisará registrar suas escolhas sobre três pontos fundamentais:
-              </p>
-              <ul className="list-disc pl-12 text-slate-700 space-y-1.5 leading-relaxed font-medium">
-                <li>
-                  <strong className="text-slate-950">Atendimento de Saúde (Obrigatório):</strong> Autorização para que nossa equipe realize as consultas, triagens e avaliações clínicas no(a) aluno(a).
-                </li>
-                <li>
-                  <strong className="text-slate-950">Tratamento de Dados (Obrigatório):</strong> Permissão legal para o registro e armazenamento seguro do prontuário médico.
-                </li>
-                <li>
-                  <strong className="text-slate-950">Uso de Imagem (Opcional):</strong> Autorização para o registro de fotos institucionais do evento. A recusa desta opção não impede o atendimento do(a) estudante.
-                </li>
-              </ul>
-            </div>
-
-            {/* Subseção: Como proceder? */}
-            <div className="space-y-2 pt-2" style={{ textIndent: 0 }}>
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
-                <Eye className="w-4 h-4 text-sesi-primary shrink-0" /> Como proceder?
-              </h2>
-              <p className="leading-relaxed pl-6 text-slate-700 m-0">
-                Leia as próximas telas com atenção, marque as suas opções e, ao final, clique no botão de assinatura digital para concluir. O processo inteiro leva menos de 2 minutos.
-              </p>
-            </div>
-
-            {/* Botão de ação integrado na folha A4 */}
-            <div className="pt-8 border-t border-slate-100 flex justify-end" style={{ textIndent: 0 }}>
-              <button
-                id="btn-avancar-leitura"
-                onClick={onProceed}
-                className="w-full sm:w-auto px-6 py-3 bg-sesi-primary hover:bg-blue-900 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
-              >
-                Acessar Formulário de Autorização
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Barra institucional no final da folha */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, overflow: 'hidden' }}>
-            <img
-              src="/barra.jpg"
-              alt="Barra institucional SESI"
-              style={{ width: '100%', height: '36px', display: 'block', objectFit: 'cover', objectPosition: 'center' }}
-            />
-          </div>
-
-          {/* Número de página (canto superior direito ABNT) */}
-          <div style={{
-            position: 'absolute',
-            top:   '36px',
-            right: '60px',
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '9.5pt',
-            color: '#64748b',
-          }}>
-            1
+            <p className="text-[10px] sm:text-[8pt] text-slate-500 m-0">
+              {dataHoje}
+            </p>
           </div>
         </div>
+
+        {/* Título Principal */}
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-sm sm:text-base md:text-[12pt] font-bold text-slate-900 uppercase leading-snug tracking-tight m-0">
+            BEM-VINDO(A) AO PROJETO ESCOLA CIDADÃ — SAÚDE EM MOVIMENTO
+          </h1>
+        </div>
+
+        {/* Corpo da Carta de Boas-Vindas */}
+        <div className="space-y-5 sm:space-y-6 text-slate-800 text-left sm:text-justify text-xs sm:text-sm md:text-[11pt] leading-relaxed">
+          <p className="m-0 leading-relaxed">
+            Prezado(a) Responsável,<br />
+            Sabemos que a saúde e a segurança do(a) seu filho(a) são as suas maiores prioridades. É com esse mesmo cuidado que {institution?.name ? <strong>{institution.name}</strong> : 'a sua Escola'}, em parceria com a <strong>Universidade de Brasília (UnB)</strong>, o <strong>SESI-DF</strong> e a <strong>Finatec</strong>, traz até você esta iniciativa 100% gratuita de cuidado preventivo, saúde e cidadania.
+          </p>
+
+          <p className="m-0 leading-relaxed">
+            Criamos este ambiente digital para que você possa autorizar o atendimento do(a) estudante com total transparência e comodidade, direto do seu celular, sem a necessidade de imprimir papéis.
+          </p>
+
+          {/* Subseção: Por que estou no sistema Catraki? */}
+          <div className="space-y-1.5 pt-1">
+            <h2 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 m-0">
+              <ShieldCheck className="w-4 h-4 text-sesi-primary shrink-0" /> 
+              <span>Por que estou no sistema Catraki?</span>
+            </h2>
+            <p className="leading-relaxed pl-2 sm:pl-6 text-slate-700 m-0 text-xs sm:text-sm">
+              O Catraki é a plataforma digital utilizada para a formalização e registro desta autorização eletrônica. Para atender aos requisitos de conformidade da Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018), as comunicações utilizam conexão segura criptografada (HTTPS) e validação de identidade por código temporário de segurança enviado ao seu e-mail, sem a necessidade de criar conta ou memorizar senhas. Os dados coletados e os prontuários de atendimento destinam-se exclusivamente ao acompanhamento clínico realizado pelos profissionais de saúde responsáveis.
+            </p>
+          </div>
+
+          {/* Subseção: O que você precisará autorizar? */}
+          <div className="space-y-1.5 pt-1">
+            <h2 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 m-0">
+              <Info className="w-4 h-4 text-sesi-primary shrink-0" /> 
+              <span>O que você precisará autorizar?</span>
+            </h2>
+            <p className="leading-relaxed pl-2 sm:pl-6 text-slate-700 m-0 text-xs sm:text-sm">
+              Na próxima etapa, tenha em mãos o seu CPF e o CPF do(a) estudante. Você precisará registrar suas escolhas sobre três pontos fundamentais:
+            </p>
+            <ul className="list-disc pl-6 sm:pl-12 text-slate-700 space-y-2 leading-relaxed text-xs sm:text-sm">
+              <li>
+                <strong className="text-slate-950">Atendimento de Saúde (Obrigatório):</strong> Autorização para que nossa equipe realize as consultas, triagens e avaliações clínicas no(a) aluno(a).
+              </li>
+              <li>
+                <strong className="text-slate-950">Tratamento de Dados (Obrigatório):</strong> Permissão legal para o registro e armazenamento seguro do prontuário médico.
+              </li>
+              <li>
+                <strong className="text-slate-950">Uso de Imagem (Opcional):</strong> Autorização para o registro de fotos institucionais do evento. A recusa desta opção não impede o atendimento do(a) estudante.
+              </li>
+            </ul>
+          </div>
+
+          {/* Subseção: Como proceder? */}
+          <div className="space-y-1.5 pt-1">
+            <h2 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 m-0">
+              <Eye className="w-4 h-4 text-sesi-primary shrink-0" /> 
+              <span>Como proceder?</span>
+            </h2>
+            <p className="leading-relaxed pl-2 sm:pl-6 text-slate-700 m-0 text-xs sm:text-sm">
+              Leia as próximas telas com atenção, marque as suas opções e, ao final, clique no botão de assinatura eletrônica para concluir. O processo inteiro leva menos de 2 minutos.
+            </p>
+          </div>
+
+          {/* Botão de ação integrado na folha A4 */}
+          <div className="pt-6 sm:pt-8 border-t border-slate-200 flex justify-end">
+            <button
+              id="btn-avancar-leitura"
+              onClick={onProceed}
+              className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-sesi-primary hover:bg-blue-900 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] cursor-pointer"
+            >
+              <span>Acessar Formulário de Autorização</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Barra institucional no final da folha */}
+        <div className="absolute bottom-0 left-0 right-0 overflow-hidden">
+          <img
+            src="/barra.jpg"
+            alt="Barra institucional SESI"
+            className="w-full h-6 sm:h-9 object-cover object-center block"
+          />
+        </div>
+
+        {/* Número de página (canto superior direito ABNT) */}
+        <div className="absolute top-4 sm:top-9 right-4 sm:right-12 font-sans text-xs text-slate-400">
+          1
+        </div>
+      </div>
     </div>
   );
 };
+

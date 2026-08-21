@@ -7,7 +7,7 @@ import {
   ClienteCarimboTempoGratuito,
 } from '../src/lib/pades/index.ts';
 
-describe('Motor de Assinatura Digital PAdES / ICP-Brasil', () => {
+describe('Motor de Assinatura Eletrônica PAdES', () => {
   /**
    * Helper para criar um certificado A1 (.pfx) de teste em memória
    */

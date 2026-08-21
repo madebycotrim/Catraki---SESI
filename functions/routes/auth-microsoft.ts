@@ -8,6 +8,11 @@ export const authMicrosoftRouter = new Hono<{ Bindings: Env; Variables: { user: 
 // Domínio institucional exclusivo autorizado para acesso corporativo
 const DEFAULT_ALLOWED_DOMAINS = [
   'sistemafibra.org.br',
+  'sesi.org.br',
+  'sesidf.org.br',
+  'fibra.org.br',
+  'senaidf.org.br',
+  'iel.org.br',
 ];
 
 /**

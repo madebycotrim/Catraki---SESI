@@ -14,6 +14,14 @@ export function App() {
   const [activeValidatorHash, setActiveValidatorHash] = useState('');
   const [adminUser, setAdminUser] = useState<any | null>(() => apiClient.getCurrentAdminUser());
 
+  // Observa expiração ou logout da sessão administrativa
+  useEffect(() => {
+    const unsubscribe = apiClient.addAuthErrorListener(() => {
+      setAdminUser(null);
+    });
+    return () => unsubscribe();
+  }, []);
+
   // Sincroniza a URL inicial e lida com botão de avançar/voltar do navegador
   useEffect(() => {
     const tratarRota = async () => {
@@ -48,21 +56,26 @@ export function App() {
       if (path.startsWith('/autorizar/')) {
         const slug = path.substring('/autorizar/'.length) || 'cemeit';
         setActiveSchoolSlug(slug);
+        setActiveSignerToken(slug);
         setCurrentView('signer');
       } else if (path.startsWith('/termo/')) {
         const slug = path.substring('/termo/'.length) || 'cemeit';
         setActiveSchoolSlug(slug);
+        setActiveSignerToken(slug);
         setCurrentView('signer');
       } else if (path.startsWith('/escola/')) {
         const slug = path.substring('/escola/'.length) || 'cemeit';
         setActiveSchoolSlug(slug);
+        setActiveSignerToken(slug);
         setCurrentView('signer');
       } else if (path.startsWith('/escolacidada/')) {
         const slug = path.substring('/escolacidada/'.length) || 'cemeit';
         setActiveSchoolSlug(slug);
+        setActiveSignerToken(slug);
         setCurrentView('signer');
       } else if (path === '/autorizar' || path === '/escolacidada' || path === '/termo') {
         setActiveSchoolSlug('cemeit');
+        setActiveSignerToken('cemeit');
         setCurrentView('signer');
       } else if (path.startsWith('/validar/')) {
         const hash = path.substring('/validar/'.length);
@@ -131,10 +144,10 @@ export function App() {
       )}
 
       {/* Conteúdo Principal */}
-      <main className={`flex-1 flex flex-col w-full ${isPublicView ? 'items-center pt-12' : ''}`}>
+      <main className={`flex-1 flex flex-col w-full ${isPublicView ? 'items-center pt-2 sm:pt-6 md:pt-10' : ''}`}>
 
         {currentView === 'signer' && (
-          <div className="w-full max-w-4xl p-4 sm:p-8">
+          <div className="w-full max-w-4xl px-2 sm:px-6 md:px-8 py-2 sm:py-4">
             <SignerWizard
               initialToken={activeSignerToken}
               schoolSlug={activeSchoolSlug}
@@ -145,7 +158,7 @@ export function App() {
         )}
 
         {currentView === 'validator' && (
-          <div className="w-full p-4 sm:p-8 max-w-4xl mx-auto">
+          <div className="w-full px-2 sm:px-6 md:px-8 py-2 sm:py-4 max-w-4xl mx-auto">
             <PublicValidator 
               initialHash={activeValidatorHash} 
               onNavigateToSigner={() => navigateToSigner()} 
@@ -172,7 +185,7 @@ export function App() {
         )}
 
         {currentView === 'revoke' && (
-          <div className="w-full p-4 sm:p-8 max-w-4xl mx-auto">
+          <div className="w-full px-2 sm:px-6 md:px-8 py-2 sm:py-4 max-w-4xl mx-auto">
             <RevocationPortal
               token={activeSignerToken}
               onBack={() => navigateToSigner()}

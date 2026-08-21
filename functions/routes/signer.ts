@@ -348,8 +348,9 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
             <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 20px 0 0 0;">
               ⏱️ <strong>Validade:</strong> Este código expira em 5 minutos. Se você não solicitou este procedimento, por favor desconsidere este e-mail.
             </p>
-            <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 11px; color: #94a3b8; text-align: center;">
-              Assinatura Eletrônica Avançada • Lei Federal nº 14.063/2020 • Plataforma Catraki
+            <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 11px; color: #94a3b8; text-align: center; line-height: 1.5;">
+              Assinatura Eletrônica Avançada • Lei Federal nº 14.063/2020 • Plataforma Catraki<br />
+              Para mais informações sobre como protegemos seus dados, consulte nossa <a href="https://www.catraki.com.br/privacidade" style="color: #034b7f; text-decoration: underline;">Política de Privacidade e Termos de Uso</a>.
             </div>
           </div>`,
         }),
@@ -787,7 +788,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       <!-- 1. Qualificação e Declaração Formal (Recuo ABNT) -->
       <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify; background-color: #ffffff;">
         <p style="margin: 0; text-indent: 28px;">
-          Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth || 'Data não informada'}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhoneText}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeriesText}${studentTurnText}, declaro sob as penas da lei que <strong>AUTORIZO</strong> realizar o atendimento e triagens de saúde do(a) estudante <strong>sem a presença do responsável legal</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>.
+          Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth || 'Data não informada'}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhoneText}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeriesText}${studentTurnText}, declaro sob as penas da lei que <strong>AUTORIZO a realização do atendimento e das triagens de saúde do(a) estudante</strong> <strong>sem a presença do responsável legal</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>.
         </p>
       </div>
 
@@ -802,18 +803,22 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         </p>
 
         <p style="margin: 0 0 8px 0; text-indent: 28px;">
-          <strong>b) Tratamento de Dados Pessoais e de Saúde (LGPD):</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica expressamente autorizado o tratamento dos dados pessoais e sensíveis para finalidade exclusiva de assistência à saúde e histórico de atendimento, nos termos dos artigos 7º, I, 11, II, "f", e 14 da Lei Federal nº 13.709/2018.
+          <strong>b) Tratamento de Dados Pessoais e de Saúde (LGPD):</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica expressamente autorizado o tratamento dos dados pessoais e sensíveis para finalidade exclusiva de assistência à saúde e histórico de atendimento, nos termos dos artigos 7º, I, 11, I, e 14 da Lei Federal nº 13.709/2018.
         </p>
 
         <p style="margin: 0 0 10px 0; text-indent: 28px;">
           <strong>c) Captação e Uso de Imagem e Voz:</strong> <span style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700;">${authImageStatus ? '[ ✓ AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}</span> — ${authImageStatus ? 'Fica autorizada de forma gratuita a captação e veiculação de fotos e vídeos para documentação institucional, relatórios e prestação de contas do projeto (ECA, Art. 17).' : 'O(a) responsável optou por não autorizar o registro fotográfico ou audiovisual, permanecendo inalterado o pleno atendimento de saúde do(a) estudante.'}
+        </p>
+
+        <p style="margin: 0 0 10px 0; text-indent: 28px;">
+          <strong>d) Situações de Emergência:</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Em caso de intercorrência médica ou emergência durante as ações do projeto, autorizo a equipe responsável a prestar os primeiros socorros e, se necessário, acionar o serviço de urgência (SAMU/Corpo de Bombeiros) e encaminhar o(a) estudante à unidade de saúde mais próxima, comprometendo-se a equipe a notificar o responsável legal imediatamente.
         </p>
       </div>
 
       <!-- 3. Cláusula Terceira — Direitos e Revogação (LGPD) -->
       <div style="margin-bottom: 24px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify;">
         <p style="margin: 0; text-indent: 28px;">
-          Declaro estar ciente de que os dados coletados não serão comercializados e que é garantido o direito de acesso, retificação ou revogação deste consentimento a qualquer momento (Art. 18 da LGPD), mediante solicitação formal à direção da escola ou coordenação do projeto.
+          Declaro estar ciente de que os dados coletados não serão comercializados e que é garantido o direito de acesso, retificação ou revogação deste consentimento a qualquer momento (Art. 18 da LGPD), mediante solicitação formal à direção da escola ou pelo e-mail oficial: <strong>autorizacoes@catraki.com.br</strong> (ou diretamente pelo Portal de Revogação da plataforma).
         </p>
       </div>
 
@@ -918,7 +923,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
           </tr>
         </table>
         <div style="padding-top: 10px; border-top: 1px dashed #e2e8f0; font-size: 11px; color: #64748b; line-height: 1.5; text-align: left;">
-          🔒 <strong>Comprovante oficial:</strong> Este registro confirma a assinatura válida do termo <strong>${validationCode}</strong> e pode ser consultado a qualquer momento no validador público da plataforma Catraki.
+          🔒 <strong>Comprovante oficial:</strong> Este registro confirma a assinatura válida do termo <strong>${validationCode}</strong> e pode ser consultado a qualquer momento no validador público da plataforma Catraki.<br />
+          Para mais informações sobre o tratamento e retenção de dados clínicos, consulte nossa <a href="https://www.catraki.com.br/privacidade" style="color: #034b7f; text-decoration: underline;">Política de Privacidade e Termos de Uso</a>.
         </div>
       </div>
 

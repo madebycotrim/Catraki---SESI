@@ -154,12 +154,14 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
               className="space-y-4 sm:space-y-5 bg-slate-50/90 border-2 border-slate-200 rounded-xl p-4 sm:p-7 shadow-xs"
             >
               <div className="space-y-2">
-                <label className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                <label htmlFor="field-validate-code" className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
                   <Key className="w-4 h-4 text-sesi-primary" />
                   <span>Código Único de Validação ou Hash SHA-256</span>
                 </label>
                 <div className="relative">
                   <input
+                    id="field-validate-code"
+                    name="validateCode"
                     type="text"
                     value={hashInput}
                     onChange={(e) => setHashInput(e.target.value.toUpperCase())}

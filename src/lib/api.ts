@@ -98,7 +98,7 @@ A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que 
 
 **Dados coletados:** nome completo, CPF do(a) estudante e do(a) responsável, data de nascimento, escola/turma, registros de atendimentos (prontuários) e dados de auditoria da assinatura (IP, timestamp, geolocalização).
 
-**Base Legal:** Art. 7º, I, e Art. 14 da LGPD; Art. 46 da LGPD (segurança dos dados).
+**Base Legal:** Art. 7º, I, Art. 11, I, e Art. 14 da LGPD; Art. 46 da LGPD (segurança dos dados).
 
 ---
 
@@ -116,7 +116,7 @@ A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que 
 
 **Finalidade e Proteção:** Os dados coletados não serão comercializados, repassados a terceiros alheios ao projeto ou utilizados para fins discriminatórios.
 
-**Direito de Revogação:** O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação do uso da imagem a qualquer momento, mediante contato com a **equipe responsável pelo projeto na escola** ou com a coordenação do projeto na UnB/SESI-DF/Finatec, no prazo de **15 dias úteis**.
+**Direito de Revogação:** O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação deste consentimento a qualquer momento, mediante solicitação formal à direção da escola, pelo e-mail oficial **autorizacoes@catraki.com.br** ou diretamente pelo Portal de Revogação da plataforma.
 
 **Seus direitos garantidos:** acesso, correção, eliminação, portabilidade, revogação do consentimento e reclamação perante a **ANPD** (anpd.gov.br).
 

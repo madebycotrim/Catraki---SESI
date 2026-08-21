@@ -83,4 +83,36 @@ describe('Validações e Schemas Zod (schemas.ts)', () => {
     const withoutConsentResult = SignDocumentSchema.safeParse(withoutConsent);
     expect(withoutConsentResult.success).toBe(false);
   });
+
+  it('deve aceitar todas as opções válidas de representação legal e parentesco', () => {
+    const relationships = [
+      'Pai',
+      'Mãe',
+      'Tutor Legal',
+      'Tutor(a) Legal',
+      'Responsável por Guarda Judicial',
+      'Guarda Judicial',
+      'Avô/Avó',
+      'Avô / Avó',
+      'Tio/Tia',
+      'Tio / Tia',
+      'Outro',
+      'Outro Responsável Legal',
+    ];
+
+    for (const rel of relationships) {
+      const payload = {
+        token: 'demo-token-sesi-audiometria-2026',
+        otp_code: '123456',
+        signer_name: 'Mateus Cotrim',
+        signer_cpf: '123.456.789-09',
+        signer_relationship: rel,
+        signature_png_base64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        consent_lgpd_art11_art14: true,
+        declaration_art299_penal: true,
+      };
+      const res = SignDocumentSchema.safeParse(payload);
+      expect(res.success).toBe(true);
+    }
+  });
 });

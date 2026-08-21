@@ -113,10 +113,12 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onDocumentCrea
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">
+              <label htmlFor="create-minor-name" className="block font-semibold text-slate-300 mb-1">
                 Nome Completo do Menor:
               </label>
               <input
+                id="create-minor-name"
+                name="minorName"
                 type="text"
                 value={minorName}
                 onChange={(e) => setMinorName(e.target.value)}
@@ -126,10 +128,12 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onDocumentCrea
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">
+              <label htmlFor="create-minor-birthdate" className="block font-semibold text-slate-300 mb-1">
                 Data de Nascimento do Menor:
               </label>
               <input
+                id="create-minor-birthdate"
+                name="minorBirthDate"
                 type="date"
                 value={minorBirthDate}
                 onChange={(e) => setMinorBirthDate(e.target.value)}
@@ -141,10 +145,12 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onDocumentCrea
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">
+              <label htmlFor="create-parent-name" className="block font-semibold text-slate-300 mb-1">
                 Nome do Responsável Legal:
               </label>
               <input
+                id="create-parent-name"
+                name="parentName"
                 type="text"
                 value={parentName}
                 onChange={(e) => setParentName(e.target.value)}
@@ -154,10 +160,12 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onDocumentCrea
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">
+              <label htmlFor="create-parent-email" className="block font-semibold text-slate-300 mb-1">
                 E-mail de Notificação / 2FA:
               </label>
               <input
+                id="create-parent-email"
+                name="parentEmail"
                 type="email"
                 value={parentEmail}
                 onChange={(e) => setParentEmail(e.target.value)}
@@ -167,10 +175,12 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onDocumentCrea
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">
+              <label htmlFor="create-parent-phone" className="block font-semibold text-slate-300 mb-1">
                 Celular para SMS (Opcional):
               </label>
               <input
+                id="create-parent-phone"
+                name="parentPhone"
                 type="text"
                 value={parentPhone}
                 onChange={(e) => setParentPhone(e.target.value)}

@@ -175,10 +175,11 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
+                <label htmlFor="field-signerName" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
                   Nome Completo <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="field-signerName"
                   type="text"
                   name="signerName"
                   value={formData.signerName}
@@ -191,10 +192,11 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
+                <label htmlFor="field-signerCpf" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
                   CPF <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="field-signerCpf"
                   type="text"
                   name="signerCpf"
                   value={formData.signerCpf}
@@ -209,10 +211,11 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
+                <label htmlFor="field-signerRelationship" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
                   Vínculo com o menor <span className="text-red-500">*</span>
                 </label>
                 <select
+                  id="field-signerRelationship"
                   name="signerRelationship"
                   value={formData.signerRelationship}
                   onChange={handleChange}
@@ -222,18 +225,20 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   <option value="Mãe">Mãe</option>
                   <option value="Pai">Pai</option>
                   <option value="Tutor(a) Legal">Tutor(a) Legal</option>
-                  <option value="Avô/Avó">Avô / Avó</option>
-                  <option value="Tio/Tia">Tio / Tia</option>
+                  <option value="Responsável por Guarda Judicial">Responsável por Guarda Judicial</option>
+                  <option value="Avô / Avó">Avô / Avó</option>
+                  <option value="Tio / Tia">Tio / Tia</option>
                   <option value="Outro">Outro Responsável Legal</option>
                 </select>
                 {errors.signerRelationship && <span className="text-[10px] font-semibold text-red-500">{errors.signerRelationship}</span>}
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
+                <label htmlFor="field-signerPhone" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
                   Telefone (WhatsApp) <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="field-signerPhone"
                   type="tel"
                   name="signerPhone"
                   value={formData.signerPhone}
@@ -249,7 +254,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
 
               <div className="flex flex-col gap-1 md:col-span-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-0.5 sm:gap-1">
-                  <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
+                  <label htmlFor="field-signerEmail" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
                     E-mail do Responsável <span className="text-red-500">*</span>
                   </label>
                   <span className="text-[10px] text-sesi-primary font-medium">
@@ -257,6 +262,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   </span>
                 </div>
                 <input
+                  id="field-signerEmail"
                   type="email"
                   name="signerEmail"
                   value={formData.signerEmail}
@@ -279,10 +285,11 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
               <div className="flex flex-col gap-1 md:col-span-2">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
+                <label htmlFor="field-minorName" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
                   Nome Completo do Aluno <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="field-minorName"
                   type="text"
                   name="minorName"
                   value={formData.minorName}
@@ -294,10 +301,11 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
+                <label htmlFor="field-minorBirthDate" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
                   Data de Nascimento <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="field-minorBirthDate"
                   type="date"
                   name="minorBirthDate"
                   value={formData.minorBirthDate}
@@ -308,10 +316,11 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
+                <label htmlFor="field-minorCpf" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
                   CPF do Aluno <span className="text-slate-400 font-normal lowercase">(opcional)</span>
                 </label>
                 <input
+                  id="field-minorCpf"
                   type="text"
                   name="minorCpf"
                   value={formData.minorCpf}
@@ -325,8 +334,10 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
               </div>
 
               <div className="flex flex-col gap-1 md:col-span-2">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">Escola / Instituição de Ensino</label>
+                <label htmlFor="field-minorSchool" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">Escola / Instituição de Ensino</label>
                 <input
+                  id="field-minorSchool"
+                  name="minorSchool"
                   type="text"
                   readOnly
                   value={institution?.name || 'Centro de Ensino Médio EIT (CEMEIT)'}
@@ -337,8 +348,9 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
               {/* Série / Ano e Turma lado a lado */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">Série / Ano</label>
+                  <label htmlFor="field-minorSeries" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">Série / Ano</label>
                   <input
+                    id="field-minorSeries"
                     type="text"
                     name="minorSeries"
                     value={formData.minorSeries}
@@ -349,8 +361,9 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">Turma</label>
+                  <label htmlFor="field-minorClass" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">Turma</label>
                   <input
+                    id="field-minorClass"
                     type="text"
                     name="minorClass"
                     value={formData.minorClass}
@@ -362,8 +375,9 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">Turno</label>
+                <label htmlFor="field-minorTurn" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">Turno</label>
                 <select
+                  id="field-minorTurn"
                   name="minorTurn"
                   value={formData.minorTurn}
                   onChange={handleChange}

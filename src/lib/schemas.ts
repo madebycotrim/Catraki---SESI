@@ -137,7 +137,15 @@ export const RelationshipSchema = z.enum([
   'Pai', 
   'Mãe', 
   'Tutor Legal', 
-  'Responsável por Guarda Judicial'
+  'Tutor(a) Legal',
+  'Responsável por Guarda Judicial',
+  'Guarda Judicial',
+  'Avô/Avó',
+  'Avô / Avó',
+  'Tio/Tia',
+  'Tio / Tia',
+  'Outro',
+  'Outro Responsável Legal'
 ], {
   errorMap: () => ({ message: 'Grau de parentesco ou representação legal inválido' })
 });

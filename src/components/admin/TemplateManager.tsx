@@ -132,8 +132,10 @@ export const TemplateManager: React.FC = () => {
             <form onSubmit={handleCreateTemplate} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Identificador Único (Slug):</label>
+                  <label htmlFor="tpl-slug" className="block font-semibold text-slate-300 mb-1">Identificador Único (Slug):</label>
                   <input
+                    id="tpl-slug"
+                    name="templateSlug"
                     type="text"
                     value={id}
                     onChange={(e) => setId(e.target.value)}
@@ -144,8 +146,10 @@ export const TemplateManager: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Prazo de Retenção (Dias):</label>
+                  <label htmlFor="tpl-retention" className="block font-semibold text-slate-300 mb-1">Prazo de Retenção (Dias):</label>
                   <input
+                    id="tpl-retention"
+                    name="retentionDays"
                     type="number"
                     value={retentionDays}
                     onChange={(e) => setRetentionDays(parseInt(e.target.value, 10))}
@@ -156,8 +160,10 @@ export const TemplateManager: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Título Oficial do Procedimento:</label>
+                <label htmlFor="tpl-title" className="block font-semibold text-slate-300 mb-1">Título Oficial do Procedimento:</label>
                 <input
+                  id="tpl-title"
+                  name="templateTitle"
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -168,10 +174,12 @@ export const TemplateManager: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">
+                <label htmlFor="tpl-description" className="block font-semibold text-slate-300 mb-1">
                   Descrição Específica do Procedimento (Exigência LGPD Art. 11/14):
                 </label>
                 <textarea
+                  id="tpl-description"
+                  name="templateDescription"
                   value={procedureDescription}
                   onChange={(e) => setProcedureDescription(e.target.value)}
                   rows={3}

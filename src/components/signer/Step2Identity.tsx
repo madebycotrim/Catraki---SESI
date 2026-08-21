@@ -181,10 +181,12 @@ export const Step2Identity: React.FC<Step2IdentityProps> = ({ token, minorName, 
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="identity-signer-name" className="block text-xs font-semibold text-slate-700 mb-1.5">
               Nome Completo do Responsável Legal:
             </label>
             <input
+              id="identity-signer-name"
+              name="identitySignerName"
               type="text"
               value={signerName}
               onChange={(e) => {
@@ -197,7 +199,7 @@ export const Step2Identity: React.FC<Step2IdentityProps> = ({ token, minorName, 
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+            <label htmlFor="identity-signer-cpf" className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
               <span>CPF do Responsável:</span>
               {signerCpfRaw && (
                 <span className={`text-[11px] ${isCpfValid ? 'text-sesi-green font-medium' : 'text-red-500'}`}>
@@ -206,6 +208,8 @@ export const Step2Identity: React.FC<Step2IdentityProps> = ({ token, minorName, 
               )}
             </label>
             <input
+              id="identity-signer-cpf"
+              name="identitySignerCpf"
               type="text"
               value={formatCpf(signerCpfRaw)}
               onChange={handleCpfChange}
@@ -219,10 +223,12 @@ export const Step2Identity: React.FC<Step2IdentityProps> = ({ token, minorName, 
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+          <label htmlFor="identity-signer-relationship" className="block text-xs font-semibold text-slate-700 mb-1.5">
             Grau de Parentesco / Representação Legal:
           </label>
           <select
+            id="identity-signer-relationship"
+            name="identitySignerRelationship"
             value={relationship}
             onChange={(e) => {
               setRelationship(e.target.value as SignerRelationship);
@@ -306,10 +312,12 @@ export const Step2Identity: React.FC<Step2IdentityProps> = ({ token, minorName, 
 
                 {/* Upload RG/CNH */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label htmlFor="upload-id-doc" className="block text-xs font-semibold text-slate-700 mb-1">
                     1. Documento de Identidade com Foto (RG ou CNH do Responsável):
                   </label>
                   <input
+                    id="upload-id-doc"
+                    name="uploadIdDoc"
                     type="file"
                     accept="image/jpeg,image/png,application/pdf"
                     onChange={(e) => handleFileUpload(e, setIdDocBase64)}
@@ -322,10 +330,12 @@ export const Step2Identity: React.FC<Step2IdentityProps> = ({ token, minorName, 
 
                 {/* Upload Selfie */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label htmlFor="upload-selfie" className="block text-xs font-semibold text-slate-700 mb-1">
                     2. Selfie Segurando o Documento de Identidade:
                   </label>
                   <input
+                    id="upload-selfie"
+                    name="uploadSelfie"
                     type="file"
                     accept="image/jpeg,image/png"
                     onChange={(e) => handleFileUpload(e, setSelfieBase64)}
@@ -339,10 +349,12 @@ export const Step2Identity: React.FC<Step2IdentityProps> = ({ token, minorName, 
                 {/* Upload Guarda / Tutela se aplicável */}
                 {(relationship === 'Tutor Legal' || relationship === 'Responsável por Guarda Judicial') && (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label htmlFor="upload-guardianship" className="block text-xs font-semibold text-slate-700 mb-1">
                       3. Certidão de Tutela / Termo de Guarda Judicial:
                     </label>
                     <input
+                      id="upload-guardianship"
+                      name="uploadGuardianship"
                       type="file"
                       accept="image/jpeg,image/png,application/pdf"
                       onChange={(e) => handleFileUpload(e, setGuardianshipBase64)}

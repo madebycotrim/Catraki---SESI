@@ -8,7 +8,15 @@ export type SignerRelationship =
   | 'Pai' 
   | 'Mãe' 
   | 'Tutor Legal' 
-  | 'Responsável por Guarda Judicial';
+  | 'Tutor(a) Legal'
+  | 'Responsável por Guarda Judicial'
+  | 'Guarda Judicial'
+  | 'Avô/Avó'
+  | 'Avô / Avó'
+  | 'Tio/Tia'
+  | 'Tio / Tia'
+  | 'Outro'
+  | 'Outro Responsável Legal';
 
 export type IdentityMethod = 'matricula_sesi' | 'manual_review';
 

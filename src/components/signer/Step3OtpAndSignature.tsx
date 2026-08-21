@@ -293,9 +293,10 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 A. SOBRE O ATENDIMENTO DE SAÚDE (Obrigatório para participação)
               </h3>
               <div className="space-y-2">
-                <label className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
+                <label htmlFor="auth-health-yes" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
                   <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
                     <input
+                      id="auth-health-yes"
                       type="radio"
                       name="authHealth"
                       checked={authHealth === 'yes'}
@@ -332,9 +333,10 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   </span>
                 </label>
 
-                <label className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
+                <label htmlFor="auth-health-no" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
                   <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
                     <input
+                      id="auth-health-no"
                       type="radio"
                       name="authHealth"
                       checked={authHealth === 'no'}
@@ -379,9 +381,10 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 B. SOBRE OS DADOS PESSOAIS E DE SAÚDE (Obrigatório para participação)
               </h3>
               <div className="space-y-2">
-                <label className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
+                <label htmlFor="auth-data-yes" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
                   <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
                     <input
+                      id="auth-data-yes"
                       type="radio"
                       name="authData"
                       checked={authData === 'yes'}
@@ -418,9 +421,10 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   </span>
                 </label>
 
-                <label className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
+                <label htmlFor="auth-data-no" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
                   <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
                     <input
+                      id="auth-data-no"
                       type="radio"
                       name="authData"
                       checked={authData === 'no'}
@@ -465,9 +469,10 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 C. SOBRE O USO DE IMAGEM E VOZ (Opcional)
               </h3>
               <div className="space-y-2">
-                <label className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
+                <label htmlFor="auth-image-yes" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
                   <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
                     <input
+                      id="auth-image-yes"
                       type="radio"
                       name="authImage"
                       checked={authImage === 'yes'}
@@ -504,9 +509,10 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   </span>
                 </label>
 
-                <label className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
+                <label htmlFor="auth-image-no" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
                   <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
                     <input
+                      id="auth-image-no"
                       type="radio"
                       name="authImage"
                       checked={authImage === 'no'}
@@ -539,9 +545,21 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     )}
                   </div>
                   <span className="text-slate-700 leading-relaxed text-xs sm:text-sm">
-                    <strong className="text-slate-950 font-bold">NÃO AUTORIZO</strong> o uso da imagem. (O estudante participará normalmente do atendimento e não será fotografado).
+                    <strong className="text-slate-950 font-bold">NÃO AUTORIZO</strong> o uso de imagem. (Não impede a participação nos atendimentos de saúde).
                   </span>
                 </label>
+              </div>
+            </div>
+
+            {/* D. Situações de Emergência Médica */}
+            <div className="space-y-2.5 pt-3 border-t border-slate-100">
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide">
+                D. SOBRE SITUAÇÕES DE EMERGÊNCIA MÉDICA
+              </h3>
+              <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs sm:text-sm text-slate-700 leading-relaxed">
+                <p className="m-0">
+                  <strong className="text-slate-950 font-bold">[ ✓ AUTORIZADO ]</strong> — Em caso de intercorrência médica ou emergência durante as ações do projeto, fica a equipe responsável expressamente autorizada a prestar os primeiros socorros e, se necessário, acionar o serviço de urgência (SAMU / Corpo de Bombeiros) e encaminhar o(a) estudante à unidade de saúde mais próxima, comprometendo-se a equipe a notificar o responsável legal imediatamente.
+                </p>
               </div>
             </div>
           </div>
@@ -556,7 +574,10 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 <strong>Finalidade e Proteção:</strong> Os dados coletados não serão comercializados, repassados a terceiros alheios ao projeto ou utilizados para fins discriminatórios.
               </p>
               <p className="m-0">
-                <strong>Direito de Revogação:</strong> O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação do uso da imagem a qualquer momento através do contato com a direção da escola ou coordenação do projeto.
+                <strong>Direito de Revogação:</strong> O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação deste consentimento a qualquer momento mediante solicitação formal à direção da escola, pelo e-mail oficial <a href="mailto:autorizacoes@catraki.com.br" className="text-sesi-primary underline">autorizacoes@catraki.com.br</a> ou diretamente pelo <a href="/revogar" className="text-sesi-primary underline">Portal de Revogação</a> da plataforma.
+              </p>
+              <p className="m-0 pt-1 text-[11px] text-slate-500">
+                Para mais informações sobre a retenção de dados e segurança da informação, consulte nossa <a href="/privacidade" target="_blank" className="text-sesi-primary underline font-medium">Política de Privacidade e Termos de Uso</a>.
               </p>
             </div>
           </div>
@@ -578,8 +599,10 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
 
           {/* Checkbox Obrigatório */}
           <div className="pt-2">
-            <label className="flex items-start gap-3 p-3.5 sm:p-3 border-2 border-slate-200 hover:border-slate-300 rounded-xl bg-slate-50 cursor-pointer select-none transition-colors">
+            <label htmlFor="field-readAndAccept" className="flex items-start gap-3 p-3.5 sm:p-3 border-2 border-slate-200 hover:border-slate-300 rounded-xl bg-slate-50 cursor-pointer select-none transition-colors">
               <input
+                id="field-readAndAccept"
+                name="readAndAccept"
                 type="checkbox"
                 checked={readAndAccept}
                 onChange={(e) => setReadAndAccept(e.target.checked)}
@@ -762,10 +785,12 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
 
               {/* Campo do Código OTP */}
               <div className="space-y-1.5 pt-1">
-                <label className="block text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-700">
+                <label htmlFor="field-otpCode" className="block text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-700">
                   Insira o Código de 6 Dígitos
                 </label>
                 <input
+                  id="field-otpCode"
+                  name="otpCode"
                   type="text"
                   maxLength={6}
                   inputMode="numeric"

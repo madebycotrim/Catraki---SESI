@@ -129,10 +129,12 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
               </h3>
 
               <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase text-slate-700">
+                <label htmlFor="field-revocation-reason" className="block text-xs font-bold uppercase text-slate-700">
                   Motivo / Justificativa da Revogação <span className="text-red-500">*</span>
                 </label>
                 <textarea
+                  id="field-revocation-reason"
+                  name="revocationReason"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   rows={4}
@@ -143,8 +145,10 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
               </div>
 
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 sm:p-5">
-                <label className="flex items-start gap-3 cursor-pointer select-none">
+                <label htmlFor="field-confirm-consequences" className="flex items-start gap-3 cursor-pointer select-none">
                   <input
+                    id="field-confirm-consequences"
+                    name="confirmConsequences"
                     type="checkbox"
                     checked={confirmedConsequences}
                     onChange={(e) => setConfirmedConsequences(e.target.checked)}

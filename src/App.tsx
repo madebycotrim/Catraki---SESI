@@ -5,10 +5,11 @@ import { PublicValidator } from './components/validator/PublicValidator.tsx';
 import { AdminDashboard } from './components/admin/AdminDashboard.tsx';
 import { AdminLogin } from './components/admin/AdminLogin.tsx';
 import { RevocationPortal } from './components/revocation/RevocationPortal.tsx';
+import { PrivacyPolicy } from './components/common/PrivacyPolicy.tsx';
 import { apiClient } from './lib/api.ts';
 
 export function App() {
-  const [currentView, setCurrentView] = useState<'signer' | 'validator' | 'admin' | 'revoke'>('signer');
+  const [currentView, setCurrentView] = useState<'signer' | 'validator' | 'admin' | 'revoke' | 'privacy'>('signer');
   const [activeSignerToken, setActiveSignerToken] = useState('projeto-escola-cidada-2026');
   const [activeSchoolSlug, setActiveSchoolSlug] = useState('cemeit');
   const [activeValidatorHash, setActiveValidatorHash] = useState('');
@@ -86,6 +87,8 @@ export function App() {
         setCurrentView('validator');
       } else if (path === '/revogar') {
         setCurrentView('revoke');
+      } else if (path === '/privacidade' || path === '/termos') {
+        setCurrentView('privacy');
       } else if (path === '/admin') {
         setCurrentView('admin');
       } else {
@@ -101,7 +104,7 @@ export function App() {
     return () => window.removeEventListener('popstate', tratarRota);
   }, []);
 
-  const navegarParaView = (view: 'signer' | 'validator' | 'admin' | 'revoke', path: string) => {
+  const navegarParaView = (view: 'signer' | 'validator' | 'admin' | 'revoke' | 'privacy', path: string) => {
     setCurrentView(view);
     window.history.pushState({}, '', path);
   };
@@ -126,7 +129,7 @@ export function App() {
     navegarParaView('revoke', '/revogar');
   };
 
-  const isPublicView = currentView === 'signer' || currentView === 'validator' || currentView === 'revoke';
+  const isPublicView = currentView === 'signer' || currentView === 'validator' || currentView === 'revoke' || currentView === 'privacy';
 
   return (
     <div className="min-h-screen flex flex-col bg-[#edf1f5] text-slate-800 font-sans selection:bg-blue-500 selection:text-white">
@@ -190,6 +193,12 @@ export function App() {
               token={activeSignerToken}
               onBack={() => navigateToSigner()}
             />
+          </div>
+        )}
+
+        {currentView === 'privacy' && (
+          <div className="w-full px-2 sm:px-6 md:px-8 py-2 sm:py-4 max-w-4xl mx-auto">
+            <PrivacyPolicy onBack={() => navigateToSigner()} />
           </div>
         )}
 

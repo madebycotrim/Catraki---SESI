@@ -432,7 +432,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="relative group sm:col-span-2 lg:col-span-1">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
+                  id="admin-search-input"
+                  name="adminSearchTerm"
                   type="text"
+                  aria-label="Buscar aluno ou responsável"
                   placeholder="Buscar aluno, responsável..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -444,6 +447,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="relative">
                 <FileCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 <select
+                  id="admin-filter-status"
+                  name="filterStatus"
+                  aria-label="Filtrar por status"
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value as any)}
                   className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none truncate"
@@ -773,10 +779,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <form onSubmit={handleCreateSchool} className="space-y-3.5">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-slate-700 uppercase">
+                <label htmlFor="school-name" className="text-xs font-bold text-slate-700 uppercase">
                   Nome Completo da Escola <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="school-name"
+                  name="schoolName"
                   type="text"
                   required
                   placeholder="Ex: Centro Educacional 03 de Sobradinho"
@@ -788,10 +796,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase">
+                  <label htmlFor="school-short-name" className="text-xs font-bold text-slate-700 uppercase">
                     Sigla / Nome Curto <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="school-short-name"
+                    name="schoolShortName"
                     type="text"
                     required
                     placeholder="Ex: CED 03 Sobradinho"
@@ -802,10 +812,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase">
+                  <label htmlFor="school-id-slug" className="text-xs font-bold text-slate-700 uppercase">
                     Slug da URL (Identificador)
                   </label>
                   <input
+                    id="school-id-slug"
+                    name="schoolSlug"
                     type="text"
                     placeholder="Ex: ced03 (opcional)"
                     value={newSchoolData.id}
@@ -817,8 +829,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase">Cidade</label>
+                  <label htmlFor="school-city" className="text-xs font-bold text-slate-700 uppercase">Cidade</label>
                   <input
+                    id="school-city"
+                    name="schoolCity"
                     type="text"
                     placeholder="Ex: Sobradinho"
                     value={newSchoolData.city}
@@ -828,8 +842,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase">UF</label>
+                  <label htmlFor="school-state" className="text-xs font-bold text-slate-700 uppercase">UF</label>
                   <input
+                    id="school-state"
+                    name="schoolState"
                     type="text"
                     maxLength={2}
                     placeholder="DF"

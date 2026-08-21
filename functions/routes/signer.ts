@@ -643,201 +643,232 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
           from: fromAddress,
           to: [targetEmail],
           subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
-          html: `<div style="background-color: #f1f5f9; padding: 30px 12px; font-family: Arial, Helvetica, sans-serif; color: #1e293b; line-height: 1.6;">
-            <div style="max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); padding: 38px 34px; position: relative;">
-              
-              <!-- Cabeçalho Institucional Oficial -->
-              <div style="border-bottom: 2.5px solid #034b7f; padding-bottom: 16px; margin-bottom: 22px;">
-                <table style="width: 100%; border-collapse: collapse;">
-                  <tr>
-                    <!-- Coluna Esquerda: Logos Oficiais Co-branded -->
-                    <td style="vertical-align: middle;">
-                      <table style="border-collapse: collapse;">
-                        <tr>
-                          <td style="vertical-align: middle; padding-right: 12px;">
-                            <img 
-                              src="https://www.catraki.com.br/catraki.png" 
-                              alt="Catraki" 
-                              style="height: 38px; width: 38px; border-radius: 6px; display: block;" 
-                            />
-                          </td>
-                          <td style="width: 1px; background-color: #cbd5e1; height: 32px; padding: 0;"></td>
-                          <td style="vertical-align: middle; padding-left: 12px;">
-                            <div style="font-size: 14px; font-weight: 800; color: #034b7f; letter-spacing: -0.01em; text-transform: uppercase; line-height: 1.2;">
-                              ESCOLA CIDADÃ
-                            </div>
-                            <div style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px;">
-                              Saúde em Movimento • SESI-DF
-                            </div>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
+          html: `<!DOCTYPE html>
+<html lang="pt-BR" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>
+    :root { color-scheme: light dark; supported-color-schemes: light dark; }
+    @media only screen and (max-width: 600px) {
+      .email-wrapper { padding: 12px 6px !important; }
+      .email-card { padding: 20px 14px !important; }
+      .mobile-stack { display: block !important; width: 100% !important; box-sizing: border-box !important; padding-right: 0 !important; }
+      .mobile-qr-cell { display: block !important; width: 100% !important; border-left: none !important; border-top: 1px dashed #cbd5e1 !important; padding-left: 0 !important; padding-top: 16px !important; margin-top: 14px !important; text-align: center !important; }
+      .mobile-qr-img { margin: 0 auto !important; }
+      .mobile-header-table td { display: block !important; width: 100% !important; text-align: left !important; }
+      .mobile-header-meta { margin-top: 10px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased;">
+  
+  <!-- Preheader Oculto (Preview no Gmail/Outlook) -->
+  <div style="display: none; max-height: 0px; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; max-width: 0px; opacity: 0;">
+    Comprovante de assinatura do Termo de Consentimento. Acesse e valide seu documento emitido pelo CEMEIT / SESI-DF.
+  </div>
 
-                    <!-- Coluna Direita: Metadados do Documento e Selo Oficial -->
-                    <td style="vertical-align: middle; text-align: right;">
-                      <div style="display: inline-block; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; padding: 2px 8px; font-size: 9.5px; font-weight: 700; color: #065f46; margin-bottom: 3px;">
-                        ✓ DOCUMENTO ASSINADO
-                      </div>
-                      <div style="font-size: 11px; font-weight: 700; color: #1e293b; font-family: monospace;">
-                        Nº ${validationCode}
-                      </div>
-                      <div style="font-size: 9.5px; color: #64748b; margin-top: 1px;">
-                        Brasília, DF • ${new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' }).format(new Date(signedAtIso))}
-                      </div>
-                    </td>
-                  </tr>
-                </table>
+  <div class="email-wrapper" style="background-color: #f1f5f9; padding: 28px 10px; color: #1e293b; line-height: 1.6;">
+    <div class="email-card" style="max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); padding: 32px 28px; position: relative;">
+      
+      <!-- Cabeçalho Institucional Oficial -->
+      <div style="border-bottom: 2.5px solid #034b7f; padding-bottom: 16px; margin-bottom: 22px;">
+        <table class="mobile-header-table" style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <!-- Coluna Esquerda: Logos Oficiais Co-branded -->
+            <td style="vertical-align: middle;">
+              <table style="border-collapse: collapse;">
+                <tr>
+                  <td style="vertical-align: middle; padding-right: 12px;">
+                    <img 
+                      src="https://www.catraki.com.br/catraki.png" 
+                      alt="Catraki" 
+                      style="height: 38px; width: 38px; border-radius: 6px; display: block;" 
+                    />
+                  </td>
+                  <td style="width: 1px; background-color: #cbd5e1; height: 32px; padding: 0;"></td>
+                  <td style="vertical-align: middle; padding-left: 12px;">
+                    <div style="font-size: 14px; font-weight: 800; color: #034b7f; letter-spacing: -0.01em; text-transform: uppercase; line-height: 1.2;">
+                      ESCOLA CIDADÃ
+                    </div>
+                    <div style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px;">
+                      Saúde em Movimento • SESI-DF
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+
+            <!-- Coluna Direita: Metadados do Documento e Selo Oficial -->
+            <td class="mobile-header-meta" style="vertical-align: middle; text-align: right;">
+              <div style="display: inline-block; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; padding: 2px 8px; font-size: 9.5px; font-weight: 700; color: #065f46; margin-bottom: 3px;">
+                ✓ DOCUMENTO ASSINADO
+              </div>
+              <div style="font-size: 11px; font-weight: 700; color: #1e293b; font-family: monospace;">
+                Nº ${validationCode}
+              </div>
+              <div style="font-size: 9.5px; color: #64748b; margin-top: 1px;">
+                Brasília, DF • ${new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' }).format(new Date(signedAtIso))}
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Título do Documento -->
+      <div style="text-align: center; margin-bottom: 22px;">
+        <h1 style="font-size: 13.5px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin: 0 0 4px 0; letter-spacing: 0.02em;">
+          TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)
+        </h1>
+        <div style="font-size: 11px; font-weight: 600; color: #475569;">
+          Comprovante de Autorização para Atendimento e Triagens em Saúde
+        </div>
+      </div>
+
+      <!-- 1. Qualificação e Declaração Formal (Recuo ABNT) -->
+      <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify; background-color: #ffffff;">
+        <p style="margin: 0; text-indent: 28px;">
+          Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth || 'Data não informada'}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhoneText}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeriesText}${studentTurnText}, declaro sob as penas da lei que <strong>AUTORIZO</strong> realizar o atendimento e triagens de saúde do(a) estudante <strong>sem a presença do responsável legal</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>.
+        </p>
+      </div>
+
+      <!-- 2. Cláusula Segunda — Das Autorizações Específicas (Continuação Natural do Documento) -->
+      <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify;">
+        <p style="margin: 0 0 10px 0; text-indent: 28px;">
+          Adicionalmente, manifesto de forma expressa, livre e inequívoca meu consentimento quanto às seguintes condições:
+        </p>
+
+        <p style="margin: 0 0 8px 0; text-indent: 28px;">
+          <strong>a) Atendimento Clínico e Triagens de Saúde:</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica autorizada a realização de triagens preventivas, exames clínicos, acuidade visual e avaliação bucal no âmbito do projeto Escola Cidadã: Saúde em Movimento.
+        </p>
+
+        <p style="margin: 0 0 8px 0; text-indent: 28px;">
+          <strong>b) Tratamento de Dados Pessoais e de Saúde (LGPD):</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica expressamente autorizado o tratamento dos dados pessoais e sensíveis para finalidade exclusiva de assistência à saúde e histórico de atendimento, nos termos dos artigos 7º, I, 11, II, "f", e 14 da Lei Federal nº 13.709/2018.
+        </p>
+
+        <p style="margin: 0 0 10px 0; text-indent: 28px;">
+          <strong>c) Captação e Uso de Imagem e Voz:</strong> <span style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700;">${authImageStatus ? '[ ✓ AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}</span> — ${authImageStatus ? 'Fica autorizada de forma gratuita a captação e veiculação de fotos e vídeos para documentação institucional, relatórios e prestação de contas do projeto (ECA, Art. 17).' : 'O(a) responsável optou por não autorizar o registro fotográfico ou audiovisual, permanecendo inalterado o pleno atendimento de saúde do(a) estudante.'}
+        </p>
+      </div>
+
+      <!-- 3. Cláusula Terceira — Direitos e Revogação (LGPD) -->
+      <div style="margin-bottom: 24px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify;">
+        <p style="margin: 0; text-indent: 28px;">
+          Declaro estar ciente de que os dados coletados não serão comercializados e que é garantido o direito de acesso, retificação ou revogação deste consentimento a qualquer momento (Art. 18 da LGPD), mediante solicitação formal à direção da escola ou coordenação do projeto.
+        </p>
+      </div>
+
+      <!-- 4. Card de Verificação Online & Protocolo de Assinatura (Estilo Assinafy / Banco Safra) -->
+      <div style="background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
+        
+        <!-- Título com Linha Divisória -->
+        <div style="border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="width: 26px; vertical-align: middle;">
+                <img src="https://www.catraki.com.br/catraki.png" alt="Catraki" style="width: 20px; height: 20px; border-radius: 4px; display: block;" />
+              </td>
+              <td style="vertical-align: middle; font-size: 14px; font-weight: 800; color: #0f172a; letter-spacing: -0.01em;">
+                Verificação online • Plataforma Catraki
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <!-- Coluna Esquerda: Metadados e Evidências Criptográficas -->
+            <td class="mobile-stack" style="vertical-align: top; padding-right: 14px; font-size: 11.5px; line-height: 1.6; color: #334155;">
+              <div style="margin-bottom: 3px;">
+                <span style="color: #64748b; font-weight: 700;">Documento:</span> <strong>Termo de Consentimento — Escola Cidadã</strong>
+              </div>
+              <div style="margin-bottom: 5px;">
+                <span style="color: #64748b; font-weight: 700;">URL de verificação:</span> <a href="https://www.catraki.com.br/validar/${validationCode}" style="color: #034b7f; text-decoration: underline; font-weight: 600;">https://www.catraki.com.br/validar</a>
               </div>
 
-              <!-- Título do Documento -->
-              <div style="text-align: center; margin-bottom: 22px;">
-                <h1 style="font-size: 13.5px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin: 0 0 4px 0; letter-spacing: 0.02em;">
-                  TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)
-                </h1>
-                <div style="font-size: 11px; font-weight: 600; color: #475569;">
-                  Comprovante de Autorização para Atendimento e Triagens em Saúde
-                </div>
+              <!-- Destaque do Hash SHA-256 no estilo Assinafy -->
+              <div style="margin: 6px 0 8px 0; background-color: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; padding: 6px 10px;">
+                <span style="color: #034b7f; font-weight: 800; font-size: 11px;">Hash:</span> 
+                <span style="font-family: monospace; font-size: 10px; font-weight: bold; color: #034b7f; word-break: break-all; letter-spacing: 0.02em;">${manifestSha256}</span>
               </div>
 
-              <!-- 1. Qualificação e Declaração Formal (Recuo ABNT) -->
-              <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify; background-color: #ffffff;">
-                <p style="margin: 0; text-indent: 28px;">
-                  Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth || 'Data não informada'}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhoneText}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeriesText}${studentTurnText}, declaro sob as penas da lei que <strong>AUTORIZO</strong> realizar o atendimento e triagens de saúde do(a) estudante <strong>sem a presença do responsável legal</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>.
-                </p>
+              <div style="margin-bottom: 3px;">
+                <span style="color: #64748b; font-weight: 700;">Número do documento:</span> <span style="font-family: monospace; font-weight: bold; color: #034b7f; font-size: 12px;">${validationCode}</span>
               </div>
-
-              <!-- 2. Cláusula Segunda — Das Autorizações Específicas (Continuação Natural do Documento) -->
-              <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify;">
-                <p style="margin: 0 0 10px 0; text-indent: 28px;">
-                  Adicionalmente, manifesto de forma expressa, livre e inequívoca meu consentimento quanto às seguintes condições:
-                </p>
-
-                <p style="margin: 0 0 8px 0; text-indent: 28px;">
-                  <strong>a) Atendimento Clínico e Triagens de Saúde:</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica autorizada a realização de triagens preventivas, exames clínicos, acuidade visual e avaliação bucal no âmbito do projeto Escola Cidadã: Saúde em Movimento.
-                </p>
-
-                <p style="margin: 0 0 8px 0; text-indent: 28px;">
-                  <strong>b) Tratamento de Dados Pessoais e de Saúde (LGPD):</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica expressamente autorizado o tratamento dos dados pessoais e sensíveis para finalidade exclusiva de assistência à saúde e histórico de atendimento, nos termos dos artigos 7º, I, 11, II, "f", e 14 da Lei Federal nº 13.709/2018.
-                </p>
-
-                <p style="margin: 0 0 10px 0; text-indent: 28px;">
-                  <strong>c) Captação e Uso de Imagem e Voz:</strong> <span style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700;">${authImageStatus ? '[ ✓ AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}</span> — ${authImageStatus ? 'Fica autorizada de forma gratuita a captação e veiculação de fotos e vídeos para documentação institucional, relatórios e prestação de contas do projeto (ECA, Art. 17).' : 'O(a) responsável optou por não autorizar o registro fotográfico ou audiovisual, permanecendo inalterado o pleno atendimento de saúde do(a) estudante.'}
-                </p>
+              <div style="margin-bottom: 3px;">
+                <span style="color: #64748b; font-weight: 700;">Signatário:</span> <strong>${signer_name}</strong> (CPF: ${cpfMasked} • ${signer_relationship})
               </div>
-
-              <!-- 3. Cláusula Terceira — Direitos e Revogação (LGPD) -->
-              <div style="margin-bottom: 24px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify;">
-                <p style="margin: 0; text-indent: 28px;">
-                  Declaro estar ciente de que os dados coletados não serão comercializados e que é garantido o direito de acesso, retificação ou revogação deste consentimento a qualquer momento (Art. 18 da LGPD), mediante solicitação formal à direção da escola ou coordenação do projeto.
-                </p>
+              <div style="margin-bottom: 3px;">
+                <span style="color: #64748b; font-weight: 700;">Autenticação:</span> Código OTP de 6 dígitos via e-mail (${targetEmail})
               </div>
-
-              <!-- 4. Card de Verificação Online & Protocolo de Assinatura (Estilo Assinafy / Banco Safra) -->
-              <div style="background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
-                
-                <!-- Título com Linha Divisória -->
-                <div style="border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
-                  <table style="width: 100%; border-collapse: collapse;">
-                    <tr>
-                      <td style="width: 26px; vertical-align: middle;">
-                        <img src="https://www.catraki.com.br/catraki.png" alt="Catraki" style="width: 20px; height: 20px; border-radius: 4px; display: block;" />
-                      </td>
-                      <td style="vertical-align: middle; font-size: 14px; font-weight: 800; color: #0f172a; letter-spacing: -0.01em;">
-                        Verificação online • Plataforma Catraki
-                      </td>
-                    </tr>
-                  </table>
-                </div>
-
-                <table style="width: 100%; border-collapse: collapse;">
-                  <tr>
-                    <!-- Coluna Esquerda: Metadados e Evidências Criptográficas -->
-                    <td style="vertical-align: top; padding-right: 14px; font-size: 11.5px; line-height: 1.6; color: #334155;">
-                      <div style="margin-bottom: 3px;">
-                        <span style="color: #64748b; font-weight: 700;">Documento:</span> <strong>Termo de Consentimento — Escola Cidadã</strong>
-                      </div>
-                      <div style="margin-bottom: 5px;">
-                        <span style="color: #64748b; font-weight: 700;">URL de verificação:</span> <a href="https://www.catraki.com.br/validar/${validationCode}" style="color: #034b7f; text-decoration: underline; font-weight: 600;">https://www.catraki.com.br/validar</a>
-                      </div>
-
-                      <!-- Destaque do Hash SHA-256 no estilo Assinafy -->
-                      <div style="margin: 6px 0 8px 0; background-color: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; padding: 6px 10px;">
-                        <span style="color: #034b7f; font-weight: 800; font-size: 11px;">Hash:</span> 
-                        <span style="font-family: monospace; font-size: 10px; font-weight: bold; color: #034b7f; word-break: break-all; letter-spacing: 0.02em;">${manifestSha256}</span>
-                      </div>
-
-                      <div style="margin-bottom: 3px;">
-                        <span style="color: #64748b; font-weight: 700;">Número do documento:</span> <span style="font-family: monospace; font-weight: bold; color: #034b7f; font-size: 12px;">${validationCode}</span>
-                      </div>
-                      <div style="margin-bottom: 3px;">
-                        <span style="color: #64748b; font-weight: 700;">Signatário:</span> <strong>${signer_name}</strong> (CPF: ${cpfMasked} • ${signer_relationship})
-                      </div>
-                      <div style="margin-bottom: 3px;">
-                        <span style="color: #64748b; font-weight: 700;">Autenticação:</span> Código OTP de 6 dígitos via e-mail (${targetEmail})
-                      </div>
-                      <div style="margin-bottom: 3px;">
-                        <span style="color: #64748b; font-weight: 700;">Data e Hora (Oficial):</span> ${dataFormatada}
-                      </div>
-                      <div style="margin-bottom: 3px;">
-                        <span style="color: #64748b; font-weight: 700;">Endereço IP:</span> <span style="font-family: monospace; font-size: 11px;">${ipAddress}</span> • Brasília, DF
-                      </div>
-                    </td>
-
-                    <!-- Coluna Direita: QR Code de Validação Pública -->
-                    <td style="width: 115px; vertical-align: middle; text-align: center; border-left: 1px solid #f1f5f9; padding-left: 12px;">
-                      <a href="https://www.catraki.com.br/validar/${validationCode}" style="text-decoration: none; display: inline-block;">
-                        <img 
-                          src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&margin=0&color=034b7f&data=https%3A%2F%2Fwww.catraki.com.br%2Fvalidar%2F${validationCode}" 
-                          alt="QR Code de Validação" 
-                          style="width: 96px; height: 96px; display: block; border: 1px solid #e2e8f0; border-radius: 6px; padding: 3px; background: #ffffff;"
-                        />
-                      </a>
-                      <div style="font-size: 8px; font-weight: 800; color: #034b7f; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 5px;">
-                        VALIDAÇÃO PÚBLICA
-                      </div>
-                    </td>
-                  </tr>
-                </table>
+              <div style="margin-bottom: 3px;">
+                <span style="color: #64748b; font-weight: 700;">Data e Hora (Oficial):</span> ${dataFormatada}
               </div>
-
-              <!-- Botão de Consulta Online -->
-              <div style="text-align: center; margin-bottom: 24px;">
-                <a href="https://www.catraki.com.br/validar/${validationCode}" style="display: inline-block; background-color: #034b7f; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 12.5px; padding: 12px 26px; border-radius: 5px; box-shadow: 0 2px 5px rgba(3, 75, 127, 0.25);">
-                  Validar e Consultar Comprovante Online →
-                </a>
+              <div style="margin-bottom: 3px;">
+                <span style="color: #64748b; font-weight: 700;">Endereço IP:</span> <span style="font-family: monospace; font-size: 11px;">${ipAddress}</span> • Brasília, DF
               </div>
+            </td>
 
-              <!-- Bloco Probatório Oficial Estilo Clicksign com a Marca Catraki -->
-              <div style="border-top: 1.5px solid #cbd5e1; padding-top: 16px; margin-top: 24px; font-size: 11px; color: #475569; line-height: 1.55;">
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
-                  <tr>
-                    <td style="width: 56px; vertical-align: top; padding-right: 12px;">
-                      <div style="width: 52px; height: 50px; background-color: #034b7f; border-radius: 6px; text-align: center; color: #ffffff; padding: 7px 0; box-sizing: border-box;">
-                        <div style="font-size: 11px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.2;">CATRAKI</div>
-                        <div style="font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.9; margin-top: 2px;">SESI</div>
-                      </div>
-                    </td>
-                    <td style="vertical-align: top;">
-                      <div style="font-weight: 800; color: #0f172a; font-size: 12px; margin-bottom: 2px;">
-                        Documento assinado com validade jurídica.
-                      </div>
-                      <div style="color: #334155; font-size: 11px; margin-bottom: 4px;">
-                        Para conferir a validade, acesse <a href="https://www.catraki.com.br/validar/${validationCode}" style="color: #034b7f; font-weight: 700; text-decoration: underline;">https://www.catraki.com.br/validar</a> e utilize o código <strong>${validationCode}</strong>.
-                      </div>
-                      <div style="color: #64748b; font-size: 10px; line-height: 1.4;">
-                        As assinaturas eletrônicas têm validade jurídica prevista na <strong>Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º)</strong> e na <strong>Lei Federal nº 14.063/2020 (Art. 4º, II)</strong>.
-                      </div>
-                    </td>
-                  </tr>
-                </table>
-                <div style="padding-top: 10px; border-top: 1px dashed #e2e8f0; font-size: 11px; color: #64748b; line-height: 1.5; text-align: left;">
-                  🔒 <strong>Comprovante oficial:</strong> Este registro confirma a assinatura válida do termo <strong>${validationCode}</strong> e pode ser consultado a qualquer momento no validador público da plataforma Catraki.
-                </div>
+            <!-- Coluna Direita: QR Code de Validação Pública -->
+            <td class="mobile-qr-cell" style="width: 115px; vertical-align: middle; text-align: center; border-left: 1px solid #f1f5f9; padding-left: 12px;">
+              <a href="https://www.catraki.com.br/validar/${validationCode}" style="text-decoration: none; display: inline-block;">
+                <img 
+                  class="mobile-qr-img"
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&margin=0&color=034b7f&data=https%3A%2F%2Fwww.catraki.com.br%2Fvalidar%2F${validationCode}" 
+                  alt="QR Code de Validação" 
+                  style="width: 96px; height: 96px; display: block; border: 1px solid #e2e8f0; border-radius: 6px; padding: 3px; background: #ffffff;"
+                />
+              </a>
+              <div style="font-size: 8px; font-weight: 800; color: #034b7f; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 5px;">
+                VALIDAÇÃO PÚBLICA
               </div>
+            </td>
+          </tr>
+        </table>
+      </div>
 
-            </div>
-          </div>`,
+      <!-- Botão de Consulta Online -->
+      <div style="text-align: center; margin-bottom: 24px;">
+        <a href="https://www.catraki.com.br/validar/${validationCode}" style="display: inline-block; background-color: #034b7f; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 12.5px; padding: 12px 26px; border-radius: 5px; box-shadow: 0 2px 5px rgba(3, 75, 127, 0.25);">
+          Validar e Consultar Comprovante Online →
+        </a>
+      </div>
+
+      <!-- Bloco Probatório Oficial Estilo Clicksign com a Marca Catraki -->
+      <div style="border-top: 1.5px solid #cbd5e1; padding-top: 16px; margin-top: 24px; font-size: 11px; color: #475569; line-height: 1.55;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+          <tr>
+            <td style="width: 48px; vertical-align: top; padding-right: 12px;">
+              <img 
+                src="https://www.catraki.com.br/catraki.png" 
+                alt="Catraki" 
+                style="width: 42px; height: 42px; border-radius: 6px; display: block;" 
+              />
+            </td>
+            <td style="vertical-align: top;">
+              <div style="font-weight: 800; color: #0f172a; font-size: 12px; margin-bottom: 2px;">
+                Documento assinado com validade jurídica.
+              </div>
+              <div style="color: #334155; font-size: 11px; margin-bottom: 4px;">
+                Para conferir a validade, acesse <a href="https://www.catraki.com.br/validar/${validationCode}" style="color: #034b7f; font-weight: 700; text-decoration: underline;">https://www.catraki.com.br/validar</a> e utilize o código <strong>${validationCode}</strong>.
+              </div>
+              <div style="color: #64748b; font-size: 10px; line-height: 1.4;">
+                As assinaturas eletrônicas têm validade jurídica prevista na <strong>Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º)</strong> e na <strong>Lei Federal nº 14.063/2020 (Art. 4º, II)</strong>.
+              </div>
+            </td>
+          </tr>
+        </table>
+        <div style="padding-top: 10px; border-top: 1px dashed #e2e8f0; font-size: 11px; color: #64748b; line-height: 1.5; text-align: left;">
+          🔒 <strong>Comprovante oficial:</strong> Este registro confirma a assinatura válida do termo <strong>${validationCode}</strong> e pode ser consultado a qualquer momento no validador público da plataforma Catraki.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>`,
         }),
       });
     } catch (e: any) {

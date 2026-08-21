@@ -892,9 +892,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
           <strong>c) Captação e Uso de Imagem e Voz:</strong> <span style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700;">${authImageStatus ? '[ ✓ AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}</span> — ${authImageStatus ? 'Fica autorizada de forma gratuita a captação e veiculação de fotos/vídeos para documentação institutional e relatórios de prestação de contas (ECA, Artigo 17).' : 'O(a) responsável optou por não autorizar o registro fotográfico ou de filmagens.'}
         </p>
 
-        <p style="margin: 0 0 10px 0; text-indent: 28px;">
-          <strong>d) Situações de Emergência:</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Em caso de intercorrência médica ou emergência durante as ações do projeto, autorizo a equipe responsável a prestar os primeiros socorros e, se necessário, acionar o serviço de urgência (SAMU/Corpo de Bombeiros) e encaminhar o(a) estudante à unidade de saúde mais próxima, comprometendo-se a equipe a notificar o responsável legal imediatamente.
-        </p>
       </div>
 
       <!-- 3. Cláusula Terceira — Direitos e Revogação (LGPD) -->

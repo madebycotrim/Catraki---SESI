@@ -605,17 +605,6 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               </div>
             </div>
 
-            {/* D. Situações de Emergência Médica */}
-            <div className="space-y-2.5 pt-3 border-t border-slate-100">
-              <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide">
-                D. SOBRE SITUAÇÕES DE EMERGÊNCIA MÉDICA
-              </h3>
-              <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs sm:text-sm text-slate-700 leading-relaxed">
-                <p className="m-0">
-                  <strong className="text-slate-950 font-bold">[ ✓ AUTORIZADO ]</strong> — Em caso de intercorrência médica ou emergência durante as ações do projeto, fica a equipe responsável expressamente autorizada a prestar os primeiros socorros e, se necessário, acionar o serviço de urgência (SAMU / Corpo de Bombeiros) e encaminhar o(a) estudante à unidade de saúde mais próxima, comprometendo-se a equipe a notificar o responsável legal imediatamente.
-                </p>
-              </div>
-            </div>
           </div>
 
           {/* 3. COMPROMISSOS E DIREITOS DO TITULAR DOS DADOS */}

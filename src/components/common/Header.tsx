@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
-          {/* Logo Oficial CATRAKI + SESI SAUDE */}
+          {/* Logo Oficial CATRAKI */}
           <div 
             className="flex items-center gap-2.5 sm:gap-3 cursor-pointer"
             onClick={() => handleNavClick('admin')}
@@ -34,12 +34,6 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate }) => {
               src="/catraki.png" 
               alt="Logo Catraki" 
               className="h-8 sm:h-9 w-auto object-contain rounded"
-            />
-            <div className="h-5 w-px bg-slate-200 hidden sm:block" />
-            <img 
-              src="https://sesitocantins.com.br/wp-content/uploads/2025/08/SESI-SAUDE-28-e1755405422745-1024x595.png" 
-              alt="Logo SESI Saúde" 
-              className="h-7 sm:h-8 w-auto object-contain"
             />
           </div>
 

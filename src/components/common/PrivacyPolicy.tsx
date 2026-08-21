@@ -25,8 +25,6 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b-2 border-sesi-primary">
           <div className="flex items-center gap-3">
             <img src="/catraki.png" alt="Catraki" className="h-9 w-auto rounded" />
-            <div className="h-6 w-px bg-slate-300 hidden sm:block" />
-            <img src="/logo-1linha.svg" alt="SESI Saúde" className="h-8 w-auto" />
           </div>
           <div className="text-left sm:text-right">
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider m-0">

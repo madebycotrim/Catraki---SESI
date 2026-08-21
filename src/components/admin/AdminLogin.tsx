@@ -59,12 +59,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
                 alt="Catraki"
                 className="h-8 sm:h-9 w-auto object-contain rounded"
               />
-              <div className="h-5 w-px bg-slate-300 hidden sm:block" />
-              <img
-                src="/logo-1linha.svg"
-                alt="SESI Saúde"
-                className="h-7 sm:h-8 w-auto object-contain"
-              />
             </div>
 
             <div className="text-left sm:text-right">

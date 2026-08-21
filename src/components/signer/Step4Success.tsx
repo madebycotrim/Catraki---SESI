@@ -112,12 +112,6 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               alt="Catraki"
               className="h-8 sm:h-10 w-auto object-contain rounded"
             />
-            <div className="h-6 w-px bg-slate-300 hidden sm:block" />
-            <img
-              src="/logo-1linha.svg"
-              alt="SESI Saúde"
-              className="h-7 sm:h-9 w-auto object-contain"
-            />
           </div>
           <div className="text-left sm:text-right">
             <p className="text-[10px] sm:text-[8.5pt] text-slate-500 m-0 uppercase tracking-wider font-semibold">

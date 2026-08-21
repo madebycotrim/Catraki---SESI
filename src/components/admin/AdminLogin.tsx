@@ -53,15 +53,18 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
         <div>
           {/* Cabeçalho Institucional A5 */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 mb-5 pb-3 border-b-2 border-[#034b7f]">
-            <div>
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/catraki.png"
+                alt="Catraki"
+                className="h-8 sm:h-9 w-auto object-contain rounded"
+              />
+              <div className="h-5 w-px bg-slate-300 hidden sm:block" />
               <img
                 src="/logo-1linha.svg"
                 alt="SESI Saúde"
-                className="h-8 sm:h-9 w-auto object-contain"
+                className="h-7 sm:h-8 w-auto object-contain"
               />
-              <span className="block text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">
-                Departamento Regional do Distrito Federal
-              </span>
             </div>
 
             <div className="text-left sm:text-right">

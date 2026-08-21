@@ -106,11 +106,19 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
       <div className="document-sheet-a4">
         {/* Cabeçalho oficial */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 pb-4 border-b-2 sm:border-b-3 border-[#034b7f]">
-          <img
-            src="/logo-1linha.svg"
-            alt="SESI Saúde"
-            className="h-8 sm:h-11 w-auto object-contain"
-          />
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <img
+              src="/catraki.png"
+              alt="Catraki"
+              className="h-8 sm:h-10 w-auto object-contain rounded"
+            />
+            <div className="h-6 w-px bg-slate-300 hidden sm:block" />
+            <img
+              src="/logo-1linha.svg"
+              alt="SESI Saúde"
+              className="h-7 sm:h-9 w-auto object-contain"
+            />
+          </div>
           <div className="text-left sm:text-right">
             <p className="text-[10px] sm:text-[8.5pt] text-slate-500 m-0 uppercase tracking-wider font-semibold">
               Escola Cidadã — Saúde em Movimento
@@ -263,10 +271,11 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
           {/* Bloco Probatório Oficial Estilo Clicksign com a Marca Catraki */}
           <div className="mt-5 pt-4 border-t border-slate-200 text-left">
             <div className="flex flex-col sm:flex-row items-start gap-3 mb-3">
-              <div className="w-12 h-11 bg-sesi-primary rounded-lg text-white font-black flex flex-col items-center justify-center shrink-0 shadow-xs">
-                <span className="text-[10px] tracking-tight leading-none">CATRAKI</span>
-                <span className="text-[6.5px] font-bold tracking-widest text-blue-200 uppercase mt-0.5">SESI</span>
-              </div>
+              <img
+                src="/catraki.png"
+                alt="Logo Catraki"
+                className="w-12 h-12 object-contain rounded-lg shrink-0 shadow-xs border border-slate-100 bg-white"
+              />
               <div className="space-y-1 text-xs sm:text-sm">
                 <div className="font-bold text-slate-900 leading-snug">
                   Documento assinado eletronicamente com validade jurídica.
@@ -279,8 +288,8 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                 </div>
               </div>
             </div>
-            <div className="pt-2 border-t border-dashed border-slate-200 text-[9.5px] sm:text-[10px] text-slate-400 text-left sm:text-justify leading-relaxed">
-              Este Log de Auditoria é exclusivo e deve ser considerado parte integrante do documento nº <strong className="text-slate-600">{validationCode}</strong>, com os efeitos probatórios prescritos pela legislação de assinaturas eletrônicas na plataforma Catraki.
+            <div className="pt-2 border-t border-dashed border-slate-200 text-[10px] sm:text-[11px] text-slate-500 text-left leading-relaxed">
+              🔒 <strong>Comprovante oficial:</strong> Este registro confirma a assinatura válida do termo <strong className="text-slate-700">{validationCode}</strong> e pode ser consultado a qualquer momento no validador público da plataforma Catraki.
             </div>
           </div>
 

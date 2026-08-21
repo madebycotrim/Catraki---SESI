@@ -29,8 +29,8 @@ describe('Validações e Schemas Zod (schemas.ts)', () => {
     expect(maskCPF('12345678909')).toBe('123.***.***-09');
     expect(maskEmail('mateus.cotrim@sesi.org.br')).toBe('ma***@sesi.org.br');
     expect(maskPhone('11987654321')).toBe('(11) *****-4321');
-    expect(getInitials('Lucas Cotrim Silva')).toBe('L. S.');
-    expect(getInitials('Sofia')).toBe('S.');
+    expect(getInitials('Lucas Cotrim Silva')).toBe('Lucas C. S.');
+    expect(getInitials('Sofia')).toBe('Sofia');
   });
 
   it('deve validar schema de emissão de documento', () => {

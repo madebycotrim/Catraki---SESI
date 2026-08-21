@@ -294,8 +294,17 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
           subject: `Código de Confirmação: ${otpCode} — Catraki`,
           html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
             <div style="border-bottom: 2px solid #034b7f; padding-bottom: 12px; margin-bottom: 20px;">
-              <h2 style="color: #034b7f; margin: 0; font-size: 18px; font-weight: bold;">Escola Cidadã — Saúde em Movimento</h2>
-              <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Validação de Autoria por Código Eletrônico</span>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="vertical-align: middle;">
+                    <h2 style="color: #034b7f; margin: 0; font-size: 18px; font-weight: bold;">Escola Cidadã — Saúde em Movimento</h2>
+                    <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Validação de Autoria por Código Eletrônico</span>
+                  </td>
+                  <td style="width: 40px; vertical-align: middle; text-align: right;">
+                    <img src="https://www.catraki.com.br/catraki.png" alt="Catraki" style="width: 36px; height: 36px; border-radius: 6px;" />
+                  </td>
+                </tr>
+              </table>
             </div>
             <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 12px 0;">Olá,</p>
             <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
@@ -598,10 +607,22 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const studentName = parsed.data.minor_name || doc.minor_name || 'Estudante';
   const studentBirth = parsed.data.minor_birth_date || doc.minor_birth_date || '';
   const studentCpf = parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : '';
-  const studentSeries = parsed.data.minor_series ? `${parsed.data.minor_series}${parsed.data.minor_class ? ` - Turma ${parsed.data.minor_class}` : ''}` : '';
-  const studentTurn = parsed.data.minor_turn || '';
-  const signerPhone = parsed.data.signer_phone || '';
-  const institutionName = parsed.data.institution_name || 'Escola Participante do Projeto';
+  const rawSeries = (parsed.data.minor_series || '').trim();
+  const rawClass = (parsed.data.minor_class || '').trim();
+  const rawTurn = (parsed.data.minor_turn || '').trim();
+
+  let studentSeriesText = '';
+  if (rawSeries && rawClass) {
+    studentSeriesText = `, Série/Turma: <strong>${rawSeries} - Turma ${rawClass}</strong>`;
+  } else if (rawSeries) {
+    studentSeriesText = `, Série: <strong>${rawSeries}</strong>`;
+  } else if (rawClass) {
+    studentSeriesText = `, Turma: <strong>${rawClass}</strong>`;
+  }
+
+  const studentTurnText = rawTurn ? `, Turno: <strong>${rawTurn}</strong>` : '';
+  const signerPhoneText = parsed.data.signer_phone ? `, telefone de contato <strong>${parsed.data.signer_phone}</strong>` : '';
+  const institutionName = parsed.data.institution_name || 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)';
   const authImageStatus = parsed.data.auth_image === 'yes';
 
   if (targetEmail && resendApiKey) {
@@ -625,85 +646,91 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
           html: `<div style="background-color: #f1f5f9; padding: 30px 12px; font-family: Arial, Helvetica, sans-serif; color: #1e293b; line-height: 1.6;">
             <div style="max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); padding: 38px 34px; position: relative;">
               
-              <!-- Número de Página ABNT (Canto Superior Direito) -->
-              <div style="text-align: right; font-size: 10px; color: #94a3b8; font-family: Arial, sans-serif; margin-bottom: 8px;">
-                Página 1 de 1 • Padrão ABNT
-              </div>
+              <!-- Cabeçalho Institucional Oficial -->
+              <div style="border-bottom: 2.5px solid #034b7f; padding-bottom: 16px; margin-bottom: 22px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <!-- Coluna Esquerda: Logos Oficiais Co-branded -->
+                    <td style="vertical-align: middle;">
+                      <table style="border-collapse: collapse;">
+                        <tr>
+                          <td style="vertical-align: middle; padding-right: 12px;">
+                            <img 
+                              src="https://www.catraki.com.br/catraki.png" 
+                              alt="Catraki" 
+                              style="height: 38px; width: 38px; border-radius: 6px; display: block;" 
+                            />
+                          </td>
+                          <td style="width: 1px; background-color: #cbd5e1; height: 32px; padding: 0;"></td>
+                          <td style="vertical-align: middle; padding-left: 12px;">
+                            <div style="font-size: 14px; font-weight: 800; color: #034b7f; letter-spacing: -0.01em; text-transform: uppercase; line-height: 1.2;">
+                              ESCOLA CIDADÃ
+                            </div>
+                            <div style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px;">
+                              Saúde em Movimento • SESI-DF
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
 
-              <!-- Cabeçalho Oficial ABNT -->
-              <div style="border-bottom: 2.5px solid #034b7f; padding-bottom: 14px; margin-bottom: 22px;">
-                <div style="font-size: 16px; font-weight: 800; color: #034b7f; letter-spacing: -0.01em; text-transform: uppercase;">
-                  ESCOLA CIDADÃ — SAÚDE EM MOVIMENTO
-                </div>
-                <div style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 3px;">
-                  Serviço Social da Indústria • Departamento Regional do Distrito Federal (DR-DF)
-                </div>
-                <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
-                  Cooperação Técnica: Universidade de Brasília (UnB) • SESI-DF • Finatec
-                </div>
+                    <!-- Coluna Direita: Metadados do Documento e Selo Oficial -->
+                    <td style="vertical-align: middle; text-align: right;">
+                      <div style="display: inline-block; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; padding: 2px 8px; font-size: 9.5px; font-weight: 700; color: #065f46; margin-bottom: 3px;">
+                        ✓ DOCUMENTO ASSINADO
+                      </div>
+                      <div style="font-size: 11px; font-weight: 700; color: #1e293b; font-family: monospace;">
+                        Nº ${validationCode}
+                      </div>
+                      <div style="font-size: 9.5px; color: #64748b; margin-top: 1px;">
+                        Brasília, DF • ${new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' }).format(new Date(signedAtIso))}
+                      </div>
+                    </td>
+                  </tr>
+                </table>
               </div>
 
               <!-- Título do Documento -->
-              <div style="text-align: center; margin-bottom: 20px;">
-                <h1 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin: 0 0 4px 0; letter-spacing: 0.03em;">
-                  COMPROVANTE DE AUTORIZAÇÃO E TERMO DE CONSENTIMENTO
+              <div style="text-align: center; margin-bottom: 22px;">
+                <h1 style="font-size: 13.5px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin: 0 0 4px 0; letter-spacing: 0.02em;">
+                  TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)
                 </h1>
-                <div style="font-size: 11px; font-weight: 600; color: #334155; margin-bottom: 8px;">
-                  Autorização para Ações Assistenciais e Preventivas de Saúde
-                </div>
-                <div style="display: inline-block; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; padding: 4px 12px; font-size: 11px; font-weight: 700; color: #065f46;">
-                  ✓ ASSINATURA ELETRÔNICA CONCLUÍDA COM SUCESSO
+                <div style="font-size: 11px; font-weight: 600; color: #475569;">
+                  Comprovante de Autorização para Atendimento e Triagens em Saúde
                 </div>
               </div>
 
               <!-- 1. Qualificação e Declaração Formal (Recuo ABNT) -->
               <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify; background-color: #ffffff;">
                 <p style="margin: 0; text-indent: 28px;">
-                  Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth || 'Data não informada'}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhone ? `, telefone de contato <strong>${signerPhone}</strong>` : ''}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeries ? `, Série/Turma: <strong>${studentSeries}</strong>` : ''}${studentTurn ? `, Turno: <strong>${studentTurn}</strong>` : ''}, declaro sob as penas da lei que <strong>AUTORIZO</strong> realizar o atendimento e triagens de saúde do(a) estudante <strong>sem a presença do responsável legal</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>.
+                  Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth || 'Data não informada'}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhoneText}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeriesText}${studentTurnText}, declaro sob as penas da lei que <strong>AUTORIZO</strong> realizar o atendimento e triagens de saúde do(a) estudante <strong>sem a presença do responsável legal</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>.
                 </p>
               </div>
 
-              <!-- 2. Painel de Autorizações Digitais -->
-              <div style="margin-bottom: 18px; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden;">
-                <div style="background-color: #034b7f; color: #ffffff; padding: 7px 12px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;">
-                  2. PAINEL DE AUTORIZAÇÕES DIGITAIS (Seleção e Consentimento)
-                </div>
-                <div style="padding: 12px 14px; background-color: #ffffff; font-size: 12px;">
-                  
-                  <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9;">
-                    <div style="font-weight: 700; color: #0f172a; font-size: 11.5px; margin-bottom: 2px;">A. SOBRE O ATENDIMENTO DE SAÚDE</div>
-                    <div style="color: #166534; font-weight: 700; font-size: 11px; margin-bottom: 3px;">[ ✓ SIM — AUTORIZADO ]</div>
-                    <div style="color: #475569; font-size: 11px; line-height: 1.5; text-align: justify;">Autorizo a realização de triagens preventivas, exames clínicos, acuidade visual e avaliação bucal no âmbito da campanha "Saúde em Movimento".</div>
-                  </div>
+              <!-- 2. Cláusula Segunda — Das Autorizações Específicas (Continuação Natural do Documento) -->
+              <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify;">
+                <p style="margin: 0 0 10px 0; text-indent: 28px;">
+                  Adicionalmente, manifesto de forma expressa, livre e inequívoca meu consentimento quanto às seguintes condições:
+                </p>
 
-                  <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9;">
-                    <div style="font-weight: 700; color: #0f172a; font-size: 11.5px; margin-bottom: 2px;">B. SOBRE OS DADOS PESSOAIS E DE SAÚDE</div>
-                    <div style="color: #166534; font-weight: 700; font-size: 11px; margin-bottom: 3px;">[ ✓ SIM — AUTORIZADO ]</div>
-                    <div style="color: #475569; font-size: 11px; line-height: 1.5; text-align: justify;">Autorizo expressamente o tratamento dos dados pessoais e de saúde para fins exclusivos de assistência e proteção da saúde (LGPD - Arts. 7º e 11).</div>
-                  </div>
+                <p style="margin: 0 0 8px 0; text-indent: 28px;">
+                  <strong>a) Atendimento Clínico e Triagens de Saúde:</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica autorizada a realização de triagens preventivas, exames clínicos, acuidade visual e avaliação bucal no âmbito do projeto Escola Cidadã: Saúde em Movimento.
+                </p>
 
-                  <div>
-                    <div style="font-weight: 700; color: #0f172a; font-size: 11.5px; margin-bottom: 2px;">C. SOBRE O USO DE IMAGEM E VOZ</div>
-                    <div style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700; font-size: 11px; margin-bottom: 3px;">
-                      ${authImageStatus ? '[ ✓ SIM — AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}
-                    </div>
-                    <div style="color: #475569; font-size: 11px; line-height: 1.5; text-align: justify;">
-                      ${authImageStatus ? 'Autorizo a captação e veiculação de imagem e voz para fins institucionais e pedagógicos do projeto.' : 'Opção por não autorizar o uso de imagem e voz.'}
-                    </div>
-                  </div>
+                <p style="margin: 0 0 8px 0; text-indent: 28px;">
+                  <strong>b) Tratamento de Dados Pessoais e de Saúde (LGPD):</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica expressamente autorizado o tratamento dos dados pessoais e sensíveis para finalidade exclusiva de assistência à saúde e histórico de atendimento, nos termos dos artigos 7º, I, 11, II, "f", e 14 da Lei Federal nº 13.709/2018.
+                </p>
 
-                </div>
+                <p style="margin: 0 0 10px 0; text-indent: 28px;">
+                  <strong>c) Captação e Uso de Imagem e Voz:</strong> <span style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700;">${authImageStatus ? '[ ✓ AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}</span> — ${authImageStatus ? 'Fica autorizada de forma gratuita a captação e veiculação de fotos e vídeos para documentação institucional, relatórios e prestação de contas do projeto (ECA, Art. 17).' : 'O(a) responsável optou por não autorizar o registro fotográfico ou audiovisual, permanecendo inalterado o pleno atendimento de saúde do(a) estudante.'}
+                </p>
               </div>
 
-              <!-- 3. Compromissos e Direitos do Titular -->
-              <div style="margin-bottom: 18px; border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden;">
-                <div style="background-color: #f8fafc; color: #334155; padding: 7px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #e2e8f0;">
-                  3. COMPROMISSOS E DIREITOS DO TITULAR DOS DADOS (LGPD)
-                </div>
-                <div style="padding: 12px 14px; font-size: 11.5px; line-height: 1.6; color: #475569; background-color: #ffffff; text-align: justify;">
-                  <p style="margin: 0 0 6px 0; text-indent: 18px;"><strong>Finalidade e Proteção:</strong> Os dados coletados não serão comercializados, repassados a terceiros alheios ao projeto ou utilizados para fins discriminatórios.</p>
-                  <p style="margin: 0; text-indent: 18px;"><strong>Direito de Revogação:</strong> O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação do consentimento a qualquer momento através do contato com a direção da escola ou coordenação do projeto.</p>
-                </div>
+              <!-- 3. Cláusula Terceira — Direitos e Revogação (LGPD) -->
+              <div style="margin-bottom: 24px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify;">
+                <p style="margin: 0; text-indent: 28px;">
+                  Declaro estar ciente de que os dados coletados não serão comercializados e que é garantido o direito de acesso, retificação ou revogação deste consentimento a qualquer momento (Art. 18 da LGPD), mediante solicitação formal à direção da escola ou coordenação do projeto.
+                </p>
               </div>
 
               <!-- 4. Card de Verificação Online & Protocolo de Assinatura (Estilo Assinafy / Banco Safra) -->
@@ -711,9 +738,16 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
                 
                 <!-- Título com Linha Divisória -->
                 <div style="border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
-                  <div style="font-size: 14px; font-weight: 800; color: #0f172a; letter-spacing: -0.01em;">
-                    Verificação online
-                  </div>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td style="width: 26px; vertical-align: middle;">
+                        <img src="https://www.catraki.com.br/catraki.png" alt="Catraki" style="width: 20px; height: 20px; border-radius: 4px; display: block;" />
+                      </td>
+                      <td style="vertical-align: middle; font-size: 14px; font-weight: 800; color: #0f172a; letter-spacing: -0.01em;">
+                        Verificação online • Plataforma Catraki
+                      </td>
+                    </tr>
+                  </table>
                 </div>
 
                 <table style="width: 100%; border-collapse: collapse;">
@@ -797,8 +831,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
                     </td>
                   </tr>
                 </table>
-                <div style="padding-top: 10px; border-top: 1px dashed #e2e8f0; font-size: 10px; color: #94a3b8; line-height: 1.5; text-align: justify;">
-                  Este Log é exclusivo e deve ser considerado parte integrante do documento nº <strong>${validationCode}</strong>, com os efeitos probatórios prescritos pela legislação de assinaturas eletrônicas na plataforma Catraki.
+                <div style="padding-top: 10px; border-top: 1px dashed #e2e8f0; font-size: 11px; color: #64748b; line-height: 1.5; text-align: left;">
+                  🔒 <strong>Comprovante oficial:</strong> Este registro confirma a assinatura válida do termo <strong>${validationCode}</strong> e pode ser consultado a qualquer momento no validador público da plataforma Catraki.
                 </div>
               </div>
 

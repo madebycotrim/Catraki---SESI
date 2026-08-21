@@ -32,11 +32,19 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
       <div className="document-sheet-a4">
         {/* Cabeçalho com logo oficial */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 pb-4 border-b-2 sm:border-b-3 border-[#034b7f]">
-          <img
-            src="/logo-1linha.svg"
-            alt="SESI Saúde"
-            className="h-8 sm:h-11 w-auto object-contain"
-          />
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <img
+              src="/catraki.png"
+              alt="Catraki"
+              className="h-8 sm:h-10 w-auto object-contain rounded"
+            />
+            <div className="h-6 w-px bg-slate-300 hidden sm:block" />
+            <img
+              src="/logo-1linha.svg"
+              alt="SESI Saúde"
+              className="h-7 sm:h-9 w-auto object-contain"
+            />
+          </div>
           <div className="text-left sm:text-right">
             <p className="text-[10px] sm:text-[8.5pt] text-slate-500 m-0 uppercase tracking-wider font-semibold">
               Escola Cidadã — Saúde em Movimento

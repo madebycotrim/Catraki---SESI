@@ -55,11 +55,23 @@ export function maskEmail(emailRaw?: string): string {
   return `${maskedName}@${domain}`;
 }
 
+/**
+ * Formata o nome do menor exibindo o primeiro nome completo seguido das iniciais dos demais sobrenomes com ponto (ex: 'Lucas G. S.')
+ * Atende às diretrizes de privacidade e minimização de dados da LGPD (Art. 14).
+ */
 export function getInitials(name: string): string {
-  if (!name) return '***';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return `${parts[0].charAt(0).toUpperCase()}.`;
-  return `${parts[0].charAt(0).toUpperCase()}. ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
+  if (!name || name.trim().length === 0) return 'Estudante';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'Estudante';
+  if (parts.length === 1) return parts[0];
+
+  const firstName = parts[0];
+  const middleAndLastInitials = parts
+    .slice(1)
+    .map((p) => `${p.charAt(0).toUpperCase()}.`)
+    .join(' ');
+
+  return `${firstName} ${middleAndLastInitials}`;
 }
 
 /**

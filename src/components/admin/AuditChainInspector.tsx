@@ -51,11 +51,11 @@ export const AuditChainInspector: React.FC = () => {
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-white">Cadeia de Auditoria Criptográfica (Hash Chain)</h2>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Append-Only Imutável
+                  Trilha Append-Only
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Encadeamento matemático com <code className="font-mono text-blue-300">prev_log_hash</code> e bloqueio físico por Triggers SQLite no D1.
+                Encadeamento com <code className="font-mono text-blue-300">prev_log_hash</code> e regras de proteção no banco de dados.
               </p>
             </div>
           </div>
@@ -77,7 +77,7 @@ export const AuditChainInspector: React.FC = () => {
               <span className="text-slate-400 block text-[11px]">Integridade da Cadeia:</span>
               <span className={`font-bold text-sm flex items-center gap-1.5 ${verification.isValid ? 'text-emerald-400' : 'text-red-400'}`}>
                 {verification.isValid ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-                {verification.isValid ? '100% Íntegra (Sem Adulteração)' : 'Violação Detectada'}
+                {verification.isValid ? 'Íntegra (Cálculo Validado)' : 'Inconsistência Detectada'}
               </span>
             </div>
 

@@ -1,0 +1,8 @@
+name = "catraki-sesi"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-08-20"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "catraki_db"
+database_id = "6eb79bdf-0ae6-4e87-b0f0-bb802c5f1d98"

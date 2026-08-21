@@ -10,12 +10,12 @@ interface DocumentCreatorProps {
 export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onDocumentCreated }) => {
   const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
-  const [minorName, setMinorName] = useState('Lucas Cotrim Silva');
-  const [minorBirthDate, setMinorBirthDate] = useState('2010-05-14');
-  const [parentName, setParentName] = useState('Mateus Cotrim');
-  const [parentEmail, setParentEmail] = useState('mateus.cotrim@exemplo.com');
-  const [parentPhone, setParentPhone] = useState('(11) 98765-4321');
-  const [expiresInDays, setExpiresInDays] = useState(7);
+  const [minorName, setMinorName] = useState('');
+  const [minorBirthDate, setMinorBirthDate] = useState('');
+  const [parentName, setParentName] = useState('');
+  const [parentEmail, setParentEmail] = useState('');
+  const [parentPhone, setParentPhone] = useState('');
+  const [expiresInDays, setExpiresInDays] = useState(30);
 
   const [loading, setLoading] = useState(false);
   const [createdDoc, setCreatedDoc] = useState<any>(null);

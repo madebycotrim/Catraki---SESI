@@ -3,33 +3,74 @@ import { Header } from './components/common/Header.tsx';
 import { SignerWizard } from './components/signer/SignerWizard.tsx';
 import { PublicValidator } from './components/validator/PublicValidator.tsx';
 import { AdminDashboard } from './components/admin/AdminDashboard.tsx';
+import { AdminLogin } from './components/admin/AdminLogin.tsx';
 import { RevocationPortal } from './components/revocation/RevocationPortal.tsx';
+import { apiClient } from './lib/api.ts';
 
 export function App() {
   const [currentView, setCurrentView] = useState<'signer' | 'validator' | 'admin' | 'revoke'>('signer');
   const [activeSignerToken, setActiveSignerToken] = useState('projeto-escola-cidada-2026');
+  const [activeSchoolSlug, setActiveSchoolSlug] = useState('cemeit');
   const [activeValidatorHash, setActiveValidatorHash] = useState('');
+  const [adminUser, setAdminUser] = useState<any | null>(() => apiClient.getCurrentAdminUser());
 
   // Sincroniza a URL inicial e lida com botão de avançar/voltar do navegador
   useEffect(() => {
-    const tratarRota = () => {
+    const tratarRota = async () => {
       const path = window.location.pathname;
-      if (path === '/escolacidada/cemeit') {
+
+      // Tratamento do retorno da Microsoft OAuth 2.0
+      if (path === '/admin/callback') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+
+        if (code && state) {
+          const res = await apiClient.processMicrosoftCallback(code, state);
+          if (res.success && res.user) {
+            setAdminUser(res.user);
+          }
+        }
+        setCurrentView('admin');
+        window.history.replaceState({}, '', '/admin');
+        return;
+      }
+
+      if (path.startsWith('/autorizar/')) {
+        const slug = path.substring('/autorizar/'.length) || 'cemeit';
+        setActiveSchoolSlug(slug);
+        setCurrentView('signer');
+      } else if (path.startsWith('/termo/')) {
+        const slug = path.substring('/termo/'.length) || 'cemeit';
+        setActiveSchoolSlug(slug);
+        setCurrentView('signer');
+      } else if (path.startsWith('/escola/')) {
+        const slug = path.substring('/escola/'.length) || 'cemeit';
+        setActiveSchoolSlug(slug);
+        setCurrentView('signer');
+      } else if (path.startsWith('/escolacidada/')) {
+        const slug = path.substring('/escolacidada/'.length) || 'cemeit';
+        setActiveSchoolSlug(slug);
+        setCurrentView('signer');
+      } else if (path === '/autorizar' || path === '/escolacidada' || path === '/termo') {
+        setActiveSchoolSlug('cemeit');
         setCurrentView('signer');
       } else if (path.startsWith('/validar/')) {
         const hash = path.substring('/validar/'.length);
         setActiveValidatorHash(hash);
         setCurrentView('validator');
       } else if (path === '/validar') {
+        setActiveValidatorHash('');
         setCurrentView('validator');
       } else if (path === '/revogar') {
         setCurrentView('revoke');
       } else if (path === '/admin') {
         setCurrentView('admin');
       } else {
-        // Redireciona a raiz (/) ou qualquer rota desconhecida para o termo
+        // Redireciona a raiz (/) para a rota padrão do Catraki
+        setActiveSchoolSlug('cemeit');
         setCurrentView('signer');
-        window.history.replaceState({}, '', '/escolacidada/cemeit');
+        window.history.replaceState({}, '', '/autorizar/cemeit');
       }
     };
 
@@ -43,9 +84,10 @@ export function App() {
     window.history.pushState({}, '', path);
   };
 
-  const navigateToSigner = (token?: string) => {
+  const navigateToSigner = (token?: string, slug = 'cemeit') => {
     if (token) setActiveSignerToken(token);
-    navegarParaView('signer', '/escolacidada/cemeit');
+    setActiveSchoolSlug(slug);
+    navegarParaView('signer', `/autorizar/${slug}`);
   };
 
   const navigateToValidator = (hash?: string) => {
@@ -65,7 +107,7 @@ export function App() {
   const isPublicView = currentView === 'signer' || currentView === 'validator' || currentView === 'revoke';
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 font-sans selection:bg-blue-500 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[#edf1f5] text-slate-800 font-sans selection:bg-blue-500 selection:text-white">
       
       {/* Header Superior - Oculto para pais (visão pública) */}
       {!isPublicView && (
@@ -73,7 +115,7 @@ export function App() {
           currentView={currentView} 
           onNavigate={(v) => {
             if (v === 'admin') navegarParaView('admin', '/admin');
-            else if (v === 'signer') navegarParaView('signer', '/escolacidada/cemeit');
+            else if (v === 'signer') navegarParaView('signer', '/autorizar/cemeit');
             else if (v === 'validator') navegarParaView('validator', '/validar');
           }} 
         />
@@ -86,6 +128,7 @@ export function App() {
           <div className="w-full max-w-4xl p-4 sm:p-8">
             <SignerWizard
               initialToken={activeSignerToken}
+              schoolSlug={activeSchoolSlug}
               onNavigateToValidator={navigateToValidator}
               onNavigateToRevoke={navigateToRevoke}
             />
@@ -103,10 +146,19 @@ export function App() {
 
         {currentView === 'admin' && (
           <div className="w-full">
-            <AdminDashboard
-              onNavigateToSignerToken={(token) => navigateToSigner(token)}
-              onNavigateToValidatorHash={(hash) => navigateToValidator(hash)}
-            />
+            {!adminUser ? (
+              <AdminLogin onLoginSuccess={(u) => setAdminUser(u)} />
+            ) : (
+              <AdminDashboard
+                currentUser={adminUser}
+                onLogout={() => {
+                  apiClient.logoutAdmin();
+                  setAdminUser(null);
+                }}
+                onNavigateToSignerToken={(token, schoolSlug) => navigateToSigner(token, schoolSlug)}
+                onNavigateToValidatorHash={(hash) => navigateToValidator(hash)}
+              />
+            )}
           </div>
         )}
 

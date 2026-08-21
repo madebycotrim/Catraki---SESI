@@ -62,6 +62,52 @@ export function getInitials(name: string): string {
   return `${parts[0].charAt(0).toUpperCase()}. ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
 }
 
+/**
+ * Converte o cabeçalho técnico de User-Agent em um nome amigável de Navegador e Sistema Operacional.
+ */
+export function formatUserAgent(ua?: string): string {
+  if (!ua) return 'Dispositivo não identificado';
+
+  let browser = 'Navegador Web';
+  if (ua.includes('Edg/')) {
+    const match = ua.match(/Edg\/([\d.]+)/);
+    browser = match ? `Microsoft Edge ${match[1].split('.')[0]}` : 'Microsoft Edge';
+  } else if (ua.includes('Chrome/')) {
+    const match = ua.match(/Chrome\/([\d.]+)/);
+    browser = match ? `Google Chrome ${match[1].split('.')[0]}` : 'Google Chrome';
+  } else if (ua.includes('Firefox/')) {
+    const match = ua.match(/Firefox\/([\d.]+)/);
+    browser = match ? `Mozilla Firefox ${match[1].split('.')[0]}` : 'Mozilla Firefox';
+  } else if (ua.includes('Safari/') && !ua.includes('Chrome')) {
+    const match = ua.match(/Version\/([\d.]+)/);
+    browser = match ? `Apple Safari ${match[1].split('.')[0]}` : 'Apple Safari';
+  } else if (ua.includes('Opera') || ua.includes('OPR/')) {
+    browser = 'Opera';
+  }
+
+  let os = 'Sistema';
+  if (ua.includes('Windows NT 10.0')) os = 'Windows 10/11 (64-bit)';
+  else if (ua.includes('Windows NT 6.3')) os = 'Windows 8.1';
+  else if (ua.includes('Windows NT 6.1')) os = 'Windows 7';
+  else if (ua.includes('Android')) {
+    const match = ua.match(/Android ([\d.]+)/);
+    os = match ? `Android ${match[1]}` : 'Android';
+  } else if (ua.includes('iPhone')) os = 'iOS (iPhone)';
+  else if (ua.includes('iPad')) os = 'iPadOS (iPad)';
+  else if (ua.includes('Mac OS X')) os = 'macOS';
+  else if (ua.includes('Linux')) os = 'Linux';
+
+  return `${browser} no ${os}`;
+}
+
+/**
+ * Gera um identificador de protocolo único para o documento no formato oficial DOC-AAAA-XXXXXX
+ */
+export function generateUniqueDocId(year = new Date().getFullYear()): string {
+  const randomNum = Math.floor(100000 + Math.random() * 900000);
+  return `DOC-${year}-${randomNum}`;
+}
+
 // ============================================================================
 // SCHEMAS DE VALIDAÇÃO ZOD
 // ============================================================================

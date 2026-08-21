@@ -62,7 +62,7 @@ export const TemplateManager: React.FC = () => {
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Layers className="w-5 h-5 text-blue-400" />
-            Templates de Procedimento Médico (Imutáveis e Versionados)
+            Templates de Procedimento Médico (Versionados)
           </h2>
           <p className="text-xs text-slate-400">
             Cada procedimento médico possui descrição clínica específica e prazo de retenção alinhado à guarda de prontuário (LGPD Art. 11/14).

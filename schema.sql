@@ -3,6 +3,17 @@
 -- Conformidade: MP 2.200-2/2001, Decreto 10.543/2020, LGPD (Lei 13.709/2018)
 -- ============================================================================
 
+-- 0. Instituições / Escolas Participantes do Projeto (Roteamento Dinâmico por URL)
+CREATE TABLE IF NOT EXISTS institutions (
+  id TEXT PRIMARY KEY, -- Slug na URL (ex: 'cemeit')
+  name TEXT NOT NULL,  -- Nome Oficial da Escola
+  short_name TEXT NOT NULL, -- Sigla / Nome Curto
+  city TEXT NOT NULL DEFAULT 'Taguatinga',
+  state TEXT NOT NULL DEFAULT 'DF',
+  is_active BOOLEAN DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 1. Templates de Termo de Procedimento Médico (Imutáveis e Versionados)
 CREATE TABLE IF NOT EXISTS document_templates (
   id TEXT NOT NULL,
@@ -165,3 +176,84 @@ CREATE INDEX IF NOT EXISTS idx_audit_cpf_masked ON audit_logs(signer_cpf_masked)
 CREATE INDEX IF NOT EXISTS idx_audit_manifest ON audit_logs(manifest_sha256);
 CREATE INDEX IF NOT EXISTS idx_manual_rev_doc ON manual_review_queue(document_id);
 CREATE INDEX IF NOT EXISTS idx_manual_rev_status ON manual_review_queue(status);
+
+-- ============================================================================
+-- DADOS INICIAIS (SEED DATA) — PROJETO ESCOLA CIDADÃ
+-- ============================================================================
+
+-- 1. Template Oficial do Termo
+INSERT OR IGNORE INTO document_templates (
+  id, version, title, procedure_description, content_markdown, content_sha256, consent_text_version, retention_days, is_active
+) VALUES (
+  'proc_escola_cidada',
+  1,
+  'Projeto Escola Cidadã: Saúde em Movimento',
+  'Autorização para atendimento do aluno nas ações do projeto Escola Cidadã: Saúde em Movimento (UnB + SESI-DF + Finatec), sem a presença do responsável legal, com consentimento granular para tratamento de dados pessoais (LGPD) e uso de imagem, nome e voz (ECA/Art. 17).',
+  '## TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)',
+  'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+  1,
+  1095,
+  1
+);
+
+-- 2. Documento de Acesso Inicial
+INSERT OR IGNORE INTO documents (
+  id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name,
+  parent_email_encrypted, parent_phone_encrypted, key_version, access_token, status,
+  retention_expires_at, expires_at
+) VALUES (
+  'DOC-2026-000001',
+  'proc_escola_cidada',
+  1,
+  'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+  'Estudante Escola Cidadã',
+  '2010-01-01',
+  'Responsável Legal',
+  'ENC_SEED',
+  'ENC_SEED',
+  1,
+  'projeto-escola-cidada-2026',
+  'pending',
+  datetime('now', '+3 years'),
+  datetime('now', '+1 year')
+);
+
+INSERT OR IGNORE INTO documents (
+  id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name,
+  parent_email_encrypted, parent_phone_encrypted, key_version, access_token, status,
+  retention_expires_at, expires_at
+) VALUES (
+  'DOC-2026-000002',
+  'proc_escola_cidada',
+  1,
+  'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+  'Estudante Escola Cidadã',
+  '2010-01-01',
+  'Responsável Legal',
+  'ENC_SEED',
+  'ENC_SEED',
+  1,
+  'demo-token-sesi-audiometria-2026',
+  'pending',
+  datetime('now', '+3 years'),
+  datetime('now', '+1 year')
+);
+
+-- 3. Usuário Administrador Padrão
+INSERT OR IGNORE INTO admin_users (
+  id, name, email, password_hash, role, is_active
+) VALUES (
+  'USR-ADMIN-001',
+  'Administrador SESI DF',
+  'admin@sesi.org.br',
+  'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f',
+  'admin_master',
+  1
+);
+
+-- 4. Escolas / Instituições Cadastradas (Rotas Dinâmicas)
+INSERT OR IGNORE INTO institutions (id, name, short_name, city, state, is_active) VALUES
+('cemeit', 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)', 'CEMEIT', 'Taguatinga', 'DF', 1),
+('ced01-estrutural', 'Centro Educacional 01 da Estrutural', 'CED 01 Estrutural', 'Estrutural', 'DF', 1),
+('cem02-ceilandia', 'Centro de Ensino Médio 02 de Ceilândia', 'CEM 02 Ceilândia', 'Ceilândia', 'DF', 1),
+('ced02-guara', 'Centro Educacional 02 do Guará', 'CED 02 Guará', 'Guará', 'DF', 1);

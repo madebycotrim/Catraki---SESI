@@ -226,7 +226,7 @@ export async function generateTsaTimestampToken(
   tsaEndpoint?: string
 ): Promise<{ token: string; tsaName: string; timestamp: string; verified: boolean }> {
   const timestampIso = new Date().toISOString();
-  const tsaAuthority = 'Autoridade de Carimbo do Tempo SESI / ACT ICP-Brasil Compatível';
+  const tsaAuthority = 'Autoridade de Carimbo do Tempo (RFC 3161 - Sincronizado NTP.br)';
 
   if (tsaEndpoint && !tsaEndpoint.includes('localhost')) {
     try {

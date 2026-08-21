@@ -380,3 +380,44 @@ adminRouter.post('/lgpd-requests/:id/respond', requireAuth(['admin_master', 'dpo
     message: 'Solicitação LGPD atualizada com o parecer do DPO.',
   });
 });
+
+// ============================================================================
+// GESTÃO DE INSTITUIÇÕES / ESCOLAS (ROTEAMENTO DINÂMICO)
+// ============================================================================
+
+adminRouter.get('/institutions', requireAuth(['operador', 'admin_master']), async (c) => {
+  const db = c.env.DB;
+  const list = await db.prepare('SELECT * FROM institutions ORDER BY name ASC').all<any>();
+  return c.json({ success: true, institutions: list.results });
+});
+
+adminRouter.post('/institutions', requireAuth(['admin_master']), async (c) => {
+  const body = await c.req.json();
+  const { id, name, short_name, city, state } = body;
+  const db = c.env.DB;
+
+  if (!id || !name || !short_name) {
+    return c.json({ success: false, error: 'Slug (ID), Nome e Sigla são obrigatórios.' }, 400);
+  }
+
+  const cleanSlug = id.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+
+  await db.prepare(
+    `INSERT INTO institutions (id, name, short_name, city, state, is_active)
+     VALUES (?, ?, ?, ?, ?, 1)
+     ON CONFLICT(id) DO UPDATE SET name = excluded.name, short_name = excluded.short_name, city = excluded.city, state = excluded.state, is_active = 1`
+  ).bind(cleanSlug, name.trim(), short_name.trim(), city?.trim() || 'Brasília', state?.trim() || 'DF').run();
+
+  return c.json({
+    success: true,
+    institution: { id: cleanSlug, name: name.trim(), short_name: short_name.trim(), city: city || 'Brasília', state: state || 'DF' },
+    message: 'Instituição / Escola cadastrada com sucesso.',
+  });
+});
+
+adminRouter.delete('/institutions/:id', requireAuth(['admin_master']), async (c) => {
+  const id = c.req.param('id');
+  const db = c.env.DB;
+  await db.prepare('UPDATE institutions SET is_active = 0 WHERE id = ?').bind(id).run();
+  return c.json({ success: true, message: 'Instituição desativada com sucesso.' });
+});

@@ -162,7 +162,7 @@ export const ManualReviewQueue: React.FC = () => {
 
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
                 <span className="text-slate-400 block text-[11px]">Paciente / Menor:</span>
-                <span className="font-bold text-white block">{selectedReview.minor_name || 'Lucas Cotrim Silva'}</span>
+                <span className="font-bold text-white block">{selectedReview.minor_name || 'Estudante'}</span>
                 <span className="text-slate-400 text-[11px] block">{selectedReview.review_notes}</span>
               </div>
             </div>

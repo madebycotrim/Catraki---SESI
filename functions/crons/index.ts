@@ -9,9 +9,9 @@ import type { Env } from '../../src/lib/types.ts';
  * - Cálculo e ancoragem da Raiz de Merkle da trilha de auditoria
  */
 export async function handleScheduled(
-  _event: ScheduledEvent,
+  _event: any,
   env: Env,
-  _ctx: ExecutionContext
+  _ctx: any
 ): Promise<void> {
   const db = env.DB;
 

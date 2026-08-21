@@ -7,9 +7,10 @@
     --color-primary: 29 78 216;
   }
   
-  html {
+  html, body {
     scroll-behavior: smooth;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background-color: #edf1f5;
   }
 
   /* Foco visível acessível em conformidade com WCAG 2.1 AA */

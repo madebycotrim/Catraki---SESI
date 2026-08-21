@@ -7,18 +7,23 @@ import { apiClient } from '../../lib/api.ts';
 import { Loader2, AlertTriangle } from 'lucide-react';
 
 
+import type { Institution } from '../../lib/types.ts';
+
 interface SignerWizardProps {
   initialToken?: string;
+  schoolSlug?: string;
   onNavigateToValidator: (hash: string) => void;
   onNavigateToRevoke: (token: string) => void;
 }
 
 export const SignerWizard: React.FC<SignerWizardProps> = ({
   initialToken = 'demo-token-sesi-audiometria-2026',
+  schoolSlug = 'cemeit',
   onNavigateToValidator,
   onNavigateToRevoke,
 }) => {
   const [token] = useState(initialToken);
+  const [institution, setInstitution] = useState<Institution | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [loading, setLoading] = useState(true);
   const [documentData, setDocumentData] = useState<any>(null);
@@ -31,7 +36,12 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
 
   useEffect(() => {
     loadDocument(token);
-  }, [token]);
+    apiClient.getInstitutionBySlug(schoolSlug || 'cemeit').then((res) => {
+      if (res.success && res.institution) {
+        setInstitution(res.institution);
+      }
+    });
+  }, [token, schoolSlug]);
 
   const loadDocument = async (t: string) => {
     setLoading(true);
@@ -81,6 +91,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
       {step === 1 && (
         <Step1Reading
           document={documentData}
+          institution={institution}
           onProceed={() => setStep(2)}
         />
       )}
@@ -88,6 +99,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
       {step === 2 && (
         <Step2FormData
           initialData={formData}
+          institution={institution}
           onProceed={(data) => {
             setFormData(data);
             setStep(3);
@@ -104,6 +116,8 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
           identityData={{
             signerName: formData.signerName,
             signerCpf: formData.signerCpf,
+            signerEmail: formData.signerEmail || 'responsavel@email.com',
+            signerPhone: formData.signerPhone,
             signerRelationship: formData.signerRelationship,
             identityMethod: 'manual_review'
           }}
@@ -119,6 +133,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
         <Step4Success
           signResult={signResult}
           signerName={formData.signerName}
+          signerEmail={formData.signerEmail}
           minorName={formData.minorName}
           procedureTitle={documentData.procedure_title}
           onNavigateToValidator={onNavigateToValidator}

@@ -20,6 +20,16 @@ export type LgpdRequestType = 'access' | 'rectification' | 'deletion' | 'revocat
 
 export type LgpdRequestStatus = 'pending' | 'in_analysis' | 'completed' | 'rejected';
 
+export interface Institution {
+  id: string; // slug único para URL (ex: 'cemeit')
+  name: string; // nome oficial completo (ex: 'CEMEIT - Centro de Ensino Médio Escola Industrial de Taguatinga')
+  short_name: string; // sigla / nome curto
+  city: string;
+  state: string;
+  is_active: boolean;
+  created_at?: string;
+}
+
 export interface DocumentTemplate {
   id: string;
   version: number;
@@ -147,8 +157,9 @@ export interface AdminUser {
 
 export interface PublicValidationResponse {
   valid: boolean;
+  validation_code?: string;
   legal_notice: string;
-  signature_type: 'Assinatura Eletrônica Avançada (Dec. 10.543/2020)';
+  signature_type: string;
   document_id: string;
   manifest_sha256: string;
   content_sha256: string;
@@ -157,6 +168,9 @@ export interface PublicValidationResponse {
   signer_name: string;
   signer_cpf_masked: string;
   signer_relationship: string;
+  ip_address: string;
+  geolocation: string;
+  user_agent: string;
   identity_method: IdentityMethod;
   procedure_title: string;
   procedure_description: string;

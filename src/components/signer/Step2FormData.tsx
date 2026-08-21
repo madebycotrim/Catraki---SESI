@@ -1,29 +1,33 @@
 import React, { useState } from 'react';
 import { ChevronRight, ChevronLeft, ShieldAlert } from 'lucide-react';
-
-import type { SignerRelationship } from '../../lib/types.ts';
+import { isValidCPF } from '../../lib/schemas.ts';
+import type { SignerRelationship, Institution } from '../../lib/types.ts';
 
 interface FormData {
   minorName: string;
   minorBirthDate: string;
   minorCpf: string;
+  minorSchool?: string;
   minorSeries: string;
+  minorClass: string;
   minorTurn: 'Matutino' | 'Vespertino' | 'Noturno' | 'Integral' | '';
   signerName: string;
   signerCpf: string;
   signerPhone: string;
   signerEmail: string;
-  signerRelationship: SignerRelationship;
+  signerRelationship: SignerRelationship | '';
 }
 
 interface Step2FormDataProps {
   initialData?: Partial<FormData>;
+  institution?: Institution | null;
   onProceed: (data: FormData) => void;
   onBack: () => void;
 }
 
 export const Step2FormData: React.FC<Step2FormDataProps> = ({
   initialData,
+  institution,
   onProceed,
   onBack,
 }) => {
@@ -32,12 +36,13 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
     minorBirthDate: initialData?.minorBirthDate || '',
     minorCpf: initialData?.minorCpf || '',
     minorSeries: initialData?.minorSeries || '',
+    minorClass: initialData?.minorClass || '',
     minorTurn: initialData?.minorTurn || '',
     signerName: initialData?.signerName || '',
     signerCpf: initialData?.signerCpf || '',
     signerPhone: initialData?.signerPhone || '',
     signerEmail: initialData?.signerEmail || '',
-    signerRelationship: initialData?.signerRelationship || 'Mãe',
+    signerRelationship: initialData?.signerRelationship || '',
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -83,11 +88,22 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
     
     if (!formData.minorName.trim()) newErrors.minorName = 'Nome do aluno é obrigatório';
     if (!formData.minorBirthDate) newErrors.minorBirthDate = 'Data de nascimento é obrigatória';
-    if (formData.minorCpf.replace(/\D/g, '').length !== 11) newErrors.minorCpf = 'CPF do aluno inválido ou obrigatório';
+    if (formData.minorCpf.trim() && !isValidCPF(formData.minorCpf)) {
+      newErrors.minorCpf = 'CPF do estudante inválido (verifique os dígitos)';
+    }
     if (!formData.signerName.trim()) newErrors.signerName = 'Seu nome é obrigatório';
-    if (formData.signerCpf.replace(/\D/g, '').length !== 11) newErrors.signerCpf = 'CPF inválido';
+    if (!formData.signerCpf || !isValidCPF(formData.signerCpf)) {
+      newErrors.signerCpf = 'CPF do responsável inválido (verifique os dígitos)';
+    }
+    if (!formData.signerRelationship) {
+      newErrors.signerRelationship = 'Selecione o seu vínculo com o estudante';
+    }
     if (formData.signerPhone.replace(/\D/g, '').length < 10) newErrors.signerPhone = 'Telefone inválido';
-    if (formData.signerEmail.trim() && !/\S+@\S+\.\S+/.test(formData.signerEmail)) newErrors.signerEmail = 'E-mail inválido';
+    if (!formData.signerEmail.trim()) {
+      newErrors.signerEmail = 'E-mail do responsável é obrigatório para envio do código de segurança';
+    } else if (!/\S+@\S+\.\S+/.test(formData.signerEmail.trim())) {
+      newErrors.signerEmail = 'Digite um e-mail válido (ex: nome@email.com)';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -96,7 +112,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onProceed(formData);
+      onProceed(formData as any);
     }
   };
 
@@ -108,55 +124,45 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
   }).format(new Date());
 
   return (
-    <div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-2 pb-8">
-
-
-      {/* Mesa / Fundo claro e moderno */}
+    <div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-2 sm:px-4 pb-12 pt-2">
+      {/* Folha A4 — Padrão ABNT (210mm x 297mm | Margens: Sup/Esq 30mm, Inf/Dir 20mm) */}
       <div
+        className="p-6 sm:p-0"
         style={{
-          background: '#f1f5f9',
-          padding: '28px 20px',
-          borderRadius: '8px',
-          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)',
-          border: '1px solid #e2e8f0',
+          background: '#ffffff',
+          paddingTop: '80px',
+          paddingLeft: '80px',
+          paddingRight: '60px',
+          paddingBottom: '80px',
+          fontFamily: "'Arial', 'Helvetica Neue', sans-serif",
+          fontSize: '11pt',
+          lineHeight: '1.6',
+          color: '#000',
+          minHeight: '297mm',
+          position: 'relative',
+          borderRadius: '0px',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
         }}
       >
-        {/* Folha A4 */}
-        <div
-          style={{
-            background: '#fff',
-            paddingTop:    '113px',
-            paddingLeft:   '113px',
-            paddingRight:  '76px',
-            paddingBottom: '100px',
-            fontFamily: "'Arial', sans-serif",
-            fontSize: '11pt',
-            lineHeight: '1.6',
-            color: '#000',
-            minHeight: '297mm',
-            position: 'relative',
-            boxShadow: '0 4px 32px rgba(0,0,0,0.22), 0 1.5px 6px rgba(0,0,0,0.12)',
-          }}
-        >
           {/* Cabeçalho oficial */}
           <div style={{
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'space-between',
-            marginBottom: '32px',
-            paddingBottom: '20px',
+            marginBottom: '28px',
+            paddingBottom: '16px',
             borderBottom: '3px solid #034b7f',
           }}>
             <img
               src="/logo-1linha.svg"
               alt="SESI Saúde"
-              style={{ height: '52px', objectFit: 'contain' }}
+              style={{ height: '46px', objectFit: 'contain' }}
             />
             <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '9pt', color: '#555', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <p style={{ fontSize: '8.5pt', color: '#555', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Escola Cidadã: Saúde em Movimento
               </p>
-              <p style={{ fontSize: '9pt', color: '#333', margin: 0, fontWeight: 'bold' }}>
+              <p style={{ fontSize: '9pt', color: '#1e293b', margin: 0, fontWeight: 'bold' }}>
                 Termo de Consentimento (TCLE)
               </p>
               <p style={{ fontSize: '8pt', color: '#888', margin: 0 }}>
@@ -171,7 +177,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
               1. IDENTIFICAÇÃO DAS PARTES (PREENCHIMENTO)
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Os dados abaixo serão vinculados de forma definitiva ao Termo de Consentimento.
+              Os dados informados serão utilizados para a identificação do signatário e do estudante no Termo de Consentimento.
             </p>
           </div>
 
@@ -217,8 +223,9 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                     name="signerRelationship"
                     value={formData.signerRelationship}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded focus:outline-none focus:border-sesi-primary bg-white"
+                    className={`w-full px-3 py-2 text-xs border rounded focus:outline-none focus:border-sesi-primary bg-white cursor-pointer ${errors.signerRelationship ? 'border-red-400 bg-red-50/30' : 'border-slate-300'}`}
                   >
+                    <option value="">Selecione...</option>
                     <option value="Mãe">Mãe</option>
                     <option value="Pai">Pai</option>
                     <option value="Tutor(a) Legal">Tutor(a) Legal</option>
@@ -226,6 +233,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                     <option value="Tio/Tia">Tio / Tia</option>
                     <option value="Outro">Outro Responsável Legal</option>
                   </select>
+                  {errors.signerRelationship && <span className="text-[10px] font-semibold text-red-500">{errors.signerRelationship}</span>}
                 </div>
 
                 <div className="flex flex-col gap-1">
@@ -243,14 +251,21 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                 </div>
 
                 <div className="flex flex-col gap-1 md:col-span-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">E-mail</label>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">
+                      E-mail do Responsável <span className="text-red-500">*</span>
+                    </label>
+                    <span className="text-[10px] text-sesi-primary font-medium">
+                      O código de 6 dígitos para assinar será enviado para este e-mail
+                    </span>
+                  </div>
                   <input
                     type="email"
                     name="signerEmail"
                     value={formData.signerEmail}
                     onChange={handleChange}
                     className={`w-full px-3 py-2 text-xs border rounded focus:outline-none focus:border-sesi-primary ${errors.signerEmail ? 'border-red-400 bg-red-50/30' : 'border-slate-300'}`}
-                    placeholder="exemplo@email.com"
+                    placeholder="seu.email@exemplo.com"
                   />
                   {errors.signerEmail && <span className="text-[10px] font-semibold text-red-500">{errors.signerEmail}</span>}
                 </div>
@@ -290,7 +305,9 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">CPF do Aluno</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">
+                    CPF do Aluno <span className="text-slate-400 font-normal lowercase">(opcional)</span>
+                  </label>
                   <input
                     type="text"
                     name="minorCpf"
@@ -304,25 +321,40 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                 </div>
 
                 <div className="flex flex-col gap-1 md:col-span-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Escola / Instituição</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Escola / Instituição de Ensino</label>
                   <input
                     type="text"
                     readOnly
-                    value="Centro de Ensino Médio EIT (CEMEIT)"
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded bg-slate-50 text-slate-600 focus:outline-none cursor-default font-medium"
+                    value={institution?.name || 'Centro de Ensino Médio EIT (CEMEIT)'}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-default"
                   />
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Série e Turma</label>
-                  <input
-                    type="text"
-                    name="minorSeries"
-                    value={formData.minorSeries}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded focus:outline-none focus:border-sesi-primary"
-                    placeholder="Ex: 1º Ano A"
-                  />
+                {/* Série / Ano e Turma lado a lado */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Série / Ano</label>
+                    <input
+                      type="text"
+                      name="minorSeries"
+                      value={formData.minorSeries}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded focus:outline-none focus:border-sesi-primary"
+                      placeholder="Ex: 2º Ano"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Turma</label>
+                    <input
+                      type="text"
+                      name="minorClass"
+                      value={formData.minorClass}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded focus:outline-none focus:border-sesi-primary"
+                      placeholder="Ex: A"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-1">
@@ -372,27 +404,26 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
           </form>
 
           {/* ─── Barra institucional no final da folha ─── */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, overflow: 'hidden' }}>
             <img
               src="/barra.jpg"
               alt="Barra institucional SESI"
-              style={{ width: '100%', display: 'block', objectFit: 'cover' }}
+              style={{ width: '100%', height: '36px', display: 'block', objectFit: 'cover', objectPosition: 'center' }}
             />
           </div>
 
           {/* ─── Número de página (canto superior direito ABNT) ─── */}
           <div style={{
             position: 'absolute',
-            top:   '76px',
-            right: '76px',
+            top:   '36px',
+            right: '60px',
             fontFamily: 'Arial, sans-serif',
-            fontSize: '10pt',
-            color: '#000',
+            fontSize: '9.5pt',
+            color: '#64748b',
           }}>
             2
           </div>
         </div>
-      </div>
     </div>
   );
 };

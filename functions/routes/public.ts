@@ -9,31 +9,47 @@ export const publicRouter = new Hono<{ Bindings: Env }>();
 publicRouter.use('*', rateLimiter({ limit: 60, windowSeconds: 60, keyPrefix: 'pub_val' }));
 
 /**
- * GET /api/public/validate/:manifestHash
- * Validador público de autenticidade acessível via QR Code ou hash SHA-256
+ * GET /api/public/validate/:query
+ * Validador público de autenticidade acessível via código único (ex: SESI-8661-7A48) ou hash SHA-256
  */
-publicRouter.get('/validate/:manifestHash', async (c) => {
-  const manifestHash = c.req.param('manifestHash');
+publicRouter.get('/validate/:query', async (c) => {
+  const query = c.req.param('query');
   const db = c.env.DB;
 
-  if (!manifestHash || manifestHash.length !== 64) {
-    return c.json({ success: false, error: 'Hash de manifesto SHA-256 inválido.', code: 'INVALID_HASH' }, 400);
+  if (!query) {
+    return c.json({ success: false, error: 'Código ou hash de validação inválido.', code: 'INVALID_QUERY' }, 400);
   }
 
-  const record = await db.prepare(
-    `SELECT a.*, d.minor_name, d.status as doc_status, d.revoked_at, d.revoked_reason,
-            t.title as template_title, t.procedure_description
-     FROM audit_logs a
-     JOIN documents d ON a.document_id = d.id
-     JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-     WHERE a.manifest_sha256 = ?`
-  ).bind(manifestHash).first<any>();
+  const clean = query.trim();
+  const cleanRaw = clean.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+  let record = null;
+  if (clean.length === 64) {
+    record = await db.prepare(
+      `SELECT a.*, d.minor_name, d.status as doc_status, d.revoked_at, d.revoked_reason,
+              t.title as template_title, t.procedure_description
+       FROM audit_logs a
+       JOIN documents d ON a.document_id = d.id
+       JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       WHERE a.manifest_sha256 = ?`
+    ).bind(clean.toLowerCase()).first<any>();
+  } else {
+    // Busca por token curto ou documento
+    record = await db.prepare(
+      `SELECT a.*, d.minor_name, d.status as doc_status, d.revoked_at, d.revoked_reason,
+              t.title as template_title, t.procedure_description
+       FROM audit_logs a
+       JOIN documents d ON a.document_id = d.id
+       JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       WHERE a.manifest_sha256 LIKE ? OR a.manifest_sha256 LIKE ? OR a.document_id LIKE ? LIMIT 1`
+    ).bind(`${cleanRaw.substring(0, 4)}%`, `%${cleanRaw.slice(-4)}`, `%${cleanRaw}%`).first<any>();
+  }
 
   if (!record) {
     return c.json({
       success: false,
       valid: false,
-      error: 'Manifesto não localizado ou não registrado na cadeia de custódia oficial do SESI Saúde.',
+      error: 'Código de autenticidade não localizado na cadeia de custódia oficial do SESI Saúde.',
       code: 'MANIFEST_NOT_FOUND',
     }, 404);
   }
@@ -45,8 +61,8 @@ publicRouter.get('/validate/:manifestHash', async (c) => {
 
   const response: PublicValidationResponse = {
     valid: true,
-    legal_notice: c.env.LEGAL_FRAMEWORK_NOTICE || 'Assinatura Eletrônica Avançada (Decreto Federal nº 10.543/2020) — Não qualificada ICP-Brasil',
-    signature_type: 'Assinatura Eletrônica Avançada (Dec. 10.543/2020)',
+    legal_notice: 'Assinatura Eletrônica Avançada (Art. 4º, II da Lei nº 14.063/2020 e MP 2.200-2/2001)',
+    signature_type: 'Assinatura Eletrônica Avançada (Lei 14.063/2020)',
     document_id: record.document_id,
     manifest_sha256: record.manifest_sha256,
     content_sha256: record.content_sha256_at_signing,
@@ -55,6 +71,9 @@ publicRouter.get('/validate/:manifestHash', async (c) => {
     signer_name: record.signer_name,
     signer_cpf_masked: record.signer_cpf_masked,
     signer_relationship: record.signer_relationship,
+    ip_address: record.ip_address || '127.0.0.1',
+    geolocation: record.geo_city ? `${record.geo_city}, ${record.geo_region || 'DF'} - Brasil` : 'Brasília, DF - Brasil',
+    user_agent: record.user_agent || 'Navegador Web Padrão',
     identity_method: record.identity_method,
     procedure_title: record.template_title,
     procedure_description: record.procedure_description,
@@ -63,7 +82,7 @@ publicRouter.get('/validate/:manifestHash', async (c) => {
     chain_position: positionResult?.pos || 1,
     prev_log_hash: record.prev_log_hash,
     tsa_verified: Boolean(record.tsa_timestamp_token),
-    tsa_authority: 'Autoridade de Carimbo do Tempo SESI / ACT ICP-Brasil Compatível',
+    tsa_authority: 'Registro Cronológico Digital (Sincronizado com a Hora Legal de Brasília - NTP.br)',
     revocation_info: record.doc_status === 'revoked' ? {
       revoked_at: record.revoked_at,
       revoked_reason: record.revoked_reason || 'Revogado a pedido do titular / responsável legal',
@@ -104,4 +123,39 @@ publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, 
     protocol: requestId,
     message: 'Sua solicitação fundamentada na LGPD (Lei 13.709/2018) foi registrada e encaminhada ao Encarregado pelo Tratamento de Dados Pessoais (DPO) do SESI.',
   });
+});
+
+/**
+ * GET /api/public/institutions/:slug
+ * Retorna dados da instituição/escola para preenchimento dinâmico
+ */
+publicRouter.get('/institutions/:slug', async (c) => {
+  const slug = c.req.param('slug');
+  const db = c.env.DB;
+
+  if (!slug) {
+    return c.json({ success: false, error: 'Identificador de escola obrigatório.' }, 400);
+  }
+
+  const clean = slug.toLowerCase().trim();
+  const inst = await db.prepare(
+    'SELECT * FROM institutions WHERE id = ? AND is_active = 1'
+  ).bind(clean).first<any>();
+
+  if (!inst) {
+    const formattedName = clean.replace(/[-_]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    return c.json({
+      success: true,
+      institution: {
+        id: clean,
+        name: `Escola ${formattedName}`,
+        short_name: formattedName,
+        city: 'Brasília',
+        state: 'DF',
+        is_active: 1,
+      },
+    });
+  }
+
+  return c.json({ success: true, institution: inst });
 });

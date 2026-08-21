@@ -18,8 +18,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <p className="leading-relaxed text-slate-400">
             Sistema desenvolvido em estrita conformidade com a <strong>MP 2.200-2/2001</strong>, <strong>Decreto Federal nº 10.543/2020</strong> (Assinatura Eletrônica Avançada), <strong>Marco Civil da Internet (Lei 12.965/2014)</strong> e <strong>Art. 299 do Código Penal</strong>.
           </p>
-          <div className="p-2.5 rounded-lg bg-blue-950/40 border border-blue-900/40 text-[11px] text-blue-300/90">
-            <strong>Aviso de Validade:</strong> As assinaturas geradas nesta plataforma constituem assinaturas eletrônicas avançadas mediante evidências biométricas e trilha criptográfica com hash chain, sem equivalência direta a certificado ICP-Brasil.
+          <div className="p-2.5 rounded-lg bg-blue-950/40 border border-blue-900/40 text-[11px] text-blue-300/90 leading-relaxed">
+            <strong>Aviso de Validade:</strong> As assinaturas geradas nesta plataforma constituem assinaturas eletrônicas avançadas mediante envio de código de segurança por e-mail, declaração de responsabilidade e registro digital de integridade, nos termos do Art. 10, § 2º da MP 2.200-2/2001 e Art. 4º, II da Lei 14.063/2020, sem necessidade de certificado ICP-Brasil.
           </div>
         </div>
 
@@ -33,9 +33,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             O tratamento de dados sensíveis de saúde de crianças e adolescentes é fundamentado no <strong>Art. 11, I c/c Art. 14, §1º da LGPD (Lei 13.709/2018)</strong>, com consentimento específico, individualizado por procedimento e assinado exclusivamente pelo representante legal.
           </p>
           <ul className="space-y-1 text-[11px] text-slate-400">
-            <li>• Criptografia em repouso AES-GCM-256</li>
-            <li>• Trilha de auditoria append-only imutável</li>
-            <li>• Política de expurgo periódico por prazo de retenção clínica</li>
+            <li>• Conexão segura e armazenamento protegido</li>
+            <li>• Registro cronológico de auditoria</li>
+            <li>• Política de retenção para fins clínicos</li>
           </ul>
         </div>
 
@@ -67,10 +67,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         </div>
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Trilha Criptográfica Ativa
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Trilha de Auditoria Ativa
           </span>
           <span>•</span>
-          <span>RFC 3161 TSA Integrado</span>
+          <span>Registro Cronológico Digital</span>
         </div>
       </div>
     </footer>

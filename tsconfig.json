@@ -17,5 +17,5 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["@cloudflare/workers-types", "vite/client"]
   },
-  "include": ["src", "worker", "tests"]
+  "include": ["src", "functions", "tests"]
 }

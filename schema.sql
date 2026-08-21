@@ -228,8 +228,115 @@ INSERT OR IGNORE INTO document_templates (
   1,
   'Projeto Escola Cidadã: Saúde em Movimento',
   'Autorização para atendimento do aluno nas ações do projeto Escola Cidadã: Saúde em Movimento (UnB + SESI-DF + Finatec), sem a presença do responsável legal, com consentimento granular para tratamento de dados pessoais (LGPD) e uso de imagem, nome e voz (ECA/Art. 17).',
-  '## TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)',
-  'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+  '## TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)
+### Autorização de Atendimento de Saúde, Tratamento de Dados e Uso de Imagem
+
+Prezado(a) Responsável Legal,
+
+Este formulário digital tem o objetivo de garantir a segurança, a privacidade e os direitos do(a) estudante durante o projeto **Escola Cidadã — Saúde em Movimento**. A leitura e o aceite eletrônico deste termo possuem validade jurídica equivalente a um documento físico assinado em papel.
+
+---
+
+## 1. IDENTIFICAÇÃO DAS PARTES
+
+### DADOS DO RESPONSÁVEL LEGAL (Quem autoriza)
+
+- **Nome Completo:** [Preenchido na etapa seguinte]
+- **CPF:** [Preenchido na etapa seguinte]
+- **Vínculo com o(a) menor:** Mãe / Pai / Tutor(a) / Outro
+- **Telefone (WhatsApp) e E-mail:** [Preenchidos na etapa seguinte]
+- **Endereço Completo:** [Preenchido na etapa seguinte]
+
+### DADOS DO(A) ESTUDANTE (Quem receberá o atendimento)
+
+- **Nome Completo:** [Preenchido automaticamente pela plataforma]
+- **Data de Nascimento e CPF:** [Preenchidos automaticamente]
+- **Escola / Instituição:** [Escola do estudante — Projeto itinerante]
+- **Série, Turma e Turno:** [Preenchidos na etapa seguinte]
+
+---
+
+## 2. SOBRE O PROJETO
+
+O **Escola Cidadã: Saúde em Movimento** é uma iniciativa de extensão da **Universidade de Brasília (UnB)**, por meio da Faculdade de Ciências da Saúde (FS/UnB), realizada em parceria com o **Serviço Social da Indústria do Distrito Federal (SESI-DF)** e a **Fundação de Empreendimentos Científicos e Tecnológicos (Finatec)**, mediante acordo de cooperação técnica. O projeto é financiado por emenda parlamentar da Bancada do Distrito Federal.
+
+**Público-alvo:** Estudantes e comunidade a partir de 14 anos, matriculados em escolas públicas do Distrito Federal.
+
+**Serviços ofertados pelo SESI-DF:** atendimentos odontológicos, oftalmológicos e fonoaudiológicos, além de terapia comunitária integrativa e oficinas de alimentação saudável. A UnB oferece oficinas de educomunicação em saúde.
+
+**Regiões atendidas:** Asa Norte, Arapoanga, Ceilândia, Gama, Sobradinho, Taguatinga, São Sebastião, Santa Maria, Recanto das Emas, Paranoá e Itapoã.
+
+---
+
+## 3. PAINEL DE AUTORIZAÇÕES DIGITAIS
+
+A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que seu consentimento seja **livre, informado e específico**. Por isso, cada autorização abaixo é independente e deve ser respondida individualmente na etapa de preenchimento.
+
+---
+
+### A. SOBRE O ATENDIMENTO DE SAÚDE *(Obrigatório para participação)*
+
+**⚠ Atenção: A recusa neste item impede a participação do(a) estudante no projeto.**
+
+> **(A1) AUTORIZO** a realização do atendimento de saúde (odontológico, oftalmológico, fonoaudiológico, terapia comunitária e oficinas de saúde), triagem e avaliação no(a) estudante pelos profissionais do SESI-DF e da UnB, **sem a minha presença física no momento**, durante o horário escolar. Comprometo-me a orientar o(a) menor a portar seu documento de identidade com CPF.
+
+> **(A2) NÃO AUTORIZO** o atendimento de saúde. *(Impede a participação.)*
+
+**Base Legal:** Art. 7º, II e III, e Art. 14 da LGPD; Art. 98 do ECA (emergências).
+
+---
+
+### B. SOBRE OS DADOS PESSOAIS E DE SAÚDE *(Obrigatório para participação)*
+
+**⚠ Atenção: A recusa neste item impede a participação do(a) estudante no projeto.**
+
+> **(B1) AUTORIZO** a coleta, armazenamento e tratamento de dados pessoais e sensíveis (saúde) do(a) estudante pela UnB, SESI-DF e Finatec, nos termos do **Art. 14 da LGPD**, ciente de que serão mantidos em ambiente digital seguro, exclusivamente para fins médicos, educacionais e institucionais do projeto, pelo prazo legal de **20 (vinte) anos** para fins de arquivamento de prontuário de saúde.
+
+> **(B2) NÃO AUTORIZO** o tratamento de dados. *(Impede a participação.)*
+
+**Dados coletados:** nome completo, CPF do(a) estudante e do(a) responsável, data de nascimento, escola/turma, registros de atendimentos (prontuários) e dados de auditoria da assinatura (IP, timestamp, geolocalização).
+
+**Base Legal:** Art. 7º, I, Art. 11, I, e Art. 14 da LGPD; Art. 46 da LGPD (segurança dos dados).
+
+---
+
+### C. SOBRE O USO DE IMAGEM E VOZ *(Opcional — não impede o atendimento)*
+
+> **(C1) AUTORIZO** de forma gratuita o uso da imagem e voz do(a) estudante em fotos e vídeos do projeto, pela **Universidade de Brasília (UnB)**, **SESI-DF** e **Finatec**, exclusivamente para documentação, relatórios institucionais, peças de comunicação e divulgação do projeto em canais oficiais (site, redes sociais institucionais, materiais impressos), respeitando a dignidade e os direitos do(a) menor, nos termos do **Art. 17 do ECA**.
+
+> **(C2) NÃO AUTORIZO** o uso da imagem. *(O(a) estudante participará normalmente de todos os atendimentos e não será fotografado(a) ou filmado(a).)*
+
+**É expressamente proibido** o uso das imagens para fins comerciais, vexatórios, humilhantes ou discriminatórios, sob pena do **Art. 241 do ECA**.
+
+---
+
+## 4. COMPROMISSOS E DIREITOS DO TITULAR DOS DADOS *(Art. 18, LGPD)*
+
+**Finalidade e Proteção:** Os dados coletados não serão comercializados, repassados a terceiros alheios ao projeto ou utilizados para fins discriminatórios.
+
+**Direito de Revogação:** O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação deste consentimento a qualquer momento, procurando a equipe de apoio presencial do projeto ou a coordenação da escola.
+
+**Seus direitos garantidos:** acesso, correção, eliminação, portabilidade, revogação do consentimento e reclamação perante a **ANPD** (anpd.gov.br).
+
+---
+
+## 5. VALIDADE JURÍDICA DA ASSINATURA ELETRÔNICA
+
+Declaro, sob as penas da lei (**Art. 299 do Código Penal — Falsidade Ideológica**, reclusão de 1 a 3 anos), que sou o(a) legítimo(a) responsável legal do(a) menor acima qualificado(a) e que as informações por mim inseridas nesta plataforma são verdadeiras.
+
+As partes (SESI Saúde e o signatário) concordam expressamente em assinar este termo por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de **eficácia probatória e validade jurídica**, nos termos do **Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001** e da **Lei nº 14.063/2020**.
+
+Estou ciente e concordo que a plataforma registrará e armazenará, de forma segura, os seguintes dados para fins de comprovação de autoria e auditoria da integridade da minha assinatura:
+
+- **Endereço IP** do dispositivo utilizado (Autoria);
+- **Data e Hora (Timestamp)** do registro em UTC (Autoria);
+- **Hash SHA-256** deste documento (Integridade - garantia de que o documento não foi alterado após a assinatura);
+- **Dados do navegador/dispositivo** e **geolocalização** (Autoria).
+
+---
+
+*Ao prosseguir e confirmar a leitura, você avançará para a etapa de preenchimento dos seus dados e registro individual de cada autorização (A, B e C). O aceite final ocorre somente após o preenchimento completo e a assinatura eletrônica.*',
+  '6087adfafc7745dadccaee648b2abd2bf3e035c353db748d01da6bbaeac8346e',
   1,
   7300,
   1

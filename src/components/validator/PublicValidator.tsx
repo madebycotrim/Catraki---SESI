@@ -410,7 +410,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                       </span>
                       <div className="text-[11px] sm:text-xs font-bold text-slate-900 flex items-center gap-1.5">
                         <MailCheck className="w-3.5 h-3.5 text-sesi-primary shrink-0" />
-                        <span>Código Eletrônico OTP por E-mail</span>
+                        <span>Código Eletrônico OTP (Celular ou E-mail)</span>
                       </div>
                     </div>
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-md text-[9.5px] font-bold shrink-0 self-start sm:self-auto">

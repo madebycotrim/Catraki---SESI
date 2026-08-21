@@ -227,7 +227,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
       if (resp.success) {
         setOtpSent(false);
         setShowOtpModal(false);
-        onSuccess(resp);
+        onSuccess({ ...resp, otp_channel: otpChannel });
       } else {
         setOtpError(resp.error || 'Falha ao registrar a assinatura.');
       }

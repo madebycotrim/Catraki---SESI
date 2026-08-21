@@ -25,6 +25,7 @@ interface Step4SuccessProps {
     tsa_authority?: string;
     validation_url: string;
     message: string;
+    otp_channel?: 'email' | 'sms';
   };
   signerName: string;
   signerEmail?: string;
@@ -214,7 +215,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                         <MailCheck className="w-3.5 h-3.5 text-sesi-primary" /> Método de Autenticação:
                       </span>
                       <span className="font-semibold text-xs text-slate-800">
-                        Código de Segurança OTP por E-mail
+                        Código de Segurança OTP por {signResult.otp_channel === 'sms' ? 'Celular (WhatsApp/SMS)' : 'E-mail'}
                       </span>
                     </div>
                     <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">

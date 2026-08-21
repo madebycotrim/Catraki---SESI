@@ -92,7 +92,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
                 <strong className="text-slate-950 font-semibold">Odontologia:</strong> Avaliação da saúde bucal e ações preventivas.
               </li>
               <li>
-                <strong className="text-slate-950 font-semibold">Psicologia:</strong> Acolhimento e suporte à saúde mental da juventude.
+                <strong className="text-slate-950 font-semibold">Psicologia:</strong> Acolhimento e oficinas voltadas às competências socioemocionais e sociorrelacionais.
               </li>
               <li>
                 <strong className="text-slate-950 font-semibold">Nutrição:</strong> Avaliação e oficinas focadas em alimentação saudável.

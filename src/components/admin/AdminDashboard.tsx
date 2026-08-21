@@ -12,10 +12,6 @@ import {
   Plus,
   Trash2,
   Link as LinkIcon,
-  Mail,
-  Send,
-  Loader2,
-  X,
   LogOut
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
@@ -42,19 +38,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [showNewSchoolModal, setShowNewSchoolModal] = useState(false);
 
-  // Estados do Modal de Teste de E-mail
-  const [showTestEmailModal, setShowTestEmailModal] = useState(false);
-  const [testEmailAddress, setTestEmailAddress] = useState('');
-  const [testingEmail, setTestingEmail] = useState(false);
-  const [testEmailResult, setTestEmailResult] = useState<{
-    success: boolean;
-    message?: string;
-    error?: string;
-    provider?: string;
-    latency_ms?: number;
-    details?: string;
-  } | null>(null);
-
   // Formulário de nova escola
   const [newSchoolData, setNewSchoolData] = useState({
     id: '',
@@ -64,33 +47,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     state: 'DF',
   });
   const [schoolFormError, setSchoolFormError] = useState('');
-
-  const handleSendTestEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!testEmailAddress.trim() || !/\S+@\S+\.\S+/.test(testEmailAddress.trim())) {
-      setTestEmailResult({
-        success: false,
-        error: 'Digite um endereço de e-mail válido para testar o envio.',
-      });
-      return;
-    }
-
-    setTestingEmail(true);
-    setTestEmailResult(null);
-
-    try {
-      const res = await apiClient.sendTestEmail(testEmailAddress.trim());
-      setTestEmailResult(res);
-    } catch (err: any) {
-      setTestEmailResult({
-        success: false,
-        error: 'Falha na comunicação com o servidor.',
-        details: err.message,
-      });
-    } finally {
-      setTestingEmail(false);
-    }
-  };
 
   const fetchInstitutions = async () => {
     const res = await apiClient.getAdminInstitutions();
@@ -220,53 +176,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3 relative z-10">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 relative z-10">
           {/* Card do Usuário Logado */}
           {currentUser && (
-            <div className="flex items-center gap-2.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs">
-              <div className="w-7 h-7 rounded-full bg-blue-100 border border-blue-200 text-sesi-primary font-bold flex items-center justify-center text-xs">
+            <div className="flex items-center gap-3 px-3.5 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs shadow-xs">
+              <div className="w-8 h-8 rounded-lg bg-sesi-primary text-white font-bold flex items-center justify-center text-xs shadow-xs shrink-0">
                 {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
               </div>
-              <div className="text-left">
-                <div className="font-bold text-slate-800 leading-tight flex items-center gap-1.5">
-                  <span>{currentUser.name}</span>
-                  <span className="px-1.5 py-0.2 bg-blue-100 text-blue-800 text-[10px] font-bold rounded">
-                    {currentUser.role === 'admin_master' ? 'Master' : 'Operador'}
+              <div className="text-left min-w-0">
+                <div className="font-bold text-slate-800 leading-tight flex items-center gap-2">
+                  <span className="truncate max-w-[180px] sm:max-w-[240px]">{currentUser.name}</span>
+                  <span className="px-2 py-0.5 bg-blue-100 text-sesi-primary text-[10px] font-bold rounded-full uppercase tracking-wider shrink-0">
+                    {currentUser.role === 'admin_master' ? 'Master' : 'Gestor'}
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-500 font-mono leading-tight">{currentUser.email}</div>
+                <div className="text-[11px] text-slate-500 font-mono leading-tight mt-0.5 truncate">{currentUser.email}</div>
               </div>
             </div>
           )}
 
-          <button 
-            onClick={() => {
-              setShowTestEmailModal(true);
-              setTestEmailResult(null);
-            }}
-            className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-sm rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
-          >
-            <Mail className="w-4 h-4 text-sesi-primary" />
-            <span>Testar E-mail</span>
-          </button>
-
-          <button 
-            onClick={() => setShowNewSchoolModal(true)}
-            className="px-4 py-2.5 bg-sesi-primary hover:bg-blue-800 text-white font-semibold text-sm rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors border border-sesi-primary cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Cadastrar Nova Escola</span>
-          </button>
-
-          {onLogout && (
-            <button
-              onClick={onLogout}
-              title="Sair do Painel Gestor"
-              className="p-2.5 bg-white border border-slate-300 hover:bg-red-50 hover:text-red-700 hover:border-red-200 text-slate-600 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setShowNewSchoolModal(true)}
+              className="flex-1 md:flex-none px-4 py-2.5 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm hover:shadow transition-all cursor-pointer"
             >
-              <LogOut className="w-4 h-4" />
+              <Plus className="w-4 h-4" />
+              <span>Cadastrar Nova Escola</span>
             </button>
-          )}
+
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                title="Sair do Painel Gestor"
+                className="px-3 py-2.5 bg-white border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 text-slate-600 font-medium text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Sair</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -618,125 +566,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* MODAL DE TESTE DE DISPARO DE E-MAIL */}
-      {showTestEmailModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header do Modal */}
-            <div className="bg-sesi-primary p-5 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-                  <Mail className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-white m-0">Teste de Disparo de E-mail</h3>
-                  <p className="text-xs text-blue-100 m-0 mt-0.5">Diagnóstico da infraestrutura de envio de códigos</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowTestEmailModal(false)}
-                className="text-white/70 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Conteúdo do Formulário */}
-            <form onSubmit={handleSendTestEmail} className="p-6 space-y-4">
-              <p className="text-xs text-slate-600 leading-relaxed m-0">
-                Insira o seu endereço de e-mail abaixo para verificar se o servidor está entregando os e-mails com sucesso:
-              </p>
-
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                  E-mail de Destino para o Teste <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="email"
-                    required
-                    placeholder="seu.email@exemplo.com"
-                    value={testEmailAddress}
-                    onChange={(e) => setTestEmailAddress(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Resultado do Teste */}
-              {testEmailResult && (
-                <div
-                  className={`p-3.5 rounded-xl border text-xs space-y-1.5 animate-in fade-in duration-200 ${
-                    testEmailResult.success
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                      : 'bg-red-50 border-red-200 text-red-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 font-bold text-sm">
-                    {testEmailResult.success ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>E-mail Entregue com Sucesso!</span>
-                      </>
-                    ) : (
-                      <>
-                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
-                        <span>Falha no Envio</span>
-                      </>
-                    )}
-                  </div>
-                  <p className="m-0 leading-relaxed font-medium">
-                    {testEmailResult.message || testEmailResult.error}
-                  </p>
-                  {testEmailResult.provider && (
-                    <div className="pt-1.5 border-t border-emerald-200/60 flex items-center justify-between text-[11px] text-emerald-800">
-                      <span>Provedor: <strong>{testEmailResult.provider}</strong></span>
-                      {testEmailResult.latency_ms && (
-                        <span>Latência: <strong>{testEmailResult.latency_ms}ms</strong></span>
-                      )}
-                    </div>
-                  )}
-                  {testEmailResult.details && (
-                    <p className="font-mono text-[10px] text-slate-500 bg-white/70 p-2 rounded border border-slate-200 break-all m-0">
-                      {testEmailResult.details}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Ações */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowTestEmailModal(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                >
-                  Fechar
-                </button>
-                <button
-                  type="submit"
-                  disabled={testingEmail || !testEmailAddress.trim()}
-                  className="px-5 py-2.5 text-xs font-bold bg-sesi-primary hover:bg-blue-900 text-white rounded-lg transition-all shadow-sm flex items-center gap-2 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {testingEmail ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Disparando E-mail...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      Enviar E-mail de Teste
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -16,10 +16,10 @@ app.use('*', securityHeaders);
 // 2. CORS Seguro
 app.use('*', cors({
   origin: (origin) => {
-    if (!origin || origin.includes('localhost') || origin.endsWith('.sesi.org.br') || origin.endsWith('.pages.dev') || origin.endsWith('.workers.dev')) {
+    if (!origin || origin.includes('localhost') || origin.endsWith('catraki.com.br') || origin.endsWith('.sesi.org.br') || origin.endsWith('.pages.dev') || origin.endsWith('.workers.dev')) {
       return origin || '*';
     }
-    return 'https://catraki.com.br';
+    return 'https://www.catraki.com.br';
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'CF-Turnstile-Token'],

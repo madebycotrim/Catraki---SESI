@@ -112,7 +112,9 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
         <Step3OtpAndSignature
           token={token}
           minorName={formData.minorName}
+          minorBirthDate={formData.minorBirthDate}
           procedureTitle={documentData.procedure_title}
+          institutionName={institution?.name}
           identityData={{
             signerName: formData.signerName,
             signerCpf: formData.signerCpf,

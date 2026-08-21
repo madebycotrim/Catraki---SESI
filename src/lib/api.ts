@@ -365,14 +365,14 @@ export const apiClient = {
   },
 
   /**
-   * Solicita envio de OTP
+   * Solicita envio de OTP por e-mail com código real
    */
-  async requestOtp(token: string, channel: 'sms' | 'email'): Promise<any> {
+  async requestOtp(token: string, channel: 'sms' | 'email', email?: string, minor_name?: string): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/signer/otp/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, channel }),
+        body: JSON.stringify({ token, channel, email, minor_name }),
       });
       if (resp.ok) return await resp.json();
     } catch {}
@@ -393,7 +393,6 @@ export const apiClient = {
       channel,
       expires_in_seconds: 300,
       message: `Código de verificação enviado para o ${channel === 'sms' ? 'celular' : 'e-mail'} do responsável legal.`,
-      dev_otp_hint: devOtp,
     };
   },
 
@@ -432,6 +431,13 @@ export const apiClient = {
     signer_name: string;
     signer_cpf: string;
     signer_relationship: any;
+    signer_email?: string;
+    minor_name?: string;
+    minor_birth_date?: string;
+    institution_name?: string;
+    auth_health?: 'yes' | 'no';
+    auth_data?: 'yes' | 'no';
+    auth_image?: 'yes' | 'no';
     signature_png_base64: string;
     consent_lgpd_art11_art14: true;
     declaration_art299_penal: true;

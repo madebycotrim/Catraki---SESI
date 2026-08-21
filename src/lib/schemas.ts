@@ -166,6 +166,8 @@ export const ManualReviewUploadSchema = z.object({
 export const OtpRequestSchema = z.object({
   token: z.string().min(16),
   channel: z.enum(['sms', 'email']).default('email'),
+  email: z.string().email().optional(),
+  minor_name: z.string().optional(),
   turnstile_token: z.string().optional(),
 });
 
@@ -180,8 +182,15 @@ export const SignDocumentSchema = z.object({
   signer_name: z.string().min(3).max(150),
   signer_cpf: CPFSchema,
   signer_relationship: RelationshipSchema,
+  signer_email: z.string().email().optional(),
+  minor_name: z.string().optional(),
+  minor_birth_date: z.string().optional(),
+  institution_name: z.string().optional(),
+  auth_health: z.enum(['yes', 'no']).optional(),
+  auth_data: z.enum(['yes', 'no']).optional(),
+  auth_image: z.enum(['yes', 'no']).optional(),
   signature_png_base64: z.string()
-    .min(100, 'Rubrica obrigatória')
+    .min(10, 'Assinatura obrigatória')
     .refine((val) => val.startsWith('data:image/png;base64,') || val.length < 500000, {
       message: 'A imagem da assinatura excede o limite máximo permitido de 500KB',
     }),

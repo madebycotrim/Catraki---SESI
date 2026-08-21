@@ -268,12 +268,68 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
      WHERE id = ?`
   ).bind(otpHash, doc.id).run();
 
+  // Disparo Real de E-mail via Resend API
+  const { email: providedEmail, minor_name: providedMinorName } = parsed.data;
+  const targetEmail = providedEmail;
+  const studentName = providedMinorName || doc.minor_name || 'Estudante';
+  const resendApiKey = (c.env as any).RESEND_API_KEY;
+  const fromAddress = (c.env as any).EMAIL_FROM || 'SESI Saúde — Escola Cidadã <autorizacoes@catraki.com.br>';
+
+  let emailSent = false;
+  let emailError = '';
+
+  if (targetEmail && resendApiKey) {
+    try {
+      const resendResp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromAddress,
+          to: [targetEmail],
+          subject: `Código de Confirmação: ${otpCode} — SESI Saúde`,
+          html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+            <div style="border-bottom: 2px solid #034b7f; padding-bottom: 12px; margin-bottom: 20px;">
+              <h2 style="color: #034b7f; margin: 0; font-size: 18px; font-weight: bold;">SESI Saúde — Escola Cidadã</h2>
+              <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Validação de Autoria por Código Eletrônico</span>
+            </div>
+            <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 12px 0;">Olá,</p>
+            <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+              Para autenticar e concluir a assinatura do Termo de Consentimento referente ao(à) estudante <strong>${studentName}</strong>, utilize o código de segurança abaixo:
+            </p>
+            <div style="background: #f0f9ff; border: 2px solid #bae6fd; border-radius: 10px; padding: 18px; text-align: center; margin: 20px 0;">
+              <span style="font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #034b7f; font-family: monospace;">${otpCode}</span>
+            </div>
+            <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 20px 0 0 0;">
+              ⏱️ <strong>Validade:</strong> Este código expira em 5 minutos. Se você não solicitou este procedimento, por favor desconsidere este e-mail.
+            </p>
+            <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 11px; color: #94a3b8; text-align: center;">
+              Assinatura Eletrônica Avançada • Lei Federal nº 14.063/2020 • SESI DR-DF
+            </div>
+          </div>`,
+        }),
+      });
+
+      if (resendResp.ok) {
+        emailSent = true;
+      } else {
+        const resendErr = await resendResp.text();
+        emailError = `Falha Resend: ${resendErr}`;
+      }
+    } catch (err: any) {
+      emailError = `Erro conexão: ${err.message}`;
+    }
+  }
+
   return c.json({
     success: true,
     channel,
+    email_sent: emailSent,
+    email_error: emailError || undefined,
     expires_in_seconds: 300,
     message: `Código de verificação de 6 dígitos enviado para o ${channel === 'sms' ? 'celular' : 'e-mail'} do responsável legal.`,
-    dev_otp_hint: c.env.APP_ENV !== 'production' ? otpCode : undefined,
   });
 });
 
@@ -531,6 +587,138 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
 
   const validationCode = `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`;
 
+  // Disparo do E-mail Oficial de Comprovante de Assinatura (Resend API)
+  const resendApiKey = (c.env as any).RESEND_API_KEY;
+  const fromAddress = (c.env as any).EMAIL_FROM || 'SESI Saúde — Escola Cidadã <autorizacoes@catraki.com.br>';
+  const targetEmail = parsed.data.signer_email;
+  const studentName = parsed.data.minor_name || doc.minor_name || 'Estudante';
+  const studentBirth = parsed.data.minor_birth_date || doc.minor_birth_date || '';
+  const institutionName = parsed.data.institution_name || 'Escola Participante do Projeto';
+  const authImageStatus = parsed.data.auth_image === 'yes';
+
+  if (targetEmail && resendApiKey) {
+    try {
+      const dataFormatada = new Intl.DateTimeFormat('pt-BR', {
+        dateStyle: 'full',
+        timeStyle: 'medium',
+        timeZone: 'America/Sao_Paulo',
+      }).format(new Date(signedAtIso));
+
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromAddress,
+          to: [targetEmail],
+          subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
+          html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px; border: 1px solid #cbd5e1; border-radius: 12px; background: #ffffff; color: #1e293b;">
+            
+            {/* Cabeçalho Institucional */}
+            <div style="border-bottom: 3px solid #034b7f; padding-bottom: 16px; margin-bottom: 24px; text-align: left;">
+              <div style="font-size: 20px; font-weight: 800; color: #034b7f; letter-spacing: -0.02em;">SESI Saúde — Escola Cidadã</div>
+              <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">
+                Serviço Social da Indústria • Departamento Regional do Distrito Federal (DR-DF)
+              </div>
+            </div>
+
+            {/* Título do Documento */}
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px; text-align: center;">
+              <h2 style="color: #034b7f; margin: 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em;">
+                COMPROVANTE DE AUTORIZAÇÃO E TERMO DE CONSENTIMENTO
+              </h2>
+              <p style="margin: 6px 0 0 0; font-size: 12px; color: #166534; font-weight: 700;">
+                ✓ ASSINATURA ELETRÔNICA AVANÇADA CONCLUÍDA COM SUCESSO
+              </p>
+            </div>
+
+            {/* 1. Qualificação e Declaração */}
+            <div style="margin-bottom: 20px; font-size: 13.5px; line-height: 1.6; color: #334155; background: #ffffff; padding: 4px 0;">
+              <p style="margin: 0 0 12px 0;">
+                Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong>, declaro que <strong>AUTORIZO</strong> a participação do(a) estudante <strong>${studentName}</strong>${studentBirth ? ` (nascido(a) em ${studentBirth})` : ''}, matriculado(a) na instituição <strong>${institutionName}</strong>, nas ações assistenciais e preventivas de saúde.
+              </p>
+            </div>
+
+            {/* 2. Painel de Autorizações Digitais */}
+            <div style="margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+              <div style="background: #034b7f; color: #ffffff; padding: 10px 14px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">
+                2. PAINEL DE AUTORIZAÇÕES DIGITAIS (Seleção e Consentimento)
+              </div>
+              <div style="padding: 14px; background: #ffffff; font-size: 12.5px; line-height: 1.5; space-y: 12px;">
+                
+                <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
+                  <div style="font-weight: 700; color: #0f172a; margin-bottom: 2px;">A. SOBRE O ATENDIMENTO DE SAÚDE</div>
+                  <div style="color: #166534; font-weight: 700; font-size: 11.5px; margin-bottom: 4px;">[ ✓ SIM - AUTORIZADO ]</div>
+                  <div style="color: #475569; font-size: 11.5px;">Autorizo a realização de triagens preventivas, exames clínicos, acuidade visual e avaliação bucal no âmbito da campanha "Saúde em Movimento".</div>
+                </div>
+
+                <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
+                  <div style="font-weight: 700; color: #0f172a; margin-bottom: 2px;">B. SOBRE OS DADOS PESSOAIS E DE SAÚDE</div>
+                  <div style="color: #166534; font-weight: 700; font-size: 11.5px; margin-bottom: 4px;">[ ✓ SIM - AUTORIZADO ]</div>
+                  <div style="color: #475569; font-size: 11.5px;">Autorizo expressamente o tratamento dos dados pessoais e de saúde para fins exclusivos de assistência e proteção da saúde (LGPD - Arts. 7º e 11).</div>
+                </div>
+
+                <div>
+                  <div style="font-weight: 700; color: #0f172a; margin-bottom: 2px;">C. SOBRE O USO DE IMAGEM E VOZ</div>
+                  <div style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700; font-size: 11.5px; margin-bottom: 4px;">
+                    ${authImageStatus ? '[ ✓ SIM - AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}
+                  </div>
+                  <div style="color: #475569; font-size: 11.5px;">
+                    ${authImageStatus ? 'Autorizo a captação e veiculação de imagem e voz para fins institucionais e pedagógicos do projeto.' : 'Opção por não autorizar o uso de imagem e voz.'}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* 3. Compromissos e Direitos do Titular */}
+            <div style="margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+              <div style="background: #f8fafc; color: #334155; padding: 10px 14px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #e2e8f0;">
+                3. COMPROMISSOS E DIREITOS DO TITULAR DOS DADOS (LGPD)
+              </div>
+              <div style="padding: 14px; font-size: 12px; line-height: 1.5; color: #475569; background: #ffffff;">
+                <p style="margin: 0 0 8px 0;"><strong>Finalidade e Proteção:</strong> Os dados coletados não serão comercializados, repassados a terceiros alheios ao projeto ou utilizados para fins discriminatórios.</p>
+                <p style="margin: 0;"><strong>Direito de Revogação:</strong> O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação do consentimento a qualquer momento através do contato com a direção da escola ou coordenação do projeto.</p>
+              </div>
+            </div>
+
+            {/* 4. Trilha de Auditoria e Validade Jurídica */}
+            <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; margin-bottom: 24px; font-size: 11.5px; line-height: 1.6; color: #034b7f;">
+              <div style="font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px;">
+                4. TRILHA DE AUDITORIA E INTEGRIDADE CRIPTOGRÁFICA
+              </div>
+              <div>• <strong>Código de Validação Oficial:</strong> <span style="font-family: monospace; font-size: 13px; font-weight: bold; background: #ffffff; padding: 2px 6px; border-radius: 4px; border: 1px solid #93c5fd;">${validationCode}</span></div>
+              <div>• <strong>Data e Hora da Assinatura:</strong> ${dataFormatada}</div>
+              <div>• <strong>Autenticação de Autoria:</strong> Código de Segurança Eletrônico (OTP 6 Dígitos via E-mail)</div>
+              <div>• <strong>Endereço IP Registrado:</strong> ${ipAddress}</div>
+              <div style="word-break: break-all; margin-top: 4px;">• <strong>Hash do Manifesto (SHA-256):</strong> <span style="font-family: monospace; font-size: 10px; color: #334155;">${manifestSha256}</span></div>
+              <div style="margin-top: 8px; font-size: 10.5px; color: #0369a1;">
+                <strong>Amparo Legal:</strong> Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º), Lei Federal nº 14.063/2020 (Art. 4º, II) e Lei nº 13.709/2018 (LGPD).
+              </div>
+            </div>
+
+            {/* Botão de Consulta Online */}
+            <div style="text-align: center; margin-bottom: 20px;">
+              <a href="https://www.catraki.com.br/validar/${validationCode}" style="display: inline-block; background: #034b7f; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 13px; padding: 12px 24px; border-radius: 6px; shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                Validar e Consultar Comprovante Online →
+              </a>
+            </div>
+
+            {/* Rodapé */}
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 14px; font-size: 11px; color: #94a3b8; text-align: center;">
+              Este é um e-mail automático comprobatório de assinatura eletrônica emitido pela plataforma Catraki — SESI Saúde.
+            </div>
+
+          </div>`,
+        }),
+      });
+    } catch (e: any) {
+      console.error('Erro ao enviar e-mail de comprovante:', e.message);
+    }
+  }
+
   return c.json({
     success: true,
     document_id: doc.id,
@@ -540,7 +728,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     signed_at_utc: signedAtIso,
     tsa_authority: 'Servidor Sincronizado - Cloudflare',
     validation_url: `/validar/${validationCode}`,
-    message: 'Autorização médica assinada eletronicamente com sucesso e registrada na cadeia de auditoria.',
+    message: 'Autorização médica assinada eletronicamente com sucesso e comprovante enviado para o e-mail.',
   });
 });
 

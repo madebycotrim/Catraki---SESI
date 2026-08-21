@@ -15,7 +15,9 @@ import type { SignerRelationship } from '../../lib/types.ts';
 interface Step3OtpAndSignatureProps {
   token: string;
   minorName: string;
+  minorBirthDate?: string;
   procedureTitle: string;
+  institutionName?: string;
   identityData: {
     signerName: string;
     signerCpf: string;
@@ -31,7 +33,9 @@ interface Step3OtpAndSignatureProps {
 export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   token,
   minorName,
+  minorBirthDate,
   procedureTitle: _procedureTitle,
+  institutionName,
   identityData,
   onSuccess,
   onBack,
@@ -49,7 +53,6 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const [otpCode, setOtpCode] = useState('');
   const [otpSending, setOtpSending] = useState(false);
   const [otpError, setOtpError] = useState('');
-  const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
 
   // Geolocalização e IP reais do cliente
@@ -69,7 +72,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
       })
       .catch(() => {});
 
-    // 2. Tenta obter geolocalização e IP completos via ipwho.is (gratuito e sem CORS)
+    // 2. Obtém geolocalização e IP completos via IP de forma 100% silenciosa e automática (sem pedir permissão ao usuário)
     fetch('https://ipwho.is/')
       .then((r) => r.json() as Promise<any>)
       .then((data: any) => {
@@ -81,29 +84,6 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         }
       })
       .catch(() => {});
-
-    // 2. Se o usuário permitir GPS do navegador, refina a cidade com precisão
-    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          try {
-            const { latitude, longitude } = pos.coords;
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-            if (res.ok) {
-              const geoData: any = await res.json();
-              const city = geoData.address?.city || geoData.address?.town || geoData.address?.municipality || 'Brasília';
-              const state = geoData.address?.state_code || geoData.address?.state || 'DF';
-              setClientGeo((prev) => ({
-                ...prev,
-                location: `${city}, ${state} - Brasil`,
-              }));
-            }
-          } catch {}
-        },
-        () => {},
-        { timeout: 4000 }
-      );
-    }
   }, []);
 
   // Temporizador para reenvio de código
@@ -124,11 +104,13 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
     setOtpSending(true);
     setOtpError('');
     try {
-      const resp = await apiClient.requestOtp(token, 'email');
+      const resp = await apiClient.requestOtp(
+        token, 
+        'email', 
+        identityData.signerEmail || undefined, 
+        minorName || undefined
+      );
       if (resp.success) {
-        if (resp.dev_otp_hint) {
-          setDevOtpHint(resp.dev_otp_hint);
-        }
         setResendCooldown(60);
       } else {
         setOtpError(resp.error || 'Falha ao enviar código para o e-mail.');
@@ -200,6 +182,13 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         signer_name: identityData.signerName,
         signer_cpf: identityData.signerCpf,
         signer_relationship: identityData.signerRelationship,
+        signer_email: identityData.signerEmail,
+        minor_name: minorName,
+        minor_birth_date: minorBirthDate,
+        institution_name: institutionName,
+        auth_health: authHealth || 'yes',
+        auth_data: authData || 'yes',
+        auth_image: authImage || 'no',
         signature_png_base64: 'ELECTRONIC_SIGNATURE_OTP_CONFIRMED',
         consent_lgpd_art11_art14: true,
         declaration_art299_penal: true,
@@ -786,20 +775,6 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   {identityData.signerEmail || 'seu e-mail informado'}
                 </span>
               </div>
-
-              {/* Dica de Dev (se houver) */}
-              {devOtpHint && (
-                <div className="p-2 bg-amber-50 border border-amber-200 rounded text-amber-900 text-[10px] flex items-center justify-between">
-                  <span>💡 Código de teste: <strong>{devOtpHint}</strong></span>
-                  <button
-                    type="button"
-                    onClick={() => setOtpCode(devOtpHint)}
-                    className="text-[10px] font-bold underline hover:text-amber-950 ml-2 shrink-0 cursor-pointer"
-                  >
-                    Preencher
-                  </button>
-                </div>
-              )}
 
               {/* Mensagem de Erro do OTP */}
               {otpError && (

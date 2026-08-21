@@ -3,13 +3,16 @@ import {
   Search,
   CheckCircle2,
   AlertTriangle,
-  ShieldAlert,
   Loader2,
   ArrowLeft,
   Printer,
   ShieldCheck,
   Key,
-  MailCheck
+  MailCheck,
+  FileCheck2,
+  UserCheck,
+  GraduationCap,
+  Activity
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
 import { formatUserAgent } from '../../lib/schemas.ts';
@@ -134,7 +137,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
           <h1 className="text-sm sm:text-base md:text-[13pt] font-bold uppercase text-slate-900 m-0">
             Validador Público de Autenticidade
           </h1>
-          <h2 className="text-xs sm:text-sm md:text-[10.5pt] font-bold text-slate-600 mt-1 m-0">
+          <h2 className="text-xs sm:text-sm md:text-[10pt] font-bold text-slate-600 mt-1 m-0">
             Verificação de Autenticidade e Integridade Digital (Art. 10, § 2º da MP 2.200-2/2001 e Lei 14.063/2020)
           </h2>
         </div>
@@ -257,26 +260,81 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
               </span>
             </div>
 
-            {/* 1. Dados da Autorização */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 space-y-3 sm:space-y-4">
-              <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 m-0 border-b border-slate-200 pb-2">
-                <ShieldAlert className="w-4 h-4 text-slate-500" />
-                <span>1. Dados da Autorização</span>
+            {/* 1. Dados da Autorização e Partes Envolvidas */}
+            <div className="space-y-3 sm:space-y-4">
+              <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide m-0 border-b border-slate-200 pb-2 flex items-center gap-2">
+                <FileCheck2 className="w-4 h-4 text-sesi-primary" />
+                <span>1. Dados da Autorização e Partes Envolvidas</span>
               </h4>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Projeto / Atividade</span>
-                  <strong className="text-slate-800 font-semibold text-xs sm:text-sm block mt-0.5">{validationResult.procedure_title}</strong>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 text-xs sm:text-sm">
+                
+                {/* Card 1: Projeto / Finalidade */}
+                <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 sm:p-4 shadow-xs flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-blue-50 text-sesi-primary flex items-center justify-center shrink-0 border border-blue-100 mt-0.5">
+                    <Activity className="w-4 h-4 text-sesi-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                      Projeto / Atividade
+                    </span>
+                    <strong className="text-slate-900 font-bold text-xs sm:text-sm block truncate">
+                      {validationResult.procedure_title || 'Escola Cidadã — Saúde em Movimento'}
+                    </strong>
+                    <span className="text-[11px] text-slate-500 block mt-0.5">
+                      SESI-DF • UnB • FINATEC
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Estudante Beneficiado</span>
-                  <strong className="text-slate-800 font-semibold text-xs sm:text-sm block mt-0.5">{validationResult.minor_name_initials}</strong>
+
+                {/* Card 2: Estudante Beneficiado */}
+                <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 sm:p-4 shadow-xs flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100 mt-0.5">
+                    <GraduationCap className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                      Estudante Beneficiado(a)
+                    </span>
+                    <strong className="text-slate-900 font-bold text-xs sm:text-sm block">
+                      {validationResult.minor_name_initials}
+                    </strong>
+                    <span className="text-[11px] text-emerald-700 font-medium block mt-0.5">
+                      Atendimento Clínico Autorizado ✓
+                    </span>
+                  </div>
                 </div>
-                <div className="sm:col-span-2">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Responsável Legal (Assinante)</span>
-                  <strong className="text-slate-800 font-semibold text-xs sm:text-sm block mt-0.5">{validationResult.signer_name} (CPF: {validationResult.signer_cpf_masked})</strong>
+
+                {/* Card 3: Responsável Legal (Assinante) */}
+                <div className="sm:col-span-2 bg-white border border-slate-200/90 rounded-xl p-3.5 sm:p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-sky-50 text-sesi-primary flex items-center justify-center shrink-0 border border-sky-100 mt-0.5 sm:mt-0">
+                      <UserCheck className="w-4 h-4 text-sesi-primary" />
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                        Responsável Legal (Signatário)
+                      </span>
+                      <strong className="text-slate-900 font-bold text-xs sm:text-sm block">
+                        {validationResult.signer_name}
+                      </strong>
+                      <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-slate-600">
+                        <span>CPF: <strong className="font-mono text-slate-700">{validationResult.signer_cpf_masked}</strong></span>
+                        {validationResult.signer_relationship && (
+                          <>
+                            <span className="text-slate-300">•</span>
+                            <span>Vínculo: <strong className="text-slate-700">{validationResult.signer_relationship}</strong></span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-bold shrink-0 self-start sm:self-auto">
+                    <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" />
+                    <span>Titular / Representante Legal</span>
+                  </span>
                 </div>
+
               </div>
             </div>
 

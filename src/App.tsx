@@ -163,6 +163,7 @@ export function App() {
         {currentView === 'validator' && (
           <div className="w-full px-2 sm:px-6 md:px-8 py-2 sm:py-4 max-w-4xl mx-auto">
             <PublicValidator 
+              key={activeValidatorHash || 'empty'}
               initialHash={activeValidatorHash} 
               onNavigateToSigner={() => navigateToSigner()} 
             />

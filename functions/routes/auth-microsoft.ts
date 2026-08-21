@@ -5,18 +5,9 @@ import type { Env, AdminRole } from '../../src/lib/types.ts';
 
 export const authMicrosoftRouter = new Hono<{ Bindings: Env; Variables: { user: JwtPayload } }>();
 
-// Domínios institucionais permitidos por padrão
+// Domínio institucional exclusivo autorizado para acesso corporativo
 const DEFAULT_ALLOWED_DOMAINS = [
-  'sesi.org.br',
-  'sistemafieb.org.br',
-  'sistemafieg.org.br',
-  'sistemafiemg.com.br',
-  'sistemafirjan.com.br',
-  'sistemafiep.org.br',
-  'sistemafiesc.com.br',
-  'unb.br',
-  'finatec.org.br',
-  'catraki.com.br',
+  'sistemafibra.org.br',
 ];
 
 /**

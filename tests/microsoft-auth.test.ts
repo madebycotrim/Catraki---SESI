@@ -4,12 +4,10 @@ import { signJwt, verifyJwt } from '../functions/middleware/auth.ts';
 import { sha256 } from '../src/lib/crypto.ts';
 
 describe('Autenticação e Segurança Microsoft SSO / Entra ID', () => {
-  it('deve aprovar e-mails institucionais autorizados (@sesi.org.br, @unb.br, @finatec.org.br, @sistemafieb.org.br)', () => {
-    expect(isInstitutionalDomainAllowed('roberto.silveira@sesi.org.br')).toBe(true);
-    expect(isInstitutionalDomainAllowed('coordenacao@unb.br')).toBe(true);
-    expect(isInstitutionalDomainAllowed('financeiro@finatec.org.br')).toBe(true);
-    expect(isInstitutionalDomainAllowed('operador@sistemafieb.org.br')).toBe(true);
-    expect(isInstitutionalDomainAllowed('suporte@catraki.com.br')).toBe(true);
+  it('deve aprovar exclusivamente e-mails institucionais autorizados (@sistemafibra.org.br)', () => {
+    expect(isInstitutionalDomainAllowed('roberto.silveira@sistemafibra.org.br')).toBe(true);
+    expect(isInstitutionalDomainAllowed('gestor.saude@sistemafibra.org.br')).toBe(true);
+    expect(isInstitutionalDomainAllowed('admin@sistemafibra.org.br')).toBe(true);
   });
 
   it('deve bloquear estritamente e-mails pessoais ou de provedores genéricos', () => {

@@ -193,15 +193,15 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
               )}
             </button>
 
-            {/* Domínios Autorizados */}
+            {/* Domínio Autorizado */}
             <div style={{ marginTop: '14px', textAlign: 'center' }}>
               <span style={{ display: 'block', fontSize: '7pt', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
-                Domínios Institucionais Homologados
+                Domínio Institucional Homologado
               </span>
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px' }}>
-                <span style={{ background: '#e2e8f0', color: '#334155', fontSize: '7pt', fontWeight: 'bold', padding: '2px 8px' }}>@sesi.org.br</span>
-                <span style={{ background: '#e2e8f0', color: '#334155', fontSize: '7pt', fontWeight: 'bold', padding: '2px 8px' }}>@unb.br</span>
-                <span style={{ background: '#e2e8f0', color: '#334155', fontSize: '7pt', fontWeight: 'bold', padding: '2px 8px' }}>@catraki.com.br</span>
+                <span style={{ background: '#e0f2fe', color: '#034b7f', fontSize: '7.5pt', fontWeight: 'bold', padding: '3px 12px', border: '1px solid #bae6fd' }}>
+                  @sistemafibra.org.br
+                </span>
               </div>
             </div>
           </div>

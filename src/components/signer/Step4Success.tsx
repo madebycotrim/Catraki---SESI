@@ -217,6 +217,20 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="bg-white p-2.5 border border-slate-200 rounded-lg sm:col-span-2 flex items-center justify-between">
+                    <div>
+                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                        <MailCheck className="w-3.5 h-3.5 text-sesi-primary" /> Método de Autenticação:
+                      </span>
+                      <span className="font-semibold text-xs text-slate-800">
+                        Código de Segurança OTP por E-mail
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                      Confirmado ✓
+                    </span>
+                  </div>
+
                   <div className="bg-white p-2.5 border border-slate-200 rounded-lg sm:col-span-2">
                     <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-sesi-primary" /> Data e Hora (UTC):

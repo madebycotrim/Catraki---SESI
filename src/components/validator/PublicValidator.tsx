@@ -8,7 +8,8 @@ import {
   ArrowLeft,
   Printer,
   ShieldCheck,
-  Key
+  Key,
+  MailCheck
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
 import { formatUserAgent } from '../../lib/schemas.ts';
@@ -78,15 +79,15 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
   return (
     <div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-1 sm:px-4 pb-10 pt-1">
       
-      {/* Botões de Ação Superior (quando autenticado) */}
+      {/* Botões de Ação Superior (fora da folha A4) */}
       {validationResult && (
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mb-4 px-1 no-print">
           <button
             onClick={handleResetSearch}
-            className="text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-300 hover:bg-slate-50 px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+            className="text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Realizar Nova Consulta</span>
+            <span>Consultar Outro Documento</span>
           </button>
           
           <button
@@ -94,7 +95,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
             className="text-xs sm:text-sm font-bold bg-sesi-primary hover:bg-blue-900 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
           >
             <Printer className="w-4 h-4" />
-            <span>Imprimir Atestado (A4)</span>
+            <span>Imprimir Certificado / Salvar PDF</span>
           </button>
         </div>
       )}
@@ -219,25 +220,6 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
         {validationResult && (
           <div className="space-y-5 sm:space-y-6">
             
-            {/* Barra de Ações Rápidas (Oculta na Impressão) */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pb-4 border-b border-slate-200 no-print">
-              <button
-                onClick={handleResetSearch}
-                className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Consultar Outro Documento</span>
-              </button>
-
-              <button
-                onClick={() => window.print()}
-                className="px-4 py-2.5 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Imprimir Certificado / Salvar PDF</span>
-              </button>
-            </div>
-
             {/* Status do Documento */}
             <div className="text-center pb-4 border-b border-slate-200 space-y-2">
               <div className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${
@@ -305,6 +287,24 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
               </h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 text-xs sm:text-sm">
+                
+                {/* Método de Validação / Autenticação OTP */}
+                <div className="sm:col-span-2 bg-blue-50/70 border border-blue-200 rounded-xl p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="space-y-0.5">
+                    <span className="block text-[10px] font-bold text-sesi-primary uppercase tracking-wider">
+                      Método de Autenticação e Autoria
+                    </span>
+                    <div className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                      <MailCheck className="w-4 h-4 text-sesi-primary shrink-0" />
+                      <span>Validação Eletrônica via Código OTP (One-Time Password) por E-mail</span>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-[11px] font-bold shrink-0 self-start sm:self-auto">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Identidade Confirmada via OTP</span>
+                  </span>
+                </div>
+
                 <div className="sm:col-span-2 bg-white border border-slate-200 rounded-xl p-3 sm:p-3.5">
                   <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Código Criptográfico de Integridade (Hash)</span>
                   <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 font-mono text-[11px] sm:text-xs text-slate-700 break-all select-all leading-relaxed">

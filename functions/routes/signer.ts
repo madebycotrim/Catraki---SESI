@@ -45,10 +45,11 @@ signerRouter.get('/doc/:token', async (c) => {
     `SELECT d.*, t.title as template_title, t.procedure_description, t.content_markdown, t.consent_text_version
      FROM documents d
      LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-     WHERE d.access_token = ?`
-  ).bind(token).first<any>();
+     WHERE (d.access_token = ? OR d.id = ?) AND d.status = 'pending'
+     ORDER BY d.created_at DESC LIMIT 1`
+  ).bind(token, token).first<any>();
 
-  // Se não encontrar como access_token exato, busca se é um slug de escola cadastrada
+  // Se não encontrar como access_token exato pendente, busca se é um slug de escola cadastrada ou cria sessão inicial
   if (!doc) {
     const inst = await db.prepare('SELECT * FROM institutions WHERE id = ? AND is_active = 1').bind(token).first<any>();
     const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
@@ -126,7 +127,18 @@ signerRouter.post('/verify-matricula', async (c) => {
   const { token, signer_cpf, signer_name } = parsed.data;
   const db = c.env.DB;
 
-  const doc = await db.prepare('SELECT * FROM documents WHERE access_token = ?').bind(token).first<DocumentRecord>();
+  let doc = await db.prepare("SELECT * FROM documents WHERE (access_token = ? OR id = ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1").bind(token, token).first<DocumentRecord>();
+  if (!doc) {
+    const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
+    if (template) {
+      const newDocId = generateUniqueDocId('DOC');
+      await db.prepare(
+        `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+3 years'), datetime('now', '+1 year'))`
+      ).bind(newDocId, template.id, template.version, template.content_sha256, 'Estudante', '2010-01-01', signer_name, 'ENC_INITIAL', 'ENC_INITIAL', token).run();
+      doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(newDocId).first<DocumentRecord>();
+    }
+  }
   if (!doc || doc.status !== 'pending') {
     return c.json({ success: false, error: 'Documento indisponível para assinatura.', code: 'INVALID_STATUS' }, 400);
   }
@@ -171,7 +183,18 @@ signerRouter.post('/manual-review', async (c) => {
     return c.json({ success: false, error: 'Configuração criptográfica do servidor incompleta (ENCRYPTION_KEY_V1).', code: 'KEY_CONFIG_ERROR' }, 500);
   }
 
-  const doc = await db.prepare('SELECT * FROM documents WHERE access_token = ?').bind(token).first<DocumentRecord>();
+  let doc = await db.prepare("SELECT * FROM documents WHERE (access_token = ? OR id = ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1").bind(token, token).first<DocumentRecord>();
+  if (!doc) {
+    const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
+    if (template) {
+      const newDocId = generateUniqueDocId('DOC');
+      await db.prepare(
+        `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+3 years'), datetime('now', '+1 year'))`
+      ).bind(newDocId, template.id, template.version, template.content_sha256, 'Estudante', '2010-01-01', signer_name, 'ENC_INITIAL', 'ENC_INITIAL', token).run();
+      doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(newDocId).first<DocumentRecord>();
+    }
+  }
   if (!doc || doc.status !== 'pending') {
     return c.json({ success: false, error: 'Documento indisponível.', code: 'INVALID_STATUS' }, 400);
   }
@@ -264,7 +287,9 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     return c.json({ success: false, error: 'Configuração do servidor incompleta (OTP_PEPPER).', code: 'KEY_CONFIG_ERROR' }, 500);
   }
 
-  let doc = await db.prepare('SELECT * FROM documents WHERE access_token = ?').bind(token).first<DocumentRecord>();
+  const { email: providedEmail, minor_name: providedMinorName } = parsed.data;
+
+  let doc = await db.prepare("SELECT * FROM documents WHERE (access_token = ? OR id = ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1").bind(token, token).first<DocumentRecord>();
   if (!doc) {
     const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
     if (template) {
@@ -272,7 +297,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
       await db.prepare(
         `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+3 years'), datetime('now', '+1 year'))`
-      ).bind(newDocId, template.id, template.version, template.content_sha256, 'Estudante', '2010-01-01', 'Responsável Legal', 'ENC_INITIAL', 'ENC_INITIAL', token).run();
+      ).bind(newDocId, template.id, template.version, template.content_sha256, providedMinorName || 'Estudante', '2010-01-01', 'Responsável Legal', 'ENC_INITIAL', 'ENC_INITIAL', token).run();
       doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(newDocId).first<DocumentRecord>();
     }
   }
@@ -303,7 +328,6 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   ).bind(otpHash, expiresAtIso, doc.id).run();
 
   // Disparo Real de E-mail via Resend API
-  const { email: providedEmail, minor_name: providedMinorName } = parsed.data;
   const targetEmail = providedEmail;
   const studentName = providedMinorName || doc.minor_name || 'Estudante';
   const resendApiKey = (c.env as any).RESEND_API_KEY;
@@ -397,7 +421,7 @@ signerRouter.post('/otp/verify', async (c) => {
     return c.json({ success: false, error: 'Configuração do servidor incompleta (OTP_PEPPER).', code: 'KEY_CONFIG_ERROR' }, 500);
   }
 
-  const doc = await db.prepare('SELECT * FROM documents WHERE access_token = ?').bind(token).first<DocumentRecord>();
+  const doc = await db.prepare("SELECT * FROM documents WHERE (access_token = ? OR id = ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1").bind(token, token).first<DocumentRecord>();
   if (!doc || !doc.otp_secret_hash) {
     return c.json({ success: false, error: 'Código de verificação não solicitado.', code: 'OTP_NOT_REQUESTED' }, 400);
   }
@@ -477,11 +501,12 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     `SELECT d.*, t.title as template_title, t.procedure_description, t.consent_text_version, t.content_sha256 as template_content_sha256
      FROM documents d
      JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-     WHERE d.access_token = ?`
-  ).bind(token).first<any>();
+     WHERE (d.access_token = ? OR d.id = ?) AND d.status = 'pending'
+     ORDER BY d.created_at DESC LIMIT 1`
+  ).bind(token, token).first<any>();
 
   if (!doc) {
-    return c.json({ success: false, error: 'Documento não encontrado.', code: 'DOC_NOT_FOUND' }, 404);
+    return c.json({ success: false, error: 'Documento não encontrado ou já assinado.', code: 'DOC_NOT_FOUND' }, 404);
   }
 
   if (doc.status === 'signed') {

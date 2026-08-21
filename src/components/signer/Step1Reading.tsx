@@ -65,7 +65,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
             Prezado(a) Responsável,
           </p>
           <p className="m-0 leading-relaxed">
-            Sabemos que a saúde e a segurança do(a) seu filho(a) são as suas maiores prioridades. É com esse mesmo cuidado que a <strong>Universidade de Brasília (UnB)</strong>, o <strong>SESI-DF</strong> e a <strong>Finatec</strong> trazem até a comunidade escolar esta iniciativa de cuidado preventivo e cidadania. O projeto leva atendimento clínico gratuito nas especialidades de <strong>Oftalmologia, Odontologia, Audiometria, Psicologia e Nutrição</strong> em unidades móveis para estudantes com idade <strong>a partir de 14 anos</strong>.
+            Sabemos que a saúde e a segurança do(a) seu filho(a) são as suas maiores prioridades. É com esse mesmo cuidado que a <strong>Universidade de Brasília (UnB)</strong>, o <strong>SESI-DF</strong> e a <strong>Finatec</strong> trazem até a comunidade escolar esta iniciativa de cuidado preventivo e cidadania. O projeto leva atendimento clínico gratuito nas especialidades de <strong>Oftalmologia, Odontologia, Fonoaudiologia (Audiometria), Terapia Comunitária Integrativa (Psicologia) e Oficinas de Alimentação Saudável (Nutrição)</strong> em unidades móveis para estudantes com idade <strong>a partir de 14 anos</strong>.
           </p>
 
           <p className="m-0 leading-relaxed">
@@ -86,16 +86,16 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
                 <strong className="text-slate-950 font-semibold">Oftalmologia:</strong> Triagem visual e identificação de necessidades clínicas.
               </li>
               <li>
-                <strong className="text-slate-950 font-semibold">Audiometria:</strong> Triagem auditiva para detecção precoce de alterações.
+                <strong className="text-slate-950 font-semibold">Fonoaudiologia (Audiometria):</strong> Triagem auditiva para detecção precoce de alterações.
               </li>
               <li>
                 <strong className="text-slate-950 font-semibold">Odontologia:</strong> Avaliação da saúde bucal e ações preventivas.
               </li>
               <li>
-                <strong className="text-slate-950 font-semibold">Psicologia:</strong> Acolhimento e oficinas voltadas às competências socioemocionais e sociorrelacionais.
+                <strong className="text-slate-950 font-semibold">Terapia Comunitária Integrativa (Psicologia):</strong> Acolhimento e oficinas voltadas às competências socioemocionais e sociorrelacionais.
               </li>
               <li>
-                <strong className="text-slate-950 font-semibold">Nutrição:</strong> Avaliação e oficinas focadas em alimentação saudável.
+                <strong className="text-slate-950 font-semibold">Oficinas de Alimentação Saudável (Nutrição):</strong> Avaliação e oficinas focadas em alimentação saudável.
               </li>
             </ul>
           </div>

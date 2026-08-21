@@ -888,6 +888,9 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     autoFocus
                     className="w-full text-center tracking-[0.5em] text-xl font-mono font-extrabold py-2.5 px-3 bg-slate-50 border-2 border-slate-300 rounded-lg focus:border-sesi-primary focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all text-slate-900"
                   />
+                  <span className="block text-center text-[9px] text-slate-400 leading-tight">
+                    * Por medidas de segurança, são permitidas até 3 tentativas de digitação e 8 reenvios do código por documento.
+                  </span>
                 </div>
 
                 {/* Reenvio de Código */}

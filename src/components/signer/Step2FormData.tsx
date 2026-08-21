@@ -406,7 +406,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
           <div className="bg-blue-50/70 border border-blue-200 p-3.5 sm:p-4 rounded-xl flex gap-3 text-xs text-blue-900 mt-4 sm:mt-6 leading-relaxed">
             <ShieldAlert className="w-4 h-4 shrink-0 text-blue-600 mt-0.5" />
             <div>
-              <strong className="text-blue-900 block mb-0.5">Declaração de Veracidade:</strong> Ao prosseguir, você confirma sob as penas da lei que todas as informações declaradas acima são verdadeiras e corretas (Art. 299 do Código Penal).
+              <strong className="text-blue-900 block mb-0.5">Declaração de Veracidade e Validação de Matrícula:</strong> Ao prosseguir, você confirma sob as penas da lei que todas as informações declaradas são verdadeiras (Art. 299 do Código Penal). Fica ciente também que o vínculo familiar e a matrícula do estudante serão validados de forma automatizada e silenciosa contra o banco de dados escolar do SESI no momento da assinatura.
             </div>
           </div>
 

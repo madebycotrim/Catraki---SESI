@@ -111,7 +111,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             </p>
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 space-y-1.5 mt-2 text-xs sm:text-sm text-slate-700">
               <p className="font-bold text-slate-900 m-0">Canal de Atendimento do Titular:</p>
-              <p className="m-0">Para exercer os seus direitos ou solicitar a revogação deste termo, procure a equipe de apoio presencial do projeto ou a coordenação da escola.</p>
+              <p className="m-0">Para exercer seus direitos de titular ou solicitar esclarecimentos adicionais sobre a proteção de dados, você pode entrar em contato com a equipe de apoio presencial do projeto, com a coordenação da escola ou diretamente através do canal oficial do Encarregado de Proteção de Dados (DPO) do SESI.</p>
             </div>
           </section>
 

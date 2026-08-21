@@ -76,7 +76,6 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
     }
 
     const clientId = (c.env as any).MICROSOFT_CLIENT_ID;
-    const clientSecret = (c.env as any).MICROSOFT_CLIENT_SECRET;
     const tenantId = (c.env as any).MICROSOFT_TENANT_ID || 'common';
     const jwtSecret = c.env.JWT_ADMIN_SECRET || 'SESI_DEV_SECRET_KEY_FOR_LOCAL_TESTS_12345';
     const allowedDomains = (c.env as any).ALLOWED_EMAIL_DOMAINS;
@@ -87,11 +86,10 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
       email: '',
     };
 
-    // 1. Se credenciais reais estiverem configuradas, faz a troca real com a Microsoft Identity API
-    if (clientId && clientSecret) {
+    // 1. Troca de código OAuth 2.0 PKCE puro (padrão Microsoft Entra SPA, sem necessidade de client_secret)
+    if (clientId && clientId !== '00000000-0000-0000-0000-000000000000') {
       const tokenParams = new URLSearchParams({
         client_id: clientId,
-        client_secret: clientSecret,
         grant_type: 'authorization_code',
         code,
         redirect_uri: redirectUri,

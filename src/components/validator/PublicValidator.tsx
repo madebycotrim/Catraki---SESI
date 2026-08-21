@@ -156,7 +156,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
             CERTIFICADO DE AUTENTICIDADE E VALIDADE JURÍDICA
           </h1>
           <p className="text-xs text-slate-500 mt-1 mb-0">
-            Verificação de Autenticidade e Integridade Digital (Art. 10, § 2º da MP 2.200-2/2001 e Lei nº 14.063/2020)
+            Verificação de Autenticidade e Integridade Digital (Art. 10, § 2º da MP 2.200-2/2001, Lei nº 14.063/2020 e STJ REsp 2.205.708/PR)
           </p>
         </div>
 

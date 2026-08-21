@@ -587,7 +587,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 Declaro, sob as penas da lei (Art. 299 do Código Penal - Falsidade Ideológica), que sou o(a) legítimo(a) responsável legal do(a) estudante qualificado(a) nesta plataforma e que as informações e documentos por mim inseridos são verdadeiros.
               </p>
               <p className="m-0">
-                As partes (SESI Saúde e o signatário) concordam expressamente em assinar este termo de consentimento por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de eficácia probatória e validade jurídica, nos termos do Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001 e da Lei nº 14.063/2020. Estou ciente e concordo que a plataforma registrará e armazenará, de forma segura, os dados de auditoria para comprovação de autoria (endereço IP, data/hora exata do registro, geolocalização e e-mail) e integridade do documento assinado (resumo criptográfico hash SHA-256).
+                As partes (SESI Saúde e o signatário) concordam expressamente em assinar este termo de consentimento por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de eficácia probatória e validade jurídica, nos termos do Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001, da Lei nº 14.063/2020 e da jurisprudência do STJ (REsp 2.205.708/PR). Estou ciente e concordo que a plataforma registrará e armazenará, de forma segura, os dados de auditoria para comprovação de autoria (endereço IP, data/hora exata do registro, geolocalização e e-mail) e integridade do documento assinado (resumo criptográfico hash SHA-256).
               </p>
             </div>
           </div>
@@ -616,7 +616,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 5. ASSINATURA ELETRÔNICA E VALIDAÇÃO DE IDENTIDADE
               </h3>
               <span className="text-[10px] sm:text-xs text-slate-500 font-medium">
-                Amparada pela MP nº 2.200-2/2001 e Lei nº 14.063/2020
+                Amparada pela MP nº 2.200-2/2001, Lei nº 14.063/2020 e STJ REsp 2.205.708/PR
               </span>
             </div>
 

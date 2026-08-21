@@ -293,7 +293,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                   Para conferir a validade, acesse <span className="text-sesi-primary font-bold">https://www.catraki.com.br/validar</span> e utilize o código <strong className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">{validationCode}</strong>.
                 </div>
                 <div className="text-slate-500 text-[10px] sm:text-xs leading-normal">
-                  As assinaturas eletrônicas têm validade jurídica prevista na <strong>Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º)</strong> e na <strong>Lei Federal nº 14.063/2020 (Art. 4º, II)</strong>.
+                  As assinaturas eletrônicas têm validade jurídica prevista na <strong>Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º)</strong>, na <strong>Lei Federal nº 14.063/2020 (Art. 4º, II)</strong> e jurisprudência consolidada do Superior Tribunal de Justiça (<strong>STJ - REsp 2.205.708/PR</strong>).
                 </div>
               </div>
             </div>

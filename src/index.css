@@ -62,38 +62,30 @@
   background: #94a3b8;
 }
 
-/* 📄 Folha A4 Padrão ABNT Responsiva */
+/* 📄 Cartão / Documento Institucional (Fluido e Responsivo) */
 .document-sheet-a4 {
   background: #ffffff;
   font-family: 'Arial', 'Helvetica Neue', sans-serif;
   color: #000000;
   position: relative;
   overflow: hidden;
-  border-radius: 0px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
-  padding: 1.5rem 1.25rem 4.5rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  padding: 1.5rem 1.25rem 3.5rem 1.25rem;
   width: 100%;
 }
 
 @media (min-width: 640px) {
   .document-sheet-a4 {
-    padding: 2.5rem 2.5rem 5rem 2.5rem;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
-  }
-}
-
-@media (min-width: 768px) {
-  .document-sheet-a4 {
-    padding: 3.5rem 3.5rem 5.5rem 3.5rem;
-    min-height: 297mm;
+    padding: 2rem 2.25rem 3.5rem 2.25rem;
+    border-radius: 16px;
   }
 }
 
 @media (min-width: 1024px) {
   .document-sheet-a4 {
-    padding: 80px 60px 80px 80px;
-    font-size: 11pt;
-    line-height: 1.6;
+    padding: 2.25rem 2.5rem 3.75rem 2.5rem;
   }
 }
 
@@ -104,15 +96,17 @@
   color: #000000;
   position: relative;
   overflow: hidden;
-  border-radius: 0px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   padding: 1.5rem 1.25rem 3.5rem 1.25rem;
   width: 100%;
 }
 
 @media (min-width: 640px) {
   .document-sheet-a5 {
-    padding: 2.25rem 2.25rem 4rem 2.25rem;
+    padding: 2rem 2.25rem 3.5rem 2.25rem;
+    border-radius: 16px;
   }
 }
 
@@ -129,11 +123,10 @@
   }
 }
 
-
-/* Efeito de Impressão de Alta Qualidade (A4 / A5) */
+/* Efeito de Impressão Real em Folha A4 Única */
 @media print {
   @page {
-    margin: 10mm 15mm;
+    margin: 6mm 10mm 8mm 10mm;
     size: A4 portrait;
   }
   
@@ -142,12 +135,33 @@
     color: #000000 !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   
   .no-print, header, nav, .print-hide {
     display: none !important;
   }
   
+  .document-sheet-a4, .document-sheet-a5 {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    min-height: 270mm !important;
+    max-height: 280mm !important;
+    background: transparent !important;
+    overflow: hidden !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
   .glass-card, .glass-panel {
     background: #ffffff !important;
     border: 1px solid #e2e8f0 !important;
@@ -155,8 +169,8 @@
     box-shadow: none !important;
   }
 
-  tr, table, .avoid-break {
-    page-break-inside: avoid;
-    break-inside: avoid;
+  .page-break-avoid, tr, table, .avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }

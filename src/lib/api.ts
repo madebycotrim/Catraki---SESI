@@ -182,9 +182,6 @@ const setLgpdRequests = (d: any[]) => setStorage('catraki_lgpd', d);
 
 const SEED_INSTITUTIONS: Institution[] = [
   { id: 'cemeit', name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)', short_name: 'CEMEIT', city: 'Taguatinga', state: 'DF', is_active: true },
-  { id: 'ced01-estrutural', name: 'Centro Educacional 01 da Estrutural', short_name: 'CED 01 Estrutural', city: 'Estrutural', state: 'DF', is_active: true },
-  { id: 'cem02-ceilandia', name: 'Centro de Ensino Médio 02 de Ceilândia', short_name: 'CEM 02 Ceilândia', city: 'Ceilândia', state: 'DF', is_active: true },
-  { id: 'ced02-guara', name: 'Centro Educacional 02 do Guará', short_name: 'CED 02 Guará', city: 'Guará', state: 'DF', is_active: true },
 ];
 
 const getInstitutions = () => getStorage<Institution[]>('catraki_institutions', SEED_INSTITUTIONS);
@@ -544,6 +541,10 @@ export const apiClient = {
     setAuditLogs(logs);
     
     doc.status = 'signed';
+    doc.parent_name = payload.signer_name;
+    if (payload.minor_name) {
+      doc.minor_name = payload.minor_name;
+    }
     setDocuments(docs);
 
     const validationCode = `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`;

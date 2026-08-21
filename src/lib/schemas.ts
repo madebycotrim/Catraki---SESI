@@ -101,11 +101,15 @@ export function formatUserAgent(ua?: string): string {
 }
 
 /**
- * Gera um identificador de protocolo único para o documento no formato oficial SESI-AAAA-XXXXXX
+ * Gera um identificador de protocolo único para o documento com base na data e hora exata (Timestamp)
+ * Formato: DOC-YYYYMMDD-HHMMSS (Ex: DOC-20260821-005312)
  */
-export function generateUniqueDocId(year = new Date().getFullYear()): string {
-  const randomNum = Math.floor(100000 + Math.random() * 900000);
-  return `SESI-${year}-${randomNum}`;
+export function generateUniqueDocId(prefix = 'DOC'): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const datePart = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  const timePart = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  return `${prefix}-${datePart}-${timePart}`;
 }
 
 // ============================================================================

@@ -3,6 +3,7 @@ import {
   CreateTemplateSchema,
   CreateDocumentSchema,
   ManualReviewActionSchema,
+  generateUniqueDocId,
 } from '../../src/lib/schemas.ts';
 import {
   sha256,
@@ -38,8 +39,8 @@ adminRouter.post('/auth/login', async (c) => {
   const DEFAULT_ADMINS = [
     {
       id: 'usr_master_01',
-      name: 'Dr. Roberto Silveira (Admin Master)',
-      email: 'master@sesi.org.br',
+      name: 'Mateus Cotrim',
+      email: 'mateus.cotrim@sistemafibra.org.br',
       password: 'SesiMaster@2026',
       role: 'admin_master' as AdminRole,
     },
@@ -157,7 +158,7 @@ adminRouter.get('/documents', async (c) => {
             d.status, d.access_token, d.expires_at, d.retention_expires_at, d.created_at, d.revoked_at,
             t.title as template_title, t.procedure_description
      FROM documents d
-     JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+     LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
      ORDER BY d.created_at DESC LIMIT 100`
   ).all<any>();
 
@@ -213,7 +214,7 @@ adminRouter.post('/documents', requireAuth(['admin_master', 'operador']), async 
     return c.json({ success: false, error: 'Template de procedimento médico não encontrado ou inativo.' }, 404);
   }
 
-  const docId = `DOC-${Date.now()}-${generateSecureToken(4)}`;
+  const docId = generateUniqueDocId('DOC');
   const accessToken = generateSecureToken(32);
   const contentSha256 = template.content_sha256;
 
@@ -339,7 +340,7 @@ adminRouter.get('/audit-logs', requireAuth(['admin_master', 'dpo', 'operador']),
             a.identity_method, a.ip_address, a.geo_city, a.geo_region, a.manifest_sha256, a.log_row_hash,
             a.prev_log_hash, a.created_at, d.minor_name
      FROM audit_logs a
-     JOIN documents d ON a.document_id = d.id
+     LEFT JOIN documents d ON a.document_id = d.id
      ORDER BY a.created_at DESC LIMIT 100`
   ).all<any>();
 

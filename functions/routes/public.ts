@@ -21,29 +21,36 @@ publicRouter.get('/validate/:query', async (c) => {
   }
 
   const clean = query.trim();
+  const cleanLower = clean.toLowerCase();
   const cleanRaw = clean.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
-  let record = null;
-  if (clean.length === 64) {
-    record = await db.prepare(
-      `SELECT a.*, d.minor_name, d.status as doc_status, d.revoked_at, d.revoked_reason,
-              t.title as template_title, t.procedure_description
-       FROM audit_logs a
-       JOIN documents d ON a.document_id = d.id
-       JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-       WHERE a.manifest_sha256 = ?`
-    ).bind(clean.toLowerCase()).first<any>();
-  } else {
-    // Busca por token curto ou documento
-    record = await db.prepare(
-      `SELECT a.*, d.minor_name, d.status as doc_status, d.revoked_at, d.revoked_reason,
-              t.title as template_title, t.procedure_description
-       FROM audit_logs a
-       JOIN documents d ON a.document_id = d.id
-       JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-       WHERE a.manifest_sha256 LIKE ? OR a.manifest_sha256 LIKE ? OR a.document_id LIKE ? LIMIT 1`
-    ).bind(`${cleanRaw.substring(0, 4)}%`, `%${cleanRaw.slice(-4)}`, `%${cleanRaw}%`).first<any>();
-  }
+  // Remove prefixo 'SESI-' caso o usuário tenha colado o código de validação formatado
+  const searchHex = clean.replace(/^SESI-?/i, '').replace(/[^a-fA-F0-9]/g, '').toLowerCase();
+  const hexPrefix = searchHex.length >= 4 ? searchHex.substring(0, 4) : searchHex;
+  const hexSuffix = searchHex.length >= 4 ? searchHex.slice(-4) : searchHex;
+
+  const record = await db.prepare(
+    `SELECT a.*, d.minor_name, d.status as doc_status, d.revoked_at, d.revoked_reason,
+            t.title as template_title, t.procedure_description
+     FROM audit_logs a
+     LEFT JOIN documents d ON a.document_id = d.id
+     LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+     WHERE a.manifest_sha256 = ?
+        OR (length(?) >= 4 AND a.manifest_sha256 LIKE ? AND a.manifest_sha256 LIKE ?)
+        OR (length(?) >= 4 AND a.manifest_sha256 LIKE ?)
+        OR a.document_id LIKE ?
+        OR a.document_id = ?
+     LIMIT 1`
+  ).bind(
+    cleanLower,
+    hexPrefix,
+    `${hexPrefix}%`,
+    `%${hexSuffix}`,
+    searchHex,
+    `${searchHex}%`,
+    `%${cleanRaw}%`,
+    clean
+  ).first<any>();
 
   if (!record) {
     return c.json({

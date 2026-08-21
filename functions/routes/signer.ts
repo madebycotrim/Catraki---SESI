@@ -7,6 +7,7 @@ import {
   SignDocumentSchema,
   RevokeConsentSchema,
   maskCPF,
+  generateUniqueDocId,
 } from '../../src/lib/schemas.ts';
 import {
   sha256,
@@ -42,7 +43,7 @@ signerRouter.get('/doc/:token', async (c) => {
   let doc = await db.prepare(
     `SELECT d.*, t.title as template_title, t.procedure_description, t.content_markdown, t.consent_text_version
      FROM documents d
-     JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+     LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
      WHERE d.access_token = ?`
   ).bind(token).first<any>();
 
@@ -52,9 +53,8 @@ signerRouter.get('/doc/:token', async (c) => {
     const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
 
     if (template) {
-      const randomNum = Math.floor(100000 + Math.random() * 900000);
       doc = {
-        id: `SESI-${new Date().getFullYear()}-${randomNum}`,
+        id: generateUniqueDocId('DOC'),
         status: 'pending',
         minor_name: 'Estudante',
         minor_birth_date: '2010-01-01',
@@ -236,8 +236,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   if (!doc) {
     const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
     if (template) {
-      const randomNum = Math.floor(100000 + Math.random() * 900000);
-      const newDocId = `SESI-${new Date().getFullYear()}-${randomNum}`;
+      const newDocId = generateUniqueDocId('DOC');
       await db.prepare(
         `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+3 years'), datetime('now', '+1 year'))`
@@ -574,9 +573,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       ),
       db.prepare(
         `UPDATE documents 
-         SET status = 'signed', signed_pdf_r2_key = ?, otp_secret_hash = NULL 
+         SET status = 'signed', parent_name = ?, minor_name = COALESCE(?, minor_name), signed_pdf_r2_key = ?, otp_secret_hash = NULL 
          WHERE id = ? AND status = 'pending'`
-      ).bind(pdfR2Key, doc.id),
+      ).bind(signer_name, doc.minor_name || null, pdfR2Key, doc.id),
     ]);
 
     if ((batch[1] as any).meta?.changes === 0) {

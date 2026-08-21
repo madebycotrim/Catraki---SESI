@@ -45,6 +45,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedImageOption, setSelectedImageOption] = useState<'all' | 'authorized' | 'not_authorized'>('all');
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'signed' | 'pending'>('all');
   const [selectedDateRange, setSelectedDateRange] = useState<'all' | 'today' | '7days' | '30days'>('all');
+  const [selectedSeries, setSelectedSeries] = useState<string>('all');
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [authorizations, setAuthorizations] = useState<any[]>([]);
@@ -120,6 +121,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             authHealth: true,
             authData: true,
             authImage: authImageGranted,
+            optInOftalmo: isSigned,
+            optInAudio: isSigned,
+            optInOdonto: isSigned,
+            optInPsico: isSigned,
+            optInNutri: isSigned,
+            minorSeries: doc.minor_series || '',
+            minorClass: doc.minor_class || '',
+            minorTurn: doc.minor_turn || '',
             dateSent: doc.created_at ? new Date(doc.created_at).toLocaleDateString('pt-BR') : 'Hoje',
             signedAtDate: doc.created_at ? new Date(doc.created_at) : new Date(),
             hash: log?.manifest_sha256 || doc.content_sha256,
@@ -203,6 +212,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       (selectedImageOption === 'authorized' && auth.authImage === true) ||
       (selectedImageOption === 'not_authorized' && auth.authImage === false);
 
+    const matchesSeries =
+      selectedSeries === 'all' ||
+      (auth.minorSeries && auth.minorSeries.toLowerCase().includes(selectedSeries.toLowerCase()));
+
     let matchesDate = true;
     if (selectedDateRange !== 'all') {
       const now = new Date();
@@ -219,10 +232,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
     }
 
-    return matchesSearch && matchesInstitution && matchesStatus && matchesImage && matchesDate;
+    return matchesSearch && matchesInstitution && matchesStatus && matchesImage && matchesDate && matchesSeries;
   });
 
   const totalImageAuthorized = filteredAuths.filter((a) => a.authImage && a.status === 'signed').length;
+  const totalOftalmoAuthorized = filteredAuths.filter((a) => a.optInOftalmo && a.status === 'signed').length;
+  const totalAudioAuthorized = filteredAuths.filter((a) => a.optInAudio && a.status === 'signed').length;
+  const totalOdontoAuthorized = filteredAuths.filter((a) => a.optInOdonto && a.status === 'signed').length;
+  const totalPsicoAuthorized = filteredAuths.filter((a) => a.optInPsico && a.status === 'signed').length;
+  const totalNutriAuthorized = filteredAuths.filter((a) => a.optInNutri && a.status === 'signed').length;
 
   /**
    * Exporta a lista consolidada de autorizações em formato CSV compatível com Excel (BOM UTF-8)
@@ -237,11 +255,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       'Código Validação',
       'Estudante / Aluno',
       'Data Nascimento',
+      'Série/Ano',
+      'Turma',
+      'Turno',
       'Instituição / Escola',
       'Responsável Legal',
       'CPF Responsável',
       'Parentesco / Vínculo',
-      'Atendimento de Saúde',
+      'Oftalmologia',
+      'Audiometria',
+      'Odontologia',
+      'Psicologia',
+      'Nutrição',
       'Tratamento de Dados (LGPD)',
       'Uso de Imagem e Voz',
       'Data da Assinatura',
@@ -252,13 +277,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       `"${a.validationCode || a.id}"`,
       `"${a.studentName}"`,
       `"${a.birthDate || ''}"`,
+      `"${a.minorSeries || ''}"`,
+      `"${a.minorClass || ''}"`,
+      `"${a.minorTurn || ''}"`,
       `"${a.institutionName}"`,
       `"${a.parentName}"`,
       `"${a.parentCpfMasked}"`,
       `"${a.relationship}"`,
+      `"${a.optInOftalmo ? 'AUTORIZADO' : 'NÃO AUTORIZADO'}"`,
+      `"${a.optInAudio ? 'AUTORIZADO' : 'NÃO AUTORIZADO'}"`,
+      `"${a.optInOdonto ? 'AUTORIZADO' : 'NÃO AUTORIZADO'}"`,
+      `"${a.optInPsico ? 'AUTORIZADO' : 'NÃO AUTORIZADO'}"`,
+      `"${a.optInNutri ? 'AUTORIZADO' : 'NÃO AUTORIZADO'}"`,
       `"AUTORIZADO"`,
-      `"AUTORIZADO"`,
-      `"${a.authImage ? 'AUTORIZADO (SIM)' : 'NÃO AUTORIZADO'}"`,
+      `"${a.authImage ? 'AUTORIZADO' : 'NÃO AUTORIZADO'}"`,
       `"${a.dateSent}"`,
       `"${a.hash || ''}"`
     ]);
@@ -421,15 +453,93 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ABA 1: AUTORIZAÇÕES ASSINADAS */}
       {activeTab === 'authorizations' && (
         <div className="space-y-4">
+
+          {/* Painel de Demanda Operacional por Especialidade */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {/* Oftalmologia */}
+            <div className="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">👁️ Oftalmologia</span>
+              <div className="flex items-baseline gap-1 mt-1.5">
+                <span className="text-xl sm:text-2xl font-black text-slate-900">{totalOftalmoAuthorized}</span>
+                <span className="text-[10px] text-slate-400 font-semibold">autorizados</span>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
+                <div 
+                  className="bg-sky-500 h-full rounded-full transition-all" 
+                  style={{ width: `${Math.min(100, (totalOftalmoAuthorized / (authorizations.filter(a => a.status === 'signed').length || 1)) * 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Audiometria */}
+            <div className="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">👂 Audiometria</span>
+              <div className="flex items-baseline gap-1 mt-1.5">
+                <span className="text-xl sm:text-2xl font-black text-slate-900">{totalAudioAuthorized}</span>
+                <span className="text-[10px] text-slate-400 font-semibold">autorizados</span>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
+                <div 
+                  className="bg-indigo-500 h-full rounded-full transition-all" 
+                  style={{ width: `${Math.min(100, (totalAudioAuthorized / (authorizations.filter(a => a.status === 'signed').length || 1)) * 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Odontologia */}
+            <div className="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">🦷 Odontologia</span>
+              <div className="flex items-baseline gap-1 mt-1.5">
+                <span className="text-xl sm:text-2xl font-black text-slate-900">{totalOdontoAuthorized}</span>
+                <span className="text-[10px] text-slate-400 font-semibold">autorizados</span>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
+                <div 
+                  className="bg-emerald-500 h-full rounded-full transition-all" 
+                  style={{ width: `${Math.min(100, (totalOdontoAuthorized / (authorizations.filter(a => a.status === 'signed').length || 1)) * 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Psicologia */}
+            <div className="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">🧠 Psicologia</span>
+              <div className="flex items-baseline gap-1 mt-1.5">
+                <span className="text-xl sm:text-2xl font-black text-slate-900">{totalPsicoAuthorized}</span>
+                <span className="text-[10px] text-slate-400 font-semibold">autorizados</span>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
+                <div 
+                  className="bg-purple-500 h-full rounded-full transition-all" 
+                  style={{ width: `${Math.min(100, (totalPsicoAuthorized / (authorizations.filter(a => a.status === 'signed').length || 1)) * 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Nutrição */}
+            <div className="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">🍎 Nutrição</span>
+              <div className="flex items-baseline gap-1 mt-1.5">
+                <span className="text-xl sm:text-2xl font-black text-slate-900">{totalNutriAuthorized}</span>
+                <span className="text-[10px] text-slate-400 font-semibold">autorizados</span>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
+                <div 
+                  className="bg-rose-500 h-full rounded-full transition-all" 
+                  style={{ width: `${Math.min(100, (totalNutriAuthorized / (authorizations.filter(a => a.status === 'signed').length || 1)) * 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
           
           {/* Caixa de Pesquisa e Filtros Avançados */}
           <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200/90 space-y-4">
             
             {/* Linha 1: Barra de Busca + Dropdowns de Filtro */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
               
               {/* Input de Busca */}
-              <div className="relative group sm:col-span-2 lg:col-span-1">
+              <div className="relative group sm:col-span-2 lg:col-span-2">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   id="admin-search-input"
@@ -475,6 +585,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {inst.short_name} - {inst.city}/{inst.state}
                     </option>
                   ))}
+                </select>
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+              </div>
+
+
+              {/* Filtro: Série / Ano */}
+              <div className="relative">
+                <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <select
+                  value={selectedSeries}
+                  onChange={(e) => setSelectedSeries(e.target.value)}
+                  className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none truncate"
+                >
+                  <option value="all">Série/Ano: Todos</option>
+                  <option value="1º Ano">1º Ano</option>
+                  <option value="2º Ano">2º Ano</option>
+                  <option value="3º Ano">3º Ano</option>
+                  <option value="4º Ano">4º Ano</option>
+                  <option value="9º Ano">9º Ano</option>
                 </select>
                 <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
               </div>

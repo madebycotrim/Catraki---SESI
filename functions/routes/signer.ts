@@ -547,6 +547,24 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     return c.json({ success: false, error: 'Documento não encontrado ou já assinado.', code: 'DOC_NOT_FOUND' }, 404);
   }
 
+  const birthDateStr = parsed.data.minor_birth_date || doc.minor_birth_date;
+  if (birthDateStr) {
+    const birthDate = new Date(birthDateStr);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    if (age < 14) {
+      return c.json({
+        success: false,
+        error: 'O estudante deve possuir no mínimo 14 anos de idade para participar do projeto.',
+        code: 'UNDERAGE_STUDENT',
+      }, 400);
+    }
+  }
+
   if (doc.status === 'signed') {
     return c.json({ success: false, error: 'Este documento já foi assinado anteriormente.', code: 'ALREADY_SIGNED' }, 409);
   }
@@ -598,6 +616,14 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     procedure_description_sha256: await sha256(doc.procedure_description),
     content_sha256: contentSha256AtSigning,
     signed_at_utc: signedAtIso,
+    specialties_consent: {
+      oftalmologia: parsed.data.auth_health === 'yes',
+      audiometria: parsed.data.auth_health === 'yes',
+      odontologia: parsed.data.auth_health === 'yes',
+      psicologia: parsed.data.auth_health === 'yes',
+      nutricao: parsed.data.auth_health === 'yes',
+      uso_imagem: parsed.data.auth_image === 'yes'
+    },
     signer: {
       name: signer_name,
       cpf_masked: cpfMasked,
@@ -839,26 +865,31 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       <!-- 1. Qualificação e Declaração Formal (Recuo ABNT) -->
       <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify; background-color: #ffffff;">
         <p style="margin: 0; text-indent: 28px;">
-          Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth || 'Data não informada'}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhoneText}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeriesText}${studentTurnText}, declaro sob as penas da lei que <strong>AUTORIZO a realização do atendimento e das triagens de saúde do(a) estudante</strong> <strong>sem a presença do responsável legal</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>.
+          Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth || 'Data não informada'}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhoneText}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeriesText}${studentTurnText}, declaro sob as penas da lei que <strong>AUTORIZO a realização das triagens e atendimentos de saúde do(a) estudante</strong> <strong>sem a presença do responsável legal</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>, iniciativa realizada em cooperação técnica entre a Universidade de Brasília (UnB), o SESI-DF e a Finatec, viabilizada por recursos de emenda parlamentar da Senadora Leila Barros.
         </p>
+      </div>
+
+      <!-- ⚠️ Aviso de Agendamento Presencial -->
+      <div style="margin: 16px 0; background-color: #fffbeb; border: 1.5px solid #fef3c7; border-radius: 8px; padding: 12px 16px; font-size: 11.5px; color: #78350f; line-height: 1.6; text-align: justify;">
+        <strong>⚠️ AVISO OPERACIONAL IMPORTANTE:</strong> Este comprovante oficial atesta a autorização legal de participação no projeto. Contudo, <strong>esta assinatura digital não é garantia de atendimento imediato</strong>. O agendamento da consulta presencial é realizado exclusivamente no estacionamento da escola, próximo às unidades móveis, e está condicionado à capacidade diária máxima de atendimentos (vagas limitadas por especialidade).
       </div>
 
       <!-- 2. Cláusula Segunda — Das Autorizações Específicas (Continuação Natural do Documento) -->
       <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify;">
         <p style="margin: 0 0 10px 0; text-indent: 28px;">
-          Adicionalmente, manifesto de forma expressa, livre e inequívoca meu consentimento quanto às seguintes condições:
+          Adicionalmente, manifesto de forma expressa, livre e inequívoca meu consentimento em relação às seguintes condições:
         </p>
 
         <p style="margin: 0 0 8px 0; text-indent: 28px;">
-          <strong>a) Atendimento Clínico e Triagens de Saúde:</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica autorizada a realização de triagens preventivas, exames clínicos, acuidade visual e avaliação bucal no âmbito do projeto Escola Cidadã: Saúde em Movimento.
+          <strong>a) Circuito de Saúde e Especialidades:</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica autorizada a realização de triagens preventivas e exames clínicos de forma integrada no circuito de especialidades oficiais do projeto: Oftalmologia (limite de 40 vagas/dia), Audiometria (limite de 30 vagas/dia), Odontologia (limite de 20 vagas/dia), Psicologia (limite de 40 vagas/dia) e Nutrição (limite de 60 vagas/dia).
         </p>
 
         <p style="margin: 0 0 8px 0; text-indent: 28px;">
-          <strong>b) Tratamento de Dados Pessoais e de Saúde (LGPD):</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica expressamente autorizado o tratamento dos dados pessoais e sensíveis para finalidade exclusiva de assistência à saúde e histórico de atendimento, nos termos dos artigos 7º, I, 11, I, e 14 da Lei Federal nº 13.709/2018.
+          <strong>b) Tratamento de Dados Pessoais e Sensíveis:</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica expressamente autorizado o tratamento dos dados pessoais e de prontuário clínico para finalidade exclusiva de assistência médica e registros do projeto, sob a responsabilidade conjunta da UnB, SESI-DF e Finatec (Artigo 14 da LGPD).
         </p>
 
-        <p style="margin: 0 0 10px 0; text-indent: 28px;">
-          <strong>c) Captação e Uso de Imagem e Voz:</strong> <span style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700;">${authImageStatus ? '[ ✓ AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}</span> — ${authImageStatus ? 'Fica autorizada de forma gratuita a captação e veiculação de fotos e vídeos para documentação institutional, relatórios e prestação de contas do projeto (ECA, Art. 17).' : 'O(a) responsável optou por não autorizar o registro fotográfico ou audiovisual, permanecendo inalterado o pleno atendimento de saúde do(a) estudante.'}
+        <p style="margin: 0 0 8px 0; text-indent: 28px;">
+          <strong>c) Captação e Uso de Imagem e Voz:</strong> <span style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700;">${authImageStatus ? '[ ✓ AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}</span> — ${authImageStatus ? 'Fica autorizada de forma gratuita a captação e veiculação de fotos/vídeos para documentação institutional e relatórios de prestação de contas (ECA, Artigo 17).' : 'O(a) responsável optou por não autorizar o registro fotográfico ou de filmagens.'}
         </p>
 
         <p style="margin: 0 0 10px 0; text-indent: 28px;">
@@ -869,7 +900,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       <!-- 3. Cláusula Terceira — Direitos e Revogação (LGPD) -->
       <div style="margin-bottom: 24px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify;">
         <p style="margin: 0; text-indent: 28px;">
-          Declaro estar ciente de que os dados coletados não serão comercializados e que é garantido o direito de acesso, retificação ou revogação deste consentimento a qualquer momento (Art. 18 da LGPD), mediante solicitação formal à direção da escola ou pelo e-mail oficial: <strong>autorizacoes@catraki.com.br</strong> (ou diretamente pelo Portal de Revogação da plataforma).
+          Declaro estar ciente de que os dados coletados não serão comercializados e que é garantido o direito de acesso, retificação ou revogação deste consentimento a qualquer momento (Artigo 18 da LGPD), mediante solicitação formal à direção da escola ou pelo e-mail oficial: <strong>autorizacoes@catraki.com.br</strong>.
         </p>
       </div>
 

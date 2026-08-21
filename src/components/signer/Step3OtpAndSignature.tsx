@@ -331,6 +331,62 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   </span>
                 </label>
 
+                {/* Painel Informativo do Circuito (Exibido apenas quando authHealth === 'yes') */}
+                {authHealth === 'yes' && (
+                  <div className="ml-0 sm:ml-8 mt-2 p-3.5 sm:p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3.5 animate-in fade-in duration-300">
+                    <div>
+                      <h4 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-700">
+                        Especialidades clínicas incluídas neste termo:
+                      </h4>
+                      <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
+                        Ao autorizar, você permite a participação no circuito completo que engloba as seguintes áreas:
+                      </p>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {/* Oftalmologia */}
+                      <div className="flex items-start gap-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                        <span className="text-sesi-primary font-bold">👁️</span>
+                        <div>
+                          <strong className="text-slate-900">Oftalmologia:</strong> Triagem visual e acuidade ocular. <span className="text-[10px] text-slate-500 font-medium block sm:inline sm:ml-1">(Capacidade diária: 40 atendimentos)</span>
+                        </div>
+                      </div>
+
+                      {/* Audiometria */}
+                      <div className="flex items-start gap-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                        <span className="text-sesi-primary font-bold">👂</span>
+                        <div>
+                          <strong className="text-slate-900">Audiometria:</strong> Triagem auditiva para detecção precoce de alterações. <span className="text-[10px] text-slate-500 font-medium block sm:inline sm:ml-1">(Capacidade diária: 30 atendimentos)</span>
+                        </div>
+                      </div>
+
+                      {/* Odontologia */}
+                      <div className="flex items-start gap-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                        <span className="text-sesi-primary font-bold">🦷</span>
+                        <div>
+                          <strong className="text-slate-900">Odontologia:</strong> Avaliação preventiva e orientações de higiene bucal. <span className="text-[10px] text-slate-500 font-medium block sm:inline sm:ml-1">(Capacidade diária: 20 atendimentos)</span>
+                        </div>
+                      </div>
+
+                      {/* Psicologia */}
+                      <div className="flex items-start gap-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                        <span className="text-sesi-primary font-bold">🧠</span>
+                        <div>
+                          <strong className="text-slate-900">Psicologia:</strong> Suporte emocional, acolhimento e escuta qualificada. <span className="text-[10px] text-slate-500 font-medium block sm:inline sm:ml-1">(Capacidade diária: 40 atendimentos)</span>
+                        </div>
+                      </div>
+
+                      {/* Nutrição */}
+                      <div className="flex items-start gap-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                        <span className="text-sesi-primary font-bold">🍎</span>
+                        <div>
+                          <strong className="text-slate-900">Nutrição:</strong> Avaliação antropométrica e orientação alimentar. <span className="text-[10px] text-slate-500 font-medium block sm:inline sm:ml-1">(Capacidade diária: 60 atendimentos)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <label htmlFor="auth-health-no" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
                   <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
                     <input

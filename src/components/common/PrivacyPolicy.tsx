@@ -59,10 +59,10 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               <span>1. Compromisso com a Privacidade e o Sigilo</span>
             </h2>
             <p>
-              A presente Política de Privacidade regula o tratamento de dados pessoais e de saúde de crianças, adolescentes e seus respectivos responsáveis legais no âmbito das ações clínicas e preventivas do projeto <strong>Escola Cidadã: Saúde em Movimento</strong>, executado pelo <strong>SESI-DF</strong> em parceria com a <strong>Universidade de Brasília (UnB)</strong> e a <strong>Fundação de Empreendimentos Científicos e Tecnológicos (FINATEC)</strong>, operacionalizado através da plataforma tecnológica <strong>Catraki</strong>.
+              A presente Política de Privacidade regula o tratamento de dados pessoais e de saúde de crianças, adolescentes e seus respectivos responsáveis legais no âmbito das ações clínicas e preventivas do projeto de extensão e promoção da saúde <strong>Escola Cidadã — Saúde em Movimento</strong>. O projeto é executado em regime de co-controladoria conjunta pela <strong>Universidade de Brasília (Faculdade de Ciências da Saúde - FS/UnB)</strong>, pelo <strong>SESI-DF</strong> e pela <strong>Fundação de Empreendimentos Científicos e Tecnológicos (FINATEC)</strong>, viabilizado por recursos de emenda parlamentar da Senadora Leila Barros e operacionalizado através da plataforma <strong>Catraki</strong>.
             </p>
           </section>
-
+ 
           <section className="space-y-1.5">
             <h2 className="text-xs sm:text-sm font-bold uppercase text-slate-900 flex items-center gap-2">
               <FileText className="w-4 h-4 text-sesi-primary" />
@@ -72,8 +72,9 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               O tratamento de dados pessoais comuns e dados pessoais sensíveis de saúde é realizado em estrita observância aos <strong>Artigos 7º (inciso I), 11 (inciso I) e 14 da Lei Geral de Proteção de Dados (Lei nº 13.709/2018)</strong>, com base no consentimento específico e em destaque concedido pelos responsáveis legais em favor do melhor interesse do menor (ECA, Lei nº 8.069/1990).
             </p>
             <ul className="list-disc pl-5 space-y-1 mt-2 text-slate-600">
-              <li><strong>Finalidade Clínica:</strong> Realização de triagens odontológicas, oftalmológicas, fonoaudiológicas, testes de acuidade visual e encaminhamentos médicos preventivos.</li>
-              <li><strong>Finalidade Institucional:</strong> Comprovação de autoria da autorização, prestação de contas pedagógicas e geração de laudos em saúde escolar.</li>
+              <li><strong>Finalidade Clínica e Assistencial:</strong> Realização de triagens e atendimentos nas especialidades oficiais do projeto: Oftalmologia, Audiometria, Odontologia, Psicologia e Nutrição nas unidades móveis.</li>
+              <li><strong>Finalidade Científica e de Extensão:</strong> Geração de estatísticas agregadas e anonimizadas para acompanhamento epidemiológico escolar e projetos de pesquisa/extensão da Faculdade de Ciências da Saúde (FS/UnB).</li>
+              <li><strong>Finalidade Institucional:</strong> Comprovação de autoria do consentimento, segurança jurídica, prestação de contas pedagógicas e geração de laudos em saúde escolar.</li>
             </ul>
           </section>
 

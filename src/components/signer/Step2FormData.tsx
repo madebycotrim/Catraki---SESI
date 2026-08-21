@@ -87,7 +87,20 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
     const newErrors: Partial<Record<keyof FormData, string>> = {};
     
     if (!formData.minorName.trim()) newErrors.minorName = 'Nome do aluno é obrigatório';
-    if (!formData.minorBirthDate) newErrors.minorBirthDate = 'Data de nascimento é obrigatória';
+    if (!formData.minorBirthDate) {
+      newErrors.minorBirthDate = 'Data de nascimento é obrigatória';
+    } else {
+      const birthDate = new Date(formData.minorBirthDate);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      if (age < 14) {
+        newErrors.minorBirthDate = 'O estudante deve possuir no mínimo 14 anos de idade para participar.';
+      }
+    }
     if (formData.minorCpf.trim() && !isValidCPF(formData.minorCpf)) {
       newErrors.minorCpf = 'CPF do estudante inválido (verifique os dígitos)';
     }

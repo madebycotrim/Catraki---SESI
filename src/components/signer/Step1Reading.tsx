@@ -63,7 +63,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
             />
             <div style={{ textAlign: 'right' }}>
               <p style={{ fontSize: '8.5pt', color: '#555', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Escola Cidadã: Saúde em Movimento
+                Escola Cidadã — Saúde em Movimento
               </p>
               <p style={{ fontSize: '9pt', color: '#1e293b', margin: 0, fontWeight: 'bold' }}>
                 Doc. nº {document.id}
@@ -77,7 +77,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
           {/* Título Principal */}
           <div className="text-center mb-8">
             <h1 style={{ fontSize: '12pt', fontWeight: 'bold', margin: 0, textTransform: 'uppercase', color: '#000' }}>
-              BEM-VINDO(A) AO PROJETO ESCOLA CIDADÃ: SAÚDE EM MOVIMENTO
+              BEM-VINDO(A) AO PROJETO ESCOLA CIDADÃ — SAÚDE EM MOVIMENTO
             </h1>
           </div>
 

@@ -28,14 +28,14 @@ const SEED_TEMPLATES: DocumentTemplate[] = [
   {
     id: 'proc_escola_cidada',
     version: 1,
-    title: 'Projeto Escola Cidadã: Saúde em Movimento',
-    procedure_description: 'Autorização para atendimento do aluno nas ações do projeto Escola Cidadã: Saúde em Movimento (UnB + SESI-DF + Finatec), sem a presença do responsável legal, com consentimento granular para tratamento de dados pessoais (LGPD) e uso de imagem, nome e voz (ECA/Art. 17).',
+    title: 'Escola Cidadã — Saúde em Movimento',
+    procedure_description: 'Autorização para atendimento do aluno nas ações do projeto Escola Cidadã — Saúde em Movimento (UnB + SESI-DF + Finatec), sem a presença do responsável legal, com consentimento granular para tratamento de dados pessoais (LGPD) e uso de imagem, nome e voz (ECA/Art. 17).',
     content_markdown: `## TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)
 ### Autorização de Atendimento de Saúde, Tratamento de Dados e Uso de Imagem
 
 Prezado(a) Responsável Legal,
 
-Este formulário digital tem o objetivo de garantir a segurança, a privacidade e os direitos do(a) estudante durante o projeto **Escola Cidadã: Saúde em Movimento**. A leitura e o aceite eletrônico deste termo possuem validade jurídica equivalente a um documento físico assinado em papel.
+Este formulário digital tem o objetivo de garantir a segurança, a privacidade e os direitos do(a) estudante durante o projeto **Escola Cidadã — Saúde em Movimento**. A leitura e o aceite eletrônico deste termo possuem validade jurídica equivalente a um documento físico assinado em papel.
 
 ---
 

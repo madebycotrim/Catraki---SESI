@@ -119,7 +119,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
               Credencial de Acesso • Gestão de Assinaturas
             </h1>
             <p style={{ fontSize: '8.5pt', color: '#475569', margin: 0 }}>
-              Projeto Escola Cidadã — Painel de Controle de Autorizações
+              Escola Cidadã — Saúde em Movimento • Painel Gestor
             </p>
           </div>
 

@@ -38,7 +38,7 @@ export class GeradorPdfTermoSesi {
     let y = height - 50;
 
     // 1. Cabeçalho Oficial
-    page.drawText('SESI SAÚDE — ESCOLA CIDADÃ', {
+    page.drawText('ESCOLA CIDADÃ — SAÚDE EM MOVIMENTO', {
       x: margemEsquerda,
       y,
       size: 14,

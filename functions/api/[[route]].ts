@@ -48,7 +48,7 @@ app.post('/send-otp', async (c) => {
     }
 
     const resendApiKey = (c.env as any).RESEND_API_KEY;
-    const fromAddress = (c.env as any).EMAIL_FROM || 'SESI Saúde — Escola Cidadã <autorizacoes@catraki.com.br>';
+    const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
 
     // 1. Envio Oficial via Resend API
     if (resendApiKey) {
@@ -64,7 +64,7 @@ app.post('/send-otp', async (c) => {
           subject: `Código de Confirmação: ${otp} — SESI Saúde`,
           html: `<div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;">
             <div style="border-bottom: 2px solid #034b7f; padding-bottom: 12px; margin-bottom: 16px;">
-              <h2 style="color: #034b7f; margin: 0; font-size: 18px;">SESI Saúde — Escola Cidadã</h2>
+              <h2 style="color: #034b7f; margin: 0; font-size: 18px;">Escola Cidadã — Saúde em Movimento</h2>
               <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Código de Assinatura Digital</span>
             </div>
             <p style="color: #334155; font-size: 14px; line-height: 1.6;">Olá!</p>
@@ -96,13 +96,13 @@ app.post('/send-otp', async (c) => {
         personalizations: [{ to: [{ email: emailDestino }] }],
         from: {
           email: 'autorizacoes@catraki.com.br',
-          name: 'SESI — Escola Cidadã',
+          name: 'Escola Cidadã — Saúde em Movimento',
         },
         subject: `Código de Confirmação: ${otp}`,
         content: [{
           type: 'text/html',
           value: `<div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;">
-            <h2 style="color: #034b7f; margin-top: 0; font-size: 18px;">SESI Saúde — Escola Cidadã</h2>
+            <h2 style="color: #034b7f; margin-top: 0; font-size: 18px;">Escola Cidadã — Saúde em Movimento</h2>
             <p style="color: #334155; font-size: 14px; line-height: 1.6;">Olá!</p>
             <p style="color: #334155; font-size: 14px; line-height: 1.6;">Seu código de segurança para assinar a autorização do(a) estudante <strong>${nomeAluno}</strong> é:</p>
             <div style="background: #f1f5f9; border: 2px solid #cbd5e1; border-radius: 8px; padding: 18px; text-align: center; margin: 20px 0;">
@@ -136,7 +136,7 @@ app.post('/send-test-email', async (c) => {
     }
 
     const resendApiKey = (c.env as any).RESEND_API_KEY;
-    const fromAddress = (c.env as any).EMAIL_FROM || 'SESI Saúde — Escola Cidadã <autorizacoes@catraki.com.br>';
+    const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
     const nowIso = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
     // 1. Envio Oficial de Teste via Resend API
@@ -195,7 +195,7 @@ app.post('/send-test-email', async (c) => {
         personalizations: [{ to: [{ email: emailDestino }] }],
         from: {
           email: 'autorizacoes@catraki.com.br',
-          name: 'SESI — Escola Cidadã',
+          name: 'Escola Cidadã — Saúde em Movimento',
         },
         subject: `SESI Saúde — Teste de Disparo de E-mail (${nowIso})`,
         content: [{

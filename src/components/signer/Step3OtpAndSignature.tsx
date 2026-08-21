@@ -262,7 +262,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
             />
             <div style={{ textAlign: 'right' }}>
               <p style={{ fontSize: '8.5pt', color: '#555', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Escola Cidadã: Saúde em Movimento
+                Escola Cidadã — Saúde em Movimento
               </p>
               <p style={{ fontSize: '9pt', color: '#1e293b', margin: 0, fontWeight: 'bold' }}>
                 Termo de Consentimento (TCLE)
@@ -743,7 +743,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               />
               <div style={{ textAlign: 'right' }}>
                 <p style={{ fontSize: '7.5pt', color: '#555', margin: '0 0 1px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Escola Cidadã • SESI Saúde
+                  Escola Cidadã — Saúde em Movimento
                 </p>
                 <p style={{ fontSize: '8pt', color: '#1e293b', margin: 0, fontWeight: 'bold' }}>
                   Validação de Identidade

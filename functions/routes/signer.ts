@@ -274,7 +274,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   const targetEmail = providedEmail;
   const studentName = providedMinorName || doc.minor_name || 'Estudante';
   const resendApiKey = (c.env as any).RESEND_API_KEY;
-  const fromAddress = (c.env as any).EMAIL_FROM || 'SESI Saúde — Escola Cidadã <autorizacoes@catraki.com.br>';
+  const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
 
   let emailSent = false;
   let emailError = '';
@@ -293,7 +293,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
           subject: `Código de Confirmação: ${otpCode} — SESI Saúde`,
           html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
             <div style="border-bottom: 2px solid #034b7f; padding-bottom: 12px; margin-bottom: 20px;">
-              <h2 style="color: #034b7f; margin: 0; font-size: 18px; font-weight: bold;">SESI Saúde — Escola Cidadã</h2>
+              <h2 style="color: #034b7f; margin: 0; font-size: 18px; font-weight: bold;">Escola Cidadã — Saúde em Movimento</h2>
               <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Validação de Autoria por Código Eletrônico</span>
             </div>
             <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 12px 0;">Olá,</p>
@@ -592,7 +592,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
 
   // Disparo do E-mail Oficial de Comprovante de Assinatura (Resend API)
   const resendApiKey = (c.env as any).RESEND_API_KEY;
-  const fromAddress = (c.env as any).EMAIL_FROM || 'SESI Saúde — Escola Cidadã <autorizacoes@catraki.com.br>';
+  const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
   const targetEmail = parsed.data.signer_email;
   const studentName = parsed.data.minor_name || doc.minor_name || 'Estudante';
   const studentBirth = parsed.data.minor_birth_date || doc.minor_birth_date || '';
@@ -621,7 +621,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
             
             {/* Cabeçalho Institucional */}
             <div style="border-bottom: 3px solid #034b7f; padding-bottom: 16px; margin-bottom: 24px; text-align: left;">
-              <div style="font-size: 20px; font-weight: 800; color: #034b7f; letter-spacing: -0.02em;">SESI Saúde — Escola Cidadã</div>
+              <div style="font-size: 20px; font-weight: 800; color: #034b7f; letter-spacing: -0.02em;">Escola Cidadã — Saúde em Movimento</div>
               <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">
                 Serviço Social da Indústria • Departamento Regional do Distrito Federal (DR-DF)
               </div>

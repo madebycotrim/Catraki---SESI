@@ -92,7 +92,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             parentName: doc.parent_name || log?.signer_name || 'Responsável Legal',
             parentCpfMasked: log?.signer_cpf_masked || '***.***.***-**',
             relationship: log?.signer_relationship || 'Responsável Legal',
-            activity: doc.template_title || 'Projeto Escola Cidadã: Saúde em Movimento',
+            activity: doc.template_title || 'Escola Cidadã — Saúde em Movimento',
             institutionId: instMatch ? instMatch.id : (doc.institution_id || 'cemeit'),
             institutionName: instMatch ? instMatch.short_name : (doc.institution_name || 'CEMEIT'),
             status: doc.status,
@@ -270,7 +270,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const auth = filteredAuths[i];
         const pdfBytes = await GeradorPdfTermoSesi.gerarPdfOriginal({
           tituloProcedimento: auth.activity,
-          descricaoProcedimento: 'Autorização e Consentimento para Atendimento em Saúde e Exames Clínicos - Projeto Escola Cidadã: Saúde em Movimento.',
+          descricaoProcedimento: 'Autorização e Consentimento para Atendimento em Saúde e Exames Clínicos — Escola Cidadã — Saúde em Movimento.',
           nomeMenor: auth.studentName,
           dataNascimentoMenor: auth.birthDate || '2010-01-01',
           nomeResponsavel: auth.parentName,

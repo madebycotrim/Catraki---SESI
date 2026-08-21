@@ -167,7 +167,7 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                       className="mt-0.5 w-4 h-4 rounded border-slate-400 text-sesi-primary focus:ring-sesi-primary"
                     />
                     <span className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium">
-                      Declaro formalmente ter ciência inequívoca de que a revogação deste consentimento cancelará a participação do(a) estudante em atendimentos clínicos futuros do Projeto Escola Cidadã: Saúde em Movimento, e que a coordenação escolar e a equipe de saúde do SESI serão notificadas de imediato.
+                      Declaro formalmente ter ciência inequívoca de que a revogação deste consentimento cancelará a participação do(a) estudante em atendimentos clínicos futuros do projeto Escola Cidadã — Saúde em Movimento, e que a coordenação escolar e a equipe de saúde do SESI serão notificadas de imediato.
                     </span>
                   </label>
                 </div>

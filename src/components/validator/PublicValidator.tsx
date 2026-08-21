@@ -232,6 +232,25 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
           {validationResult && (
             <div className="space-y-6">
               
+              {/* Barra de Ações Rápidas (Oculta na Impressão) */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200 no-print">
+                <button
+                  onClick={handleResetSearch}
+                  className="px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Consultar Outro Documento</span>
+                </button>
+
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Imprimir Certificado / Salvar PDF</span>
+                </button>
+              </div>
+
               {/* Status do Documento */}
               <div className="text-center pb-4 border-b border-slate-200 space-y-1.5">
                 <div className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${

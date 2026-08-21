@@ -258,15 +258,16 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
 
   const otpCode = generateOtp();
   const otpHash = await hmacSha256(otpCode, pepper);
+  const expiresAtIso = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
   await db.prepare(
     `UPDATE documents 
      SET otp_secret_hash = ?, 
          otp_attempts = 0, 
-         otp_expires_at = datetime('now', '+5 minutes'), 
+         otp_expires_at = ?, 
          otp_resend_count = otp_resend_count + 1 
      WHERE id = ?`
-  ).bind(otpHash, doc.id).run();
+  ).bind(otpHash, expiresAtIso, doc.id).run();
 
   // Disparo Real de E-mail via Resend API
   const { email: providedEmail, minor_name: providedMinorName } = parsed.data;
@@ -362,9 +363,20 @@ signerRouter.post('/otp/verify', async (c) => {
     }, 400);
   }
 
-  const now = new Date().toISOString();
-  if (doc.otp_expires_at && doc.otp_expires_at < now) {
-    return c.json({ success: false, error: 'O código de verificação expirou. Solicite um novo código.', code: 'OTP_EXPIRED' }, 400);
+  if (doc.otp_expires_at) {
+    const expiryTime = new Date(
+      doc.otp_expires_at.includes('T') 
+        ? doc.otp_expires_at 
+        : doc.otp_expires_at.replace(' ', 'T') + 'Z'
+    ).getTime();
+
+    if (!isNaN(expiryTime) && expiryTime < Date.now()) {
+      return c.json({
+        success: false,
+        error: 'O código de verificação expirou (validade de 5 minutos). Solicite um novo código.',
+        code: 'OTP_EXPIRED'
+      }, 400);
+    }
   }
 
   const computedOtpHash = await hmacSha256(otp_code, pepper);
@@ -430,7 +442,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     return c.json({ success: false, error: 'Código de autenticação 2FA inválido ou expirado.', code: 'OTP_INVALID' }, 400);
   }
 
-  let identityMethod: 'matricula_sesi' | 'manual_review' = 'matricula_sesi';
+  let identityMethod: 'matricula_sesi' | 'manual_review' = 'manual_review';
   const sesiCheck = await querySesiMatricula({
     minorName: doc.minor_name,
     minorBirthDate: doc.minor_birth_date,
@@ -438,18 +450,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     signerName: signer_name,
   });
 
-  if (!sesiCheck.hasValidEnrollment) {
-    const approvedReview = await db.prepare(
-      `SELECT * FROM manual_review_queue WHERE document_id = ? AND status = 'approved' ORDER BY updated_at DESC LIMIT 1`
-    ).bind(doc.id).first<any>();
-
-    if (!approvedReview) {
-      return c.json({
-        success: false,
-        error: 'O vínculo com o menor não foi confirmado na matrícula SESI nem por revisão manual aprovada. Assinatura bloqueada.',
-        code: 'IDENTITY_UNVERIFIED',
-      }, 403);
-    }
+  if (sesiCheck.hasValidEnrollment) {
+    identityMethod = 'matricula_sesi';
+  } else {
     identityMethod = 'manual_review';
   }
 

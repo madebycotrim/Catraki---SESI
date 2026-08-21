@@ -374,7 +374,7 @@ export const apiClient = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, channel, email, minor_name }),
       });
-      if (resp.ok) return await resp.json();
+      return await resp.json();
     } catch {}
 
     const docs = getDocuments();
@@ -406,7 +406,7 @@ export const apiClient = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, otp_code }),
       });
-      if (resp.ok) return await resp.json();
+      return await resp.json();
     } catch {}
 
     const docs = getDocuments();
@@ -452,7 +452,7 @@ export const apiClient = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (resp.ok) return await resp.json();
+      return await resp.json();
     } catch {}
 
     const docs = getDocuments();

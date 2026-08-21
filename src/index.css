@@ -62,19 +62,33 @@
   background: #94a3b8;
 }
 
-/* Efeito de Impressão do Comprovante */
+/* Efeito de Impressão de Alta Qualidade (A4 / A5) */
 @media print {
-  body {
-    background: white !important;
-    color: black !important;
+  @page {
+    margin: 10mm 15mm;
+    size: A4 portrait;
   }
-  .no-print {
+  
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .no-print, header, nav, .print-hide {
     display: none !important;
   }
+  
   .glass-card, .glass-panel {
-    background: white !important;
-    border: 1px solid #ccc !important;
-    color: black !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #000000 !important;
     box-shadow: none !important;
+  }
+
+  tr, table, .avoid-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 }

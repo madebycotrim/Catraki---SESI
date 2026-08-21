@@ -10,7 +10,6 @@ import {
   Lock,
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
-import { TurnstileWidget } from '../common/TurnstileWidget.tsx';
 import type { SignerRelationship } from '../../lib/types.ts';
 
 interface Step3OtpAndSignatureProps {
@@ -59,7 +58,6 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const [otpSending, setOtpSending] = useState(false);
   const [otpError, setOtpError] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [turnstileToken, setTurnstileToken] = useState<string>('');
 
   // Geolocalização e IP reais do cliente
   const [clientGeo, setClientGeo] = useState<{ ip: string; location: string }>({
@@ -106,21 +104,15 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   /**
    * Envia o código OTP de 6 dígitos para o e-mail do responsável
    */
-  const dispararEnvioOtpEmail = async (activeToken?: string) => {
+  const dispararEnvioOtpEmail = async () => {
     setOtpSending(true);
     setOtpError('');
     try {
-      const activeTurnstileToken =
-        activeToken ||
-        turnstileToken ||
-        (typeof window !== 'undefined' && window.turnstile ? window.turnstile.getResponse() : '');
-
       const resp = await apiClient.requestOtp(
         token, 
         'email', 
         identityData.signerEmail || undefined, 
-        minorName || undefined,
-        activeTurnstileToken || undefined
+        minorName || undefined
       );
       if (resp.success) {
         if (resp.email_sent === false && resp.email_error) {
@@ -698,14 +690,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
             </div>
           </div>
 
-          {/* Proteção Anti-Bot Cloudflare Turnstile */}
-          <div className="w-full flex justify-center pt-3">
-            <TurnstileWidget
-              action="otp_request"
-              onVerify={(tok) => setTurnstileToken(tok)}
-              onExpire={() => setTurnstileToken('')}
-            />
-          </div>
+
 
           {/* Botoes de acoes no A4 */}
           <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200 mt-4">

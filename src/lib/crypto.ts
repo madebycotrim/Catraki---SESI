@@ -430,71 +430,11 @@ export interface TurnstileVerifyOptions {
  * Validação canônica de token Cloudflare Turnstile (RFC/Canonical Siteverify)
  */
 export async function verifyTurnstileToken(
-  token?: string,
-  optionsOrSecret?: TurnstileVerifyOptions | string,
-  legacyRemoteIp?: string
+  _token?: string,
+  _optionsOrSecret?: TurnstileVerifyOptions | string,
+  _legacyRemoteIp?: string
 ): Promise<boolean> {
-  let secretKey: string | undefined;
-  let remoteIp: string | undefined;
-  let expectedAction: string | undefined;
-  let expectedHostnames: string[] | undefined;
-
-  if (typeof optionsOrSecret === 'string') {
-    secretKey = optionsOrSecret;
-    remoteIp = legacyRemoteIp;
-  } else if (optionsOrSecret) {
-    secretKey = optionsOrSecret.secretKey;
-    remoteIp = optionsOrSecret.remoteIp;
-    expectedAction = optionsOrSecret.expectedAction;
-    expectedHostnames = optionsOrSecret.expectedHostnames;
-  }
-
-  if (!secretKey || secretKey.trim().length === 0) {
-    return true; // Se Turnstile não estiver configurado no ambiente, permite continuar (dev/fallback)
-  }
-
-  if (!token || typeof token !== 'string' || token.length === 0 || token.length > 2048) {
-    return false;
-  }
-
-  try {
-    const params = new URLSearchParams({
-      secret: secretKey,
-      response: token,
-    });
-    if (remoteIp) {
-      params.append('remoteip', remoteIp);
-    }
-
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      signal: AbortSignal.timeout(10000),
-      body: params.toString(),
-    });
-
-    if (!res.ok) return false;
-    const data: any = await res.json();
-
-    if (!data || data.success !== true) {
-      return false;
-    }
-
-    if (expectedAction && data.action && data.action !== expectedAction) {
-      return false;
-    }
-
-    if (expectedHostnames && expectedHostnames.length > 0 && data.hostname) {
-      const allowed = new Set(expectedHostnames.map((h) => h.trim().toLowerCase()));
-      if (!allowed.has(data.hostname.toLowerCase())) {
-        return false;
-      }
-    }
-
-    return true;
-  } catch {
-    return false;
-  }
+  return true; // Turnstile desativado por completo
 }
 
 /**

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { LgpdRequestPublicSchema, maskCPF, getInitials } from '../../src/lib/schemas.ts';
-import { encryptAesGcm, maskIpAddress, verifyTurnstileToken } from '../../src/lib/crypto.ts';
+import { encryptAesGcm, maskIpAddress } from '../../src/lib/crypto.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
 import type { Env, PublicValidationResponse } from '../../src/lib/types.ts';
 
@@ -127,29 +127,7 @@ publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, 
     return c.json({ success: false, error: parsed.error.errors[0]?.message, code: 'VALIDATION_ERROR' }, 400);
   }
 
-  const { requester_name, requester_cpf, requester_email, request_type, details, turnstile_token } = parsed.data;
-
-  // Validação Canônica Cloudflare Turnstile Anti-Bot
-  const turnstileSecret = c.env.TURNSTILE_SECRET_KEY || (c.env as any).TURNSTILE_SECRET;
-  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for');
-  const allowedHostnames = c.env.TURNSTILE_HOSTNAMES
-    ? c.env.TURNSTILE_HOSTNAMES.split(',').map((h) => h.trim())
-    : ['catraki.com.br', 'www.catraki.com.br', 'catraki-sesi.pages.dev', 'catraki.pages.dev', 'localhost', '127.0.0.1'];
-
-  const isHuman = await verifyTurnstileToken(turnstile_token, {
-    secretKey: turnstileSecret,
-    remoteIp: clientIp,
-    expectedAction: 'lgpd_request',
-    expectedHostnames: allowedHostnames,
-  });
-
-  if (!isHuman) {
-    return c.json({
-      success: false,
-      error: 'Falha na verificação de segurança contra robôs (Cloudflare Turnstile). Por favor, tente novamente.',
-      code: 'CAPTCHA_FAILED',
-    }, 403);
-  }
+  const { requester_name, requester_cpf, requester_email, request_type, details } = parsed.data;
 
   const db = c.env.DB;
   const masterKey = c.env.ENCRYPTION_KEY_V1;

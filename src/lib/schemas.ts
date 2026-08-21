@@ -192,7 +192,6 @@ export const OtpRequestSchema = z.object({
   channel: z.enum(['sms', 'email']).default('email'),
   email: z.string().email().optional(),
   minor_name: z.string().optional(),
-  turnstile_token: z.string().optional(),
 });
 
 export const OtpVerifySchema = z.object({
@@ -247,7 +246,6 @@ export const LgpdRequestPublicSchema = z.object({
   requester_email: z.string().email(),
   request_type: z.enum(['access', 'rectification', 'deletion', 'revocation_appeal']),
   details: z.string().min(15, 'Forneça detalhes suficientes sobre a sua solicitação').max(2000),
-  turnstile_token: z.string().optional(),
 });
 
 export const ManualReviewActionSchema = z.object({

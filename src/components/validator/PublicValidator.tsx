@@ -376,15 +376,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                   </div>
                 </div>
 
-                <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-2 sm:p-2.5 flex items-start gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="text-emerald-950 font-bold block text-[11px]">Primeiros Socorros / Emergência</strong>
-                    <span className="text-emerald-800 text-[10px] block mt-0.5 leading-snug">
-                      Autorizado socorro de urgência e encaminhamento hospitalar imediato.
-                    </span>
-                  </div>
-                </div>
+
 
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 sm:p-2.5 flex items-start gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />

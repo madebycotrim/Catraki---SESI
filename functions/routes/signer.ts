@@ -18,7 +18,6 @@ import {
   generateTsaTimestampToken,
   stripExifFromBase64Image,
   canonicalJson,
-  verifyTurnstileToken,
 } from '../../src/lib/crypto.ts';
 import { computeLogRowHash } from '../../src/lib/audit-chain.ts';
 import { querySesiMatricula } from '../../src/lib/sesi-matricula.ts';
@@ -256,29 +255,8 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Parâmetros inválidos.', code: 'VALIDATION_ERROR' }, 400);
   }
 
-  const { token, channel, turnstile_token } = parsed.data;
+  const { token, channel } = parsed.data;
 
-  // Validação Canônica Cloudflare Turnstile Anti-Bot
-  const turnstileSecret = c.env.TURNSTILE_SECRET_KEY || (c.env as any).TURNSTILE_SECRET;
-  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for');
-  const allowedHostnames = c.env.TURNSTILE_HOSTNAMES
-    ? c.env.TURNSTILE_HOSTNAMES.split(',').map((h) => h.trim())
-    : ['catraki.com.br', 'www.catraki.com.br', 'catraki-sesi.pages.dev', 'catraki.pages.dev', 'localhost', '127.0.0.1'];
-
-  const isHuman = await verifyTurnstileToken(turnstile_token, {
-    secretKey: turnstileSecret,
-    remoteIp: clientIp,
-    expectedAction: 'otp_request',
-    expectedHostnames: allowedHostnames,
-  });
-
-  if (!isHuman) {
-    return c.json({
-      success: false,
-      error: 'Falha na verificação de segurança contra robôs (Cloudflare Turnstile). Por favor, tente novamente.',
-      code: 'CAPTCHA_FAILED',
-    }, 403);
-  }
 
   const db = c.env.DB;
   const pepper = c.env.OTP_PEPPER;
@@ -881,7 +859,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         </p>
 
         <p style="margin: 0 0 8px 0; text-indent: 28px;">
-          <strong>a) Circuito de Saúde e Especialidades:</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica autorizada a realização de triagens preventivas e exames clínicos de forma integrada no circuito de especialidades oficiais do projeto: Oftalmologia (limite de 40 vagas/dia), Audiometria (limite de 30 vagas/dia), Odontologia (limite de 20 vagas/dia), Psicologia (limite de 40 vagas/dia) e Nutrição (limite de 60 vagas/dia).
+          <strong>a) Circuito de Saúde e Especialidades:</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica autorizada a realização de triagens preventivas e exames clínicos de forma integrada no circuito de especialidades oficiais do projeto: Oftalmologia, Audiometria, Odontologia, Psicologia e Nutrição.
         </p>
 
         <p style="margin: 0 0 8px 0; text-indent: 28px;">

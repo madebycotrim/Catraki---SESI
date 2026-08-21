@@ -24,9 +24,9 @@ export const securityHeaders: MiddlewareHandler = async (c, next) => {
   // Permissions Policy restrita para saúde
   c.header('Permissions-Policy', 'camera=(self), geolocation=(), microphone=()');
 
-  // Content Security Policy restritivo (sem inline inseguro)
+  // Content Security Policy
   c.header(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none';"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://*.catraki.com.br https://catraki.com.br https://challenges.cloudflare.com https://cloudflareinsights.com https://*.cloudflareinsights.com; frame-src 'self' https://challenges.cloudflare.com; frame-ancestors 'none';"
   );
 };

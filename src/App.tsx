@@ -24,11 +24,20 @@ export function App() {
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
         const state = urlParams.get('state');
+        const errorParam = urlParams.get('error');
+        const errorDesc = urlParams.get('error_description');
 
-        if (code && state) {
+        if (errorParam) {
+          sessionStorage.setItem('admin_login_error', errorDesc || `Erro Microsoft: ${errorParam}`);
+        } else if (code && state) {
           const res = await apiClient.processMicrosoftCallback(code, state);
           if (res.success && res.user) {
             setAdminUser(res.user);
+          } else {
+            sessionStorage.setItem(
+              'admin_login_error',
+              res.error || (res.details ? (typeof res.details === 'string' ? res.details : JSON.stringify(res.details)) : 'Falha ao autenticar sessão com a Microsoft.')
+            );
           }
         }
         setCurrentView('admin');

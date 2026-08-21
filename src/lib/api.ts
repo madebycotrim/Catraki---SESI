@@ -1010,6 +1010,12 @@ export const apiClient = {
         if (data && data.success && typeof window !== 'undefined') {
           sessionStorage.setItem('ms_code_verifier', data.codeVerifier);
           sessionStorage.setItem('ms_state', data.state);
+          sessionStorage.setItem('ms_redirect_uri', callbackUrl);
+          try {
+            localStorage.setItem('ms_code_verifier', data.codeVerifier);
+            localStorage.setItem('ms_state', data.state);
+            localStorage.setItem('ms_redirect_uri', callbackUrl);
+          } catch {}
         }
         return data;
       }
@@ -1022,6 +1028,12 @@ export const apiClient = {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('ms_code_verifier', codeVerifier);
       sessionStorage.setItem('ms_state', state);
+      sessionStorage.setItem('ms_redirect_uri', callbackUrl);
+      try {
+        localStorage.setItem('ms_code_verifier', codeVerifier);
+        localStorage.setItem('ms_state', state);
+        localStorage.setItem('ms_redirect_uri', callbackUrl);
+      } catch {}
     }
 
     return {
@@ -1038,8 +1050,17 @@ export const apiClient = {
    * Processa o callback da Microsoft, valida o token e o domínio institucional
    */
   async processMicrosoftCallback(code: string, state: string, codeVerifier?: string, redirectUri?: string): Promise<any> {
-    const savedVerifier = codeVerifier || (typeof window !== 'undefined' ? sessionStorage.getItem('ms_code_verifier') : '') || '';
-    const callbackUrl = redirectUri || (typeof window !== 'undefined' ? `${window.location.origin}/admin/callback` : 'https://catraki.com.br/admin/callback');
+    const savedVerifier =
+      codeVerifier ||
+      (typeof window !== 'undefined'
+        ? sessionStorage.getItem('ms_code_verifier') || localStorage.getItem('ms_code_verifier')
+        : '') ||
+      '';
+    const callbackUrl =
+      redirectUri ||
+      (typeof window !== 'undefined'
+        ? sessionStorage.getItem('ms_redirect_uri') || localStorage.getItem('ms_redirect_uri') || `${window.location.origin}/admin/callback`
+        : 'https://catraki.com.br/admin/callback');
 
     try {
       const resp = await fetch(`${API_BASE}/auth/microsoft/callback`, {
@@ -1058,7 +1079,7 @@ export const apiClient = {
         this.setAdminSession(data.token, data.user);
         return data;
       }
-      return data;
+      return data || { success: false, error: 'Falha ao autenticar com a Microsoft.' };
     } catch {}
 
     // Simulação / Fallback

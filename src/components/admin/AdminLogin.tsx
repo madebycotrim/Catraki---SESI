@@ -8,7 +8,16 @@ interface AdminLoginProps {
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const savedError = sessionStorage.getItem('admin_login_error');
+      if (savedError) {
+        sessionStorage.removeItem('admin_login_error');
+        return savedError;
+      }
+    }
+    return null;
+  });
 
   const dataHoje = new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',

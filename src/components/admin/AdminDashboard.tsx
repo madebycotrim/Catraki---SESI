@@ -236,11 +236,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   });
 
   const totalImageAuthorized = filteredAuths.filter((a) => a.authImage && a.status === 'signed').length;
-  const totalOftalmoAuthorized = filteredAuths.filter((a) => a.optInOftalmo && a.status === 'signed').length;
-  const totalAudioAuthorized = filteredAuths.filter((a) => a.optInAudio && a.status === 'signed').length;
-  const totalOdontoAuthorized = filteredAuths.filter((a) => a.optInOdonto && a.status === 'signed').length;
-  const totalPsicoAuthorized = filteredAuths.filter((a) => a.optInPsico && a.status === 'signed').length;
-  const totalNutriAuthorized = filteredAuths.filter((a) => a.optInNutri && a.status === 'signed').length;
 
   /**
    * Exporta a lista consolidada de autorizações em formato CSV compatível com Excel (BOM UTF-8)
@@ -454,84 +449,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeTab === 'authorizations' && (
         <div className="space-y-4">
 
-          {/* Painel de Demanda Operacional por Especialidade */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {/* Oftalmologia */}
-            <div className="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">👁️ Oftalmologia</span>
-              <div className="flex items-baseline gap-1 mt-1.5">
-                <span className="text-xl sm:text-2xl font-black text-slate-900">{totalOftalmoAuthorized}</span>
-                <span className="text-[10px] text-slate-400 font-semibold">autorizados</span>
-              </div>
-              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
-                <div 
-                  className="bg-sky-500 h-full rounded-full transition-all" 
-                  style={{ width: `${Math.min(100, (totalOftalmoAuthorized / (authorizations.filter(a => a.status === 'signed').length || 1)) * 100)}%` }}
-                />
-              </div>
-            </div>
 
-            {/* Audiometria */}
-            <div className="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">👂 Audiometria</span>
-              <div className="flex items-baseline gap-1 mt-1.5">
-                <span className="text-xl sm:text-2xl font-black text-slate-900">{totalAudioAuthorized}</span>
-                <span className="text-[10px] text-slate-400 font-semibold">autorizados</span>
-              </div>
-              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
-                <div 
-                  className="bg-indigo-500 h-full rounded-full transition-all" 
-                  style={{ width: `${Math.min(100, (totalAudioAuthorized / (authorizations.filter(a => a.status === 'signed').length || 1)) * 100)}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Odontologia */}
-            <div className="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">🦷 Odontologia</span>
-              <div className="flex items-baseline gap-1 mt-1.5">
-                <span className="text-xl sm:text-2xl font-black text-slate-900">{totalOdontoAuthorized}</span>
-                <span className="text-[10px] text-slate-400 font-semibold">autorizados</span>
-              </div>
-              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
-                <div 
-                  className="bg-emerald-500 h-full rounded-full transition-all" 
-                  style={{ width: `${Math.min(100, (totalOdontoAuthorized / (authorizations.filter(a => a.status === 'signed').length || 1)) * 100)}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Psicologia */}
-            <div className="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">🧠 Psicologia</span>
-              <div className="flex items-baseline gap-1 mt-1.5">
-                <span className="text-xl sm:text-2xl font-black text-slate-900">{totalPsicoAuthorized}</span>
-                <span className="text-[10px] text-slate-400 font-semibold">autorizados</span>
-              </div>
-              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
-                <div 
-                  className="bg-purple-500 h-full rounded-full transition-all" 
-                  style={{ width: `${Math.min(100, (totalPsicoAuthorized / (authorizations.filter(a => a.status === 'signed').length || 1)) * 100)}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Nutrição */}
-            <div className="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between hover:shadow-md transition-shadow">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">🍎 Nutrição</span>
-              <div className="flex items-baseline gap-1 mt-1.5">
-                <span className="text-xl sm:text-2xl font-black text-slate-900">{totalNutriAuthorized}</span>
-                <span className="text-[10px] text-slate-400 font-semibold">autorizados</span>
-              </div>
-              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
-                <div 
-                  className="bg-rose-500 h-full rounded-full transition-all" 
-                  style={{ width: `${Math.min(100, (totalNutriAuthorized / (authorizations.filter(a => a.status === 'signed').length || 1)) * 100)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-          
           {/* Caixa de Pesquisa e Filtros Avançados */}
           <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200/90 space-y-4">
             

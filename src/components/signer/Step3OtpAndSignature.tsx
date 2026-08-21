@@ -6,6 +6,7 @@ import {
   Mail,
   CheckCircle2,
   RefreshCw,
+  X,
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
 import type { SignerRelationship } from '../../lib/types.ts';
@@ -52,6 +53,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
 
   // Estados da Validação por Código de E-mail (OTP 6 Dígitos)
   const [otpSent, setOtpSent] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpSending, setOtpSending] = useState(false);
   const [otpError, setOtpError] = useState('');
@@ -156,6 +158,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
     setOtpError('');
     setOtpCode('');
     setOtpSent(true);
+    setShowOtpModal(true);
     await dispararEnvioOtpEmail();
   };
 
@@ -211,6 +214,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
 
       if (resp.success) {
         setOtpSent(false);
+        setShowOtpModal(false);
         onSuccess(resp);
       } else {
         setOtpError(resp.error || 'Falha ao registrar a assinatura.');
@@ -637,61 +641,6 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 </p>
               </div>
 
-              {/* ENTRADA DO CÓDIGO INLINE (EXIBIDA APÓS DISPARO) */}
-              {otpSent && (
-                <div className="mt-4 p-4 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/50 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
-                  <div className="text-center">
-                    <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-blue-900 block">
-                      ✨ Código Enviado com Sucesso!
-                    </span>
-                    <span className="text-xs text-slate-600 mt-1.5 block max-w-md mx-auto leading-relaxed">
-                      Enviamos o código temporário de 6 dígitos para o e-mail: <strong className="text-slate-800 break-all">{identityData.signerEmail}</strong>. Se não o localizar em sua Caixa de Entrada, procure na pasta de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong>.
-                    </span>
-                  </div>
-
-                  {otpError && (
-                    <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
-                      <span className="font-semibold">{otpError}</span>
-                    </div>
-                  )}
-
-                  <div className="max-w-[280px] mx-auto">
-                    <input
-                      id="field-otpCode"
-                      name="otpCode"
-                      type="text"
-                      maxLength={6}
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      autoComplete="one-time-code"
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                      placeholder="000000"
-                      className="w-full text-center tracking-[0.4em] sm:tracking-[0.5em] text-2xl font-mono font-extrabold py-2.5 px-3 bg-white border-2 border-slate-300 rounded-xl focus:border-sesi-primary focus:ring-2 focus:ring-blue-100 transition-all text-slate-900"
-                      autoFocus
-                    />
-                  </div>
-
-                  <div className="text-center">
-                    {resendCooldown > 0 ? (
-                      <span className="text-xs text-slate-400 font-medium">
-                        Reenviar novo código em {resendCooldown}s
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => dispararEnvioOtpEmail()}
-                        disabled={otpSending}
-                        className="text-xs text-sesi-primary hover:text-blue-900 font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer py-1"
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${otpSending ? 'animate-spin' : ''}`} />
-                        <span>{otpSending ? 'Enviando...' : 'Não recebeu? Reenviar código'}</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -727,32 +676,191 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 ) : (
                   <>
                     <Mail className="w-4 h-4" />
-                    <span>Enviar Código de Segurança</span>
+                    <span>Enviar Código por E-mail e Assinar</span>
                   </>
                 )}
               </button>
             ) : (
               <button
                 type="button"
-                onClick={handleVerifyAndFinalizeSign}
-                disabled={otpCode.length < 6 || submittingSign}
-                className="w-full sm:w-auto px-6 py-3.5 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none cursor-pointer"
+                onClick={() => setShowOtpModal(true)}
+                className="w-full sm:w-auto px-6 py-3.5 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] cursor-pointer"
               >
-                {submittingSign ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Confirmando Assinatura...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Confirmar Assinatura</span>
-                  </>
-                )}
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Inserir Código e Assinar (Reabrir Pop-up)</span>
               </button>
             )}
           </div>
         </div>
+
+        {/* MODAL DE VERIFICAÇÃO DE CÓDIGO POR E-MAIL (FOLHA A5) */}
+        {showOtpModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
+            
+            {/* Folha A5 — Padrão Formal (148mm x 210mm) */}
+            <div
+              className="w-full max-w-[500px] animate-in zoom-in-95 duration-200"
+              style={{
+                background: '#ffffff',
+                paddingTop: '36px',
+                paddingLeft: '36px',
+                paddingRight: '36px',
+                paddingBottom: '48px',
+                fontFamily: "'Arial', 'Helvetica Neue', sans-serif",
+                fontSize: '10pt',
+                lineHeight: '1.5',
+                color: '#000',
+                position: 'relative',
+                boxShadow: '0 12px 48px rgba(0,0,0,0.35), 0 2px 10px rgba(0,0,0,0.15)',
+                borderRadius: '0px',
+              }}
+            >
+              {/* Botão de Fechar discreto */}
+              <button
+                type="button"
+                onClick={() => setShowOtpModal(false)}
+                className="absolute top-3 right-3 text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-md hover:bg-slate-100 cursor-pointer"
+                title="Fechar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Cabeçalho oficial A5 */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  marginBottom: '20px',
+                  paddingBottom: '12px',
+                  borderBottom: '2.5px solid #034b7f',
+                }}
+              >
+                <img
+                  src="/logo-1linha.svg"
+                  alt="SESI Saúde"
+                  style={{ height: '34px', objectFit: 'contain' }}
+                />
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: '7.5pt', color: '#555', margin: '0 0 1px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Escola Cidadã • SESI Saúde
+                  </p>
+                  <p style={{ fontSize: '8pt', color: '#1e293b', margin: 0, fontWeight: 'bold' }}>
+                    Validação de Identidade
+                  </p>
+                  <p style={{ fontSize: '7pt', color: '#888', margin: 0 }}>
+                    {dataHoje}
+                  </p>
+                </div>
+              </div>
+
+              {/* Título da Folha A5 */}
+              <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+                <h1 style={{ fontSize: '11pt', fontWeight: 'bold', textTransform: 'uppercase', color: '#000', margin: '0 0 4px 0', letterSpacing: '0.02em' }}>
+                  CONFIRMAÇÃO DE IDENTIDADE DO SIGNATÁRIO
+                </h1>
+                <h2 style={{ fontSize: '8.5pt', fontWeight: 'bold', color: '#475569', margin: 0 }}>
+                  Validação de Autoria por Código de Segurança Eletrônico
+                </h2>
+              </div>
+
+              {/* Corpo do Documento A5 */}
+              <div className="space-y-3.5">
+                <p style={{ textAlign: 'justify', fontSize: '9.5pt', color: '#334155', margin: 0, lineHeight: '1.5' }}>
+                  Para autenticar a assinatura do Termo de Consentimento referente ao(à) estudante <strong>{minorName}</strong>, enviamos um código de segurança de 6 dígitos para o e-mail:
+                </p>
+
+                <div className="bg-blue-50/80 border border-blue-200 rounded-md p-2 text-center">
+                  <span className="font-mono font-bold text-sesi-primary text-xs tracking-wide select-all">
+                    {identityData.signerEmail || 'seu e-mail informado'}
+                  </span>
+                </div>
+
+                {/* Mensagem de Erro do OTP */}
+                {otpError && (
+                  <div className="p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
+                    <span className="font-semibold">{otpError}</span>
+                  </div>
+                )}
+
+                {/* Campo do Código OTP */}
+                <div className="space-y-1 pt-1">
+                  <label className="block text-center text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                    Insira o Código de 6 Dígitos
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    autoFocus
+                    className="w-full text-center tracking-[0.5em] text-xl font-mono font-extrabold py-2.5 px-3 bg-slate-50 border-2 border-slate-300 rounded-lg focus:border-sesi-primary focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all text-slate-900"
+                  />
+                </div>
+
+                {/* Reenvio de Código */}
+                <div className="text-center">
+                  {resendCooldown > 0 ? (
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      Reenviar novo código em {resendCooldown}s
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={dispararEnvioOtpEmail}
+                      disabled={otpSending}
+                      className="text-[11px] text-sesi-primary hover:text-blue-900 font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${otpSending ? 'animate-spin' : ''}`} />
+                      {otpSending ? 'Enviando...' : 'Não recebeu? Reenviar código'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Botões de Ação na Folha A5 */}
+                <div className="pt-2 space-y-2">
+                  <button
+                    type="button"
+                    onClick={handleVerifyAndFinalizeSign}
+                    disabled={otpCode.length < 6 || submittingSign}
+                    className="w-full py-2.5 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {submittingSign ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Confirmando Assinatura...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Confirmar e Concluir Assinatura
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowOtpModal(false)}
+                    className="w-full py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors cursor-pointer text-center"
+                  >
+                    Cancelar e Voltar ao Termo
+                  </button>
+                </div>
+              </div>
+
+              {/* Barra institucional no final da folha A5 */}
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, overflow: 'hidden' }}>
+                <img
+                  src="/barra.jpg"
+                  alt="Barra institucional SESI"
+                  style={{ width: '100%', height: '20px', display: 'block', objectFit: 'cover', objectPosition: 'center' }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Barra institucional no final da folha */}
         <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden pointer-events-none z-10 leading-none">

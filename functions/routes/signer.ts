@@ -748,12 +748,24 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const rawTurn = (parsed.data.minor_turn || '').trim();
 
   let studentSeriesText = '';
-  if (rawSeries && rawClass) {
-    studentSeriesText = `, Série/Turma: <strong>${rawSeries} - Turma ${rawClass}</strong>`;
-  } else if (rawSeries) {
-    studentSeriesText = `, Série: <strong>${rawSeries}</strong>`;
-  } else if (rawClass) {
-    studentSeriesText = `, Turma: <strong>${rawClass}</strong>`;
+  let formattedSeries = rawSeries;
+  if (/^\d+$/.test(formattedSeries)) {
+    formattedSeries = `${formattedSeries}º ano`;
+  } else if (/^\d+º$/.test(formattedSeries)) {
+    formattedSeries = `${formattedSeries} ano`;
+  }
+
+  let formattedClass = rawClass;
+  if (formattedClass.toLowerCase().startsWith('turma ')) {
+    formattedClass = formattedClass.substring(6).trim();
+  }
+
+  if (formattedSeries && formattedClass) {
+    studentSeriesText = `, Série/Turma: <strong>${formattedSeries} ${formattedClass}</strong>`;
+  } else if (formattedSeries) {
+    studentSeriesText = `, Série: <strong>${formattedSeries}</strong>`;
+  } else if (formattedClass) {
+    studentSeriesText = `, Turma: <strong>${formattedClass}</strong>`;
   }
 
   const studentTurnText = rawTurn ? `, Turno: <strong>${rawTurn}</strong>` : '';
@@ -854,7 +866,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       <!-- 1. Qualificação e Declaração Formal (Recuo ABNT) -->
       <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify; background-color: #ffffff;">
         <p style="margin: 0; text-indent: 28px;">
-          Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth || 'Data não informada'}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhoneText}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeriesText}${studentTurnText}, declaro sob as penas da lei que <strong>AUTORIZO a realização das triagens e atendimentos de saúde do(a) estudante</strong> <strong>sem a presença do responsável legal</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>, iniciativa realizada em cooperação técnica entre a Universidade de Brasília (UnB), o SESI-DF e a Finatec, viabilizada por recursos de emenda parlamentar da Senadora Leila Barros.
+          Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth || 'Data não informada'}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhoneText}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeriesText}${studentTurnText}, declaro sob as penas da lei que <strong>AUTORIZO a realização das triagens e atendimentos de saúde do(a) estudante</strong> <strong>sem a presença do responsável legal</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>, iniciativa realizada em cooperação técnica entre a Universidade de Brasília (UnB), o SESI-DF e a Finatec.
         </p>
       </div>
 

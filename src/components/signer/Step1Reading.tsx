@@ -65,7 +65,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
             Prezado(a) Responsável,
           </p>
           <p className="m-0 leading-relaxed">
-            Sabemos que a saúde e a segurança do(a) seu filho(a) são as suas maiores prioridades. É com esse mesmo cuidado que a <strong>Universidade de Brasília (UnB)</strong>, o <strong>SESI-DF</strong> e a <strong>Finatec</strong> trazem até a comunidade escolar esta iniciativa de cuidado preventivo e cidadania. O projeto leva atendimento clínico gratuito nas especialidades de **Oftalmologia, Odontologia, Audiometria, Psicologia e Nutrição** em unidades móveis para estudantes com idade **a partir de 14 anos**.
+            Sabemos que a saúde e a segurança do(a) seu filho(a) são as suas maiores prioridades. É com esse mesmo cuidado que a <strong>Universidade de Brasília (UnB)</strong>, o <strong>SESI-DF</strong> e a <strong>Finatec</strong> trazem até a comunidade escolar esta iniciativa de cuidado preventivo e cidadania. O projeto leva atendimento clínico gratuito nas especialidades de <strong>Oftalmologia, Odontologia, Audiometria, Psicologia e Nutrição</strong> em unidades móveis para estudantes com idade <strong>a partir de 14 anos</strong>.
           </p>
 
           <p className="m-0 leading-relaxed">

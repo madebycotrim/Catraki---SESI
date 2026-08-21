@@ -88,6 +88,13 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
 
     // 1. Troca de código OAuth 2.0 PKCE puro (padrão Microsoft Entra SPA, sem necessidade de client_secret)
     if (clientId && clientId !== '00000000-0000-0000-0000-000000000000') {
+      let clientOrigin = 'https://www.catraki.com.br';
+      try {
+        if (redirectUri) {
+          clientOrigin = new URL(redirectUri).origin;
+        }
+      } catch {}
+
       const tokenParams = new URLSearchParams({
         client_id: clientId,
         grant_type: 'authorization_code',
@@ -98,7 +105,10 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
 
       const tokenResp = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Origin': clientOrigin,
+        },
         body: tokenParams.toString(),
       });
 

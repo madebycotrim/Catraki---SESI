@@ -830,7 +830,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
                       ESCOLA CIDADÃ
                     </div>
                     <div style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px;">
-                      Saúde em Movimento • SESI-DF
+                      Saúde em Movimento
                     </div>
                   </td>
                 </tr>

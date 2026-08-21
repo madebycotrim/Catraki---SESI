@@ -70,6 +70,7 @@ describe('Validações e Schemas Zod (schemas.ts)', () => {
       signature_png_base64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       consent_lgpd_art11_art14: true,
       declaration_art299_penal: true,
+      declaration_legal_responsibility: true,
     };
 
     const result = SignDocumentSchema.safeParse(validSign);
@@ -110,6 +111,7 @@ describe('Validações e Schemas Zod (schemas.ts)', () => {
         signature_png_base64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
         consent_lgpd_art11_art14: true,
         declaration_art299_penal: true,
+        declaration_legal_responsibility: true,
       };
       const res = SignDocumentSchema.safeParse(payload);
       expect(res.success).toBe(true);

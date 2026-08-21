@@ -8,6 +8,7 @@ import {
   RevokeConsentSchema,
   maskCPF,
   generateUniqueDocId,
+  formatUserAgent,
 } from '../../src/lib/schemas.ts';
 import {
   sha256,
@@ -15,16 +16,91 @@ import {
   constantTimeEqual,
   generateOtp,
   encryptAesGcm,
+  decryptAesGcm,
+  bytesToBase64,
   generateTsaTimestampToken,
   stripExifFromBase64Image,
   canonicalJson,
 } from '../../src/lib/crypto.ts';
+import { GeradorPdfTermoSesi } from '../../src/lib/pades/GeradorPdfTermoSesi.ts';
 import { computeLogRowHash } from '../../src/lib/audit-chain.ts';
 import { querySesiMatricula } from '../../src/lib/sesi-matricula.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
 import type { Env, AuditLogRowInput, DocumentRecord } from '../../src/lib/types.ts';
 
 export const signerRouter = new Hono<{ Bindings: Env }>();
+
+function formatToE164(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 11 || digits.length === 10) {
+    return `+55${digits}`;
+  }
+  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
+    return `+${digits}`;
+  }
+  return `+${digits}`;
+}
+
+async function sendTwilioMessage(
+  to: string,
+  body: string,
+  env: {
+    TWILIO_ACCOUNT_SID?: string;
+    TWILIO_AUTH_TOKEN?: string;
+    TWILIO_FROM_PHONE?: string;
+    TWILIO_WHATSAPP_FROM?: string;
+  },
+  useWhatsapp = false
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const sid = env.TWILIO_ACCOUNT_SID;
+  const token = env.TWILIO_AUTH_TOKEN;
+  if (!sid || !token) {
+    return { success: false, error: 'Twilio credentials not configured' };
+  }
+
+  const from = useWhatsapp
+    ? env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886'
+    : env.TWILIO_FROM_PHONE;
+
+  if (!from) {
+    return { success: false, error: 'Twilio source number/sender not configured' };
+  }
+
+  const formattedTo = useWhatsapp
+    ? (to.startsWith('whatsapp:') ? to : `whatsapp:${to}`)
+    : to;
+
+  const formData = new URLSearchParams();
+  formData.append('To', formattedTo);
+  formData.append('From', from);
+  formData.append('Body', body);
+
+  const authHeader = 'Basic ' + btoa(`${sid}:${token}`);
+
+  try {
+    const resp = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString(),
+      }
+    );
+
+    if (resp.ok) {
+      const data = await resp.json() as any;
+      return { success: true, messageId: data.sid };
+    } else {
+      const errText = await resp.text();
+      return { success: false, error: `Twilio API error: ${errText}` };
+    }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
 
 signerRouter.use('*', rateLimiter({ limit: 40, windowSeconds: 60, keyPrefix: 'signer_gen' }));
 
@@ -133,7 +209,7 @@ signerRouter.post('/verify-matricula', async (c) => {
       const newDocId = generateUniqueDocId('DOC');
       await db.prepare(
         `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+3 years'), datetime('now', '+1 year'))`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+1 year'))`
       ).bind(newDocId, template.id, template.version, template.content_sha256, 'Estudante', '2010-01-01', signer_name, 'ENC_INITIAL', 'ENC_INITIAL', token).run();
       doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(newDocId).first<DocumentRecord>();
     }
@@ -189,7 +265,7 @@ signerRouter.post('/manual-review', async (c) => {
       const newDocId = generateUniqueDocId('DOC');
       await db.prepare(
         `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+3 years'), datetime('now', '+1 year'))`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+1 year'))`
       ).bind(newDocId, template.id, template.version, template.content_sha256, 'Estudante', '2010-01-01', signer_name, 'ENC_INITIAL', 'ENC_INITIAL', token).run();
       doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(newDocId).first<DocumentRecord>();
     }
@@ -242,7 +318,6 @@ signerRouter.post('/manual-review', async (c) => {
     message: 'Documentos recebidos com sucesso. A equipe do SESI fará a análise do vínculo legal antes da liberação do link de assinatura.',
   });
 });
-
 /**
  * POST /api/signer/otp/request
  * Solicitação de OTP com HMAC Pepper e limite de reenvios
@@ -255,17 +330,15 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Parâmetros inválidos.', code: 'VALIDATION_ERROR' }, 400);
   }
 
-  const { token, channel } = parsed.data;
-
+  const { token, channel, email: providedEmail, phone: providedPhone, minor_name: providedMinorName } = parsed.data;
 
   const db = c.env.DB;
   const pepper = c.env.OTP_PEPPER;
+  const masterKey = c.env.ENCRYPTION_KEY_V1;
 
-  if (!pepper) {
-    return c.json({ success: false, error: 'Configuração do servidor incompleta (OTP_PEPPER).', code: 'KEY_CONFIG_ERROR' }, 500);
+  if (!pepper || !masterKey) {
+    return c.json({ success: false, error: 'Configuração do servidor incompleta (OTP_PEPPER/ENCRYPTION_KEY_V1).', code: 'KEY_CONFIG_ERROR' }, 500);
   }
-
-  const { email: providedEmail, minor_name: providedMinorName } = parsed.data;
 
   let doc = await db.prepare("SELECT * FROM documents WHERE (access_token = ? OR id = ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1").bind(token, token).first<DocumentRecord>();
   if (!doc) {
@@ -277,7 +350,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
 
       await db.prepare(
         `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+3 years'), datetime('now', '+1 year'))`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+1 year'))`
       ).bind(newDocId, template.id, template.version, template.content_sha256, providedMinorName || 'Estudante', '2010-01-01', 'Responsável Legal', 'ENC_INITIAL', 'ENC_INITIAL', cleanAccessToken).run();
       doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(newDocId).first<DocumentRecord>();
     }
@@ -299,123 +372,170 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   const otpHash = await hmacSha256(otpCode, pepper);
   const expiresAtIso = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
+  const studentName = providedMinorName || doc.minor_name || 'Estudante';
+  
+  let emailSent = false;
+  let emailError = '';
+  let resendMessageId = '';
+
+  let smsSent = false;
+  let smsMessageId = '';
+  let smsError = '';
+
+  if (channel === 'email') {
+    const targetEmail = providedEmail || (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' ? await decryptAesGcm(doc.parent_email_encrypted, masterKey) : null);
+    if (targetEmail) {
+      const resendApiKey = (c.env as any).RESEND_API_KEY;
+      const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
+
+      const otpHtml = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+        <div style="border-bottom: 2px solid #034b7f; padding-bottom: 12px; margin-bottom: 20px;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="vertical-align: middle;">
+                <h2 style="color: #034b7f; margin: 0; font-size: 18px; font-weight: bold;">Escola Cidadã — Saúde em Movimento</h2>
+                <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Validação de Autoria por Código Eletrônico</span>
+              </td>
+              <td style="width: 40px; vertical-align: middle; text-align: right;">
+                <img src="https://www.catraki.com.br/catraki.png" alt="Catraki" style="width: 36px; height: 36px; border-radius: 6px;" />
+              </td>
+            </tr>
+          </table>
+        </div>
+        <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 12px 0;">Olá,</p>
+        <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+          Para autenticar e concluir a assinatura do Termo de Consentimento referente ao(à) estudante <strong>${studentName}</strong>, utilize o código de segurança abaixo:
+        </p>
+        <div style="background: #f0f9ff; border: 2px solid #bae6fd; border-radius: 10px; padding: 18px; text-align: center; margin: 20px 0;">
+          <span style="font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #034b7f; font-family: monospace;">${otpCode}</span>
+        </div>
+        <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 20px 0 0 0;">
+          ⏱️ <strong>Validade:</strong> Este código expira em 5 minutos. Se você não solicitou este procedimento, por favor desconsidere este e-mail.
+        </p>
+        <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 11px; color: #94a3b8; text-align: center; line-height: 1.5;">
+          Assinatura Eletrônica Avançada • Lei Federal nº 14.063/2020 • Plataforma Catraki<br />
+          Para mais informações sobre como protegemos seus dados, consulte nossa <a href="https://www.catraki.com.br/privacidade" style="color: #034b7f; text-decoration: underline;">Política de Privacidade e Termos de Uso</a>.
+        </div>
+      </div>`;
+
+      if (resendApiKey) {
+        try {
+          const resendResp = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${resendApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: fromAddress,
+              to: [targetEmail],
+              subject: `Código de Confirmação: ${otpCode} — Catraki`,
+              html: otpHtml,
+            }),
+          });
+
+          if (resendResp.ok) {
+            emailSent = true;
+            const resendData = await resendResp.json() as any;
+            resendMessageId = resendData.id;
+          } else {
+            const resendErr = await resendResp.text();
+            emailError = `Falha Resend: ${resendErr}`;
+          }
+        } catch (err: any) {
+          emailError = `Erro conexão Resend: ${err.message}`;
+        }
+      }
+
+      if (!emailSent) {
+        try {
+          const mcResp = await fetch('https://api.mailchannels.net/tx/v1/send', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              personalizations: [{ to: [{ email: targetEmail }] }],
+              from: {
+                email: 'autorizacoes@catraki.com.br',
+                name: 'Escola Cidadã — Saúde em Movimento',
+              },
+              subject: `Código de Confirmação: ${otpCode} — Catraki`,
+              content: [{
+                type: 'text/html',
+                value: otpHtml,
+              }],
+            }),
+          });
+
+          if (mcResp.ok) {
+            emailSent = true;
+            emailError = '';
+            resendMessageId = 'mailchannels-sent';
+          } else {
+            const mcErr = await mcResp.text();
+            emailError = `${emailError ? emailError + ' | ' : ''}Falha MailChannels: ${mcErr}`;
+          }
+        } catch (err: any) {
+          emailError = `${emailError ? emailError + ' | ' : ''}Erro conexão MailChannels: ${err.message}`;
+        }
+      }
+    }
+  } else if (channel === 'sms') {
+    let targetPhone = providedPhone;
+    if (!targetPhone && doc.parent_phone_encrypted && doc.parent_phone_encrypted !== 'ENC_INITIAL') {
+      try {
+        targetPhone = await decryptAesGcm(doc.parent_phone_encrypted, masterKey);
+      } catch (err: any) {
+        console.error('Erro decodificação telefone:', err);
+      }
+    }
+    if (targetPhone) {
+      const otpMessage = `Catraki - SESI: Seu código de confirmação para a autorização do(a) estudante ${studentName} é: ${otpCode}. Válido por 5 minutos.`;
+      const formattedPhone = formatToE164(targetPhone);
+      const useWhatsapp = !!c.env.TWILIO_WHATSAPP_FROM;
+      const twilioResult = await sendTwilioMessage(formattedPhone, otpMessage, c.env, useWhatsapp);
+      if (twilioResult.success) {
+        smsSent = true;
+        smsMessageId = twilioResult.messageId || 'twilio-sent';
+      } else {
+        smsError = twilioResult.error || 'Erro desconhecido Twilio';
+        console.error('Twilio Send Error:', smsError);
+      }
+    }
+  }
+
+  let messageId = 'development-mock';
+  let deliveryStatus = 'simulated';
+
+  if (channel === 'email' && emailSent) {
+    messageId = resendMessageId || 'mailchannels-sent';
+    deliveryStatus = 'sent';
+  } else if (channel === 'sms' && smsSent) {
+    messageId = smsMessageId;
+    deliveryStatus = 'sent';
+  }
+
   await db.prepare(
     `UPDATE documents 
      SET otp_secret_hash = ?, 
          otp_attempts = 0, 
          otp_expires_at = ?, 
-         otp_resend_count = otp_resend_count + 1 
+         otp_resend_count = otp_resend_count + 1,
+         otp_requested_at = ?,
+         otp_email_message_id = ?,
+         otp_delivery_status = ? 
      WHERE id = ?`
-  ).bind(otpHash, expiresAtIso, doc.id).run();
-
-  // Disparo Real de E-mail via Resend API (com Fallback para MailChannels)
-  const targetEmail = providedEmail;
-  const studentName = providedMinorName || doc.minor_name || 'Estudante';
-  const resendApiKey = (c.env as any).RESEND_API_KEY;
-  const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
-
-  let emailSent = false;
-  let emailError = '';
-
-  const otpHtml = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
-    <div style="border-bottom: 2px solid #034b7f; padding-bottom: 12px; margin-bottom: 20px;">
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr>
-          <td style="vertical-align: middle;">
-            <h2 style="color: #034b7f; margin: 0; font-size: 18px; font-weight: bold;">Escola Cidadã — Saúde em Movimento</h2>
-            <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Validação de Autoria por Código Eletrônico</span>
-          </td>
-          <td style="width: 40px; vertical-align: middle; text-align: right;">
-            <img src="https://www.catraki.com.br/catraki.png" alt="Catraki" style="width: 36px; height: 36px; border-radius: 6px;" />
-          </td>
-        </tr>
-      </table>
-    </div>
-    <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 12px 0;">Olá,</p>
-    <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
-      Para autenticar e concluir a assinatura do Termo de Consentimento referente ao(à) estudante <strong>${studentName}</strong>, utilize o código de segurança abaixo:
-    </p>
-    <div style="background: #f0f9ff; border: 2px solid #bae6fd; border-radius: 10px; padding: 18px; text-align: center; margin: 20px 0;">
-      <span style="font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #034b7f; font-family: monospace;">${otpCode}</span>
-    </div>
-    <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 20px 0 0 0;">
-      ⏱️ <strong>Validade:</strong> Este código expira em 5 minutos. Se você não solicitou este procedimento, por favor desconsidere este e-mail.
-    </p>
-    <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 11px; color: #94a3b8; text-align: center; line-height: 1.5;">
-      Assinatura Eletrônica Avançada • Lei Federal nº 14.063/2020 • Plataforma Catraki<br />
-      Para mais informações sobre como protegemos seus dados, consulte nossa <a href="https://www.catraki.com.br/privacidade" style="color: #034b7f; text-decoration: underline;">Política de Privacidade e Termos de Uso</a>.
-    </div>
-  </div>`;
-
-  if (targetEmail) {
-    if (resendApiKey) {
-      try {
-        const resendResp = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: fromAddress,
-            to: [targetEmail],
-            subject: `Código de Confirmação: ${otpCode} — Catraki`,
-            html: otpHtml,
-          }),
-        });
-
-        if (resendResp.ok) {
-          emailSent = true;
-        } else {
-          const resendErr = await resendResp.text();
-          emailError = `Falha Resend: ${resendErr}`;
-        }
-      } catch (err: any) {
-        emailError = `Erro conexão Resend: ${err.message}`;
-      }
-    }
-
-    if (!emailSent) {
-      try {
-        const mcResp = await fetch('https://api.mailchannels.net/tx/v1/send', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            personalizations: [{ to: [{ email: targetEmail }] }],
-            from: {
-              email: 'autorizacoes@catraki.com.br',
-              name: 'Escola Cidadã — Saúde em Movimento',
-            },
-            subject: `Código de Confirmação: ${otpCode} — Catraki`,
-            content: [{
-              type: 'text/html',
-              value: otpHtml,
-            }],
-          }),
-        });
-
-        if (mcResp.ok) {
-          emailSent = true;
-          emailError = '';
-        } else {
-          const mcErr = await mcResp.text();
-          emailError = `${emailError ? emailError + ' | ' : ''}Falha MailChannels: ${mcErr}`;
-        }
-      } catch (err: any) {
-        emailError = `${emailError ? emailError + ' | ' : ''}Erro conexão MailChannels: ${err.message}`;
-      }
-    }
-  }
+  ).bind(otpHash, expiresAtIso, new Date().toISOString(), messageId, deliveryStatus, doc.id).run();
 
   return c.json({
     success: true,
     channel,
-    email_sent: emailSent,
-    email_error: emailError || undefined,
+    email_sent: emailSent || smsSent,
+    email_error: emailError || smsError || undefined,
     expires_in_seconds: 300,
-    message: `Código de verificação de 6 dígitos enviado para o ${channel === 'sms' ? 'celular' : 'e-mail'} do responsável legal.`,
+    message: `Código de verificação de 6 dígitos enviado para o ${channel === 'sms' ? 'celular (SMS/WhatsApp)' : 'e-mail'} do responsável legal.`,
   });
 });
+
 
 /**
  * POST /api/signer/otp/verify
@@ -514,7 +634,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   }
 
   const doc = await db.prepare(
-    `SELECT d.*, t.title as template_title, t.procedure_description, t.consent_text_version, t.content_sha256 as template_content_sha256
+    `SELECT d.*, t.title as template_title, t.procedure_description, t.content_markdown, t.consent_text_version, t.content_sha256 as template_content_sha256
      FROM documents d
      JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
      WHERE (d.access_token = ? OR d.id = ?) AND d.status = 'pending'
@@ -627,6 +747,10 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const tsa = await generateTsaTimestampToken(manifestSha256, c.env.TSA_ENDPOINT);
   const auditLogId = `AUD-${Date.now()}-${doc.id.substring(0, 8)}`;
 
+  // Cálculo do Fingerprint do Termo + Dados do Pai (SHA-256)
+  const textToHash = `${doc.content_markdown || ''}\n${signer_name}\n${signer_cpf}\n${parsed.data.minor_name || doc.minor_name}\n${parsed.data.minor_birth_date || doc.minor_birth_date}`;
+  const docParentHash = await sha256(textToHash);
+
   const auditRowInput: AuditLogRowInput = {
     id: auditLogId,
     document_id: doc.id,
@@ -644,6 +768,11 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     consent_text_version: doc.consent_text_version,
     manifest_sha256: manifestSha256,
     tsa_timestamp_token: tsa.token,
+    otp_requested_at: doc.otp_requested_at,
+    otp_verified_at: signedAtIso,
+    otp_email_message_id: doc.otp_email_message_id,
+    doc_parent_hash_sha256: docParentHash,
+    device_metadata: formatUserAgent(userAgent),
   };
 
   const logRowHash = await computeLogRowHash(auditRowInput);
@@ -653,9 +782,44 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const pdfR2Key = `signed-pdfs/${doc.id}/${manifestSha256}.pdf`;
   const manifestR2Key = `manifests/${doc.id}/${manifestSha256}.json`;
 
+  // Formatação de data do menor para o PDF
+  const rawBirth = parsed.data.minor_birth_date || doc.minor_birth_date || '';
+  let studentBirth = 'Data não informada';
+  if (rawBirth && rawBirth.includes('-')) {
+    const parts = rawBirth.split('-');
+    if (parts.length === 3) {
+      studentBirth = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    } else {
+      studentBirth = rawBirth;
+    }
+  } else {
+    studentBirth = rawBirth || 'Data não informada';
+  }
+
+  // Geração do PDF Oficial (Manifesto) no servidor
+  const pdfBytes = await GeradorPdfTermoSesi.gerarPdfOriginal({
+    tituloProcedimento: doc.template_title,
+    descricaoProcedimento: doc.procedure_description,
+    nomeMenor: parsed.data.minor_name || doc.minor_name,
+    dataNascimentoMenor: studentBirth,
+    nomeResponsavel: signer_name,
+    cpfResponsavelMascarado: cpfMasked,
+    parentesco: signer_relationship,
+    autorizacaoSaude: parsed.data.auth_health === 'yes',
+    autorizacaoDados: parsed.data.auth_data === 'yes' || true,
+    autorizacaoImagem: parsed.data.auth_image === 'yes',
+    hashManifesto: manifestSha256,
+    dataAssinatura: new Date(signedAtIso),
+    tipoAssinatura: 'ELETRONICA_AVANCADA',
+  });
+
   if (bucket) {
     await bucket.put(manifestR2Key, JSON.stringify(manifestData, null, 2), {
       httpMetadata: { contentType: 'application/json' },
+    });
+    // Salva o PDF no Cloudflare R2
+    await bucket.put(pdfR2Key, pdfBytes, {
+      httpMetadata: { contentType: 'application/pdf' },
     });
   }
 
@@ -666,8 +830,10 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
           id, document_id, prev_log_hash, signed_at, signer_name, signer_cpf_encrypted, signer_cpf_masked,
           signer_relationship, identity_method, signature_png_encrypted, signature_png_sha256, key_version,
           ip_address, user_agent, geo_city, geo_region, geo_country, client_fingerprint,
-          content_sha256_at_signing, consent_text_version, manifest_sha256, tsa_timestamp_token, log_row_hash, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+          content_sha256_at_signing, consent_text_version, manifest_sha256, tsa_timestamp_token,
+          otp_requested_at, otp_verified_at, otp_email_message_id, doc_parent_hash_sha256, device_metadata,
+          log_row_hash, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
       ).bind(
         auditLogId,
         doc.id,
@@ -690,6 +856,11 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         doc.consent_text_version,
         manifestSha256,
         tsa.token,
+        doc.otp_requested_at,
+        signedAtIso,
+        doc.otp_email_message_id,
+        docParentHash,
+        formatUserAgent(userAgent),
         logRowHash
       ),
       db.prepare(
@@ -700,7 +871,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
              minor_birth_date = COALESCE(?, minor_birth_date),
              minor_cpf = ?,
              signed_pdf_r2_key = ?, 
-             otp_secret_hash = NULL 
+             otp_secret_hash = NULL,
+             otp_verified_at = ?,
+             doc_parent_hash_sha256 = ?
          WHERE id = ? AND status = 'pending'`
       ).bind(
         signer_name,
@@ -708,6 +881,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         parsed.data.minor_birth_date || doc.minor_birth_date || null,
         parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : null,
         pdfR2Key,
+        signedAtIso,
+        docParentHash,
         doc.id
       ),
     ]);
@@ -730,18 +905,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
   const targetEmail = parsed.data.signer_email;
   const studentName = parsed.data.minor_name || doc.minor_name || 'Estudante';
-  const rawBirth = parsed.data.minor_birth_date || doc.minor_birth_date || '';
-  let studentBirth = 'Data não informada';
-  if (rawBirth && rawBirth.includes('-')) {
-    const parts = rawBirth.split('-');
-    if (parts.length === 3) {
-      studentBirth = `${parts[2]}/${parts[1]}/${parts[0]}`;
-    } else {
-      studentBirth = rawBirth;
-    }
-  } else {
-    studentBirth = rawBirth || 'Data não informada';
-  }
   const studentCpf = parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : '';
   const rawSeries = (parsed.data.minor_series || '').trim();
   const rawClass = (parsed.data.minor_class || '').trim();
@@ -771,7 +934,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const studentTurnText = rawTurn ? `, Turno: <strong>${rawTurn}</strong>` : '';
   const signerPhoneText = parsed.data.signer_phone ? `, telefone de contato <strong>${parsed.data.signer_phone}</strong>` : '';
   const institutionName = parsed.data.institution_name || 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)';
-  const authImageStatus = parsed.data.auth_image === 'yes';
 
   const dataFormatada = new Intl.DateTimeFormat('pt-BR', {
     dateStyle: 'full',
@@ -780,240 +942,76 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   }).format(new Date(signedAtIso));
 
   const emailHtml = `<!DOCTYPE html>
-<html lang="pt-BR" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light dark">
-  <meta name="supported-color-schemes" content="light dark">
   <style>
-    :root { color-scheme: light dark; supported-color-schemes: light dark; }
     @media only screen and (max-width: 600px) {
       .email-wrapper { padding: 12px 6px !important; }
       .email-card { padding: 20px 14px !important; }
-      .mobile-stack { display: block !important; width: 100% !important; box-sizing: border-box !important; padding-right: 0 !important; }
+      .mobile-stack { display: block !important; width: 100% !important; }
       .mobile-qr-cell { display: block !important; width: 100% !important; border-left: none !important; border-top: 1px dashed #cbd5e1 !important; padding-left: 0 !important; padding-top: 16px !important; margin-top: 14px !important; text-align: center !important; }
       .mobile-qr-img { margin: 0 auto !important; }
-      .mobile-header-table td { display: block !important; width: 100% !important; text-align: left !important; }
-      .mobile-header-meta { margin-top: 10px !important; }
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased;">
-  
-  <!-- Preheader Oculto (Preview no Gmail/Outlook) -->
-  <div style="display: none; max-height: 0px; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; max-width: 0px; opacity: 0;">
-    Comprovante de assinatura do Termo de Consentimento. Acesse e valide seu documento emitido pelo CEMEIT / SESI-DF.
-  </div>
-
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: Arial, sans-serif;">
   <div class="email-wrapper" style="background-color: #f1f5f9; padding: 28px 10px; color: #1e293b; line-height: 1.6;">
-    <div class="email-card" style="max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); padding: 32px 28px; position: relative;">
-      
-      <!-- Cabeçalho Institucional Oficial -->
+    <div class="email-card" style="max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 32px 28px;">
       <div style="border-bottom: 2.5px solid #034b7f; padding-bottom: 16px; margin-bottom: 22px;">
-        <table class="mobile-header-table" style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <!-- Coluna Esquerda: Logos Oficiais Co-branded -->
-            <td style="vertical-align: middle;">
-              <table style="border-collapse: collapse;">
-                <tr>
-                  <td style="vertical-align: middle; padding-right: 12px;">
-                    <img 
-                      src="https://www.catraki.com.br/catraki.png" 
-                      alt="Catraki" 
-                      style="height: 38px; width: 38px; border-radius: 6px; display: block;" 
-                    />
-                  </td>
-                  <td style="width: 1px; background-color: #cbd5e1; height: 32px; padding: 0;"></td>
-                  <td style="vertical-align: middle; padding-left: 12px;">
-                    <div style="font-size: 14px; font-weight: 800; color: #034b7f; letter-spacing: -0.01em; text-transform: uppercase; line-height: 1.2;">
-                      ESCOLA CIDADÃ
-                    </div>
-                    <div style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px;">
-                      Saúde em Movimento
-                    </div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-
-            <!-- Coluna Direita: Metadados do Documento e Selo Oficial -->
-            <td class="mobile-header-meta" style="vertical-align: middle; text-align: right;">
-              <div style="display: inline-block; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; padding: 2px 8px; font-size: 9.5px; font-weight: 700; color: #065f46; margin-bottom: 3px;">
-                ✓ DOCUMENTO ASSINADO
-              </div>
-              <div style="font-size: 11px; font-weight: 700; color: #1e293b; font-family: monospace;">
-                Nº ${validationCode}
-              </div>
-              <div style="font-size: 9.5px; color: #64748b; margin-top: 1px;">
-                Brasília, DF • ${new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' }).format(new Date(signedAtIso))}
-              </div>
-            </td>
-          </tr>
-        </table>
-      </div>
-
-      <!-- Título do Documento -->
-      <div style="text-align: center; margin-bottom: 22px;">
-        <h1 style="font-size: 13.5px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin: 0 0 4px 0; letter-spacing: 0.02em;">
-          TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)
-        </h1>
-        <div style="font-size: 11px; font-weight: 600; color: #475569;">
-          Comprovante de Autorização para Atendimento e Triagens em Saúde
-        </div>
-      </div>
-
-      <!-- 1. Qualificação e Declaração Formal (Recuo ABNT) -->
-      <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify; background-color: #ffffff;">
-        <p style="margin: 0; text-indent: 28px;">
-          Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth || 'Data não informada'}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhoneText}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeriesText}${studentTurnText}, declaro sob as penas da lei que <strong>AUTORIZO a realização das triagens e atendimentos de saúde do(a) estudante</strong> <strong>sem a presença do responsável legal</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>, iniciativa realizada em cooperação técnica entre a Universidade de Brasília (UnB), o SESI-DF e a Finatec.
-        </p>
-      </div>
-
-      <!-- ⚠️ Aviso de Agendamento Presencial -->
-      <div style="margin: 16px 0; background-color: #fffbeb; border: 1.5px solid #fef3c7; border-radius: 8px; padding: 12px 16px; font-size: 11.5px; color: #78350f; line-height: 1.6; text-align: justify;">
-        <strong>⚠️ AVISO OPERACIONAL IMPORTANTE:</strong> Este comprovante oficial atesta a autorização legal de participação no projeto. Contudo, <strong>esta assinatura eletrônica não é garantia de atendimento imediato</strong>. O agendamento da consulta presencial é realizado exclusivamente no estacionamento da escola, próximo às unidades móveis, e está condicionado à capacidade diária máxima de atendimentos (vagas limitadas por especialidade).
-      </div>
-
-      <!-- 2. Cláusula Segunda — Das Autorizações Específicas (Continuação Natural do Documento) -->
-      <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify;">
-        <p style="margin: 0 0 10px 0; text-indent: 28px;">
-          Adicionalmente, manifesto de forma expressa, livre e inequívoca meu consentimento em relação às seguintes condições:
-        </p>
-
-        <p style="margin: 0 0 8px 0; text-indent: 28px;">
-          <strong>a) Circuito de Saúde e Especialidades:</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica autorizada a realização de triagens preventivas e exames clínicos de forma integrada no circuito de especialidades oficiais do projeto: Oftalmologia, Audiometria, Odontologia, Psicologia e Nutrição.
-        </p>
-
-        <p style="margin: 0 0 8px 0; text-indent: 28px;">
-          <strong>b) Tratamento de Dados Pessoais e Sensíveis:</strong> <span style="color: #166534; font-weight: 700;">[ ✓ AUTORIZADO ]</span> — Fica expressamente autorizado o tratamento dos dados pessoais e de prontuário clínico para finalidade exclusiva de assistência médica e registros do projeto, sob a responsabilidade conjunta da UnB, SESI-DF e Finatec (Artigo 14 da LGPD).
-        </p>
-
-        <p style="margin: 0 0 8px 0; text-indent: 28px;">
-          <strong>c) Captação e Uso de Imagem e Voz:</strong> <span style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700;">${authImageStatus ? '[ ✓ AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}</span> — ${authImageStatus ? 'Fica autorizada de forma gratuita a captação e veiculação de fotos/vídeos para documentação institutional e relatórios de prestação de contas (ECA, Artigo 17).' : 'O(a) responsável optou por não autorizar o registro fotográfico ou de filmagens.'}
-        </p>
-
-      </div>
-
-      <!-- 3. Cláusula Terceira — Direitos e Revogação (LGPD) -->
-      <div style="margin-bottom: 24px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify;">
-        <p style="margin: 0; text-indent: 28px;">
-          Declaro estar ciente de que os dados coletados não serão comercializados e que é garantido o direito de acesso, retificação ou revogação deste consentimento a qualquer momento (Artigo 18 da LGPD), procurando a equipe de apoio presencial do projeto ou a coordenação da escola.
-        </p>
-      </div>
-
-      <!-- 4. Card de Verificação Online & Protocolo de Assinatura (Estilo Assinafy / Banco Safra) -->
-      <div style="background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
-        
-        <!-- Título com Linha Divisória -->
-        <div style="border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="width: 26px; vertical-align: middle;">
-                <img src="https://www.catraki.com.br/catraki.png" alt="Catraki" style="width: 20px; height: 20px; border-radius: 4px; display: block;" />
-              </td>
-              <td style="vertical-align: middle; font-size: 14px; font-weight: 800; color: #0f172a; letter-spacing: -0.01em;">
-                Verificação online • Plataforma Catraki
-              </td>
-            </tr>
-          </table>
-        </div>
-
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
-            <!-- Coluna Esquerda: Metadados e Evidências Criptográficas -->
-            <td class="mobile-stack" style="vertical-align: top; padding-right: 14px; font-size: 11.5px; line-height: 1.6; color: #334155;">
-              <div style="margin-bottom: 3px;">
-                <span style="color: #64748b; font-weight: 700;">Documento:</span> <strong>Termo de Consentimento — Escola Cidadã</strong>
-              </div>
-              <div style="margin-bottom: 5px;">
-                <span style="color: #64748b; font-weight: 700;">URL de verificação:</span> <a href="https://www.catraki.com.br/validar/${validationCode}" style="color: #034b7f; text-decoration: underline; font-weight: 600;">https://www.catraki.com.br/validar</a>
-              </div>
-
-              <!-- Destaque do Hash SHA-256 no estilo Assinafy -->
-              <div style="margin: 6px 0 8px 0; background-color: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; padding: 6px 10px;">
-                <span style="color: #034b7f; font-weight: 800; font-size: 11px;">Hash:</span> 
-                <span style="font-family: monospace; font-size: 10px; font-weight: bold; color: #034b7f; word-break: break-all; letter-spacing: 0.02em;">${manifestSha256}</span>
-              </div>
-
-              <div style="margin-bottom: 3px;">
-                <span style="color: #64748b; font-weight: 700;">Número do documento:</span> <span style="font-family: monospace; font-weight: bold; color: #034b7f; font-size: 12px;">${validationCode}</span>
-              </div>
-              <div style="margin-bottom: 3px;">
-                <span style="color: #64748b; font-weight: 700;">Signatário:</span> <strong>${signer_name}</strong> (CPF: ${cpfMasked} • ${signer_relationship})
-              </div>
-              <div style="margin-bottom: 3px;">
-                <span style="color: #64748b; font-weight: 700;">Autenticação:</span> Código OTP de 6 dígitos via e-mail (${targetEmail})
-              </div>
-              <div style="margin-bottom: 3px;">
-                <span style="color: #64748b; font-weight: 700;">Data e Hora (Oficial):</span> ${dataFormatada}
-              </div>
-              <div style="margin-bottom: 3px;">
-                <span style="color: #64748b; font-weight: 700;">Endereço IP:</span> <span style="font-family: monospace; font-size: 11px;">${ipAddress}</span> • Brasília, DF
-              </div>
+            <td style="vertical-align: middle;">
+              <h2 style="font-size: 14px; font-weight: 800; color: #034b7f; margin: 0; text-transform: uppercase;">ESCOLA CIDADÃ</h2>
+              <span style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">Saúde em Movimento</span>
             </td>
-
-            <!-- Coluna Direita: QR Code de Validação Pública -->
-            <td class="mobile-qr-cell" style="width: 115px; vertical-align: middle; text-align: center; border-left: 1px solid #f1f5f9; padding-left: 12px;">
-              <a href="https://www.catraki.com.br/validar/${validationCode}" style="text-decoration: none; display: inline-block;">
-                <img 
-                  class="mobile-qr-img"
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&margin=0&color=000000&data=https%3A%2F%2Fwww.catraki.com.br%2Fvalidar%2F${validationCode}" 
-                  alt="QR Code de Validação" 
-                  style="width: 96px; height: 96px; display: block; border: 1px solid #000000; border-radius: 6px; padding: 3px; background: #ffffff;"
-                />
-              </a>
-              <div style="font-size: 8.5px; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 5px;">
-                VALIDAÇÃO PÚBLICA
-              </div>
+            <td style="vertical-align: middle; text-align: right;">
+              <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; padding: 2px 8px; font-size: 9.5px; font-weight: 700; color: #065f46; display: inline-block;">✓ ASSINADO</div>
+              <div style="font-size: 11px; font-weight: 700; color: #1e293b; font-family: monospace;">Nº ${validationCode}</div>
             </td>
           </tr>
         </table>
       </div>
-
-      <!-- Botão de Consulta Online -->
-      <div style="text-align: center; margin-bottom: 24px;">
-        <a href="https://www.catraki.com.br/validar/${validationCode}" style="display: inline-block; background-color: #034b7f; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 12.5px; padding: 12px 26px; border-radius: 5px; box-shadow: 0 2px 5px rgba(3, 75, 127, 0.25);">
-          Validar e Consultar Comprovante Online →
-        </a>
+      <div style="text-align: center; margin-bottom: 22px;">
+        <h1 style="font-size: 13.5px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin: 0;">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)</h1>
+        <div style="font-size: 11px; color: #475569; margin-top: 4px;">Comprovante de Autorização para Atendimento e Triagens em Saúde</div>
       </div>
-
-      <!-- Bloco Probatório Oficial Estilo Clicksign com a Marca Catraki -->
-      <div style="border-top: 1.5px solid #cbd5e1; padding-top: 16px; margin-top: 24px; font-size: 11px; color: #475569; line-height: 1.55;">
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+      <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; text-align: justify;">
+        <p style="text-indent: 28px; margin: 0;">
+          Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhoneText}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeriesText}${studentTurnText}, declaro sob as penas da lei que <strong>AUTORIZO a realização das triagens e atendimentos de saúde do(a) estudante</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>.
+        </p>
+      </div>
+      <div style="margin: 16px 0; background-color: #fffbeb; border: 1.5px solid #fef3c7; border-radius: 8px; padding: 12px 16px; font-size: 11.5px; color: #78350f;">
+        <strong>⚠️ AVISO OPERACIONAL IMPORTANTE:</strong> Este comprovante oficial atesta a autorização legal. Contudo, <strong>esta assinatura não garante atendimento presencial imediato</strong>, que fica condicionado à capacidade diária máxima de atendimentos no local.
+      </div>
+      <div style="border-top: 1.5px solid #cbd5e1; padding-top: 16px; margin-top: 24px; font-size: 11px; color: #475569;">
+        <table style="width: 100%; border-collapse: collapse;">
           <tr>
-            <td style="width: 48px; vertical-align: top; padding-right: 12px;">
-              <img 
-                src="https://www.catraki.com.br/catraki.png" 
-                alt="Catraki" 
-                style="width: 42px; height: 42px; border-radius: 6px; display: block;" 
-              />
+            <td class="mobile-stack" style="vertical-align: top; padding-right: 14px; font-size: 11.5px;">
+              <span style="color: #64748b; font-weight: 700;">Código de Validação:</span> <strong>${validationCode}</strong><br>
+              <span style="color: #64748b; font-weight: 700;">Hash do Manifesto:</span> <span style="font-family: monospace; font-size: 10px;">${manifestSha256}</span><br>
+              <span style="color: #64748b; font-weight: 700;">Data e Hora Oficial:</span> ${dataFormatada}<br>
+              <span style="color: #64748b; font-weight: 700;">IP do Dispositivo:</span> ${ipAddress}<br>
+              <span style="color: #64748b; font-weight: 700;">Impressão Digital do Termo + Pai:</span> <span style="font-family: monospace; font-size: 10px;">${docParentHash}</span>
             </td>
-            <td style="vertical-align: top;">
-              <div style="font-weight: 800; color: #0f172a; font-size: 12px; margin-bottom: 2px;">
-                Documento assinado com validade jurídica.
-              </div>
-              <div style="color: #334155; font-size: 11px; margin-bottom: 4px;">
-                Para conferir a validade, acesse <a href="https://www.catraki.com.br/validar/${validationCode}" style="color: #034b7f; font-weight: 700; text-decoration: underline;">https://www.catraki.com.br/validar</a> e utilize o código <strong>${validationCode}</strong>.
-              </div>
-              <div style="color: #64748b; font-size: 10px; line-height: 1.4;">
-                As assinaturas eletrônicas têm validade jurídica prevista na <strong>Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º)</strong> e na <strong>Lei Federal nº 14.063/2020 (Art. 4º, II)</strong>.
-              </div>
+            <td class="mobile-qr-cell" style="width: 115px; vertical-align: middle; text-align: center; border-left: 1px solid #cbd5e1; padding-left: 12px;">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https%3A%2F%2Fwww.catraki.com.br%2Fvalidar%2F${validationCode}" style="width: 90px; height: 90px; display: block; margin: 0 auto; border: 1px solid #ccc; border-radius: 4px; padding: 2px;" />
+              <div style="font-size: 8px; font-weight: bold; margin-top: 4px;">VALIDAÇÃO ONLINE</div>
             </td>
           </tr>
         </table>
-        <div style="padding-top: 10px; border-top: 1px dashed #e2e8f0; font-size: 11px; color: #64748b; line-height: 1.5; text-align: left;">
-          🔒 <strong>Comprovante oficial:</strong> Este registro confirma a assinatura válida do termo <strong>${validationCode}</strong> e pode ser consultado a qualquer momento no validador público da plataforma Catraki.<br />
-          Para mais informações sobre o tratamento e retenção de dados clínicos, consulte nossa <a href="https://www.catraki.com.br/privacidade" style="color: #034b7f; text-decoration: underline;">Política de Privacidade e Termos de Uso</a>.
-        </div>
       </div>
-
+      <div style="margin-top: 24px; border-top: 1px dashed #e2e8f0; padding-top: 12px; font-size: 10.5px; color: #64748b; text-align: center;">
+        O comprovante de assinatura oficial em formato PDF contendo toda a trilha de auditoria e a validade jurídica (MP 2.200-2/2001 e Lei 14.063/2020) está anexado a esta mensagem.
+      </div>
     </div>
   </div>
 </body>
 </html>`;
 
   let comprovanteEnviado = false;
+  const pdfBase64 = bytesToBase64(pdfBytes);
 
   if (targetEmail) {
     if (resendApiKey) {
@@ -1029,14 +1027,17 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
             to: [targetEmail],
             subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
             html: emailHtml,
+            attachments: [
+              {
+                filename: `comprovante-assinatura-${doc.id}.pdf`,
+                content: pdfBase64,
+              }
+            ]
           }),
         });
 
         if (resendResp.ok) {
           comprovanteEnviado = true;
-        } else {
-          const resendErr = await resendResp.text();
-          console.error('Falha ao enviar comprovante via Resend:', resendErr);
         }
       } catch (e: any) {
         console.error('Erro de conexão ao enviar comprovante via Resend:', e.message);
@@ -1059,15 +1060,18 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
               type: 'text/html',
               value: emailHtml,
             }],
+            attachments: [
+              {
+                content: pdfBase64,
+                type: 'application/pdf',
+                filename: `comprovante-assinatura-${doc.id}.pdf`
+              }
+            ]
           }),
         });
 
         if (mcResp.ok) {
           comprovanteEnviado = true;
-          console.info('Comprovante de assinatura enviado com sucesso via MailChannels.');
-        } else {
-          const mcErr = await mcResp.text();
-          console.error('Falha ao enviar comprovante via MailChannels:', mcErr);
         }
       } catch (mcErr: any) {
         console.error('Erro de conexão ao enviar comprovante via MailChannels:', mcErr.message);
@@ -1084,7 +1088,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     signed_at_utc: signedAtIso,
     tsa_authority: 'Servidor Sincronizado - Cloudflare',
     validation_url: `/validar/${validationCode}`,
-    message: 'Autorização médica assinada eletronicamente com sucesso e comprovante enviado para o e-mail.',
+    message: 'Autorização médica assinada eletronicamente com sucesso e comprovante PDF enviado para o e-mail.',
   });
 });
 

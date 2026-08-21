@@ -169,7 +169,25 @@ export class GeradorPdfTermoSesi {
     page.drawText('Declaro sob as penas do Art. 299 do Código Penal que as informações fornecidas são legítimas.', {
       x: margemEsquerda,
       y,
-      size: 8,
+      size: 7.5,
+      font: fontRegular,
+      color: corCinza,
+    });
+
+    y -= 10;
+    page.drawText('As partes concordam em assinar este termo de forma eletrônica através da plataforma Catraki, reconhecendo a sua', {
+      x: margemEsquerda,
+      y,
+      size: 7.5,
+      font: fontRegular,
+      color: corCinza,
+    });
+
+    y -= 10;
+    page.drawText('validade jurídica e eficácia probatória nos termos da MP 2.200-2/2001 e da Lei nº 14.063/2020.', {
+      x: margemEsquerda,
+      y,
+      size: 7.5,
       font: fontRegular,
       color: corCinza,
     });

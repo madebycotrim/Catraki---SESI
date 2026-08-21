@@ -191,6 +191,7 @@ export const OtpRequestSchema = z.object({
   token: z.string().min(16),
   channel: z.enum(['sms', 'email']).default('email'),
   email: z.string().email().optional(),
+  phone: z.string().optional(),
   minor_name: z.string().optional(),
 });
 
@@ -208,7 +209,7 @@ export const SignDocumentSchema = z.object({
   signer_email: z.string().email().optional(),
   minor_name: z.string().optional(),
   minor_birth_date: z.string().optional(),
-  minor_cpf: z.string().optional(),
+  minor_cpf: z.string().optional().refine((val) => !val || isValidCPF(val), { message: 'CPF do menor inválido perante o algoritmo oficial' }),
   minor_series: z.string().optional(),
   minor_class: z.string().optional(),
   minor_turn: z.string().optional(),
@@ -228,6 +229,9 @@ export const SignDocumentSchema = z.object({
   }),
   declaration_art299_penal: z.literal(true, {
     errorMap: () => ({ message: 'É obrigatório firmar a declaração de veracidade sob as penas do Art. 299 do Código Penal' })
+  }),
+  declaration_legal_responsibility: z.literal(true, {
+    errorMap: () => ({ message: 'É obrigatório declarar que é o responsável legal e reconhecer a validade jurídica da assinatura' })
   }),
   client_fingerprint: z.string().max(256).optional(),
 });

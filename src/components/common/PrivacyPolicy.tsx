@@ -98,7 +98,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               4. Prazo de Retenção e Descarte Seguro de Dados
             </h2>
             <p>
-              Os dados coletados são mantidos pelo período estritamente necessário para o cumprimento das finalidades assistenciais do projeto escolar (prazo padrão de <strong>3 anos</strong> após a conclusão das ações), sendo posteriormente submetidos ao processo de anonimização ou expurgo seguro, ressalvadas as obrigações legais de guarda de prontuários estabelecidas pelo Conselho Federal de Medicina (CFM).
+              Os dados coletados são mantidos pelo período estritamente necessário para o cumprimento das finalidades assistenciais do projeto escolar (prazo padrão de <strong>20 anos</strong> após a conclusão das ações, em conformidade com o prazo legal de guarda de prontuários de saúde), sendo posteriormente submetidos ao processo de anonimização ou expurgo seguro, ressalvadas as obrigações legais de guarda de prontuários estabelecidas pelo Conselho Federal de Medicina (CFM).
             </p>
           </section>
 

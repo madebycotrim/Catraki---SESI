@@ -7,7 +7,7 @@ import {
 } from './crypto.ts';
 import { computeLogRowHash, verifyAuditChain } from './audit-chain.ts';
 import { querySesiMatricula } from './sesi-matricula.ts';
-import { maskCPF, getInitials, generateUniqueDocId } from './schemas.ts';
+import { maskCPF, getInitials, generateUniqueDocId, formatUserAgent } from './schemas.ts';
 import type {
   DocumentRecord,
   DocumentTemplate,
@@ -92,7 +92,7 @@ A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que 
 
 **⚠ Atenção: A recusa neste item impede a participação do(a) estudante no projeto.**
 
-> **(B1) AUTORIZO** a coleta, armazenamento e tratamento de dados pessoais e sensíveis (saúde) do(a) estudante pela UnB, SESI-DF e Finatec, nos termos do **Art. 14 da LGPD**, ciente de que serão mantidos em ambiente digital seguro, exclusivamente para fins médicos, educacionais e institucionais do projeto, pelo prazo de **3 (três) anos**.
+> **(B1) AUTORIZO** a coleta, armazenamento e tratamento de dados pessoais e sensíveis (saúde) do(a) estudante pela UnB, SESI-DF e Finatec, nos termos do **Art. 14 da LGPD**, ciente de que serão mantidos em ambiente digital seguro, exclusivamente para fins médicos, educacionais e institucionais do projeto, pelo prazo legal de **20 (vinte) anos** para fins de arquivamento de prontuário de saúde.
 
 > **(B2) NÃO AUTORIZO** o tratamento de dados. *(Impede a participação.)*
 
@@ -126,21 +126,21 @@ A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que 
 
 Declaro, sob as penas da lei (**Art. 299 do Código Penal — Falsidade Ideológica**, reclusão de 1 a 3 anos), que sou o(a) legítimo(a) responsável legal do(a) menor acima qualificado(a) e que as informações por mim inseridas nesta plataforma são verdadeiras.
 
-Reconheço que o aceite eletrônico neste sistema possui **plena validade jurídica e eficácia probatória**, nos termos do **Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001** e da **Lei nº 14.063/2020**.
+As partes (SESI Saúde e o signatário) concordam expressamente em assinar este termo por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de **eficácia probatória e validade jurídica**, nos termos do **Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001** e da **Lei nº 14.063/2020**.
 
-Estou ciente de que a plataforma registrará e armazenará, de forma segura, os seguintes dados para fins de comprovação e auditoria da minha assinatura:
+Estou ciente e concordo que a plataforma registrará e armazenará, de forma segura, os seguintes dados para fins de comprovação de autoria e auditoria da integridade da minha assinatura:
 
-- **Endereço IP** do dispositivo utilizado;
-- **Data e Hora (Timestamp)** do registro em UTC;
-- **Hash SHA-256** deste documento (garantia de integridade);
-- **Dados do navegador/dispositivo** e **geolocalização** (quando habilitada).
+- **Endereço IP** do dispositivo utilizado (Autoria);
+- **Data e Hora (Timestamp)** do registro em UTC (Autoria);
+- **Hash SHA-256** deste documento (Integridade - garantia de que o documento não foi alterado após a assinatura);
+- **Dados do navegador/dispositivo** e **geolocalização** (Autoria).
 
 ---
 
 *Ao prosseguir e confirmar a leitura, você avançará para a etapa de preenchimento dos seus dados e registro individual de cada autorização (A, B e C). O aceite final ocorre somente após o preenchimento completo e a assinatura eletrônica.*`,
     content_sha256: 'b4e2f1a3d5c6b7a8f9e0d1c2b3a4f5e6d7c8b9a0f1e2d3c4b5a6f7e8d9c0b1a2',
     consent_text_version: 3,
-    retention_days: 1095, // 3 anos conforme o termo
+    retention_days: 7300, // 20 anos conforme o termo
     is_active: true,
     created_at: '2026-08-19T10:00:00Z',
   }
@@ -373,14 +373,14 @@ export const apiClient = {
   },
 
   /**
-   * Solicita envio de OTP por e-mail com código real e verificação anti-bot Turnstile
+   * Solicita envio de OTP por e-mail/SMS com código real e verificação anti-bot Turnstile
    */
-  async requestOtp(token: string, channel: 'sms' | 'email', email?: string, minor_name?: string, turnstile_token?: string): Promise<any> {
+  async requestOtp(token: string, channel: 'sms' | 'email', email?: string, minor_name?: string, turnstile_token?: string, phone?: string): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/signer/otp/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, channel, email, minor_name, turnstile_token }),
+        body: JSON.stringify({ token, channel, email, minor_name, turnstile_token, phone }),
       });
       return await resp.json();
     } catch {}
@@ -393,6 +393,9 @@ export const apiClient = {
     doc.otp_secret_hash = devOtp;
     doc.otp_attempts = 0;
     doc.otp_resend_count += 1;
+    (doc as any).otp_requested_at = new Date().toISOString();
+    (doc as any).otp_email_message_id = 'mock-resend-id-' + Date.now();
+    (doc as any).otp_delivery_status = 'sent';
     
     setDocuments(docs);
 
@@ -455,6 +458,7 @@ export const apiClient = {
     signature_png_base64: string;
     consent_lgpd_art11_art14: true;
     declaration_art299_penal: true;
+    declaration_legal_responsibility: true;
     client_fingerprint?: string;
     ip_address?: string;
     geolocation?: string;
@@ -482,6 +486,10 @@ export const apiClient = {
       ? logs[logs.length - 1].log_row_hash 
       : null;
 
+    // Cálculo do Fingerprint do Termo + Dados do Pai (SHA-256)
+    const textToHash = `${doc.content_markdown || ''}\n${payload.signer_name}\n${payload.signer_cpf}\n${payload.minor_name || doc.minor_name}\n${payload.minor_birth_date || doc.minor_birth_date}`;
+    const docParentHash = await sha256(textToHash);
+
     const manifestData = {
       document_id: doc.id,
       template_id: doc.template_id,
@@ -502,6 +510,9 @@ export const apiClient = {
     const tsa = await generateTsaTimestampToken(manifestSha256);
 
     const auditId = `AUD-${Date.now()}`;
+    const otpRequestedTime = (doc as any).otp_requested_at || new Date(Date.now() - 60000).toISOString();
+    const otpMsgId = (doc as any).otp_email_message_id || 'mock-message-id';
+
     const logRowHash = await computeLogRowHash({
       id: auditId,
       document_id: doc.id,
@@ -519,6 +530,11 @@ export const apiClient = {
       consent_text_version: doc.consent_text_version,
       manifest_sha256: manifestSha256,
       tsa_timestamp_token: tsa.token,
+      otp_requested_at: otpRequestedTime,
+      otp_verified_at: signedAt,
+      otp_email_message_id: otpMsgId,
+      doc_parent_hash_sha256: docParentHash,
+      device_metadata: formatUserAgent(payload.user_agent || navigator.userAgent),
     });
 
     const newAuditRow: AuditLogRow = {
@@ -544,6 +560,11 @@ export const apiClient = {
       consent_text_version: doc.consent_text_version,
       manifest_sha256: manifestSha256,
       tsa_timestamp_token: tsa.token,
+      otp_requested_at: otpRequestedTime,
+      otp_verified_at: signedAt,
+      otp_email_message_id: otpMsgId,
+      doc_parent_hash_sha256: docParentHash,
+      device_metadata: formatUserAgent(payload.user_agent || navigator.userAgent),
       log_row_hash: logRowHash,
       created_at: signedAt,
     };
@@ -553,6 +574,8 @@ export const apiClient = {
     
     doc.status = 'signed';
     doc.parent_name = payload.signer_name;
+    (doc as any).otp_verified_at = signedAt;
+    (doc as any).doc_parent_hash_sha256 = docParentHash;
     if (payload.minor_name) {
       doc.minor_name = payload.minor_name;
     }

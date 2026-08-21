@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS document_templates (
   content_markdown TEXT NOT NULL,
   content_sha256 TEXT NOT NULL CHECK(LENGTH(content_sha256) = 64),
   consent_text_version INTEGER NOT NULL DEFAULT 1,
-  retention_days INTEGER NOT NULL DEFAULT 1095, -- 3 anos (LGPD Art. 14 / Prontuário Clínico)
+  retention_days INTEGER NOT NULL DEFAULT 7300, -- 20 anos (Prazo legal de prontuários clínicos)
   is_active BOOLEAN DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id, version)
@@ -54,7 +54,12 @@ CREATE TABLE IF NOT EXISTS documents (
   created_by_admin TEXT,
   revoked_at DATETIME,
   revoked_reason TEXT,
-  retention_expires_at DATETIME DEFAULT (datetime('now', '+3 years')),
+  otp_requested_at DATETIME,
+  otp_verified_at DATETIME,
+  otp_email_message_id TEXT,
+  otp_delivery_status TEXT,
+  doc_parent_hash_sha256 TEXT,
+  retention_expires_at DATETIME DEFAULT (datetime('now', '+20 years')),
   expires_at DATETIME DEFAULT (datetime('now', '+1 year')),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (template_id, template_version) REFERENCES document_templates(id, version)
@@ -85,6 +90,11 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   consent_text_version INTEGER NOT NULL DEFAULT 1,
   manifest_sha256 TEXT NOT NULL CHECK(LENGTH(manifest_sha256) = 64),
   tsa_timestamp_token TEXT,
+  otp_requested_at DATETIME,
+  otp_verified_at DATETIME,
+  otp_email_message_id TEXT,
+  doc_parent_hash_sha256 TEXT,
+  device_metadata TEXT,
   log_row_hash TEXT NOT NULL CHECK(LENGTH(log_row_hash) = 64),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -221,7 +231,7 @@ INSERT OR IGNORE INTO document_templates (
   '## TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)',
   'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
   1,
-  1095,
+  7300,
   1
 );
 

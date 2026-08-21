@@ -29,6 +29,11 @@ export async function computeLogRowHash(input: AuditLogRowInput): Promise<string
     consent_text_version: input.consent_text_version,
     manifest_sha256: input.manifest_sha256,
     tsa_timestamp_token: input.tsa_timestamp_token ? await sha256(input.tsa_timestamp_token) : null,
+    otp_requested_at: input.otp_requested_at || null,
+    otp_verified_at: input.otp_verified_at || null,
+    otp_email_message_id: input.otp_email_message_id || null,
+    doc_parent_hash_sha256: input.doc_parent_hash_sha256 || null,
+    device_metadata: input.device_metadata || null,
   };
 
   const canonicalString = canonicalJson(payloadToHash);
@@ -130,6 +135,11 @@ export async function verifyAuditChain(rows: AuditLogRow[]): Promise<ChainVerifi
       consent_text_version: row.consent_text_version,
       manifest_sha256: row.manifest_sha256,
       tsa_timestamp_token: row.tsa_timestamp_token,
+      otp_requested_at: row.otp_requested_at,
+      otp_verified_at: row.otp_verified_at,
+      otp_email_message_id: row.otp_email_message_id,
+      doc_parent_hash_sha256: row.doc_parent_hash_sha256,
+      device_metadata: row.device_metadata,
     };
 
     const recomputedHash = await computeLogRowHash(input);

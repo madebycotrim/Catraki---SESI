@@ -101,6 +101,11 @@ export interface AuditLogRow {
   consent_text_version: number;
   manifest_sha256: string;
   tsa_timestamp_token?: string | null;
+  otp_requested_at?: string | null;
+  otp_verified_at?: string | null;
+  otp_email_message_id?: string | null;
+  doc_parent_hash_sha256?: string | null;
+  device_metadata?: string | null;
   log_row_hash: string;
   created_at: string;
 }
@@ -122,6 +127,11 @@ export interface AuditLogRowInput {
   consent_text_version: number;
   manifest_sha256: string;
   tsa_timestamp_token?: string | null;
+  otp_requested_at?: string | null;
+  otp_verified_at?: string | null;
+  otp_email_message_id?: string | null;
+  doc_parent_hash_sha256?: string | null;
+  device_metadata?: string | null;
 }
 
 export interface ManualReviewRecord {
@@ -218,4 +228,8 @@ export interface Env {
   TURNSTILE_SECRET_KEY?: string;
   TURNSTILE_HOSTNAMES?: string;
   TSA_ENDPOINT?: string;
+  TWILIO_ACCOUNT_SID?: string;
+  TWILIO_AUTH_TOKEN?: string;
+  TWILIO_FROM_PHONE?: string;
+  TWILIO_WHATSAPP_FROM?: string;
 }

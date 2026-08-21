@@ -47,6 +47,10 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const [authData, setAuthData] = useState<'yes' | 'no' | null>(null);
   const [authImage, setAuthImage] = useState<'yes' | 'no' | null>(null);
   const [readAndAccept, setReadAndAccept] = useState(false);
+  const [otpChannel, setOtpChannel] = useState<'email' | 'sms'>(
+    identityData.signerPhone ? 'sms' : 'email'
+  );
+  const [declarationLegalResponsibility, setDeclarationLegalResponsibility] = useState(false);
 
   const [submittingSign, setSubmittingSign] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -110,21 +114,23 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
     try {
       const resp = await apiClient.requestOtp(
         token, 
-        'email', 
+        otpChannel, 
         identityData.signerEmail || undefined, 
-        minorName || undefined
+        minorName || undefined,
+        undefined,
+        identityData.signerPhone || undefined
       );
       if (resp.success) {
         if (resp.email_sent === false && resp.email_error) {
-          setOtpError(`Erro no envio de e-mail (Resend): ${resp.email_error}`);
+          setOtpError(`Erro no envio da mensagem: ${resp.email_error}`);
         } else {
           setResendCooldown(60);
         }
       } else {
-        setOtpError(resp.error || 'Falha ao enviar código para o e-mail.');
+        setOtpError(resp.error || 'Falha ao enviar código de verificação.');
       }
     } catch {
-      setOtpError('Erro ao comunicar com o servidor de envio de e-mail.');
+      setOtpError('Erro ao comunicar com o servidor de envio de código.');
     } finally {
       setOtpSending(false);
     }
@@ -168,7 +174,12 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const handleVerifyAndFinalizeSign = async () => {
     const cleanOtp = otpCode.trim();
     if (!cleanOtp || cleanOtp.length < 6) {
-      setOtpError('Por favor, digite o código de 6 dígitos recebido por e-mail.');
+      setOtpError('Por favor, digite o código de 6 dígitos recebido.');
+      return;
+    }
+
+    if (!declarationLegalResponsibility) {
+      setOtpError('Você precisa aceitar a declaração de responsabilidade legal.');
       return;
     }
 
@@ -206,6 +217,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         signature_png_base64: 'ELECTRONIC_SIGNATURE_OTP_CONFIRMED',
         consent_lgpd_art11_art14: true,
         declaration_art299_penal: true,
+        declaration_legal_responsibility: true,
         client_fingerprint: `${navigator.language}_${screen.width}x${screen.height}`,
         ip_address: clientGeo.ip,
         geolocation: clientGeo.location,
@@ -575,7 +587,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 Declaro, sob as penas da lei (Art. 299 do Código Penal - Falsidade Ideológica), que sou o(a) legítimo(a) responsável legal do(a) estudante qualificado(a) nesta plataforma e que as informações e documentos por mim inseridos são verdadeiros.
               </p>
               <p className="m-0">
-                Reconheço que o aceite eletrônico neste sistema possui total validade jurídica e equivale à minha assinatura de próprio punho, nos termos do Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001 e da Lei nº 14.063/2020. Estou ciente de que a plataforma registrará e armazenará, para fins de auditoria e comprovação da minha manifestação, os seguintes dados telemáticos: endereço IP, data e horário exatos do registro, características do navegador e do dispositivo utilizado.
+                As partes (SESI Saúde e o signatário) concordam expressamente em assinar este termo de consentimento por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de eficácia probatória e validade jurídica, nos termos do Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001 e da Lei nº 14.063/2020. Estou ciente e concordo que a plataforma registrará e armazenará, de forma segura, os dados de auditoria para comprovação de autoria (endereço IP, data/hora exata do registro, geolocalização e e-mail) e integridade do documento assinado (resumo criptográfico hash SHA-256).
               </p>
             </div>
           </div>
@@ -629,12 +641,73 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 </div>
               </div>
 
+              <div className="pt-3 border-t border-slate-200 space-y-3">
+                <span className="block text-xs font-bold text-slate-700 uppercase">
+                  Escolha o canal de envio do código de segurança:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    disabled={!identityData.signerPhone}
+                    onClick={() => setOtpChannel('sms')}
+                    className={`flex items-center justify-between p-3.5 rounded-xl border-2 transition-all cursor-pointer text-left ${
+                      otpChannel === 'sms'
+                        ? 'border-sesi-primary bg-blue-50/50 text-slate-900 font-bold'
+                        : 'border-slate-200 bg-white hover:border-slate-300 text-slate-600'
+                    } ${!identityData.signerPhone ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <div>
+                      <span className="text-xs sm:text-sm block">WhatsApp ou SMS</span>
+                      {identityData.signerPhone ? (
+                        <span className="text-[10px] sm:text-xs text-slate-500 font-normal block mt-0.5 font-mono">
+                          {identityData.signerPhone} (Recomendado)
+                        </span>
+                      ) : (
+                        <span className="text-[10px] sm:text-xs text-slate-400 font-normal block mt-0.5">
+                          Celular não informado
+                        </span>
+                      )}
+                    </div>
+                    {otpChannel === 'sms' && (
+                      <span className="w-5 h-5 rounded-full bg-sesi-primary text-white flex items-center justify-center text-xs">✓</span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!identityData.signerEmail}
+                    onClick={() => setOtpChannel('email')}
+                    className={`flex items-center justify-between p-3.5 rounded-xl border-2 transition-all cursor-pointer text-left ${
+                      otpChannel === 'email'
+                        ? 'border-sesi-primary bg-blue-50/50 text-slate-900 font-bold'
+                        : 'border-slate-200 bg-white hover:border-slate-300 text-slate-600'
+                    } ${!identityData.signerEmail ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <div>
+                      <span className="text-xs sm:text-sm block">E-mail</span>
+                      {identityData.signerEmail ? (
+                        <span className="text-[10px] sm:text-xs text-slate-500 font-normal block mt-0.5 break-all">
+                          {identityData.signerEmail}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] sm:text-xs text-slate-400 font-normal block mt-0.5">
+                          E-mail não informado
+                        </span>
+                      )}
+                    </div>
+                    {otpChannel === 'email' && (
+                      <span className="w-5 h-5 rounded-full bg-sesi-primary text-white flex items-center justify-center text-xs">✓</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+
               <div className="pt-3 border-t border-slate-200 space-y-2 text-xs sm:text-sm text-slate-600 leading-relaxed text-justify">
                 <p className="m-0 font-bold text-slate-800">
-                  Confirmação de Segurança por E-mail:
+                  Confirmação de Segurança por {otpChannel === 'sms' ? 'Celular (WhatsApp/SMS)' : 'E-mail'}:
                 </p>
                 <p className="m-0">
-                  Para concluir a assinatura e garantir a segurança do processo, enviaremos um código temporário de 6 (seis) dígitos para o e-mail cadastrado. Lembre-se de verificar a pasta de Lixo Eletrônico ou Spam.
+                  Para concluir a assinatura e garantir a segurança do processo, enviaremos um código temporário de 6 (seis) dígitos para o seu {otpChannel === 'sms' ? 'celular via SMS/WhatsApp' : 'e-mail cadastrado'}.
                 </p>
                 <p className="m-0 text-[11px] text-amber-600 font-semibold flex items-center gap-1">
                   ⏱️ O código temporário expira em 5 minutos.
@@ -676,7 +749,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 ) : (
                   <>
                     <Mail className="w-4 h-4" />
-                    <span>Enviar Código por E-mail e Assinar</span>
+                    <span>Enviar Código e Assinar</span>
                   </>
                 )}
               </button>
@@ -767,18 +840,35 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               {/* Corpo do Documento A5 */}
               <div className="space-y-3.5">
                 <p style={{ textAlign: 'justify', fontSize: '9.5pt', color: '#334155', margin: 0, lineHeight: '1.5' }}>
-                  Para autenticar a assinatura do Termo de Consentimento referente ao(à) estudante <strong>{minorName}</strong>, enviamos um código de segurança de 6 dígitos para o e-mail:
+                  Para autenticar a assinatura do Termo de Consentimento referente ao(à) estudante <strong>{minorName}</strong>, enviamos um código de segurança de 6 dígitos para o {otpChannel === 'sms' ? 'celular (WhatsApp/SMS)' : 'e-mail'}:
                 </p>
 
-                <div className="bg-blue-50/80 border border-blue-200 rounded-md p-2 text-center">
-                  <span className="font-mono font-bold text-sesi-primary text-xs tracking-wide select-all">
-                    {identityData.signerEmail || 'seu e-mail informado'}
+                <div className="bg-blue-50/80 border border-blue-200 rounded-md p-2.5 text-center">
+                  <span className="font-mono font-bold text-sesi-primary text-xs tracking-wide select-all break-all">
+                    {otpChannel === 'sms' ? identityData.signerPhone : identityData.signerEmail}
                   </span>
+                </div>
+
+                {/* Checkbox de Responsabilidade Legal mandatória (Validade Jurídica) */}
+                <div className="pt-1.5 pb-1">
+                  <label htmlFor="field-declarationLegalResponsibility" className="flex items-start gap-2.5 p-2.5 border-2 border-slate-200 hover:border-slate-300 rounded-lg bg-slate-50 cursor-pointer select-none transition-colors">
+                    <input
+                      id="field-declarationLegalResponsibility"
+                      name="declarationLegalResponsibility"
+                      type="checkbox"
+                      checked={declarationLegalResponsibility}
+                      onChange={(e) => setDeclarationLegalResponsibility(e.target.checked)}
+                      className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
+                    />
+                    <span className="text-[10px] sm:text-[11px] font-bold text-slate-800 leading-normal text-justify">
+                      Declaro que sou o responsável legal pelo menor acima citado, aceito utilizar este meio eletrônico para emissão de consentimento e reconheço a validade jurídica desta assinatura, nos termos da MP 2.200-2/2001 e Lei 14.063/2020.
+                    </span>
+                  </label>
                 </div>
 
                 {/* Mensagem de Erro do OTP */}
                 {otpError && (
-                  <div className="p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs flex items-center gap-2">
+                  <div className="p-2.5 bg-red-50 border border-red-200 rounded text-red-700 text-xs flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
                     <span className="font-semibold">{otpError}</span>
                   </div>
@@ -824,7 +914,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   <button
                     type="button"
                     onClick={handleVerifyAndFinalizeSign}
-                    disabled={otpCode.length < 6 || submittingSign}
+                    disabled={otpCode.length < 6 || !declarationLegalResponsibility || submittingSign}
                     className="w-full py-2.5 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {submittingSign ? (

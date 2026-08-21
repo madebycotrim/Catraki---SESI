@@ -170,8 +170,8 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               </div>
               <div className="sm:col-span-2 pt-1.5 border-t border-slate-200">
                 <span className="block text-[10px] font-bold text-slate-400 uppercase">Status Jurídico</span>
-                <span className="inline-flex items-center font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded text-xs mt-0.5">
-                  ASSINADO ELETRONICAMENTE E VÁLIDO ✓
+                <span className="inline-flex items-center font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded text-xs mt-0.5 border border-emerald-200">
+                  ✓ DOCUMENTO ASSINADO E VÁLIDO PERANTE A LEI
                 </span>
               </div>
             </div>
@@ -265,10 +265,13 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
             {/* HASH DO MANIFESTO (SHA-256) ABAIXO DE ENDEREÇO E QR CODE (LARGURA TOTAL) */}
             <div className="w-full bg-white p-3 border border-slate-200 rounded-lg">
               <span className="text-slate-400 block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" /> Resumo Criptográfico do Manifesto (Hash SHA-256):
+                <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" /> Assinatura Digital (Código Criptográfico Hash SHA-256):
               </span>
               <span className="font-mono text-[10px] sm:text-xs font-bold text-slate-700 break-all select-all block leading-relaxed">
                 {signResult.manifest_sha256}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-1 leading-snug">
+                * O resumo criptográfico é a identidade matemática única do documento, garantindo que as informações contidas não sofreram qualquer tipo de alteração (integridade digital).
               </span>
             </div>
           </div>

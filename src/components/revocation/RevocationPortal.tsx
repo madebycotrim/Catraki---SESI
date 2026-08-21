@@ -112,7 +112,7 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                 1. FUNDAMENTAÇÃO LEGAL E EFEITOS JURÍDICOS
               </h3>
               <p className="text-slate-800 m-0 leading-relaxed text-xs sm:text-sm text-left sm:text-justify">
-                Nos termos do Art. 8º, § 5º e Art. 18, IX da Lei nº 13.709/2018 (LGPD), o consentimento pode ser revogado a qualquer momento mediante manifestação expressa do titular ou de seu representante legal. A revogação opera efeitos para o futuro (<em>ex nunc</em>), cessando de imediato novos atendimentos clínicos e tratamentos de dados que dependam exclusivamente deste consentimento, mantendo-se preservados os atos e prontuários médicos anteriormente realizados por dever legal e regulatório (Código de Ética Médica e CFM).
+                Nos termos do Art. 8º, § 5º e Art. 18, IX da Lei nº 13.709/2018 (LGPD), o consentimento pode ser revogado a qualquer momento mediante manifestação expressa do titular ou de seu representante legal. A revogação cancela a autorização para novos atendimentos clínicos. Fica assegurada a validade e a guarda legal dos históricos médicos e prontuários de consultas realizadas anteriormente, em observância ao dever legal e regulatório dos profissionais de saúde (Código de Ética Médica e CFM).
               </p>
             </div>
 
@@ -132,7 +132,7 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   rows={4}
-                  placeholder="Descreva fundamentadamente o motivo pelo qual está solicitando a revogação da autorização anteriormente concedida..."
+                  placeholder="Descreva resumidamente o motivo pelo qual está solicitando a revogação da autorização anteriormente concedida..."
                   className="w-full px-3.5 sm:px-4 py-3 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20 transition-all shadow-xs"
                 />
                 <span className="text-[11px] sm:text-xs text-slate-500 block">Mínimo de 10 caracteres explicativos.</span>

@@ -86,7 +86,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof FormData, string>> = {};
     
-    if (!formData.minorName.trim()) newErrors.minorName = 'Nome do aluno é obrigatório';
+    if (!formData.minorName.trim()) newErrors.minorName = 'Nome completo do aluno é obrigatório';
     if (!formData.minorBirthDate) {
       newErrors.minorBirthDate = 'Data de nascimento é obrigatória';
     } else {
@@ -102,16 +102,18 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
       }
     }
     if (formData.minorCpf.trim() && !isValidCPF(formData.minorCpf)) {
-      newErrors.minorCpf = 'CPF do estudante inválido (verifique os dígitos)';
+      newErrors.minorCpf = 'CPF do estudante inválido. Por favor, confira os números digitados.';
     }
-    if (!formData.signerName.trim()) newErrors.signerName = 'Seu nome é obrigatório';
+    if (!formData.signerName.trim()) newErrors.signerName = 'Seu nome completo é obrigatório';
     if (!formData.signerCpf || !isValidCPF(formData.signerCpf)) {
-      newErrors.signerCpf = 'CPF do responsável inválido (verifique os dígitos)';
+      newErrors.signerCpf = 'CPF do responsável inválido. Por favor, confira os números digitados.';
     }
     if (!formData.signerRelationship) {
       newErrors.signerRelationship = 'Selecione o seu vínculo com o estudante';
     }
-    if (formData.signerPhone.replace(/\D/g, '').length < 10) newErrors.signerPhone = 'Telefone inválido';
+    if (formData.signerPhone.replace(/\D/g, '').length < 10) {
+      newErrors.signerPhone = 'Por favor, insira o telefone com DDD (ex: 61 99999-9999).';
+    }
     if (!formData.signerEmail.trim()) {
       newErrors.signerEmail = 'E-mail do responsável é obrigatório para envio do código de segurança';
     } else if (!/\S+@\S+\.\S+/.test(formData.signerEmail.trim())) {
@@ -400,11 +402,11 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
             </div>
           </div>
 
-          {/* Aviso de responsabilidade */}
+          {/* Declaração de veracidade */}
           <div className="bg-blue-50/70 border border-blue-200 p-3.5 sm:p-4 rounded-xl flex gap-3 text-xs text-blue-900 mt-4 sm:mt-6 leading-relaxed">
             <ShieldAlert className="w-4 h-4 shrink-0 text-blue-600 mt-0.5" />
             <div>
-              <strong className="text-blue-900">Veracidade das Declarações:</strong> As informações preenchidas acima possuem caráter de declaração legal sob as penas do Art. 299 do Código Penal. Verifique todos os campos antes de avançar para a próxima etapa.
+              <strong className="text-blue-900 block mb-0.5">Declaração de Veracidade:</strong> Ao prosseguir, você confirma sob as penas da lei que todas as informações declaradas acima são verdadeiras e corretas (Art. 299 do Código Penal).
             </div>
           </div>
 

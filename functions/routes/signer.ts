@@ -860,7 +860,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
 
       <!-- ⚠️ Aviso de Agendamento Presencial -->
       <div style="margin: 16px 0; background-color: #fffbeb; border: 1.5px solid #fef3c7; border-radius: 8px; padding: 12px 16px; font-size: 11.5px; color: #78350f; line-height: 1.6; text-align: justify;">
-        <strong>⚠️ AVISO OPERACIONAL IMPORTANTE:</strong> Este comprovante oficial atesta a autorização legal de participação no projeto. Contudo, <strong>esta assinatura digital não é garantia de atendimento imediato</strong>. O agendamento da consulta presencial é realizado exclusivamente no estacionamento da escola, próximo às unidades móveis, e está condicionado à capacidade diária máxima de atendimentos (vagas limitadas por especialidade).
+        <strong>⚠️ AVISO OPERACIONAL IMPORTANTE:</strong> Este comprovante oficial atesta a autorização legal de participação no projeto. Contudo, <strong>esta assinatura eletrônica não é garantia de atendimento imediato</strong>. O agendamento da consulta presencial é realizado exclusivamente no estacionamento da escola, próximo às unidades móveis, e está condicionado à capacidade diária máxima de atendimentos (vagas limitadas por especialidade).
       </div>
 
       <!-- 2. Cláusula Segunda — Das Autorizações Específicas (Continuação Natural do Documento) -->

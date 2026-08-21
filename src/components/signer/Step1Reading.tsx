@@ -65,7 +65,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
             Prezado(a) Responsável,
           </p>
           <p className="m-0 leading-relaxed">
-            Sabemos que a saúde e a segurança do(a) seu filho(a) são as suas maiores prioridades. É com esse mesmo cuidado que a <strong>Universidade de Brasília (UnB)</strong>, o <strong>SESI-DF</strong> e a <strong>Finatec</strong> trazem até a comunidade escolar esta iniciativa de cuidado preventivo e cidadania. O projeto é viabilizado por meio de emenda parlamentar e leva atendimento gratuito em unidades móveis para estudantes <strong>a partir de 14 anos</strong>.
+            Sabemos que a saúde e a segurança do(a) seu filho(a) são as suas maiores prioridades. É com esse mesmo cuidado que a <strong>Universidade de Brasília (UnB)</strong>, o <strong>SESI-DF</strong> e a <strong>Finatec</strong> trazem até a comunidade escolar esta iniciativa de cuidado preventivo e cidadania. O projeto leva atendimento clínico gratuito nas especialidades de **Oftalmologia, Odontologia, Audiometria, Psicologia e Nutrição** em unidades móveis para estudantes com idade **a partir de 14 anos**.
           </p>
 
           <p className="m-0 leading-relaxed">
@@ -150,10 +150,9 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
             </p>
           </div>
 
-          {/* Precisa de suporte? */}
           <div className="bg-sky-50/60 border border-sky-100/80 rounded-xl p-3.5 mt-2 text-[11px] sm:text-xs text-sky-950 leading-relaxed">
             <strong className="text-sky-950 block mb-1">📞 Precisa de suporte?</strong>
-            Caso não receba o código de segurança em seu e-mail (verifique também a caixa de spam) ou enfrente dificuldades com a validação do CPF, procure a equipe de apoio presencial do projeto ou a coordenação da escola.
+            Caso o código de segurança demore a chegar, verifique também as pastas de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong> do seu e-mail. Se persistir a dificuldade ou para erros na validação de CPF, procure a coordenação da escola ou a equipe de apoio presencial do projeto.
           </div>
 
           {/* Botão de ação integrado na folha A4 */}

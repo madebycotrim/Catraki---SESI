@@ -42,9 +42,9 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   onSuccess,
   onBack,
 }) => {
-  const [authHealth, setAuthHealth] = useState<'yes' | 'no'>('no');
-  const [authData, setAuthData] = useState<'yes' | 'no'>('no');
-  const [authImage, setAuthImage] = useState<'yes' | 'no'>('no');
+  const [authHealth, setAuthHealth] = useState<'yes' | 'no' | null>(null);
+  const [authData, setAuthData] = useState<'yes' | 'no' | null>(null);
+  const [authImage, setAuthImage] = useState<'yes' | 'no' | null>(null);
   const [readAndAccept, setReadAndAccept] = useState(false);
 
   const [submittingSign, setSubmittingSign] = useState(false);
@@ -139,6 +139,11 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
 
     if (authData !== 'yes') {
       setErrorMessage('É obrigatório autorizar o tratamento de dados pessoais para prosseguir.');
+      return;
+    }
+
+    if (authImage === null) {
+      setErrorMessage('Por favor, selecione uma opção para o uso de imagem e voz.');
       return;
     }
 
@@ -263,9 +268,14 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-2">
                 2. PAINEL DE AUTORIZAÇÕES DIGITAIS (Seleção Obrigatória)
               </h2>
-              <p className="text-slate-500 mt-1 text-xs sm:text-sm font-medium leading-relaxed text-justify">
-                A Lei Geral de Proteção de Dados (LGPD) exige que seu consentimento seja livre, informado e inequívoco. Marque as opções abaixo para registrar sua decisão:
-              </p>
+              <div className="text-slate-500 mt-1.5 text-xs sm:text-sm font-medium leading-relaxed text-justify space-y-2">
+                <p>
+                  A Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018) estabelece regras para o tratamento de informações pessoais. Para que o(a) estudante participe das atividades clínicas e exames do projeto, é indispensável que você registre ativamente sua manifestação de consentimento ou recusa em cada item abaixo.
+                </p>
+                <p>
+                  As opções <strong className="text-slate-800">"A"</strong> (Atendimento de Saúde) e <strong className="text-slate-800">"B"</strong> (Proteção e Tratamento de Dados) são obrigatórias, pois sem elas a equipe multiprofissional fica legalmente impedida de prestar qualquer atendimento clínico ou manter prontuários de acompanhamento. A opção <strong className="text-slate-800">"C"</strong> (Uso de Imagem) é opcional, e sua recusa não prejudicará o atendimento de saúde do(a) menor.
+                </p>
+              </div>
             </div>
 
             {/* A. Atendimento de Saúde */}
@@ -274,14 +284,14 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 A. SOBRE O ATENDIMENTO DE SAÚDE (Obrigatório para participação)
               </h3>
               <div className="space-y-2">
-                <label htmlFor="auth-health-checkbox" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
+                <label htmlFor="auth-health-yes" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
                   <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
                     <input
-                      id="auth-health-checkbox"
-                      type="checkbox"
+                      id="auth-health-yes"
+                      type="radio"
                       name="authHealth"
                       checked={authHealth === 'yes'}
-                      onChange={(e) => setAuthHealth(e.target.checked ? 'yes' : 'no')}
+                      onChange={() => setAuthHealth('yes')}
                       className="sr-only"
                     />
                     {authHealth === 'yes' && (
@@ -310,7 +320,47 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     )}
                   </div>
                   <span className="text-slate-700 leading-relaxed text-xs sm:text-sm">
-                    Autorizo o(a) estudante a participar do projeto e a passar pelas triagens, consultas e avaliações clínicas oferecidas pela equipe multiprofissional nas unidades móveis.
+                    <strong className="text-slate-950 font-bold">AUTORIZO</strong> o(a) estudante a participar do projeto e a passar pelas triagens, consultas e avaliações clínicas oferecidas pela equipe multiprofissional nas unidades móveis.
+                  </span>
+                </label>
+
+                <label htmlFor="auth-health-no" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
+                  <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
+                    <input
+                      id="auth-health-no"
+                      type="radio"
+                      name="authHealth"
+                      checked={authHealth === 'no'}
+                      onChange={() => setAuthHealth('no')}
+                      className="sr-only"
+                    />
+                    {authHealth === 'no' && (
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="absolute -top-1 -left-1 w-6 h-6 pointer-events-none select-none drop-shadow-xs"
+                        style={{ overflow: 'visible' }}
+                      >
+                        <path
+                          d="M2 2.5 C 6 8.5, 14 15.5, 22 22"
+                          fill="none"
+                          stroke="#023e8a"
+                          strokeWidth="2.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M21.5 2.5 C 15.5 9, 8 16, 2.5 22"
+                          fill="none"
+                          stroke="#023e8a"
+                          strokeWidth="2.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-slate-700 leading-relaxed text-xs sm:text-sm">
+                    <strong className="text-slate-950 font-bold">NÃO AUTORIZO</strong> o atendimento de saúde e a participação do(a) estudante no projeto. (Esta escolha impede a participação).
                   </span>
                 </label>
               </div>
@@ -322,14 +372,14 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 B. SOBRE OS DADOS PESSOAIS E DE SAÚDE (Obrigatório para participação)
               </h3>
               <div className="space-y-2">
-                <label htmlFor="auth-data-checkbox" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
+                <label htmlFor="auth-data-yes" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
                   <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
                     <input
-                      id="auth-data-checkbox"
-                      type="checkbox"
+                      id="auth-data-yes"
+                      type="radio"
                       name="authData"
                       checked={authData === 'yes'}
-                      onChange={(e) => setAuthData(e.target.checked ? 'yes' : 'no')}
+                      onChange={() => setAuthData('yes')}
                       className="sr-only"
                     />
                     {authData === 'yes' && (
@@ -358,7 +408,47 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     )}
                   </div>
                   <span className="text-slate-700 leading-relaxed text-xs sm:text-sm">
-                    Autorizo a coleta, o registro e o armazenamento seguro dos dados pessoais e do prontuário médico gerado durante os atendimentos, ciente de que o acesso será restrito aos profissionais de saúde envolvidos.
+                    <strong className="text-slate-950 font-bold">AUTORIZO</strong> a coleta, o registro e o armazenamento seguro dos dados pessoais e do prontuário médico gerado durante os atendimentos, ciente de que o acesso será restrito aos profissionais de saúde envolvidos.
+                  </span>
+                </label>
+
+                <label htmlFor="auth-data-no" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
+                  <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
+                    <input
+                      id="auth-data-no"
+                      type="radio"
+                      name="authData"
+                      checked={authData === 'no'}
+                      onChange={() => setAuthData('no')}
+                      className="sr-only"
+                    />
+                    {authData === 'no' && (
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="absolute -top-1 -left-1 w-6 h-6 pointer-events-none select-none drop-shadow-xs"
+                        style={{ overflow: 'visible' }}
+                      >
+                        <path
+                          d="M2 2.5 C 6 8.5, 14 15.5, 22 22"
+                          fill="none"
+                          stroke="#023e8a"
+                          strokeWidth="2.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M21.5 2.5 C 15.5 9, 8 16, 2.5 22"
+                          fill="none"
+                          stroke="#023e8a"
+                          strokeWidth="2.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-slate-700 leading-relaxed text-xs sm:text-sm">
+                    <strong className="text-slate-950 font-bold">NÃO AUTORIZO</strong> a coleta e o tratamento dos dados pessoais e de saúde. (Esta escolha impede a participação no projeto).
                   </span>
                 </label>
               </div>
@@ -370,14 +460,14 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 C. SOBRE O USO DE IMAGEM E VOZ (Opcional)
               </h3>
               <div className="space-y-2">
-                <label htmlFor="auth-image-checkbox" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
+                <label htmlFor="auth-image-yes" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
                   <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
                     <input
-                      id="auth-image-checkbox"
-                      type="checkbox"
+                      id="auth-image-yes"
+                      type="radio"
                       name="authImage"
                       checked={authImage === 'yes'}
-                      onChange={(e) => setAuthImage(e.target.checked ? 'yes' : 'no')}
+                      onChange={() => setAuthImage('yes')}
                       className="sr-only"
                     />
                     {authImage === 'yes' && (
@@ -406,7 +496,47 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     )}
                   </div>
                   <span className="text-slate-700 leading-relaxed text-xs sm:text-sm">
-                    Autorizo o uso gratuito da imagem e voz do(a) estudante, captadas durante as atividades do projeto, exclusivamente para fins de registro institucional, prestação de contas e divulgação educativa. (A recusa não impede o atendimento).
+                    <strong className="text-slate-950 font-bold">AUTORIZO</strong> o uso gratuito da imagem e voz do(a) estudante, captadas durante as atividades do projeto, exclusivamente para fins de registro institucional, prestação de contas e divulgação educativa. (A recusa não impede o atendimento).
+                  </span>
+                </label>
+
+                <label htmlFor="auth-image-no" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
+                  <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
+                    <input
+                      id="auth-image-no"
+                      type="radio"
+                      name="authImage"
+                      checked={authImage === 'no'}
+                      onChange={() => setAuthImage('no')}
+                      className="sr-only"
+                    />
+                    {authImage === 'no' && (
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="absolute -top-1 -left-1 w-6 h-6 pointer-events-none select-none drop-shadow-xs"
+                        style={{ overflow: 'visible' }}
+                      >
+                        <path
+                          d="M2 2.5 C 6 8.5, 14 15.5, 22 22"
+                          fill="none"
+                          stroke="#023e8a"
+                          strokeWidth="2.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M21.5 2.5 C 15.5 9, 8 16, 2.5 22"
+                          fill="none"
+                          stroke="#023e8a"
+                          strokeWidth="2.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-slate-700 leading-relaxed text-xs sm:text-sm">
+                    <strong className="text-slate-950 font-bold">NÃO AUTORIZO</strong> o uso de imagem e voz do(a) estudante. (Esta escolha não impede a participação nos atendimentos de saúde).
                   </span>
                 </label>
               </div>
@@ -511,11 +641,11 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               {otpSent && (
                 <div className="mt-4 p-4 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/50 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
                   <div className="text-center">
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-700 block">
-                      Insira o Código de 6 Dígitos
+                    <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-blue-900 block">
+                      ✨ Código Enviado com Sucesso!
                     </span>
-                    <span className="text-[11px] text-slate-500 mt-1 block">
-                      Enviado para <strong>{identityData.signerEmail}</strong>
+                    <span className="text-xs text-slate-600 mt-1.5 block max-w-md mx-auto leading-relaxed">
+                      Enviamos o código temporário de 6 dígitos para o e-mail: <strong className="text-slate-800 break-all">{identityData.signerEmail}</strong>. Se não o localizar em sua Caixa de Entrada, procure na pasta de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong>.
                     </span>
                   </div>
 
@@ -583,6 +713,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 disabled={
                   authHealth !== 'yes' ||
                   authData !== 'yes' ||
+                  authImage === null ||
                   !readAndAccept ||
                   otpSending
                 }

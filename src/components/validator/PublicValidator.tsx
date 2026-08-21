@@ -266,7 +266,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
               </div>
               <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg shrink-0">
                 <Sparkles className="w-3 h-3 text-emerald-700" />
-                <span>Autenticado Digitalmente</span>
+                <span>Autenticado Eletronicamente</span>
               </span>
             </div>
 
@@ -309,8 +309,8 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                     <strong className="text-slate-900 font-bold text-xs block leading-snug">
                       {validationResult.minor_name_initials}
                     </strong>
-                    <span className="text-[10px] text-emerald-700 font-semibold block mt-0.5">
-                      Atendimento Clínico Autorizado ✓
+                    <span className="text-[9px] text-emerald-700 font-semibold block mt-0.5">
+                      Atendimento Clínico Autorizado ✓ (Iniciais protegidas pela LGPD)
                     </span>
                   </div>
                 </div>
@@ -458,8 +458,11 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                     <div className="bg-white border border-slate-200 rounded-xl p-2">
                       <span className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Registro de IP</span>
                       <div className="font-mono text-[10.5px] font-bold text-slate-800 break-all">
-                        {validationResult.ip_address || 'IP Protegido (Sigilo Legal LGPD)'}
+                        {validationResult.ip_address || 'IP Oculto (Sigilo de Privacidade)'}
                       </div>
+                      <span className="text-[9px] text-slate-400 block font-normal leading-tight mt-0.5">
+                        * Exibido de forma parcial para preservação da privacidade.
+                      </span>
                     </div>
 
                     <div className="bg-white border border-slate-200 rounded-xl p-2">

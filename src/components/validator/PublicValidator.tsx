@@ -325,9 +325,9 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                 </div>
 
                 <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-3.5">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Endereço IP Registrado</span>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Registro de IP (Sigilo Probatório)</span>
                   <div className="font-mono text-xs sm:text-sm font-bold text-slate-800 break-all">
-                    {validationResult.ip_address || '189.126.217.88'}
+                    {validationResult.ip_address || 'IP Protegido (Sigilo Legal LGPD)'}
                   </div>
                 </div>
 

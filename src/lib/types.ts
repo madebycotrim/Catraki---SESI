@@ -206,6 +206,8 @@ export interface Env {
   ENCRYPTION_KEY_V1?: string;
   OTP_PEPPER?: string;
   JWT_ADMIN_SECRET?: string;
+  TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
+  TURNSTILE_HOSTNAMES?: string;
   TSA_ENDPOINT?: string;
 }

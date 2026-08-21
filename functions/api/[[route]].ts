@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { handle } from 'hono/cloudflare-pages';
 import { cors } from 'hono/cors';
 import { securityHeaders } from '../middleware/security.ts';
+import { requireAuth } from '../middleware/auth.ts';
 import { signerRouter } from '../routes/signer.ts';
 import { adminRouter } from '../routes/admin.ts';
 import { publicRouter } from '../routes/public.ts';
@@ -13,12 +14,27 @@ const app = new Hono<{ Bindings: Env }>().basePath('/api');
 // 1. Middlewares Globais de Segurança
 app.use('*', securityHeaders);
 
-// 2. CORS Seguro
+// 2. CORS Restrito e Seguro (OWASP Top 10)
 app.use('*', cors({
   origin: (origin) => {
-    if (!origin || origin.includes('localhost') || origin.endsWith('catraki.com.br') || origin.endsWith('.sesi.org.br') || origin.endsWith('.pages.dev') || origin.endsWith('.workers.dev')) {
-      return origin || '*';
+    if (!origin) return 'https://www.catraki.com.br';
+
+    // Origens locais permitidas em desenvolvimento
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      return origin;
     }
+
+    // Domínios institucionais oficiais autorizados
+    if (
+      origin === 'https://catraki.com.br' ||
+      origin === 'https://www.catraki.com.br' ||
+      origin.endsWith('.catraki.com.br') ||
+      origin === 'https://catraki-sesi.pages.dev' ||
+      origin === 'https://catraki.pages.dev'
+    ) {
+      return origin;
+    }
+
     return 'https://www.catraki.com.br';
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -34,99 +50,8 @@ app.route('/signer', signerRouter);
 app.route('/admin', adminRouter);
 app.route('/public', publicRouter);
 
-// 4. Rota Específica para Envio de OTP por E-mail (MailChannels / Resend)
-app.post('/send-otp', async (c) => {
-  try {
-    const { emailDestino, otp, nomeAluno } = await c.req.json<{
-      emailDestino: string;
-      otp: string;
-      nomeAluno: string;
-    }>();
-
-    if (!emailDestino || !otp || !nomeAluno) {
-      return c.json({ success: false, error: 'Faltam parâmetros obrigatórios.' }, 400);
-    }
-
-    const resendApiKey = (c.env as any).RESEND_API_KEY;
-    const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
-
-    // 1. Envio Oficial via Resend API
-    if (resendApiKey) {
-      const resendResp = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromAddress,
-          to: [emailDestino],
-          subject: `Código de Confirmação: ${otp} — SESI Saúde`,
-          html: `<div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;">
-            <div style="border-bottom: 2px solid #034b7f; padding-bottom: 12px; margin-bottom: 16px;">
-              <h2 style="color: #034b7f; margin: 0; font-size: 18px;">Escola Cidadã — Saúde em Movimento</h2>
-              <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Código de Assinatura Eletrônica</span>
-            </div>
-            <p style="color: #334155; font-size: 14px; line-height: 1.6;">Olá!</p>
-            <p style="color: #334155; font-size: 14px; line-height: 1.6;">Seu código de segurança para assinar a autorização do(a) estudante <strong>${nomeAluno}</strong> é:</p>
-            <div style="background: #f1f5f9; border: 2px solid #cbd5e1; border-radius: 8px; padding: 18px; text-align: center; margin: 20px 0;">
-              <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #034b7f; font-family: monospace;">${otp}</span>
-            </div>
-            <p style="color: #64748b; font-size: 12px; line-height: 1.5;">Este código expira em 5 minutos. Se você não solicitou esta autorização, desconsidere esta mensagem.</p>
-            <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 12px; font-size: 11px; color: #94a3b8; text-align: center;">
-              Assinatura Eletrônica — MP nº 2.200-2/2001 e Lei nº 14.063/2020 • Plataforma Catraki
-            </div>
-          </div>`,
-        }),
-      });
-
-      if (resendResp.ok) {
-        return c.json({ success: true, provider: 'Resend', message: 'Código de segurança enviado com sucesso via Resend.' });
-      } else {
-        const errText = await resendResp.text();
-        return c.json({ success: false, error: 'Falha no envio pelo Resend', details: errText }, 502);
-      }
-    }
-
-    // 2. Envio via MailChannels (Fallback secundário Cloudflare)
-    const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: emailDestino }] }],
-        from: {
-          email: 'autorizacoes@catraki.com.br',
-          name: 'Escola Cidadã — Saúde em Movimento',
-        },
-        subject: `Código de Confirmação: ${otp}`,
-        content: [{
-          type: 'text/html',
-          value: `<div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;">
-            <h2 style="color: #034b7f; margin-top: 0; font-size: 18px;">Escola Cidadã — Saúde em Movimento</h2>
-            <p style="color: #334155; font-size: 14px; line-height: 1.6;">Olá!</p>
-            <p style="color: #334155; font-size: 14px; line-height: 1.6;">Seu código de segurança para assinar a autorização do(a) estudante <strong>${nomeAluno}</strong> é:</p>
-            <div style="background: #f1f5f9; border: 2px solid #cbd5e1; border-radius: 8px; padding: 18px; text-align: center; margin: 20px 0;">
-              <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #034b7f; font-family: monospace;">${otp}</span>
-            </div>
-            <p style="color: #64748b; font-size: 12px; line-height: 1.5;">Este código expira em 5 minutos. Se você não solicitou esta autorização, desconsidere esta mensagem.</p>
-          </div>`,
-        }],
-      }),
-    });
-
-    if (response.ok) {
-      return c.json({ success: true, provider: 'MailChannels', message: 'Código de segurança enviado com sucesso via MailChannels.' });
-    } else {
-      const errorText = await response.text();
-      return c.json({ success: false, error: 'Falha no provedor de envio de e-mail.', details: errorText }, 502);
-    }
-  } catch (err: any) {
-    return c.json({ success: false, error: 'Erro interno ao disparar e-mail', details: err.message }, 500);
-  }
-});
-
-// 4.1 Rota de Teste de E-mail para o Painel Administrativo
-app.post('/send-test-email', async (c) => {
+// 4. Rota Administrativa de Diagnóstico de Envio de E-mail (Protegida por Autenticação Master)
+app.post('/send-test-email', requireAuth(['admin_master']), async (c) => {
   const startTime = Date.now();
   try {
     const { emailDestino } = await c.req.json<{ emailDestino: string }>();

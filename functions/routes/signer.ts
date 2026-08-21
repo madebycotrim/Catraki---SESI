@@ -18,6 +18,7 @@ import {
   generateTsaTimestampToken,
   stripExifFromBase64Image,
   canonicalJson,
+  verifyTurnstileToken,
 } from '../../src/lib/crypto.ts';
 import { computeLogRowHash } from '../../src/lib/audit-chain.ts';
 import { querySesiMatricula } from '../../src/lib/sesi-matricula.ts';
@@ -164,7 +165,11 @@ signerRouter.post('/manual-review', async (c) => {
   const { token, signer_name, signer_cpf, signer_relationship, identity_doc_base64, selfie_base64, guardianship_doc_base64, notes } = parsed.data;
   const db = c.env.DB;
   const bucket = c.env.BUCKET_DOCS;
-  const masterKey = c.env.ENCRYPTION_KEY_V1 || 'SESI_ENCRYPTION_KEY_32BYTES_TEST123';
+  const masterKey = c.env.ENCRYPTION_KEY_V1;
+
+  if (!masterKey) {
+    return c.json({ success: false, error: 'Configuração criptográfica do servidor incompleta (ENCRYPTION_KEY_V1).', code: 'KEY_CONFIG_ERROR' }, 500);
+  }
 
   const doc = await db.prepare('SELECT * FROM documents WHERE access_token = ?').bind(token).first<DocumentRecord>();
   if (!doc || doc.status !== 'pending') {
@@ -228,9 +233,36 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Parâmetros inválidos.', code: 'VALIDATION_ERROR' }, 400);
   }
 
-  const { token, channel } = parsed.data;
+  const { token, channel, turnstile_token } = parsed.data;
+
+  // Validação Canônica Cloudflare Turnstile Anti-Bot
+  const turnstileSecret = c.env.TURNSTILE_SECRET_KEY;
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for');
+  const allowedHostnames = c.env.TURNSTILE_HOSTNAMES
+    ? c.env.TURNSTILE_HOSTNAMES.split(',').map((h) => h.trim())
+    : ['catraki.com.br', 'www.catraki.com.br', 'catraki-sesi.pages.dev', 'catraki.pages.dev', 'localhost', '127.0.0.1'];
+
+  const isHuman = await verifyTurnstileToken(turnstile_token, {
+    secretKey: turnstileSecret,
+    remoteIp: clientIp,
+    expectedAction: 'otp_request',
+    expectedHostnames: allowedHostnames,
+  });
+
+  if (!isHuman) {
+    return c.json({
+      success: false,
+      error: 'Falha na verificação de segurança contra robôs (Cloudflare Turnstile). Por favor, tente novamente.',
+      code: 'CAPTCHA_FAILED',
+    }, 403);
+  }
+
   const db = c.env.DB;
-  const pepper = c.env.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD';
+  const pepper = c.env.OTP_PEPPER;
+
+  if (!pepper) {
+    return c.json({ success: false, error: 'Configuração do servidor incompleta (OTP_PEPPER).', code: 'KEY_CONFIG_ERROR' }, 500);
+  }
 
   let doc = await db.prepare('SELECT * FROM documents WHERE access_token = ?').bind(token).first<DocumentRecord>();
   if (!doc) {
@@ -358,7 +390,11 @@ signerRouter.post('/otp/verify', async (c) => {
 
   const { token, otp_code } = parsed.data;
   const db = c.env.DB;
-  const pepper = c.env.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD';
+  const pepper = c.env.OTP_PEPPER;
+
+  if (!pepper) {
+    return c.json({ success: false, error: 'Configuração do servidor incompleta (OTP_PEPPER).', code: 'KEY_CONFIG_ERROR' }, 500);
+  }
 
   const doc = await db.prepare('SELECT * FROM documents WHERE access_token = ?').bind(token).first<DocumentRecord>();
   if (!doc || !doc.otp_secret_hash) {
@@ -425,8 +461,16 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const { token, otp_code, signer_name, signer_cpf, signer_relationship, signature_png_base64, client_fingerprint } = parsed.data;
   const db = c.env.DB;
   const bucket = c.env.BUCKET_DOCS;
-  const masterKey = c.env.ENCRYPTION_KEY_V1 || 'SESI_ENCRYPTION_KEY_32BYTES_TEST123';
-  const pepper = c.env.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD';
+  const masterKey = c.env.ENCRYPTION_KEY_V1;
+  const pepper = c.env.OTP_PEPPER;
+
+  if (!masterKey || !pepper) {
+    return c.json({
+      success: false,
+      error: 'Configuração criptográfica do servidor incompleta (ENCRYPTION_KEY_V1 / OTP_PEPPER).',
+      code: 'KEY_CONFIG_ERROR',
+    }, 500);
+  }
 
   const doc = await db.prepare(
     `SELECT d.*, t.title as template_title, t.procedure_description, t.consent_text_version, t.content_sha256 as template_content_sha256
@@ -582,9 +626,22 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       ),
       db.prepare(
         `UPDATE documents 
-         SET status = 'signed', parent_name = ?, minor_name = COALESCE(?, minor_name), signed_pdf_r2_key = ?, otp_secret_hash = NULL 
+         SET status = 'signed', 
+             parent_name = ?, 
+             minor_name = COALESCE(?, minor_name), 
+             minor_birth_date = COALESCE(?, minor_birth_date),
+             minor_cpf = ?,
+             signed_pdf_r2_key = ?, 
+             otp_secret_hash = NULL 
          WHERE id = ? AND status = 'pending'`
-      ).bind(signer_name, doc.minor_name || null, pdfR2Key, doc.id),
+      ).bind(
+        signer_name,
+        parsed.data.minor_name || doc.minor_name || null,
+        parsed.data.minor_birth_date || doc.minor_birth_date || null,
+        parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : null,
+        pdfR2Key,
+        doc.id
+      ),
     ]);
 
     if ((batch[1] as any).meta?.changes === 0) {
@@ -816,12 +873,12 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
               <a href="https://www.catraki.com.br/validar/${validationCode}" style="text-decoration: none; display: inline-block;">
                 <img 
                   class="mobile-qr-img"
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&margin=0&color=034b7f&data=https%3A%2F%2Fwww.catraki.com.br%2Fvalidar%2F${validationCode}" 
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&margin=0&color=000000&data=https%3A%2F%2Fwww.catraki.com.br%2Fvalidar%2F${validationCode}" 
                   alt="QR Code de Validação" 
-                  style="width: 96px; height: 96px; display: block; border: 1px solid #e2e8f0; border-radius: 6px; padding: 3px; background: #ffffff;"
+                  style="width: 96px; height: 96px; display: block; border: 1px solid #000000; border-radius: 6px; padding: 3px; background: #ffffff;"
                 />
               </a>
-              <div style="font-size: 8px; font-weight: 800; color: #034b7f; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 5px;">
+              <div style="font-size: 8.5px; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 5px;">
                 VALIDAÇÃO PÚBLICA
               </div>
             </td>

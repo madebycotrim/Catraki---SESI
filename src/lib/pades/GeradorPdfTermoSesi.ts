@@ -180,7 +180,11 @@ export class GeradorPdfTermoSesi {
       : 'https://catraki.sesi.org.br/validar';
 
     try {
-      const qrDataUrl = await QRCode.toDataURL(urlValidacao, { margin: 1, width: 90 });
+      const qrDataUrl = await QRCode.toDataURL(urlValidacao, {
+        margin: 1,
+        width: 90,
+        color: { dark: '#000000', light: '#ffffff' },
+      });
       const qrClean = qrDataUrl.replace(/^data:image\/png;base64,/, '');
       const qrBytes = Uint8Array.from(atob(qrClean), (c) => c.charCodeAt(0));
       const qrImage = await pdfDoc.embedPng(qrBytes);
@@ -192,12 +196,12 @@ export class GeradorPdfTermoSesi {
         height: 75,
       });
 
-      page.drawText('Validação Oficial', {
+      page.drawText('Validação Pública', {
         x: width - margemEsquerda - 75,
         y: y - 65,
         size: 7,
         font: fontBold,
-        color: corAzulSesi,
+        color: rgb(0, 0, 0),
       });
     } catch {}
 

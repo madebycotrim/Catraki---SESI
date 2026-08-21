@@ -11,6 +11,10 @@ import {
   generateTsaTimestampToken,
   generatePkceVerifier,
   generatePkceChallenge,
+  hashPasswordPbkdf2,
+  verifyPasswordPbkdf2,
+  maskIpAddress,
+  verifyTurnstileToken,
 } from '../src/lib/crypto.ts';
 
 describe('Núcleo Criptográfico SESI Saúde (crypto.ts)', () => {
@@ -108,5 +112,31 @@ describe('Núcleo Criptográfico SESI Saúde (crypto.ts)', () => {
     const challenge = await generatePkceChallenge(verifier);
     expect(challenge).toHaveLength(43); // SHA-256 (32 bytes) em Base64URL sem padding tem exatamente 43 caracteres
     expect(challenge).not.toMatch(/[\+\/=]/);
+  });
+
+  it('deve derivar hash PBKDF2-SHA256 seguro e verificar senhas corretamente', async () => {
+    const password = 'SenhaSuperSegura@2026';
+    const wrongPassword = 'SenhaErrada@2026';
+
+    const hashFormatted = await hashPasswordPbkdf2(password);
+    expect(hashFormatted).toMatch(/^pbkdf2\$100000\$[0-9a-f]{32}\$[0-9a-f]{64}$/);
+
+    const isCorrect = await verifyPasswordPbkdf2(password, hashFormatted);
+    expect(isCorrect).toBe(true);
+
+    const isWrong = await verifyPasswordPbkdf2(wrongPassword, hashFormatted);
+    expect(isWrong).toBe(false);
+  });
+
+  it('deve mascarar endereço IP conforme princípio de minimização da LGPD', () => {
+    expect(maskIpAddress('189.120.44.12')).toBe('189.120.***.***');
+    expect(maskIpAddress('127.0.0.1')).toBe('127.0.***.***');
+    expect(maskIpAddress('2804:14d:5481:8822::1')).toBe('2804:14d:****:****');
+    expect(maskIpAddress('')).toBe('IP Protegido');
+  });
+
+  it('deve permitir validação de Turnstile quando chave não configurada (dev/fallback)', async () => {
+    const isHuman = await verifyTurnstileToken('mock_token', '');
+    expect(isHuman).toBe(true);
   });
 });

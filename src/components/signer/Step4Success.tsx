@@ -57,7 +57,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
       width: 150,
       margin: 1,
       color: {
-        dark: '#034b7f',
+        dark: '#000000',
         light: '#ffffff',
       },
     })
@@ -248,11 +248,11 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                     className="w-24 h-24 sm:w-28 sm:h-28 bg-white p-1 border border-slate-200 mb-2 rounded-lg"
                   />
                 ) : (
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 bg-slate-100 flex items-center justify-center text-slate-300 mb-2 border border-slate-200 rounded-lg">
-                    <QrCode className="w-8 h-8" />
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 bg-slate-100 flex items-center justify-center text-black mb-2 border border-slate-200 rounded-lg">
+                    <QrCode className="w-8 h-8 text-black" />
                   </div>
                 )}
-                <span className="text-[10px] font-bold text-slate-800 uppercase tracking-wider mb-0.5">Validação Pública</span>
+                <span className="text-[10.5px] font-black text-black uppercase tracking-wider mb-0.5">Validação Pública</span>
                 <span className="text-[9px] text-slate-400 leading-tight">Escaneie para consultar autenticidade imediata.</span>
               </div>
             </div>

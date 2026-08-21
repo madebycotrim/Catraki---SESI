@@ -334,3 +334,191 @@ export function stripExifFromBase64Image(base64Data: string): string {
 
   return base64Data;
 }
+
+// ============================================================================
+// HASHING SEGURO DE SENHAS (PBKDF2-SHA256 — WEB CRYPTO API NATIVA)
+// ============================================================================
+
+const PBKDF2_ITERATIONS = 100000;
+const PBKDF2_KEY_LENGTH = 256; // 32 bytes
+
+/**
+ * Deriva um hash criptográfico seguro para senhas usando PBKDF2-SHA256 com salt aleatório.
+ * Formato resultante: pbkdf2$<iterations>$<saltHex>$<derivedHex>
+ */
+export async function hashPasswordPbkdf2(
+  password: string,
+  saltHex?: string,
+  iterations = PBKDF2_ITERATIONS
+): Promise<string> {
+  const encoder = new TextEncoder();
+  let saltBytes: Uint8Array;
+
+  if (saltHex) {
+    saltBytes = hexToBytes(saltHex);
+  } else {
+    saltBytes = new Uint8Array(16);
+    crypto.getRandomValues(saltBytes);
+  }
+
+  const baseKey = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password) as any,
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: saltBytes as any,
+      iterations,
+      hash: 'SHA-256',
+    },
+    baseKey,
+    PBKDF2_KEY_LENGTH
+  );
+
+  const finalSaltHex = bytesToHex(saltBytes);
+  const derivedHex = bytesToHex(new Uint8Array(derivedBits));
+
+  return `pbkdf2$${iterations}$${finalSaltHex}$${derivedHex}`;
+}
+
+/**
+ * Verifica se a senha em texto claro confere com o hash PBKDF2 armazenado em tempo constante.
+ */
+export async function verifyPasswordPbkdf2(
+  password: string,
+  storedHashWithSalt: string
+): Promise<boolean> {
+  if (!password || !storedHashWithSalt) return false;
+
+  const parts = storedHashWithSalt.split('$');
+  if (parts.length !== 4 || parts[0] !== 'pbkdf2') {
+    // Caso o hash no banco ainda seja SHA-256 legado simples de 64 chars
+    if (storedHashWithSalt.length === 64 && /^[0-9a-fA-F]{64}$/.test(storedHashWithSalt)) {
+      const sha = await sha256(password);
+      return constantTimeEqual(sha, storedHashWithSalt.toLowerCase());
+    }
+    return false;
+  }
+
+  const iterations = parseInt(parts[1], 10);
+  const saltHex = parts[2];
+  const expectedHashHex = parts[3];
+
+  if (isNaN(iterations) || !saltHex || !expectedHashHex) {
+    return false;
+  }
+
+  const computedFullHash = await hashPasswordPbkdf2(password, saltHex, iterations);
+  const computedHashHex = computedFullHash.split('$')[3];
+
+  return constantTimeEqual(computedHashHex, expectedHashHex);
+}
+
+export interface TurnstileVerifyOptions {
+  secretKey?: string;
+  remoteIp?: string;
+  expectedAction?: string;
+  expectedHostnames?: string[];
+}
+
+/**
+ * Validação canônica de token Cloudflare Turnstile (RFC/Canonical Siteverify)
+ */
+export async function verifyTurnstileToken(
+  token?: string,
+  optionsOrSecret?: TurnstileVerifyOptions | string,
+  legacyRemoteIp?: string
+): Promise<boolean> {
+  let secretKey: string | undefined;
+  let remoteIp: string | undefined;
+  let expectedAction: string | undefined;
+  let expectedHostnames: string[] | undefined;
+
+  if (typeof optionsOrSecret === 'string') {
+    secretKey = optionsOrSecret;
+    remoteIp = legacyRemoteIp;
+  } else if (optionsOrSecret) {
+    secretKey = optionsOrSecret.secretKey;
+    remoteIp = optionsOrSecret.remoteIp;
+    expectedAction = optionsOrSecret.expectedAction;
+    expectedHostnames = optionsOrSecret.expectedHostnames;
+  }
+
+  if (!secretKey || secretKey.trim().length === 0) {
+    return true; // Se Turnstile não estiver configurado no ambiente, permite continuar (dev/fallback)
+  }
+
+  if (!token || typeof token !== 'string' || token.length === 0 || token.length > 2048) {
+    return false;
+  }
+
+  try {
+    const params = new URLSearchParams({
+      secret: secretKey,
+      response: token,
+    });
+    if (remoteIp) {
+      params.append('remoteip', remoteIp);
+    }
+
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      signal: AbortSignal.timeout(10000),
+      body: params.toString(),
+    });
+
+    if (!res.ok) return false;
+    const data: any = await res.json();
+
+    if (!data || data.success !== true) {
+      return false;
+    }
+
+    if (expectedAction && data.action && data.action !== expectedAction) {
+      return false;
+    }
+
+    if (expectedHostnames && expectedHostnames.length > 0 && data.hostname) {
+      const allowed = new Set(expectedHostnames.map((h) => h.trim().toLowerCase()));
+      if (!allowed.has(data.hostname.toLowerCase())) {
+        return false;
+      }
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Mascaramento de endereço IP para exibição pública em conformidade com a LGPD (Minimização de Dados)
+ */
+export function maskIpAddress(ip?: string): string {
+  if (!ip || ip.trim().length === 0) return 'IP Protegido';
+  const cleanIp = ip.trim();
+
+  if (cleanIp === '127.0.0.1' || cleanIp === '::1' || cleanIp === 'Local') {
+    return '127.0.***.***';
+  }
+
+  if (cleanIp.includes('.')) {
+    const parts = cleanIp.split('.');
+    if (parts.length === 4) {
+      return `${parts[0]}.${parts[1]}.***.***`;
+    }
+  } else if (cleanIp.includes(':')) {
+    const parts = cleanIp.split(':');
+    if (parts.length >= 2) {
+      return `${parts[0]}:${parts[1]}:****:****`;
+    }
+  }
+
+  return '***.***.***.***';
+}

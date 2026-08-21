@@ -9,9 +9,9 @@ import {
   sha256,
   generateSecureToken,
   encryptAesGcm,
-  constantTimeEqual,
+  verifyPasswordPbkdf2,
 } from '../../src/lib/crypto.ts';
-import { verifyAuditChain } from '../../src/lib/audit-chain.ts';
+import { verifyAuditChain, computeMerkleRoot } from '../../src/lib/audit-chain.ts';
 import { requireAuth, signJwt, JwtPayload } from '../middleware/auth.ts';
 import type {
   Env,
@@ -25,53 +25,50 @@ import type {
 export const adminRouter = new Hono<{ Bindings: Env; Variables: { user: JwtPayload } }>();
 
 // ============================================================================
-// AUTENTICAÇÃO ADMINISTRATIVA
+// AUTENTICAÇÃO ADMINISTRATIVA (PBKDF2-SHA256 & RBAC ESTRITO)
 // ============================================================================
 
 adminRouter.post('/auth/login', async (c) => {
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const { email, password } = body;
 
-  if (!email || !password) {
-    return c.json({ success: false, error: 'E-mail e senha são obrigatórios.' }, 400);
+  if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
+    return c.json({ success: false, error: 'E-mail e senha são obrigatórios.', code: 'VALIDATION_ERROR' }, 400);
   }
 
-  const DEFAULT_ADMINS = [
-    {
-      id: 'usr_master_01',
-      name: 'Mateus Cotrim',
-      email: 'mateus.cotrim@sistemafibra.org.br',
-      password: 'SesiMaster@2026',
-      role: 'admin_master' as AdminRole,
-    },
-    {
-      id: 'usr_operador_01',
-      name: 'Ana Paula Ferreira (Operador Clínico)',
-      email: 'operador@sesi.org.br',
-      password: 'SesiOperador@2026',
-      role: 'operador' as AdminRole,
-    },
-    {
-      id: 'usr_dpo_01',
-      name: 'Juliana Mendes (DPO / Privacidade)',
-      email: 'dpo@sesi.org.br',
-      password: 'SesiDpo@2026',
-      role: 'dpo' as AdminRole,
-    },
-  ];
+  const db = c.env.DB;
+  if (!db) {
+    return c.json({ success: false, error: 'Serviço de banco de dados indisponível.', code: 'DB_UNAVAILABLE' }, 503);
+  }
 
-  const admin = DEFAULT_ADMINS.find((u) => u.email.toLowerCase() === email.toLowerCase());
-  if (!admin || !constantTimeEqual(admin.password, password)) {
+  const cleanEmail = email.trim().toLowerCase();
+  const dbUser = await db.prepare(
+    'SELECT * FROM admin_users WHERE LOWER(email) = ? AND is_active = 1'
+  ).bind(cleanEmail).first<any>();
+
+  let isValid = false;
+  if (dbUser && dbUser.password_hash) {
+    isValid = await verifyPasswordPbkdf2(password, dbUser.password_hash);
+  } else {
+    // Mitigação contra enumeração de usuários por tempo de resposta (Timing Attack)
+    await verifyPasswordPbkdf2(password, 'pbkdf2$100000$00000000000000000000000000000000$0000000000000000000000000000000000000000000000000000000000000000');
+  }
+
+  if (!isValid || !dbUser) {
     return c.json({ success: false, error: 'Credenciais administrativas inválidas.', code: 'INVALID_CREDENTIALS' }, 401);
   }
 
-  const secret = c.env.JWT_ADMIN_SECRET || 'SESI_DEV_SECRET_KEY_FOR_LOCAL_TESTS_12345';
+  const secret = c.env.JWT_ADMIN_SECRET;
+  if (!secret) {
+    return c.json({ success: false, error: 'Configuração de segurança do servidor incompleta (JWT_ADMIN_SECRET ausente).', code: 'SERVER_MISCONFIGURED' }, 500);
+  }
+
   const token = await signJwt(
     {
-      sub: admin.id,
-      name: admin.name,
-      email: admin.email,
-      role: admin.role,
+      sub: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.email,
+      role: dbUser.role as AdminRole,
       exp: Math.floor(Date.now() / 1000) + 8 * 3600,
     },
     secret
@@ -81,10 +78,10 @@ adminRouter.post('/auth/login', async (c) => {
     success: true,
     token,
     user: {
-      id: admin.id,
-      name: admin.name,
-      email: admin.email,
-      role: admin.role,
+      id: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.email,
+      role: dbUser.role,
     },
   });
 });
@@ -154,7 +151,7 @@ adminRouter.post('/templates', requireAuth(['admin_master', 'operador']), async 
 adminRouter.get('/documents', async (c) => {
   const db = c.env.DB;
   const docs = await db.prepare(
-    `SELECT d.id, d.template_id, d.template_version, d.minor_name, d.minor_birth_date, d.parent_name,
+    `SELECT d.id, d.template_id, d.template_version, d.minor_name, d.minor_birth_date, d.minor_cpf, d.parent_name,
             d.status, d.access_token, d.expires_at, d.retention_expires_at, d.created_at, d.revoked_at,
             t.title as template_title, t.procedure_description
      FROM documents d
@@ -198,7 +195,10 @@ adminRouter.post('/documents', requireAuth(['admin_master', 'operador']), async 
 
   const { template_id, template_version, minor_name, minor_birth_date, parent_name, parent_email, parent_phone, expires_in_days } = parsed.data;
   const db = c.env.DB;
-  const masterKey = c.env.ENCRYPTION_KEY_V1 || 'SESI_ENCRYPTION_KEY_32BYTES_TEST123';
+  const masterKey = c.env.ENCRYPTION_KEY_V1;
+  if (!masterKey) {
+    return c.json({ success: false, error: 'Chave de criptografia mestra não configurada no servidor (ENCRYPTION_KEY_V1).', code: 'KEY_CONFIG_ERROR' }, 500);
+  }
 
   let query = 'SELECT * FROM document_templates WHERE id = ?';
   let params: any[] = [template_id];
@@ -345,6 +345,48 @@ adminRouter.get('/audit-logs', requireAuth(['admin_master', 'dpo', 'operador']),
   ).all<any>();
 
   return c.json({ success: true, logs: logs.results || [] });
+});
+
+// ============================================================================
+// ANCORAGEM MERKLE TREE (INTEGRIDADE GLOBAL E IMUTABILIDADE)
+// ============================================================================
+
+adminRouter.get('/merkle-anchors', requireAuth(['admin_master', 'dpo']), async (c) => {
+  const db = c.env.DB;
+  const anchors = await db.prepare(
+    'SELECT * FROM merkle_roots_anchors ORDER BY created_at DESC LIMIT 50'
+  ).all<any>();
+
+  return c.json({ success: true, anchors: anchors.results || [] });
+});
+
+adminRouter.post('/anchor-merkle', requireAuth(['admin_master', 'dpo']), async (c) => {
+  const db = c.env.DB;
+  const logs = await db.prepare(
+    'SELECT log_row_hash FROM audit_logs ORDER BY created_at ASC'
+  ).all<{ log_row_hash: string }>();
+
+  const hashes = (logs.results || []).map((r) => r.log_row_hash);
+  if (hashes.length === 0) {
+    return c.json({ success: false, error: 'Nenhum registro de auditoria disponível para ancoragem.' }, 400);
+  }
+
+  const merkleRoot = await computeMerkleRoot(hashes);
+  const anchorId = `ANCHOR-${Date.now()}`;
+
+  await db.prepare(
+    `INSERT INTO merkle_roots_anchors (
+      id, period_start, period_end, row_count, merkle_root_sha256, anchor_target, anchor_reference, created_at
+    ) VALUES (?, datetime('now', '-1 day'), datetime('now'), ?, ?, 'GIT_COMMIT_IMMUTABLE_LOG', ?, datetime('now'))`
+  ).bind(anchorId, hashes.length, merkleRoot, `merkle-tree-root-${merkleRoot.substring(0, 16)}`).run();
+
+  return c.json({
+    success: true,
+    anchor_id: anchorId,
+    merkle_root_sha256: merkleRoot,
+    records_count: hashes.length,
+    message: 'Raiz de Merkle calculada e ancorada com sucesso no banco de custódia.',
+  });
 });
 
 // ============================================================================

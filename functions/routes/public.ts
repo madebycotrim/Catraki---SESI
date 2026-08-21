@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { LgpdRequestPublicSchema, maskCPF, getInitials } from '../../src/lib/schemas.ts';
-import { encryptAesGcm } from '../../src/lib/crypto.ts';
+import { encryptAesGcm, maskIpAddress, verifyTurnstileToken } from '../../src/lib/crypto.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
 import type { Env, PublicValidationResponse } from '../../src/lib/types.ts';
 
@@ -10,53 +10,67 @@ publicRouter.use('*', rateLimiter({ limit: 60, windowSeconds: 60, keyPrefix: 'pu
 
 /**
  * GET /api/public/validate/:query
- * Validador público de autenticidade acessível via código único (ex: SESI-8661-7A48) ou hash SHA-256
+ * Validador público de autenticidade acessível via código único formatado (ex: SESI-8661-7A48) ou hash SHA-256 (64 chars)
  */
 publicRouter.get('/validate/:query', async (c) => {
   const query = c.req.param('query');
   const db = c.env.DB;
 
-  if (!query) {
+  if (!query || query.trim().length === 0) {
     return c.json({ success: false, error: 'Código ou hash de validação inválido.', code: 'INVALID_QUERY' }, 400);
   }
 
   const clean = query.trim();
   const cleanLower = clean.toLowerCase();
-  const cleanRaw = clean.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
   // Remove prefixo 'SESI-' caso o usuário tenha colado o código de validação formatado
   const searchHex = clean.replace(/^SESI-?/i, '').replace(/[^a-fA-F0-9]/g, '').toLowerCase();
-  const hexPrefix = searchHex.length >= 4 ? searchHex.substring(0, 4) : searchHex;
-  const hexSuffix = searchHex.length >= 4 ? searchHex.slice(-4) : searchHex;
 
-  const record = await db.prepare(
-    `SELECT a.*, d.minor_name, d.status as doc_status, d.revoked_at, d.revoked_reason,
-            t.title as template_title, t.procedure_description
-     FROM audit_logs a
-     LEFT JOIN documents d ON a.document_id = d.id
-     LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-     WHERE a.manifest_sha256 = ?
-        OR (length(?) >= 4 AND a.manifest_sha256 LIKE ? AND a.manifest_sha256 LIKE ?)
-        OR (length(?) >= 4 AND a.manifest_sha256 LIKE ?)
-        OR a.document_id LIKE ?
-        OR a.document_id = ?
-     LIMIT 1`
-  ).bind(
-    cleanLower,
-    hexPrefix,
-    `${hexPrefix}%`,
-    `%${hexSuffix}`,
-    searchHex,
-    `${searchHex}%`,
-    `%${cleanRaw}%`,
-    clean
-  ).first<any>();
+  let record: any = null;
+
+  if (cleanLower.length === 64 && /^[0-9a-f]{64}$/.test(cleanLower)) {
+    // 1. Busca por Hash SHA-256 exato de 64 caracteres
+    record = await db.prepare(
+      `SELECT a.*, d.minor_name, d.status as doc_status, d.revoked_at, d.revoked_reason,
+              t.title as template_title, t.procedure_description
+       FROM audit_logs a
+       LEFT JOIN documents d ON a.document_id = d.id
+       LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       WHERE a.manifest_sha256 = ?
+       LIMIT 1`
+    ).bind(cleanLower).first<any>();
+  } else if (searchHex.length === 8) {
+    // 2. Busca estrita por código formatado SESI-XXXX-YYYY (exatamente 8 chars hexadecimais: 4 prefixo + 4 sufixo)
+    const hexPrefix = searchHex.substring(0, 4);
+    const hexSuffix = searchHex.substring(4, 8);
+
+    record = await db.prepare(
+      `SELECT a.*, d.minor_name, d.status as doc_status, d.revoked_at, d.revoked_reason,
+              t.title as template_title, t.procedure_description
+       FROM audit_logs a
+       LEFT JOIN documents d ON a.document_id = d.id
+       LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       WHERE a.manifest_sha256 LIKE ? AND a.manifest_sha256 LIKE ?
+       LIMIT 1`
+    ).bind(`${hexPrefix}%`, `%${hexSuffix}`).first<any>();
+  } else if (clean.startsWith('DOC-') && clean.length >= 12) {
+    // 3. Busca por identificador exato de documento DOC-YYYYMMDD-HHMMSS
+    record = await db.prepare(
+      `SELECT a.*, d.minor_name, d.status as doc_status, d.revoked_at, d.revoked_reason,
+              t.title as template_title, t.procedure_description
+       FROM audit_logs a
+       LEFT JOIN documents d ON a.document_id = d.id
+       LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       WHERE a.document_id = ?
+       LIMIT 1`
+    ).bind(clean).first<any>();
+  }
 
   if (!record) {
     return c.json({
       success: false,
       valid: false,
-      error: 'Código de autenticidade não localizado na cadeia de custódia oficial da plataforma Catraki.',
+      error: 'Código de autenticidade não localizado na cadeia de custódia oficial da plataforma Catraki. Verifique se digitou o código completo (Ex: SESI-XXXX-XXXX).',
       code: 'MANIFEST_NOT_FOUND',
     }, 404);
   }
@@ -65,6 +79,8 @@ publicRouter.get('/validate/:query', async (c) => {
   const positionResult = await db.prepare(
     `SELECT COUNT(*) as pos FROM audit_logs WHERE created_at <= ?`
   ).bind(record.created_at).first<{ pos: number }>();
+
+  const maskedIp = maskIpAddress(record.ip_address);
 
   const response: PublicValidationResponse = {
     valid: true,
@@ -78,7 +94,7 @@ publicRouter.get('/validate/:query', async (c) => {
     signer_name: record.signer_name,
     signer_cpf_masked: record.signer_cpf_masked,
     signer_relationship: record.signer_relationship,
-    ip_address: record.ip_address || '127.0.0.1',
+    ip_address: `${maskedIp} (Protegido por Sigilo Legal LGPD)`,
     geolocation: record.geo_city ? `${record.geo_city}, ${record.geo_region || 'DF'} - Brasil` : 'Brasília, DF - Brasil',
     user_agent: record.user_agent || 'Navegador Web Padrão',
     identity_method: record.identity_method,
@@ -101,7 +117,7 @@ publicRouter.get('/validate/:query', async (c) => {
 
 /**
  * POST /api/public/lgpd-request
- * Canal público do titular para exercício dos direitos previstos no Art. 18 da LGPD
+ * Canal público do titular para exercício dos direitos previstos no Art. 18 da LGPD com proteção anti-bot
  */
 publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, keyPrefix: 'lgpd_pub' }), async (c) => {
   const body = await c.req.json();
@@ -111,9 +127,36 @@ publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, 
     return c.json({ success: false, error: parsed.error.errors[0]?.message, code: 'VALIDATION_ERROR' }, 400);
   }
 
-  const { requester_name, requester_cpf, requester_email, request_type, details } = parsed.data;
+  const { requester_name, requester_cpf, requester_email, request_type, details, turnstile_token } = parsed.data;
+
+  // Validação Canônica Cloudflare Turnstile Anti-Bot
+  const turnstileSecret = c.env.TURNSTILE_SECRET_KEY;
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for');
+  const allowedHostnames = c.env.TURNSTILE_HOSTNAMES
+    ? c.env.TURNSTILE_HOSTNAMES.split(',').map((h) => h.trim())
+    : ['catraki.com.br', 'www.catraki.com.br', 'catraki-sesi.pages.dev', 'catraki.pages.dev', 'localhost', '127.0.0.1'];
+
+  const isHuman = await verifyTurnstileToken(turnstile_token, {
+    secretKey: turnstileSecret,
+    remoteIp: clientIp,
+    expectedAction: 'lgpd_request',
+    expectedHostnames: allowedHostnames,
+  });
+
+  if (!isHuman) {
+    return c.json({
+      success: false,
+      error: 'Falha na verificação de segurança contra robôs (Cloudflare Turnstile). Por favor, tente novamente.',
+      code: 'CAPTCHA_FAILED',
+    }, 403);
+  }
+
   const db = c.env.DB;
-  const masterKey = c.env.ENCRYPTION_KEY_V1 || 'SESI_ENCRYPTION_KEY_32BYTES_TEST123';
+  const masterKey = c.env.ENCRYPTION_KEY_V1;
+
+  if (!masterKey) {
+    return c.json({ success: false, error: 'Configuração do servidor incompleta (ENCRYPTION_KEY_V1).', code: 'KEY_CONFIG_ERROR' }, 500);
+  }
 
   const requestId = `LGPD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   const cpfMasked = maskCPF(requester_cpf);

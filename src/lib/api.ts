@@ -148,20 +148,20 @@ Estou ciente de que a plataforma registrará e armazenará, de forma segura, os 
 
 const SEED_DOCUMENTS: (DocumentRecord & { template_title: string; procedure_description: string; content_markdown: string; consent_text_version: number })[] = [];
 
-// Helper Functions para LocalStorage
+// Helper Functions para Armazenamento Transitório de Contingência (SessionStorage Volátil)
 const getStorage = <T>(key: string, seed: T): T => {
   if (typeof window === 'undefined') return seed;
-  const data = localStorage.getItem(key);
+  const data = sessionStorage.getItem(key);
   if (data) {
     try { return JSON.parse(data); } catch {}
   }
-  localStorage.setItem(key, JSON.stringify(seed));
+  sessionStorage.setItem(key, JSON.stringify(seed));
   return seed;
 };
 
 const setStorage = <T>(key: string, data: T) => {
   if (typeof window !== 'undefined') {
-    localStorage.setItem(key, JSON.stringify(data));
+    sessionStorage.setItem(key, JSON.stringify(data));
   }
 };
 
@@ -184,7 +184,18 @@ const SEED_INSTITUTIONS: Institution[] = [
   { id: 'cemeit', name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)', short_name: 'CEMEIT', city: 'Taguatinga', state: 'DF', is_active: true },
 ];
 
-const getInstitutions = () => getStorage<Institution[]>('catraki_institutions', SEED_INSTITUTIONS);
+const getInstitutions = (): Institution[] => {
+  const current = getStorage<Institution[]>('catraki_institutions', SEED_INSTITUTIONS);
+  const legacyIds = ['ced01-estrutural', 'cem02-ceilandia', 'ced02-guara'];
+  const hasLegacy = current.some((inst) => legacyIds.includes(inst.id));
+  if (hasLegacy) {
+    const cleaned = current.filter((inst) => !legacyIds.includes(inst.id));
+    const finalInstitutions = cleaned.length > 0 ? cleaned : SEED_INSTITUTIONS;
+    setStorage('catraki_institutions', finalInstitutions);
+    return finalInstitutions;
+  }
+  return current;
+};
 const setInstitutions = (d: Institution[]) => setStorage('catraki_institutions', d);
 
 // ============================================================================
@@ -362,14 +373,14 @@ export const apiClient = {
   },
 
   /**
-   * Solicita envio de OTP por e-mail com código real
+   * Solicita envio de OTP por e-mail com código real e verificação anti-bot Turnstile
    */
-  async requestOtp(token: string, channel: 'sms' | 'email', email?: string, minor_name?: string): Promise<any> {
+  async requestOtp(token: string, channel: 'sms' | 'email', email?: string, minor_name?: string, turnstile_token?: string): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/signer/otp/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, channel, email, minor_name }),
+        body: JSON.stringify({ token, channel, email, minor_name, turnstile_token }),
       });
       return await resp.json();
     } catch {}
@@ -544,6 +555,9 @@ export const apiClient = {
     doc.parent_name = payload.signer_name;
     if (payload.minor_name) {
       doc.minor_name = payload.minor_name;
+    }
+    if (payload.minor_cpf) {
+      (doc as any).minor_cpf = maskCPF(payload.minor_cpf);
     }
     setDocuments(docs);
 
@@ -927,6 +941,27 @@ export const apiClient = {
     return { success: true, requests: getLgpdRequests() };
   },
 
+  async getMerkleAnchors(): Promise<any> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/merkle-anchors`, {
+        headers: this.getAuthHeaders(),
+      });
+      if (resp.ok) return await resp.json();
+    } catch {}
+    return { success: true, anchors: [] };
+  },
+
+  async anchorMerkle(): Promise<any> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/anchor-merkle`, {
+        method: 'POST',
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
+      });
+      if (resp.ok) return await resp.json();
+    } catch {}
+    return { success: false, error: 'Falha ao ancorar raiz de Merkle.' };
+  },
+
   /**
    * Busca dados da escola/instituição pelo slug da URL
    */
@@ -1196,7 +1231,7 @@ export const apiClient = {
   },
 
   /**
-   * Login de contingência com usuário e senha
+   * Login administrativo com usuário e senha
    */
   async loginAdminContingency(email: string, password: string): Promise<any> {
     try {
@@ -1210,21 +1245,9 @@ export const apiClient = {
         this.setAdminSession(data.token, data.user);
         return data;
       }
-      return data;
-    } catch {}
-
-    if (email.toLowerCase() === 'master@sesi.org.br' && password === 'SesiMaster@2026') {
-      const user = {
-        id: 'usr_master_01',
-        name: 'Dr. Roberto Silveira (Admin Master)',
-        email: 'master@sesi.org.br',
-        role: 'admin_master',
-      };
-      const token = `contingency_jwt_${Date.now()}`;
-      this.setAdminSession(token, user);
-      return { success: true, token, user };
+      return data || { success: false, error: 'Credenciais inválidas.' };
+    } catch (err: any) {
+      return { success: false, error: 'Erro de comunicação ao validar credenciais.', details: err.message };
     }
-
-    return { success: false, error: 'Credenciais inválidas.' };
   },
 };

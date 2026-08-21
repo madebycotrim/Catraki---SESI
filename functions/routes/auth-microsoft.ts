@@ -82,7 +82,10 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
 
     const clientId = (c.env as any).MICROSOFT_CLIENT_ID;
     const tenantId = (c.env as any).MICROSOFT_TENANT_ID || 'common';
-    const jwtSecret = c.env.JWT_ADMIN_SECRET || 'SESI_DEV_SECRET_KEY_FOR_LOCAL_TESTS_12345';
+    const jwtSecret = c.env.JWT_ADMIN_SECRET;
+    if (!jwtSecret) {
+      return c.json({ success: false, error: 'Configuração do servidor incompleta (JWT_ADMIN_SECRET ausente).' }, 500);
+    }
     const allowedDomains = (c.env as any).ALLOWED_EMAIL_DOMAINS;
 
     let userProfile = {
@@ -155,13 +158,11 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
         email: (graphData.mail || graphData.userPrincipalName || '').toLowerCase(),
       };
     } else {
-      // Modo Demonstração / Dev caso ainda não tenham sido inseridas as chaves no Azure
-      const mockEmail = 'gestor.sesi@sesi.org.br';
-      userProfile = {
-        id: `ms-mock-${Date.now()}`,
-        name: 'Gestor Institucional (SESI DF)',
-        email: mockEmail,
-      };
+      return c.json({
+        success: false,
+        error: 'Provedor Microsoft Entra ID não configurado no servidor (MICROSOFT_CLIENT_ID).',
+        code: 'OAUTH_NOT_CONFIGURED',
+      }, 500);
     }
 
     // 3. Validação de Domínio Institucional de Segurança
@@ -169,28 +170,30 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
       return c.json(
         {
           success: false,
-          error: `Acesso Negado: O e-mail (${userProfile.email}) não pertence a um domínio institucional autorizado (@sesi.org.br, @unb.br, etc.).`,
+          error: `Acesso Negado: O e-mail (${userProfile.email}) não pertence a um domínio institucional autorizado (@sesi.org.br, @sistemafibra.org.br, etc.).`,
           code: 'DOMAIN_NOT_ALLOWED',
         },
         403
       );
     }
 
-    // 4. Determina papel RBAC
+    // 4. Determina papel RBAC a partir do banco de dados D1
     let role: AdminRole = 'operador';
-    if (userProfile.email.includes('admin') || userProfile.email.includes('master') || userProfile.email.includes('cotrim')) {
-      role = 'admin_master';
-    } else if (userProfile.email.includes('dpo') || userProfile.email.includes('privacidade')) {
-      role = 'dpo';
-    }
-
-    // 5. Persiste / Atualiza no banco D1 se disponível
     if (c.env.DB) {
       try {
+        const existingUser = await c.env.DB.prepare(
+          'SELECT role FROM admin_users WHERE LOWER(email) = ? AND is_active = 1'
+        ).bind(userProfile.email.toLowerCase().trim()).first<{ role: string }>();
+
+        if (existingUser?.role) {
+          role = existingUser.role as AdminRole;
+        }
+
+        // 5. Persiste / Atualiza no banco D1 sem alterar o role pré-existente
         await c.env.DB.prepare(
-          `INSERT INTO admin_users (id, name, email, role, is_active)
-           VALUES (?, ?, ?, ?, 1)
-           ON CONFLICT(email) DO UPDATE SET name = excluded.name, role = excluded.role, is_active = 1`
+          `INSERT INTO admin_users (id, name, email, password_hash, role, is_active)
+           VALUES (?, ?, ?, 'MICROSOFT_SSO_OAUTH', ?, 1)
+           ON CONFLICT(email) DO UPDATE SET name = excluded.name, is_active = 1`
         ).bind(userProfile.id || `MS-${Date.now()}`, userProfile.name, userProfile.email, role).run();
       } catch {}
     }

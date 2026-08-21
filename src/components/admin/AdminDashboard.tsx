@@ -64,7 +64,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const fetchInstitutions = async () => {
     const res = await apiClient.getAdminInstitutions();
     if (res.success && res.institutions) {
-      setInstitutions(res.institutions);
+      const legacyIds = ['ced01-estrutural', 'cem02-ceilandia', 'ced02-guara'];
+      const activeOnly = res.institutions.filter(
+        (i: any) => !legacyIds.includes(i.id) && i.is_active !== false && i.is_active !== 0
+      );
+      setInstitutions(activeOnly);
     }
   };
 
@@ -96,12 +100,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           const realStudentName = (doc.minor_name && doc.minor_name.trim().toLowerCase() !== 'estudante escola cidadã' && doc.minor_name.trim().toLowerCase() !== 'estudante')
             ? doc.minor_name
-            : (doc.minor_name || 'Estudante');
+            : (doc.minor_name || (isSigned ? 'Estudante Cadastrado' : 'Aguardando preenchimento'));
+
+          const studentCpfMasked = doc.minor_cpf || (isSigned ? 'CPF não informado' : 'Pendente');
 
           return {
             id: doc.id,
             accessToken: doc.access_token,
             studentName: realStudentName,
+            studentCpfMasked,
             birthDate: doc.minor_birth_date || '',
             parentName: realParentName,
             parentCpfMasked: log?.signer_cpf_masked || (isSigned ? '***.***.***-**' : 'Pendente'),
@@ -556,6 +563,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <table className="w-full text-left border-collapse min-w-[720px]">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Código</th>
                     <th className="px-4 sm:px-6 py-3.5 sm:py-4">Paciente / Aluno</th>
                     <th className="px-4 sm:px-6 py-3.5 sm:py-4">Responsável Legal</th>
                     <th className="px-4 sm:px-6 py-3.5 sm:py-4">Instituição / Escola</th>
@@ -574,10 +582,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           key={auth.id} 
                           className="hover:bg-slate-50/70 transition-colors"
                         >
+                          <td className="px-4 sm:px-6 py-3.5 sm:py-4 whitespace-nowrap">
+                            <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 border border-slate-200 px-2 py-1 rounded-md">
+                              {auth.validationCode || auth.id}
+                            </span>
+                          </td>
                           <td className="px-4 sm:px-6 py-3.5 sm:py-4">
                             <div>
                               <div className="font-bold text-slate-900 text-xs sm:text-sm">{auth.studentName}</div>
-                              <div className="text-[11px] text-slate-400 font-mono mt-0.5">{auth.validationCode || auth.id}</div>
+                              <div className="text-[11px] text-slate-400 font-mono mt-0.5">{auth.studentCpfMasked}</div>
                             </div>
                           </td>
                           <td className="px-4 sm:px-6 py-3.5 sm:py-4">
@@ -634,7 +647,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     })
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 sm:py-16 text-center">
+                      <td colSpan={7} className="px-6 py-12 sm:py-16 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <AlertTriangle className="w-8 h-8 text-slate-300 mb-3" />
                           <h3 className="text-sm font-bold text-slate-700 mb-1">Nenhum registro encontrado</h3>

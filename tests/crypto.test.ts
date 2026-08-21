@@ -9,6 +9,8 @@ import {
   decryptAesGcm,
   canonicalJson,
   generateTsaTimestampToken,
+  generatePkceVerifier,
+  generatePkceChallenge,
 } from '../src/lib/crypto.ts';
 
 describe('Núcleo Criptográfico SESI Saúde (crypto.ts)', () => {
@@ -96,5 +98,15 @@ describe('Núcleo Criptográfico SESI Saúde (crypto.ts)', () => {
     expect(tsa.token).toBeDefined();
     expect(tsa.verified).toBe(true);
     expect(tsa.tsaName).toContain('Autoridade de Carimbo do Tempo');
+  });
+
+  it('deve gerar Code Verifier e Code Challenge PKCE conforme RFC 7636 (Base64URL SHA-256 de 43 caracteres)', async () => {
+    const verifier = generatePkceVerifier();
+    expect(verifier.length).toBeGreaterThanOrEqual(43);
+    expect(verifier).not.toMatch(/[\+\/=]/); // Sem +, sem / e sem padding =
+
+    const challenge = await generatePkceChallenge(verifier);
+    expect(challenge).toHaveLength(43); // SHA-256 (32 bytes) em Base64URL sem padding tem exatamente 43 caracteres
+    expect(challenge).not.toMatch(/[\+\/=]/);
   });
 });

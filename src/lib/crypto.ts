@@ -37,6 +37,35 @@ export function bytesToBase64(bytes: Uint8Array): string {
 }
 
 /**
+ * Converte Uint8Array para Base64URL sem padding (RFC 7636 / OAuth PKCE)
+ */
+export function bytesToBase64Url(bytes: Uint8Array): string {
+  return bytesToBase64(bytes)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+/**
+ * Gera Code Challenge PKCE S256 conforme RFC 7636 (Base64URL do hash SHA-256 binário)
+ */
+export async function generatePkceChallenge(codeVerifier: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(codeVerifier);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data as any);
+  return bytesToBase64Url(new Uint8Array(hashBuffer));
+}
+
+/**
+ * Gera um Code Verifier PKCE criptograficamente seguro (43-128 caracteres, RFC 7636)
+ */
+export function generatePkceVerifier(): string {
+  const randomBytes = new Uint8Array(32);
+  crypto.getRandomValues(randomBytes);
+  return bytesToBase64Url(randomBytes);
+}
+
+/**
  * Converte Base64 para Uint8Array
  */
 export function base64ToBytes(base64: string): Uint8Array {

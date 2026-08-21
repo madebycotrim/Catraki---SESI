@@ -2,6 +2,8 @@ import {
   sha256,
   generateTsaTimestampToken,
   canonicalJson,
+  generatePkceVerifier,
+  generatePkceChallenge,
 } from './crypto.ts';
 import { computeLogRowHash, verifyAuditChain } from './audit-chain.ts';
 import { querySesiMatricula } from './sesi-matricula.ts';
@@ -1015,7 +1017,8 @@ export const apiClient = {
 
     // Fallback local se a API estiver offline
     const state = `state_${Date.now()}`;
-    const codeVerifier = `verifier_${Date.now()}_pkce_secure`;
+    const codeVerifier = generatePkceVerifier();
+    const codeChallenge = await generatePkceChallenge(codeVerifier);
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('ms_code_verifier', codeVerifier);
       sessionStorage.setItem('ms_state', state);
@@ -1025,7 +1028,7 @@ export const apiClient = {
       success: true,
       authUrl: `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=00000000-0000-0000-0000-000000000000&response_type=code&redirect_uri=${encodeURIComponent(
         callbackUrl
-      )}&response_mode=query&scope=openid%20profile%20email%20User.Read&state=${state}&code_challenge=challenge_mock&code_challenge_method=S256&prompt=select_account`,
+      )}&response_mode=query&scope=openid%20profile%20email%20User.Read&state=${state}&code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=S256&prompt=select_account`,
       state,
       codeVerifier,
     };

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { sha256, generateSecureToken } from '../../src/lib/crypto.ts';
+import { generateSecureToken, generatePkceVerifier, generatePkceChallenge } from '../../src/lib/crypto.ts';
 import { signJwt, verifyJwt, JwtPayload } from '../middleware/auth.ts';
 import type { Env, AdminRole } from '../../src/lib/types.ts';
 
@@ -48,14 +48,14 @@ authMicrosoftRouter.post('/microsoft/login-url', async (c) => {
     // 1. Gera State para proteção contra CSRF
     const state = generateSecureToken(24);
 
-    // 2. Gera PKCE: Code Verifier e Code Challenge (SHA-256)
-    const codeVerifier = generateSecureToken(32);
-    const codeChallenge = await sha256(codeVerifier);
+    // 2. Gera PKCE RFC 7636: Code Verifier e Code Challenge (Base64URL SHA-256)
+    const codeVerifier = generatePkceVerifier();
+    const codeChallenge = await generatePkceChallenge(codeVerifier);
 
     const scopes = encodeURIComponent('openid profile email User.Read');
     const authUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(
       redirectUri
-    )}&response_mode=query&scope=${scopes}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256&prompt=select_account`;
+    )}&response_mode=query&scope=${scopes}&state=${state}&code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=S256&prompt=select_account`;
 
     return c.json({
       success: true,

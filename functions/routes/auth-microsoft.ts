@@ -115,7 +115,16 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
 
       if (!tokenResp.ok) {
         const errText = await tokenResp.text();
-        return c.json({ success: false, error: 'Falha ao validar credencial na Microsoft.', details: errText }, 401);
+        let parsedErr: any = null;
+        try {
+          parsedErr = JSON.parse(errText);
+        } catch {}
+        const errorDesc = parsedErr?.error_description || parsedErr?.error || errText;
+        return c.json({
+          success: false,
+          error: `Falha na validação Microsoft: ${errorDesc}`,
+          details: errText,
+        }, 401);
       }
 
       const tokenData: any = await tokenResp.json();
@@ -127,7 +136,12 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
       });
 
       if (!graphResp.ok) {
-        return c.json({ success: false, error: 'Não foi possível obter os dados do perfil no Microsoft 365.' }, 401);
+        const graphErr = await graphResp.text();
+        return c.json({
+          success: false,
+          error: `Não foi possível obter dados do perfil no Microsoft 365: ${graphErr}`,
+          details: graphErr,
+        }, 401);
       }
 
       const graphData: any = await graphResp.json();

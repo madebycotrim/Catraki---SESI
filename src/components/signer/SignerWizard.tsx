@@ -110,7 +110,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
 
       {step === 3 && formData && (
         <Step3OtpAndSignature
-          token={token}
+          token={documentData.id}
           minorName={formData.minorName}
           minorBirthDate={formData.minorBirthDate}
           procedureTitle={documentData.procedure_title}
@@ -143,7 +143,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
           minorName={formData.minorName}
           procedureTitle={documentData.procedure_title}
           onNavigateToValidator={onNavigateToValidator}
-          onNavigateToRevoke={() => onNavigateToRevoke(token)}
+          onNavigateToRevoke={() => onNavigateToRevoke(documentData.id)}
         />
       )}
     </div>

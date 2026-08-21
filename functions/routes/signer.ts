@@ -293,11 +293,14 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   if (!doc) {
     const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
     if (template) {
-      const newDocId = generateUniqueDocId('DOC');
+      const isDocId = token.startsWith('DOC-');
+      const newDocId = isDocId ? token : generateUniqueDocId('DOC');
+      const cleanAccessToken = isDocId ? token : newDocId;
+
       await db.prepare(
         `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+3 years'), datetime('now', '+1 year'))`
-      ).bind(newDocId, template.id, template.version, template.content_sha256, providedMinorName || 'Estudante', '2010-01-01', 'Responsável Legal', 'ENC_INITIAL', 'ENC_INITIAL', token).run();
+      ).bind(newDocId, template.id, template.version, template.content_sha256, providedMinorName || 'Estudante', '2010-01-01', 'Responsável Legal', 'ENC_INITIAL', 'ENC_INITIAL', cleanAccessToken).run();
       doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(newDocId).first<DocumentRecord>();
     }
   }
@@ -327,7 +330,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
      WHERE id = ?`
   ).bind(otpHash, expiresAtIso, doc.id).run();
 
-  // Disparo Real de E-mail via Resend API
+  // Disparo Real de E-mail via Resend API (com Fallback para MailChannels)
   const targetEmail = providedEmail;
   const studentName = providedMinorName || doc.minor_name || 'Estudante';
   const resendApiKey = (c.env as any).RESEND_API_KEY;
@@ -336,58 +339,93 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   let emailSent = false;
   let emailError = '';
 
-  if (targetEmail && resendApiKey) {
-    try {
-      const resendResp = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromAddress,
-          to: [targetEmail],
-          subject: `Código de Confirmação: ${otpCode} — Catraki`,
-          html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
-            <div style="border-bottom: 2px solid #034b7f; padding-bottom: 12px; margin-bottom: 20px;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="vertical-align: middle;">
-                    <h2 style="color: #034b7f; margin: 0; font-size: 18px; font-weight: bold;">Escola Cidadã — Saúde em Movimento</h2>
-                    <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Validação de Autoria por Código Eletrônico</span>
-                  </td>
-                  <td style="width: 40px; vertical-align: middle; text-align: right;">
-                    <img src="https://www.catraki.com.br/catraki.png" alt="Catraki" style="width: 36px; height: 36px; border-radius: 6px;" />
-                  </td>
-                </tr>
-              </table>
-            </div>
-            <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 12px 0;">Olá,</p>
-            <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
-              Para autenticar e concluir a assinatura do Termo de Consentimento referente ao(à) estudante <strong>${studentName}</strong>, utilize o código de segurança abaixo:
-            </p>
-            <div style="background: #f0f9ff; border: 2px solid #bae6fd; border-radius: 10px; padding: 18px; text-align: center; margin: 20px 0;">
-              <span style="font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #034b7f; font-family: monospace;">${otpCode}</span>
-            </div>
-            <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 20px 0 0 0;">
-              ⏱️ <strong>Validade:</strong> Este código expira em 5 minutos. Se você não solicitou este procedimento, por favor desconsidere este e-mail.
-            </p>
-            <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 11px; color: #94a3b8; text-align: center; line-height: 1.5;">
-              Assinatura Eletrônica Avançada • Lei Federal nº 14.063/2020 • Plataforma Catraki<br />
-              Para mais informações sobre como protegemos seus dados, consulte nossa <a href="https://www.catraki.com.br/privacidade" style="color: #034b7f; text-decoration: underline;">Política de Privacidade e Termos de Uso</a>.
-            </div>
-          </div>`,
-        }),
-      });
+  const otpHtml = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+    <div style="border-bottom: 2px solid #034b7f; padding-bottom: 12px; margin-bottom: 20px;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="vertical-align: middle;">
+            <h2 style="color: #034b7f; margin: 0; font-size: 18px; font-weight: bold;">Escola Cidadã — Saúde em Movimento</h2>
+            <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Validação de Autoria por Código Eletrônico</span>
+          </td>
+          <td style="width: 40px; vertical-align: middle; text-align: right;">
+            <img src="https://www.catraki.com.br/catraki.png" alt="Catraki" style="width: 36px; height: 36px; border-radius: 6px;" />
+          </td>
+        </tr>
+      </table>
+    </div>
+    <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 12px 0;">Olá,</p>
+    <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+      Para autenticar e concluir a assinatura do Termo de Consentimento referente ao(à) estudante <strong>${studentName}</strong>, utilize o código de segurança abaixo:
+    </p>
+    <div style="background: #f0f9ff; border: 2px solid #bae6fd; border-radius: 10px; padding: 18px; text-align: center; margin: 20px 0;">
+      <span style="font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #034b7f; font-family: monospace;">${otpCode}</span>
+    </div>
+    <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 20px 0 0 0;">
+      ⏱️ <strong>Validade:</strong> Este código expira em 5 minutos. Se você não solicitou este procedimento, por favor desconsidere este e-mail.
+    </p>
+    <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 11px; color: #94a3b8; text-align: center; line-height: 1.5;">
+      Assinatura Eletrônica Avançada • Lei Federal nº 14.063/2020 • Plataforma Catraki<br />
+      Para mais informações sobre como protegemos seus dados, consulte nossa <a href="https://www.catraki.com.br/privacidade" style="color: #034b7f; text-decoration: underline;">Política de Privacidade e Termos de Uso</a>.
+    </div>
+  </div>`;
 
-      if (resendResp.ok) {
-        emailSent = true;
-      } else {
-        const resendErr = await resendResp.text();
-        emailError = `Falha Resend: ${resendErr}`;
+  if (targetEmail) {
+    if (resendApiKey) {
+      try {
+        const resendResp = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromAddress,
+            to: [targetEmail],
+            subject: `Código de Confirmação: ${otpCode} — Catraki`,
+            html: otpHtml,
+          }),
+        });
+
+        if (resendResp.ok) {
+          emailSent = true;
+        } else {
+          const resendErr = await resendResp.text();
+          emailError = `Falha Resend: ${resendErr}`;
+        }
+      } catch (err: any) {
+        emailError = `Erro conexão Resend: ${err.message}`;
       }
-    } catch (err: any) {
-      emailError = `Erro conexão: ${err.message}`;
+    }
+
+    if (!emailSent) {
+      try {
+        const mcResp = await fetch('https://api.mailchannels.net/tx/v1/send', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            personalizations: [{ to: [{ email: targetEmail }] }],
+            from: {
+              email: 'autorizacoes@catraki.com.br',
+              name: 'Escola Cidadã — Saúde em Movimento',
+            },
+            subject: `Código de Confirmação: ${otpCode} — Catraki`,
+            content: [{
+              type: 'text/html',
+              value: otpHtml,
+            }],
+          }),
+        });
+
+        if (mcResp.ok) {
+          emailSent = true;
+          emailError = '';
+        } else {
+          const mcErr = await mcResp.text();
+          emailError = `${emailError ? emailError + ' | ' : ''}Falha MailChannels: ${mcErr}`;
+        }
+      } catch (err: any) {
+        emailError = `${emailError ? emailError + ' | ' : ''}Erro conexão MailChannels: ${err.message}`;
+      }
     }
   }
 
@@ -708,25 +746,13 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const institutionName = parsed.data.institution_name || 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)';
   const authImageStatus = parsed.data.auth_image === 'yes';
 
-  if (targetEmail && resendApiKey) {
-    try {
-      const dataFormatada = new Intl.DateTimeFormat('pt-BR', {
-        dateStyle: 'full',
-        timeStyle: 'medium',
-        timeZone: 'America/Sao_Paulo',
-      }).format(new Date(signedAtIso));
+  const dataFormatada = new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'full',
+    timeStyle: 'medium',
+    timeZone: 'America/Sao_Paulo',
+  }).format(new Date(signedAtIso));
 
-      await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromAddress,
-          to: [targetEmail],
-          subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
-          html: `<!DOCTYPE html>
+  const emailHtml = `<!DOCTYPE html>
 <html lang="pt-BR" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
   <meta charset="utf-8">
@@ -832,7 +858,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         </p>
 
         <p style="margin: 0 0 10px 0; text-indent: 28px;">
-          <strong>c) Captação e Uso de Imagem e Voz:</strong> <span style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700;">${authImageStatus ? '[ ✓ AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}</span> — ${authImageStatus ? 'Fica autorizada de forma gratuita a captação e veiculação de fotos e vídeos para documentação institucional, relatórios e prestação de contas do projeto (ECA, Art. 17).' : 'O(a) responsável optou por não autorizar o registro fotográfico ou audiovisual, permanecendo inalterado o pleno atendimento de saúde do(a) estudante.'}
+          <strong>c) Captação e Uso de Imagem e Voz:</strong> <span style="color: ${authImageStatus ? '#166534' : '#64748b'}; font-weight: 700;">${authImageStatus ? '[ ✓ AUTORIZADO ]' : '[ ✗ NÃO AUTORIZADO ]'}</span> — ${authImageStatus ? 'Fica autorizada de forma gratuita a captação e veiculação de fotos e vídeos para documentação institutional, relatórios e prestação de contas do projeto (ECA, Art. 17).' : 'O(a) responsável optou por não autorizar o registro fotográfico ou audiovisual, permanecendo inalterado o pleno atendimento de saúde do(a) estudante.'}
         </p>
 
         <p style="margin: 0 0 10px 0; text-indent: 28px;">
@@ -956,11 +982,67 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     </div>
   </div>
 </body>
-</html>`,
-        }),
-      });
-    } catch (e: any) {
-      console.error('Erro ao enviar e-mail de comprovante:', e.message);
+</html>`;
+
+  let comprovanteEnviado = false;
+
+  if (targetEmail) {
+    if (resendApiKey) {
+      try {
+        const resendResp = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromAddress,
+            to: [targetEmail],
+            subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
+            html: emailHtml,
+          }),
+        });
+
+        if (resendResp.ok) {
+          comprovanteEnviado = true;
+        } else {
+          const resendErr = await resendResp.text();
+          console.error('Falha ao enviar comprovante via Resend:', resendErr);
+        }
+      } catch (e: any) {
+        console.error('Erro de conexão ao enviar comprovante via Resend:', e.message);
+      }
+    }
+
+    if (!comprovanteEnviado) {
+      try {
+        const mcResp = await fetch('https://api.mailchannels.net/tx/v1/send', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            personalizations: [{ to: [{ email: targetEmail }] }],
+            from: {
+              email: 'autorizacoes@catraki.com.br',
+              name: 'Escola Cidadã — Saúde em Movimento',
+            },
+            subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
+            content: [{
+              type: 'text/html',
+              value: emailHtml,
+            }],
+          }),
+        });
+
+        if (mcResp.ok) {
+          comprovanteEnviado = true;
+          console.info('Comprovante de assinatura enviado com sucesso via MailChannels.');
+        } else {
+          const mcErr = await mcResp.text();
+          console.error('Falha ao enviar comprovante via MailChannels:', mcErr);
+        }
+      } catch (mcErr: any) {
+        console.error('Erro de conexão ao enviar comprovante via MailChannels:', mcErr.message);
+      }
     }
   }
 

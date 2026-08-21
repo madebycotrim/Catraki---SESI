@@ -123,7 +123,11 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         activeTurnstileToken || undefined
       );
       if (resp.success) {
-        setResendCooldown(60);
+        if (resp.email_sent === false && resp.email_error) {
+          setOtpError(`Erro no envio de e-mail (Resend): ${resp.email_error}`);
+        } else {
+          setResendCooldown(60);
+        }
       } else {
         setOtpError(resp.error || 'Falha ao enviar código para o e-mail.');
       }

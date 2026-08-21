@@ -73,36 +73,31 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
           </p>
 
           {/* Quais serviços estão disponíveis */}
-          <div className="space-y-2.5 pt-1">
-            <h2 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 m-0 border-b border-slate-100 pb-1">
+          <div className="space-y-1.5 pt-1">
+            <h2 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 m-0">
               <Info className="w-4 h-4 text-sesi-primary shrink-0" />
               <span>Quais serviços estão disponíveis nas Unidades Móveis?</span>
             </h2>
-            <p className="m-0 text-slate-700 text-xs sm:text-sm">
+            <p className="leading-relaxed pl-2 sm:pl-6 text-slate-700 m-0 text-xs sm:text-sm">
               Neste projeto itinerante, a nossa equipe multiprofissional oferecerá atendimentos focados na promoção da saúde, prevenção e qualidade de vida. As áreas de atuação contemplam:
             </p>
-            <div className="flex flex-col gap-2.5 pl-2 sm:pl-6 text-slate-700">
-              <div className="flex items-start gap-2">
-                <span className="text-sesi-primary font-bold mt-0.5">•</span>
-                <span className="text-xs sm:text-sm"><strong>Oftalmologia:</strong> Triagem visual e identificação de necessidades clínicas.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-sesi-primary font-bold mt-0.5">•</span>
-                <span className="text-xs sm:text-sm"><strong>Audiometria:</strong> Triagem auditiva para detecção precoce de alterações.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-sesi-primary font-bold mt-0.5">•</span>
-                <span className="text-xs sm:text-sm"><strong>Odontologia:</strong> Avaliação da saúde bucal e ações preventivas.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-sesi-primary font-bold mt-0.5">•</span>
-                <span className="text-xs sm:text-sm"><strong>Psicologia:</strong> Acolhimento e suporte à saúde mental da juventude.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-sesi-primary font-bold mt-0.5">•</span>
-                <span className="text-xs sm:text-sm"><strong>Nutrição:</strong> Avaliação e oficinas focadas em alimentação saudável.</span>
-              </div>
-            </div>
+            <ul className="list-disc pl-6 sm:pl-12 text-slate-700 space-y-1.5 leading-relaxed text-xs sm:text-sm">
+              <li>
+                <strong className="text-slate-950 font-semibold">Oftalmologia:</strong> Triagem visual e identificação de necessidades clínicas.
+              </li>
+              <li>
+                <strong className="text-slate-950 font-semibold">Audiometria:</strong> Triagem auditiva para detecção precoce de alterações.
+              </li>
+              <li>
+                <strong className="text-slate-950 font-semibold">Odontologia:</strong> Avaliação da saúde bucal e ações preventivas.
+              </li>
+              <li>
+                <strong className="text-slate-950 font-semibold">Psicologia:</strong> Acolhimento e suporte à saúde mental da juventude.
+              </li>
+              <li>
+                <strong className="text-slate-950 font-semibold">Nutrição:</strong> Avaliação e oficinas focadas em alimentação saudável.
+              </li>
+            </ul>
           </div>
 
           {/* Aviso Operacional Importante */}

@@ -4,7 +4,6 @@ import {
   ExternalLink,
   QrCode,
   FileText,
-  AlertCircle,
   Clock,
   Printer,
   MailCheck,
@@ -32,7 +31,6 @@ interface Step4SuccessProps {
   minorName: string;
   procedureTitle: string;
   onNavigateToValidator: (code: string) => void;
-  onNavigateToRevoke: () => void;
 }
 
 export const Step4Success: React.FC<Step4SuccessProps> = ({
@@ -42,7 +40,6 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
   minorName,
   procedureTitle,
   onNavigateToValidator,
-  onNavigateToRevoke,
 }) => {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [copiedCode, setCopiedCode] = useState(false);
@@ -312,14 +309,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               <ExternalLink className="w-4 h-4" />
             </button>
 
-            <button
-              type="button"
-              onClick={onNavigateToRevoke}
-              className="text-xs font-semibold text-slate-500 hover:text-amber-700 underline flex items-center gap-1.5 transition-colors py-2"
-            >
-              <AlertCircle className="w-3.5 h-3.5" />
-              <span>Revogar consentimento (Art. 18 LGPD)</span>
-            </button>
+
           </div>
 
         </div>

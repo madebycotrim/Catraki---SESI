@@ -730,7 +730,18 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
   const targetEmail = parsed.data.signer_email;
   const studentName = parsed.data.minor_name || doc.minor_name || 'Estudante';
-  const studentBirth = parsed.data.minor_birth_date || doc.minor_birth_date || '';
+  const rawBirth = parsed.data.minor_birth_date || doc.minor_birth_date || '';
+  let studentBirth = 'Data não informada';
+  if (rawBirth && rawBirth.includes('-')) {
+    const parts = rawBirth.split('-');
+    if (parts.length === 3) {
+      studentBirth = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    } else {
+      studentBirth = rawBirth;
+    }
+  } else {
+    studentBirth = rawBirth || 'Data não informada';
+  }
   const studentCpf = parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : '';
   const rawSeries = (parsed.data.minor_series || '').trim();
   const rawClass = (parsed.data.minor_class || '').trim();
@@ -875,7 +886,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       <!-- 3. Cláusula Terceira — Direitos e Revogação (LGPD) -->
       <div style="margin-bottom: 24px; font-size: 12.5px; line-height: 1.85; color: #1e293b; text-align: justify;">
         <p style="margin: 0; text-indent: 28px;">
-          Declaro estar ciente de que os dados coletados não serão comercializados e que é garantido o direito de acesso, retificação ou revogação deste consentimento a qualquer momento (Artigo 18 da LGPD), mediante solicitação formal à direção da escola ou pelo e-mail oficial: <strong>autorizacoes@catraki.com.br</strong>.
+          Declaro estar ciente de que os dados coletados não serão comercializados e que é garantido o direito de acesso, retificação ou revogação deste consentimento a qualquer momento (Artigo 18 da LGPD), procurando a equipe de apoio presencial do projeto ou a coordenação da escola.
         </p>
       </div>
 

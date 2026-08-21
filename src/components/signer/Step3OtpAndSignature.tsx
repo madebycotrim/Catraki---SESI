@@ -609,7 +609,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 <strong>Finalidade e Proteção:</strong> Os dados coletados não serão comercializados, repassados a terceiros alheios ao projeto ou utilizados para fins discriminatórios.
               </p>
               <p className="m-0">
-                <strong>Direito de Revogação:</strong> O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação deste consentimento a qualquer momento mediante solicitação formal à direção da escola, pelo e-mail oficial <a href="mailto:autorizacoes@catraki.com.br" className="text-sesi-primary underline">autorizacoes@catraki.com.br</a> ou diretamente pelo <a href="/revogar" className="text-sesi-primary underline">Portal de Revogação</a> da plataforma.
+                <strong>Direito de Revogação:</strong> O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação deste consentimento a qualquer momento, procurando a equipe de apoio presencial do projeto ou a coordenação da escola.
               </p>
               <p className="m-0 pt-1 text-[11px] text-slate-500">
                 Para mais informações sobre a retenção de dados e segurança da informação, consulte nossa <a href="/privacidade" target="_blank" className="text-sesi-primary underline font-medium">Política de Privacidade e Termos de Uso</a>.

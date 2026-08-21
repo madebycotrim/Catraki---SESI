@@ -13,14 +13,12 @@ interface SignerWizardProps {
   initialToken?: string;
   schoolSlug?: string;
   onNavigateToValidator: (hash: string) => void;
-  onNavigateToRevoke: (token: string) => void;
 }
 
 export const SignerWizard: React.FC<SignerWizardProps> = ({
   initialToken = 'demo-token-sesi-audiometria-2026',
   schoolSlug = 'cemeit',
   onNavigateToValidator,
-  onNavigateToRevoke,
 }) => {
   const [token] = useState(initialToken);
   const [institution, setInstitution] = useState<Institution | null>(null);
@@ -143,7 +141,6 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
           minorName={formData.minorName}
           procedureTitle={documentData.procedure_title}
           onNavigateToValidator={onNavigateToValidator}
-          onNavigateToRevoke={() => onNavigateToRevoke(documentData.id)}
         />
       )}
     </div>

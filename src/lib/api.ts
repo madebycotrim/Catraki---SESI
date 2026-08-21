@@ -116,7 +116,7 @@ A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que 
 
 **Finalidade e Proteção:** Os dados coletados não serão comercializados, repassados a terceiros alheios ao projeto ou utilizados para fins discriminatórios.
 
-**Direito de Revogação:** O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação deste consentimento a qualquer momento, mediante solicitação formal à direção da escola, pelo e-mail oficial **autorizacoes@catraki.com.br** ou diretamente pelo Portal de Revogação da plataforma.
+**Direito de Revogação:** O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação deste consentimento a qualquer momento, procurando a equipe de apoio presencial do projeto ou a coordenação da escola.
 
 **Seus direitos garantidos:** acesso, correção, eliminação, portabilidade, revogação do consentimento e reclamação perante a **ANPD** (anpd.gov.br).
 

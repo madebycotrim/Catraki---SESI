@@ -109,11 +109,9 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             <p>
               Conforme o <strong>Artigo 18 da LGPD</strong>, o responsável legal tem o direito de solicitar a qualquer tempo a confirmação da existência de tratamento, o acesso aos dados, a correção de dados incompletos ou a <strong>revogação do consentimento</strong>.
             </p>
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 space-y-1.5 mt-2">
-              <p className="font-bold text-slate-900 m-0">Canal de Atendimento do Titular / DPO:</p>
-              <p className="m-0"><strong>E-mail Oficial:</strong> <a href="mailto:autorizacoes@catraki.com.br" className="text-sesi-primary font-mono underline">autorizacoes@catraki.com.br</a></p>
-              <p className="m-0"><strong>Portal Digital de Revogação:</strong> <a href="/revogar" className="text-sesi-primary underline">https://www.catraki.com.br/revogar</a></p>
-              <p className="m-0 text-slate-500 text-[11px]">Prazo regulamentar de resposta: até 15 (quinze) dias úteis.</p>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 space-y-1.5 mt-2 text-xs sm:text-sm text-slate-700">
+              <p className="font-bold text-slate-900 m-0">Canal de Atendimento do Titular:</p>
+              <p className="m-0">Para exercer os seus direitos ou solicitar a revogação deste termo, procure a equipe de apoio presencial do projeto ou a coordenação da escola.</p>
             </div>
           </section>
 

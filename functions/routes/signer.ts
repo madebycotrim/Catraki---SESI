@@ -236,7 +236,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   const { token, channel, turnstile_token } = parsed.data;
 
   // Validação Canônica Cloudflare Turnstile Anti-Bot
-  const turnstileSecret = c.env.TURNSTILE_SECRET_KEY;
+  const turnstileSecret = c.env.TURNSTILE_SECRET_KEY || (c.env as any).TURNSTILE_SECRET;
   const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for');
   const allowedHostnames = c.env.TURNSTILE_HOSTNAMES
     ? c.env.TURNSTILE_HOSTNAMES.split(',').map((h) => h.trim())

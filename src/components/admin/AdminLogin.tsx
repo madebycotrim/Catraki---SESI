@@ -172,21 +172,18 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
           </div>
         </div>
 
-        {/* Rodapé e Barra Institucional */}
-        <div className="mt-6 pt-4 relative">
-          {/* Número de página (canto superior direito ABNT) */}
-          <div className="absolute top-3 right-4 font-sans text-xs text-slate-400">
-            1
-          </div>
+        {/* Número de página (canto superior direito ABNT) */}
+        <div className="absolute top-4 sm:top-6 right-4 sm:right-6 font-sans text-xs text-slate-400">
+          1
+        </div>
 
-          {/* Barra institucional no final da folha A5 */}
-          <div className="absolute bottom-0 left-0 right-0 overflow-hidden">
-            <img
-              src="/barra.jpg"
-              alt="Barra institucional SESI"
-              className="w-full h-4 sm:h-5 object-cover object-center block"
-            />
-          </div>
+        {/* Barra institucional fixada no final da folha A5 (de borda a borda, independente do padding) */}
+        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden pointer-events-none z-10 leading-none">
+          <img
+            src="/barra.jpg"
+            alt="Barra institucional SESI"
+            className="w-full h-4 sm:h-5 object-cover object-center block"
+          />
         </div>
 
       </div>

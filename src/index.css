@@ -68,6 +68,7 @@
   font-family: 'Arial', 'Helvetica Neue', sans-serif;
   color: #000000;
   position: relative;
+  overflow: hidden;
   border-radius: 0px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
   padding: 1.5rem 1.25rem 4.5rem 1.25rem;
@@ -102,6 +103,7 @@
   font-family: 'Arial', 'Helvetica Neue', sans-serif;
   color: #000000;
   position: relative;
+  overflow: hidden;
   border-radius: 0px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
   padding: 1.5rem 1.25rem 3.5rem 1.25rem;

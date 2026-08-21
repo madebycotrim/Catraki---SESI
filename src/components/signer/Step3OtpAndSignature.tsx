@@ -110,12 +110,17 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
     setOtpSending(true);
     setOtpError('');
     try {
+      const activeTurnstileToken =
+        activeToken ||
+        turnstileToken ||
+        (typeof window !== 'undefined' && window.turnstile ? window.turnstile.getResponse() : '');
+
       const resp = await apiClient.requestOtp(
         token, 
         'email', 
         identityData.signerEmail || undefined, 
         minorName || undefined,
-        activeToken || turnstileToken || undefined
+        activeTurnstileToken || undefined
       );
       if (resp.success) {
         setResendCooldown(60);
@@ -675,7 +680,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         </div>
 
         {/* Barra institucional no final da folha */}
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden">
+        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden pointer-events-none z-10 leading-none">
           <img
             src="/barra.jpg"
             alt="Barra institucional SESI"
@@ -825,7 +830,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
             </div>
 
             {/* Barra institucional no final da folha A5 */}
-            <div className="absolute bottom-0 left-0 right-0 overflow-hidden">
+            <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden pointer-events-none z-10 leading-none">
               <img
                 src="/barra.jpg"
                 alt="Barra institucional SESI"

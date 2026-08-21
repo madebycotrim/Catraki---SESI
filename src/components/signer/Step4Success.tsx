@@ -317,7 +317,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
         </div>
 
         {/* Barra institucional no final da folha */}
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden">
+        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden pointer-events-none z-10 leading-none">
           <img
             src="/barra.jpg"
             alt="Barra institucional SESI"

@@ -811,6 +811,13 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     hashManifesto: manifestSha256,
     dataAssinatura: new Date(signedAtIso),
     tipoAssinatura: 'ELETRONICA_AVANCADA',
+    ipAddress: ipAddress,
+    userAgent: userAgent,
+    geoCidade: geoCity,
+    geoEstado: geoRegion,
+    geoPais: geoCountry,
+    otpRequestedAt: doc.otp_requested_at ? new Date(doc.otp_requested_at) : undefined,
+    otpVerifiedAt: new Date(signedAtIso),
   });
 
   if (bucket) {

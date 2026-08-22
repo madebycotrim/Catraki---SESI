@@ -16,15 +16,27 @@ export interface IDadosTermoPdf {
   dataAssinatura?: Date;
   assinaturaPngBase64?: string;
   tipoAssinatura?: 'ICP_BRASIL_A1' | 'ELETRONICA_AVANCADA';
+  ipAddress?: string;
+  userAgent?: string;
+  geoCidade?: string;
+  geoEstado?: string;
+  geoPais?: string;
+  otpRequestedAt?: Date;
+  otpVerifiedAt?: Date;
 }
 
 /**
  * Gerador de PDF A4 Oficial para Termos de Consentimento (TCLE) SESI Saúde
  * Gera o documento estruturado em páginas A4 com QR Code de validação pública e marcas oficiais.
+ * Inclui uma Página de Auditoria (Log de Assinatura) contendo todas as evidências digitais da assinatura.
  */
 export class GeradorPdfTermoSesi {
   public static async gerarPdfOriginal(dados: IDadosTermoPdf): Promise<Uint8Array> {
     const pdfDoc = await PDFDocument.create();
+    
+    // ==========================================
+    // PÁGINA 1: TERMO DE CONSENTIMENTO (TCLE)
+    // ==========================================
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 (pontos)
     const { width, height } = page.getSize();
 
@@ -260,7 +272,7 @@ export class GeradorPdfTermoSesi {
       color: corCinza,
     });
 
-    // Rodapé
+    // Rodapé da Página 1
     page.drawText('Documento assinado eletronicamente através da plataforma Catraki com validade jurídica (MP 2.200-2/2001 e Lei 14.063/2020).', {
       x: margemEsquerda,
       y: 25,
@@ -268,6 +280,211 @@ export class GeradorPdfTermoSesi {
       font: fontRegular,
       color: corCinza,
     });
+
+    // ==========================================
+    // PÁGINA 2: REGISTRO DE AUDITORIA (LOG)
+    // ==========================================
+    if (dados.tipoAssinatura === 'ELETRONICA_AVANCADA' || dados.ipAddress) {
+      const page2 = pdfDoc.addPage([595.28, 841.89]);
+      let y2 = height - 50;
+
+      // Cabeçalho da página 2
+      page2.drawText('PLATAFORMA CATRAKI — REGISTRO DE AUDITORIA', {
+        x: margemEsquerda,
+        y: y2,
+        size: 12,
+        font: fontBold,
+        color: corAzulSesi,
+      });
+      
+      y2 -= 14;
+      page2.drawText('Trilha de Evidências Digitais de Assinatura Eletrônica (MP 2.200-2/2001 e Lei 14.063/2020)', {
+        x: margemEsquerda,
+        y: y2,
+        size: 8,
+        font: fontRegular,
+        color: corCinza,
+      });
+
+      y2 -= 10;
+      page2.drawLine({
+        start: { x: margemEsquerda, y: y2 },
+        end: { x: width - margemEsquerda, y: y2 },
+        thickness: 1.5,
+        color: corAzulSesi,
+      });
+
+      // 1. DADOS DO SIGNATÁRIO E STATUS
+      y2 -= 25;
+      page2.drawText('1. DADOS DO SIGNATÁRIO E STATUS', {
+        x: margemEsquerda,
+        y: y2,
+        size: 9,
+        font: fontBold,
+        color: corAzulSesi,
+      });
+
+      y2 -= 16;
+      page2.drawText(`Nome Completo: ${dados.nomeResponsavel}`, {
+        x: margemEsquerda,
+        y: y2,
+        size: 8.5,
+        font: fontRegular,
+        color: corTexto,
+      });
+
+      y2 -= 13;
+      page2.drawText(`CPF Cadastrado: ${dados.cpfResponsavelMascarado} (Vínculo: ${dados.parentesco})`, {
+        x: margemEsquerda,
+        y: y2,
+        size: 8.5,
+        font: fontRegular,
+        color: corTexto,
+      });
+
+      y2 -= 13;
+      const statusAssinatura = dados.dataAssinatura ? 'ASSINADO E CONFIRMADO' : 'PENDENTE';
+      page2.drawText(`Status do Documento: ${statusAssinatura}`, {
+        x: margemEsquerda,
+        y: y2,
+        size: 8.5,
+        font: fontBold,
+        color: dados.dataAssinatura ? rgb(16/255, 124/255, 65/255) : rgb(200/255, 0, 0),
+      });
+
+      // 2. EVIDÊNCIAS DIGITAIS DE CONEXÃO
+      y2 -= 25;
+      page2.drawText('2. EVIDÊNCIAS DIGITAIS DE CONEXÃO', {
+        x: margemEsquerda,
+        y: y2,
+        size: 9,
+        font: fontBold,
+        color: corAzulSesi,
+      });
+
+      y2 -= 16;
+      page2.drawText(`Endereço de IP: ${dados.ipAddress || 'Não coletado'}`, {
+        x: margemEsquerda,
+        y: y2,
+        size: 8.5,
+        font: fontRegular,
+        color: corTexto,
+      });
+
+      y2 -= 13;
+      const geo = dados.geoCidade ? `${dados.geoCidade}/${dados.geoEstado || 'N/A'}/${dados.geoPais || 'BR'}` : 'Não coletada';
+      page2.drawText(`Geolocalização aproximada: ${geo}`, {
+        x: margemEsquerda,
+        y: y2,
+        size: 8.5,
+        font: fontRegular,
+        color: corTexto,
+      });
+
+      y2 -= 13;
+      const uaQuebrado = this.quebrarTexto(dados.userAgent || 'Não coletado', 85);
+      page2.drawText('Navegador / Dispositivo (User-Agent):', {
+        x: margemEsquerda,
+        y: y2,
+        size: 8.5,
+        font: fontBold,
+        color: corTexto,
+      });
+      for (const uaLinha of uaQuebrado) {
+        y2 -= 11;
+        page2.drawText(uaLinha, {
+          x: margemEsquerda + 10,
+          y: y2,
+          size: 7.5,
+          font: fontRegular,
+          color: corCinza,
+        });
+      }
+
+      // 3. REGISTROS DE AUTENTICAÇÃO E HISTÓRICO (2FA OTP)
+      y2 -= 25;
+      page2.drawText('3. REGISTROS DE AUTENTICAÇÃO (2FA OTP)', {
+        x: margemEsquerda,
+        y: y2,
+        size: 9,
+        font: fontBold,
+        color: corAzulSesi,
+      });
+
+      y2 -= 16;
+      const reqDate = dados.otpRequestedAt ? dados.otpRequestedAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : 'Não registrado';
+      page2.drawText(`[Passo 1] Código de segurança de uso único (OTP) solicitado em: ${reqDate}`, {
+        x: margemEsquerda,
+        y: y2,
+        size: 8.5,
+        font: fontRegular,
+        color: corTexto,
+      });
+
+      y2 -= 13;
+      const verDate = dados.otpVerifiedAt ? dados.otpVerifiedAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : 'Não registrado';
+      page2.drawText(`[Passo 2] Autenticação confirmada e documento assinado em: ${verDate}`, {
+        x: margemEsquerda,
+        y: y2,
+        size: 8.5,
+        font: fontRegular,
+        color: corTexto,
+      });
+
+      // 4. INTEGRIDADE CRIPTOGRÁFICA
+      y2 -= 25;
+      page2.drawText('4. INTEGRIDADE CRIPTOGRÁFICA', {
+        x: margemEsquerda,
+        y: y2,
+        size: 9,
+        font: fontBold,
+        color: corAzulSesi,
+      });
+
+      y2 -= 16;
+      page2.drawText(`Hash de Integridade do Manifesto (SHA-256):`, {
+        x: margemEsquerda,
+        y: y2,
+        size: 8.5,
+        font: fontBold,
+        color: corTexto,
+      });
+      y2 -= 12;
+      page2.drawText(dados.hashManifesto || 'Pendente de assinatura', {
+        x: margemEsquerda + 10,
+        y: y2,
+        size: 8,
+        font: fontRegular,
+        color: corCinza,
+      });
+
+      // Nota de travamento
+      y2 -= 25;
+      page2.drawText('🔒 AVISO DE INTEGRIDADE: Este documento foi selado criptograficamente com resumo SHA-256.', {
+        x: margemEsquerda,
+        y: y2,
+        size: 7.5,
+        font: fontBold,
+        color: corAzulSesi,
+      });
+      y2 -= 10;
+      page2.drawText('Qualquer tentativa de alteração no conteúdo deste PDF invalidará permanentemente os hashes de auditoria.', {
+        x: margemEsquerda,
+        y: y2,
+        size: 7,
+        font: fontRegular,
+        color: corCinza,
+      });
+
+      // Rodapé da página 2
+      page2.drawText('PLATAFORMA CATRAKI — SISTEMA OFICIAL DE REGISTRO E CUSTÓDIA DE ASSINATURAS ELETRÔNICAS.', {
+        x: margemEsquerda,
+        y: 25,
+        size: 6.5,
+        font: fontRegular,
+        color: corCinza,
+      });
+    }
 
     return await pdfDoc.save();
   }

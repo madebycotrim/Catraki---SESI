@@ -126,7 +126,7 @@ A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que 
 
 Declaro, sob as penas da lei (**Art. 299 do Código Penal — Falsidade Ideológica**, reclusão de 1 a 3 anos), que sou o(a) legítimo(a) responsável legal do(a) menor acima qualificado(a) e que as informações por mim inseridas nesta plataforma são verdadeiras.
 
-As partes (SESI Saúde e o signatário) concordam expressamente em assinar este termo por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de **eficácia probatória e validade jurídica**, nos termos do **Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001** e da **Lei nº 14.063/2020**.
+As partes (SESI Saúde e o signatário) concordam expressamente em assinar este termo por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de **eficácia probatória e validade jurídica**, nos termos do **Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001**, da **Lei nº 14.063/2020** e da jurisprudência consolidada do Superior Tribunal de Justiça (**STJ - REsp 2.205.708/PR**).
 
 Estou ciente e concordo que a plataforma registrará e armazenará, de forma segura, os seguintes dados para fins de comprovação de autoria e auditoria da integridade da minha assinatura:
 
@@ -138,7 +138,7 @@ Estou ciente e concordo que a plataforma registrará e armazenará, de forma seg
 ---
 
 *Ao prosseguir e confirmar a leitura, você avançará para a etapa de preenchimento dos seus dados e registro individual de cada autorização (A, B e C). O aceite final ocorre somente após o preenchimento completo e a assinatura eletrônica.*`,
-    content_sha256: 'b4e2f1a3d5c6b7a8f9e0d1c2b3a4f5e6d7c8b9a0f1e2d3c4b5a6f7e8d9c0b1a2',
+    content_sha256: '5d98b3c1ad95490eba3b6339902569637cb26659bbaefc481b6e8c9edf5261da',
     consent_text_version: 3,
     retention_days: 7300, // 20 anos conforme o termo
     is_active: true,

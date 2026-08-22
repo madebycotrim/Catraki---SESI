@@ -47,9 +47,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const [authData, setAuthData] = useState<'yes' | 'no' | null>(null);
   const [authImage, setAuthImage] = useState<'yes' | 'no' | null>(null);
   const [readAndAccept, setReadAndAccept] = useState(false);
-  const [otpChannel, setOtpChannel] = useState<'email' | 'sms'>(
-    identityData.signerPhone ? 'sms' : 'email'
-  );
+  const [otpChannel] = useState<'email' | 'sms'>('email');
   const [declarationLegalResponsibility, setDeclarationLegalResponsibility] = useState(false);
 
   const [submittingSign, setSubmittingSign] = useState(false);
@@ -641,73 +639,12 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-200 space-y-3">
-                <span className="block text-xs font-bold text-slate-700 uppercase">
-                  Escolha o canal de envio do código de segurança:
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    disabled={!identityData.signerPhone}
-                    onClick={() => setOtpChannel('sms')}
-                    className={`flex items-center justify-between p-3.5 rounded-xl border-2 transition-all cursor-pointer text-left ${
-                      otpChannel === 'sms'
-                        ? 'border-sesi-primary bg-blue-50/50 text-slate-900 font-bold'
-                        : 'border-slate-200 bg-white hover:border-slate-300 text-slate-600'
-                    } ${!identityData.signerPhone ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <div>
-                      <span className="text-xs sm:text-sm block">WhatsApp ou SMS</span>
-                      {identityData.signerPhone ? (
-                        <span className="text-[10px] sm:text-xs text-slate-500 font-normal block mt-0.5 font-mono">
-                          {identityData.signerPhone} (Recomendado)
-                        </span>
-                      ) : (
-                        <span className="text-[10px] sm:text-xs text-slate-400 font-normal block mt-0.5">
-                          Celular não informado
-                        </span>
-                      )}
-                    </div>
-                    {otpChannel === 'sms' && (
-                      <span className="w-5 h-5 rounded-full bg-sesi-primary text-white flex items-center justify-center text-xs">✓</span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={!identityData.signerEmail}
-                    onClick={() => setOtpChannel('email')}
-                    className={`flex items-center justify-between p-3.5 rounded-xl border-2 transition-all cursor-pointer text-left ${
-                      otpChannel === 'email'
-                        ? 'border-sesi-primary bg-blue-50/50 text-slate-900 font-bold'
-                        : 'border-slate-200 bg-white hover:border-slate-300 text-slate-600'
-                    } ${!identityData.signerEmail ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <div>
-                      <span className="text-xs sm:text-sm block">E-mail</span>
-                      {identityData.signerEmail ? (
-                        <span className="text-[10px] sm:text-xs text-slate-500 font-normal block mt-0.5 break-all">
-                          {identityData.signerEmail}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] sm:text-xs text-slate-400 font-normal block mt-0.5">
-                          E-mail não informado
-                        </span>
-                      )}
-                    </div>
-                    {otpChannel === 'email' && (
-                      <span className="w-5 h-5 rounded-full bg-sesi-primary text-white flex items-center justify-center text-xs">✓</span>
-                    )}
-                  </button>
-                </div>
-              </div>
-
               <div className="pt-3 border-t border-slate-200 space-y-2 text-xs sm:text-sm text-slate-600 leading-relaxed text-justify">
                 <p className="m-0 font-bold text-slate-800">
-                  Confirmação de Segurança por {otpChannel === 'sms' ? 'Celular (WhatsApp/SMS)' : 'E-mail'}:
+                  Confirmação de Segurança por E-mail:
                 </p>
                 <p className="m-0">
-                  Para concluir a assinatura e garantir a segurança do processo, enviaremos um código temporário de 6 (seis) dígitos para o seu {otpChannel === 'sms' ? 'celular via SMS/WhatsApp' : 'e-mail cadastrado'}.
+                  Para concluir a assinatura e garantir a segurança do processo, enviaremos um código temporário de 6 (seis) dígitos para o e-mail cadastrado (<strong className="break-all">{identityData.signerEmail}</strong>).
                 </p>
                 <p className="m-0 text-[11px] text-amber-600 font-semibold flex items-center gap-1">
                   ⏱️ O código temporário expira em 5 minutos.
@@ -840,12 +777,12 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               {/* Corpo do Documento A5 */}
               <div className="space-y-3.5">
                 <p style={{ textAlign: 'justify', fontSize: '9.5pt', color: '#334155', margin: 0, lineHeight: '1.5' }}>
-                  Para autenticar a assinatura do Termo de Consentimento referente ao(à) estudante <strong>{minorName}</strong>, enviamos um código de segurança de 6 dígitos para o {otpChannel === 'sms' ? 'celular (WhatsApp/SMS)' : 'e-mail'}:
+                  Para autenticar a assinatura do Termo de Consentimento referente ao(à) estudante <strong>{minorName}</strong>, enviamos um código de segurança de 6 dígitos para o e-mail:
                 </p>
 
                 <div className="bg-blue-50/80 border border-blue-200 rounded-md p-2.5 text-center">
                   <span className="font-mono font-bold text-sesi-primary text-xs tracking-wide select-all break-all">
-                    {otpChannel === 'sms' ? identityData.signerPhone : identityData.signerEmail}
+                    {identityData.signerEmail}
                   </span>
                 </div>
 

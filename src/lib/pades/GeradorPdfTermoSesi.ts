@@ -460,7 +460,7 @@ export class GeradorPdfTermoSesi {
 
       // Nota de travamento
       y2 -= 25;
-      page2.drawText('🔒 AVISO DE INTEGRIDADE: Este documento foi selado criptograficamente com resumo SHA-256.', {
+      page2.drawText('AVISO DE INTEGRIDADE: Este documento foi selado criptograficamente com resumo SHA-256.', {
         x: margemEsquerda,
         y: y2,
         size: 7.5,

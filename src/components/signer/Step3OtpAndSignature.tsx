@@ -747,8 +747,8 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 }}
               >
                 <img
-                  src="/logo-1linha.svg"
-                  alt="SESI Saúde"
+                  src="/catraki.png"
+                  alt="Catraki"
                   style={{ height: '34px', objectFit: 'contain' }}
                 />
                 <div style={{ textAlign: 'right' }}>

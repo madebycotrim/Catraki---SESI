@@ -526,6 +526,12 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
      WHERE id = ?`
   ).bind(otpHash, expiresAtIso, new Date().toISOString(), messageId, deliveryStatus, doc.id).run();
 
+  if (!emailSent && !smsSent) {
+    console.info(`[SIMULATION_OTP] Código OTP gerado para o documento ${doc.id}: ${otpCode}`);
+  } else {
+    console.log(`[SECURE_OTP] Código OTP enviado com sucesso.`);
+  }
+
   return c.json({
     success: true,
     channel,

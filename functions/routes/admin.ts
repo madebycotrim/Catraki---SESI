@@ -150,14 +150,17 @@ adminRouter.post('/templates', requireAuth(['admin_master', 'operador']), async 
 
 adminRouter.get('/documents', async (c) => {
   const db = c.env.DB;
+  const limitQuery = c.req.query('limit');
+  const limit = limitQuery === 'all' ? 100000 : (parseInt(limitQuery || '100', 10) || 100);
+
   const docs = await db.prepare(
     `SELECT d.id, d.template_id, d.template_version, d.minor_name, d.minor_birth_date, d.minor_cpf, d.parent_name,
             d.status, d.access_token, d.expires_at, d.retention_expires_at, d.created_at, d.revoked_at,
             t.title as template_title, t.procedure_description
      FROM documents d
      LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-     ORDER BY d.created_at DESC LIMIT 100`
-  ).all<any>();
+     ORDER BY d.created_at DESC LIMIT ?`
+  ).bind(limit).all<any>();
 
   return c.json({ success: true, documents: docs.results || [] });
 });

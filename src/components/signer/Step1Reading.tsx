@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, ShieldCheck, Info, Eye } from 'lucide-react';
+import { ChevronRight, Info, Eye } from 'lucide-react';
 import type { Institution } from '../../lib/types.ts';
 
 interface Step1ReadingProps {
@@ -72,33 +72,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
             Criamos este ambiente digital para que você possa autorizar a participação do(a) estudante com total transparência, comodidade e segurança jurídica, direto do seu celular e sem a necessidade de imprimir papéis.
           </p>
 
-          {/* Quais serviços estão disponíveis */}
-          <div className="space-y-1.5 pt-1">
-            <h2 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 m-0">
-              <Info className="w-4 h-4 text-sesi-primary shrink-0" />
-              <span>Quais serviços estão disponíveis nas Unidades Móveis?</span>
-            </h2>
-            <p className="leading-relaxed pl-2 sm:pl-6 text-slate-700 m-0 text-xs sm:text-sm">
-              Neste projeto itinerante, a nossa equipe multiprofissional oferecerá atendimentos focados na promoção da saúde, prevenção e qualidade de vida. As áreas de atuação contemplam:
-            </p>
-            <ul className="list-disc pl-6 sm:pl-12 text-slate-700 space-y-1.5 leading-relaxed text-xs sm:text-sm">
-              <li>
-                <strong className="text-slate-950 font-semibold">Oftalmologia:</strong> Triagem visual e identificação de necessidades clínicas.
-              </li>
-              <li>
-                <strong className="text-slate-950 font-semibold">Fonoaudiologia (Audiometria):</strong> Triagem auditiva para detecção precoce de alterações.
-              </li>
-              <li>
-                <strong className="text-slate-950 font-semibold">Odontologia:</strong> Avaliação da saúde bucal e ações preventivas.
-              </li>
-              <li>
-                <strong className="text-slate-950 font-semibold">Terapia Comunitária Integrativa (Psicologia):</strong> Acolhimento e oficinas voltadas às competências socioemocionais e sociorrelacionais.
-              </li>
-              <li>
-                <strong className="text-slate-950 font-semibold">Oficinas de Alimentação Saudável (Nutrição):</strong> Avaliação e oficinas focadas em alimentação saudável.
-              </li>
-            </ul>
-          </div>
+
 
           {/* Aviso Operacional Importante */}
           <div className="bg-amber-50/70 border border-amber-200/60 rounded-xl p-3.5 mt-2 text-xs text-amber-950 leading-relaxed">
@@ -106,16 +80,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
             Este sistema digital serve exclusivamente para a autorização legal de atendimento. A autorização não garante a consulta imediata. O agendamento dos horários ocorre de forma presencial no estacionamento da escola, próximo às unidades móveis, e está estritamente sujeito à capacidade máxima diária de cada especialidade (vagas limitadas).
           </div>
 
-          {/* Por que estou no sistema Catraki? */}
-          <div className="space-y-1.5 pt-1">
-            <h2 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 m-0">
-              <ShieldCheck className="w-4 h-4 text-sesi-primary shrink-0" />
-              <span>Por que estou no sistema Catraki?</span>
-            </h2>
-            <p className="leading-relaxed pl-2 sm:pl-6 text-slate-700 m-0 text-xs sm:text-sm">
-              O Catraki é a plataforma digital utilizada para a formalização e registro rigoroso desta autorização eletrônica. Para garantir a sua privacidade, blindar o sistema contra o vazamento de informações e atender integralmente aos requisitos da Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018), as comunicações utilizam conexão segura e criptografada. A sua identidade será validada por um código temporário de segurança enviado ao seu e-mail, sem a necessidade de criar conta ou memorizar senhas.
-            </p>
-          </div>
+
 
           {/* O que você precisará autorizar? */}
           <div className="space-y-1.5 pt-1">

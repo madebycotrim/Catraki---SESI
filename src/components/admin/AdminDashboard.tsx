@@ -43,7 +43,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInstitution, setSelectedInstitution] = useState<string>('all');
   const [selectedImageOption, setSelectedImageOption] = useState<'all' | 'authorized' | 'not_authorized'>('all');
-  const [selectedStatus, setSelectedStatus] = useState<'all' | 'signed' | 'pending'>('all');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'signed' | 'pending' | 'revoked'>('all');
   const [selectedDateRange, setSelectedDateRange] = useState<'all' | 'today' | '7days' | '30days'>('all');
   const [selectedSeries, setSelectedSeries] = useState<string>('all');
   const [isExportingZip, setIsExportingZip] = useState(false);
@@ -75,7 +75,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   useEffect(() => {
     const fetchData = async () => {
-      const resDocs = await apiClient.getAdminDocuments();
+      const resDocs = await apiClient.getAdminDocuments('all');
       const resLogs = await apiClient.getAdminAuditLogs();
       const resInst = await apiClient.getAdminInstitutions();
       
@@ -257,6 +257,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       'Responsável Legal',
       'CPF Responsável',
       'Parentesco / Vínculo',
+      'Status',
       'Oftalmologia',
       'Audiometria',
       'Odontologia',
@@ -279,6 +280,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       `"${a.parentName}"`,
       `"${a.parentCpfMasked}"`,
       `"${a.relationship}"`,
+      `"${a.status === 'signed' ? 'AUTORIZADO' : a.status === 'revoked' ? 'NEGADO (REVOGADO)' : 'PENDENTE'}"`,
       `"${a.optInOftalmo ? 'AUTORIZADO' : 'NÃO AUTORIZADO'}"`,
       `"${a.optInAudio ? 'AUTORIZADO' : 'NÃO AUTORIZADO'}"`,
       `"${a.optInOdonto ? 'AUTORIZADO' : 'NÃO AUTORIZADO'}"`,
@@ -483,8 +485,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none truncate"
                 >
                   <option value="all">Status: Todos</option>
-                  <option value="signed">✅ Assinadas</option>
+                  <option value="signed">✅ Autorizadas (Assinadas)</option>
                   <option value="pending">⏳ Pendentes</option>
+                  <option value="revoked">🚫 Negadas (Revogadas)</option>
                 </select>
                 <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
               </div>
@@ -659,12 +662,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </span>
                           </td>
                           <td className="px-4 sm:px-6 py-3.5 sm:py-4">
-                            {isSigned ? (
+                            {auth.status === 'signed' && (
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                                <span>Assinada</span>
+                                <span>Autorizada</span>
                               </span>
-                            ) : (
+                            )}
+                            {auth.status === 'revoked' && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 text-red-800 border border-red-200 text-[11px] font-bold">
+                                <AlertTriangle className="w-3 h-3 text-red-600 shrink-0" />
+                                <span>Negada (Revogada)</span>
+                              </span>
+                            )}
+                            {auth.status !== 'signed' && auth.status !== 'revoked' && (
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-bold">
                                 <Clock className="w-3 h-3 text-amber-600 shrink-0" />
                                 <span>Pendente</span>

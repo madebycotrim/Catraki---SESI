@@ -811,9 +811,10 @@ export const apiClient = {
     return { success: true, template: newTmpl, message: 'Template versionado com sucesso.' };
   },
 
-  async getAdminDocuments(): Promise<any> {
+  async getAdminDocuments(limit?: string): Promise<any> {
     try {
-      const resp = await fetch(`${API_BASE}/admin/documents`, {
+      const url = limit ? `${API_BASE}/admin/documents?limit=${limit}` : `${API_BASE}/admin/documents`;
+      const resp = await fetch(url, {
         headers: this.getAuthHeaders(),
       });
       if (resp.ok) return await resp.json();

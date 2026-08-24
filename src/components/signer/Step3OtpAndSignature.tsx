@@ -292,7 +292,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   Para que o(a) estudante participe das atividades clínicas e exames do projeto itinerante "Escola Cidadã — Saúde em Movimento" (parceria UnB e SESI-DF), é necessário o registro do seu consentimento. De acordo com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018), a coleta e o processamento de informações pessoais e de saúde são realizados de forma segura e confidencial, com acesso estritamente restrito aos profissionais de saúde envolvidos.
                 </p>
                 <p>
-                  Os dados coletados possuem finalidade puramente clínica e operacional para o arquivamento legal de prontuários médicos pelo prazo de 20 anos, não sendo comercializados ou utilizados para fins discriminatórios. O responsável legal poderá solicitar o acesso aos dados, correções ou a revogação imediata deste consentimento a qualquer momento, procurando a coordenação da escola ou a equipe de apoio presencial.
+                  Os dados coletados possuem a finalidade exclusiva de registro e comprovação legal do consentimento de participação do(a) estudante no projeto, não sendo comercializados ou utilizados para fins discriminatórios. O responsável legal poderá solicitar o acesso aos dados, correções ou a revogação imediata deste consentimento a qualquer momento, procurando a coordenação da escola ou a equipe de apoio presencial.
                 </p>
                 <p>
                   Declaro, sob as penas da lei (Art. 299 do Código Penal - Falsidade Ideológica), que sou o(a) legítimo(a) responsável legal do(a) estudante qualificado(a) nesta plataforma e que as informações e documentos por mim inseridos são verdadeiros. As partes concordam em assinar este termo de consentimento por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de eficácia probatória e validade jurídica (MP 2.200-2/2001 e Lei 14.063/2020).
@@ -329,7 +329,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                   />
                   <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                    <strong>AUTORIZO</strong> a coleta, processamento e armazenamento seguro dos dados pessoais e do prontuário médico gerado. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                    <strong>AUTORIZO</strong> a coleta e processamento seguro dos dados pessoais para fins de registro e comprovação legal de consentimento. <span className="text-red-500 font-bold">* (Obrigatório)</span>
                   </span>
                 </label>
 
@@ -355,7 +355,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                   />
                   <span className="text-xs sm:text-sm text-slate-900 font-bold leading-relaxed">
-                    DECLARO QUE LI, compreendi e concordo com todas as disposições deste Termo. Autorizo o registro de dados de auditoria do meu dispositivo no ato da assinatura. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                    DECLARO QUE LI, compreendi e concordo com todas as disposições deste Termo. ACEITO E AUTORIZO o uso de meios eletrônicos (código OTP e desenho na tela) para a emissão da minha assinatura e concordo com o registro dos dados de auditoria do meu dispositivo. <span className="text-red-500 font-bold">* (Obrigatório)</span>
                   </span>
                 </label>
               </div>

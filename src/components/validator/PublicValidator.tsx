@@ -371,7 +371,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                   <div>
                     <strong className="text-emerald-950 font-bold block text-[11px]">Tratamento de Dados (LGPD)</strong>
                     <span className="text-emerald-800 text-[10px] block mt-0.5 leading-snug">
-                      Prontuário protegido nos termos dos Artigos 7º, I, 11, I e 14 da Lei 13.709/18.
+                      Termo de consentimento e dados de autorização protegidos nos termos da Lei 13.709/18 (LGPD).
                     </span>
                   </div>
                 </div>

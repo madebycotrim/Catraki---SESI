@@ -62,10 +62,10 @@ export const TemplateManager: React.FC = () => {
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Layers className="w-5 h-5 text-blue-400" />
-            Templates de Procedimento Médico (Versionados)
+            Templates de Procedimento de Consentimento (Versionados)
           </h2>
           <p className="text-xs text-slate-400">
-            Cada procedimento médico possui descrição clínica específica e prazo de retenção alinhado à guarda de prontuário (LGPD Art. 11/14).
+            Cada procedimento possui descrição específica e prazo de retenção alinhado ao resguardo legal de consentimentos (LGPD Art. 11/14).
           </p>
         </div>
 
@@ -102,7 +102,7 @@ export const TemplateManager: React.FC = () => {
             <h3 className="text-sm font-bold text-white">{tmpl.title}</h3>
             
             <p className="text-xs text-slate-300 bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 leading-relaxed">
-              <strong>Escopo Clínico:</strong> {tmpl.procedure_description}
+              <strong>Escopo de Atendimento:</strong> {tmpl.procedure_description}
             </p>
 
             <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
@@ -120,7 +120,7 @@ export const TemplateManager: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="glass-panel rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 border border-slate-800 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white">Criar / Versionar Template de Procedimento</h3>
+              <h3 className="text-base font-bold text-white">Criar / Versionar Template de Consentimento</h3>
               <button
                 onClick={() => setShowNewModal(false)}
                 className="text-slate-400 hover:text-white text-xs px-2 py-1"

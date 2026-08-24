@@ -96,7 +96,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
                 <strong className="text-slate-950">Atendimento e Participação (Obrigatório):</strong> Autorização para que o(a) aluno(a) participe das ações do projeto e passe pelas triagens clínicas nas unidades móveis.
               </li>
               <li>
-                <strong className="text-slate-950">Tratamento de Dados (Obrigatório):</strong> Permissão legal para o registro, proteção e armazenamento seguro do prontuário de saúde. Os dados médicos são estritamente confidenciais e restritos aos profissionais de saúde.
+                <strong className="text-slate-950">Tratamento de Dados (Obrigatório):</strong> Permissão legal para o registro e proteção dos dados pessoais do responsável e do estudante na plataforma, necessários para a validação jurídica da assinatura e controle de consentimento.
               </li>
               <li>
                 <strong className="text-slate-950">Uso de Imagem (Opcional):</strong> Autorização para o registro de fotos institucionais do evento. A recusa desta opção não impede a participação do(a) estudante.

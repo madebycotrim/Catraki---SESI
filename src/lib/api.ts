@@ -92,11 +92,11 @@ A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que 
 
 **⚠ Atenção: A recusa neste item impede a participação do(a) estudante no projeto.**
 
-> **(B1) AUTORIZO** a coleta, armazenamento e tratamento de dados pessoais e sensíveis (saúde) do(a) estudante pela UnB e SESI-DF, nos termos do **Art. 14 da LGPD**, ciente de que serão mantidos em ambiente digital seguro, exclusivamente para fins médicos, educacionais e institucionais do projeto, pelo prazo legal de **20 (vinte) anos** para fins de arquivamento de prontuário de saúde.
+> **(B1) AUTORIZO** a coleta, armazenamento e tratamento dos dados de consentimento e informações de identificação do(a) estudante pela UnB e SESI-DF, nos termos do **Art. 14 da LGPD**, para fins exclusivos de registro e comprovação da permissão legal de participação nas atividades de promoção da saúde.
 
 > **(B2) NÃO AUTORIZO** o tratamento de dados. *(Impede a participação.)*
 
-**Dados coletados:** nome completo, CPF do(a) estudante e do(a) responsável, data de nascimento, escola/turma, registros de atendimentos (prontuários) e dados de auditoria da assinatura (IP, timestamp, geolocalização).
+**Dados coletados:** nome completo, CPF do(a) estudante e do(a) responsável, data de nascimento, escola/turma e dados de auditoria da assinatura (IP, timestamp, geolocalização).
 
 **Base Legal:** Art. 7º, I, Art. 11, I, e Art. 14 da LGPD; Art. 46 da LGPD (segurança dos dados).
 

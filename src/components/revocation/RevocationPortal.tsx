@@ -112,7 +112,7 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                 1. FUNDAMENTAÇÃO LEGAL E EFEITOS JURÍDICOS
               </h3>
               <p className="text-slate-800 m-0 leading-relaxed text-xs sm:text-sm text-left sm:text-justify">
-                Nos termos do Art. 8º, § 5º e Art. 18, IX da Lei nº 13.709/2018 (LGPD), o consentimento pode ser revogado a qualquer momento mediante manifestação expressa do titular ou de seu representante legal. A revogação cancela a autorização para novos atendimentos clínicos. Fica assegurada a validade e a guarda legal dos históricos médicos e prontuários de consultas realizadas anteriormente, em observância ao dever legal e regulatório dos profissionais de saúde (Código de Ética Médica e CFM).
+                Nos termos do Art. 8º, § 5º e Art. 18, IX da Lei nº 13.709/2018 (LGPD), o consentimento pode ser revogado a qualquer momento mediante manifestação expressa do titular ou de seu representante legal. A revogação cancela a autorização para novos atendimentos. Fica assegurada a validade jurídica dos atos de consentimento dados anteriormente e a guarda deste registro na plataforma conforme exigido por lei.
               </p>
             </div>
 

@@ -824,6 +824,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     geoPais: geoCountry,
     otpRequestedAt: doc.otp_requested_at ? new Date(doc.otp_requested_at) : undefined,
     otpVerifiedAt: new Date(signedAtIso),
+    assinaturaPngBase64: signature_png_base64,
   });
 
   if (bucket) {

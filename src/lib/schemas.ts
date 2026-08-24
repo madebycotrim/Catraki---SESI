@@ -209,7 +209,7 @@ export const SignDocumentSchema = z.object({
   signer_email: z.string().email().optional(),
   minor_name: z.string().optional(),
   minor_birth_date: z.string().optional(),
-  minor_cpf: z.string().optional().refine((val) => !val || isValidCPF(val), { message: 'CPF do menor inválido perante o algoritmo oficial' }),
+  minor_cpf: z.string().min(1, 'O CPF do estudante é obrigatório').refine((val) => isValidCPF(val), { message: 'CPF do menor inválido perante o algoritmo oficial' }),
   minor_series: z.string().optional(),
   minor_class: z.string().optional(),
   minor_turn: z.string().optional(),

@@ -101,7 +101,9 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
         newErrors.minorBirthDate = 'O estudante deve possuir no mínimo 14 anos de idade para participar.';
       }
     }
-    if (formData.minorCpf.trim() && !isValidCPF(formData.minorCpf)) {
+    if (!formData.minorCpf.trim()) {
+      newErrors.minorCpf = 'O CPF do estudante é obrigatório.';
+    } else if (!isValidCPF(formData.minorCpf)) {
       newErrors.minorCpf = 'CPF do estudante inválido. Por favor, confira os números digitados.';
     }
     if (!formData.signerName.trim()) newErrors.signerName = 'Seu nome completo é obrigatório';
@@ -323,7 +325,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
 
               <div className="flex flex-col gap-1">
                 <label htmlFor="field-minorCpf" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
-                  CPF do Aluno <span className="text-slate-400 font-normal lowercase">(opcional)</span>
+                  CPF do Aluno <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="field-minorCpf"

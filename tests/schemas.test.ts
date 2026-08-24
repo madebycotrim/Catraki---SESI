@@ -71,6 +71,7 @@ describe('Validações e Schemas Zod (schemas.ts)', () => {
       consent_lgpd_art11_art14: true,
       declaration_art299_penal: true,
       declaration_legal_responsibility: true,
+      minor_cpf: '123.456.789-09',
     };
 
     const result = SignDocumentSchema.safeParse(validSign);
@@ -112,6 +113,7 @@ describe('Validações e Schemas Zod (schemas.ts)', () => {
         consent_lgpd_art11_art14: true,
         declaration_art299_penal: true,
         declaration_legal_responsibility: true,
+        minor_cpf: '123.456.789-09',
       };
       const res = SignDocumentSchema.safeParse(payload);
       expect(res.success).toBe(true);

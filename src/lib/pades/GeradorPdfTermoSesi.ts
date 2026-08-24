@@ -237,6 +237,23 @@ export class GeradorPdfTermoSesi {
 
     // Linha de assinatura
     y -= 35;
+
+    if (dados.assinaturaPngBase64 && dados.assinaturaPngBase64.startsWith('data:image/')) {
+      try {
+        const cleanPng = dados.assinaturaPngBase64.replace(/^data:image\/png;base64,/, '');
+        const pngBytes = Uint8Array.from(atob(cleanPng), (c) => c.charCodeAt(0));
+        const signatureImage = await pdfDoc.embedPng(pngBytes);
+        page.drawImage(signatureImage, {
+          x: margemEsquerda + 20,
+          y: y + 2,
+          width: 150,
+          height: 30,
+        });
+      } catch (e) {
+        console.error('Erro ao embutir assinatura no PDF:', e);
+      }
+    }
+
     page.drawLine({
       start: { x: margemEsquerda, y },
       end: { x: margemEsquerda + 280, y },

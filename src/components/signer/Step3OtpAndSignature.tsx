@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   AlertTriangle,
   Loader2,
@@ -7,6 +7,11 @@ import {
   CheckCircle2,
   RefreshCw,
   X,
+  Lock,
+  User,
+  Fingerprint,
+  ShieldCheck,
+  Clock,
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
 import type { SignerRelationship } from '../../lib/types.ts';
@@ -43,9 +48,9 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   onSuccess,
   onBack,
 }) => {
-  const [authHealth, setAuthHealth] = useState<'yes' | 'no' | null>(null);
-  const [authData, setAuthData] = useState<'yes' | 'no' | null>(null);
-  const [authImage, setAuthImage] = useState<'yes' | 'no' | null>(null);
+  const [authHealth, setAuthHealth] = useState(false);
+  const [authData, setAuthData] = useState(false);
+  const [authImage, setAuthImage] = useState(false);
   const [readAndAccept, setReadAndAccept] = useState(false);
   const [otpChannel] = useState<'email' | 'sms'>('email');
   const [declarationLegalResponsibility, setDeclarationLegalResponsibility] = useState(false);
@@ -60,6 +65,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const [otpSending, setOtpSending] = useState(false);
   const [otpError, setOtpError] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [signaturePngBase64, setSignaturePngBase64] = useState<string>('');
 
   // Geolocalização e IP reais do cliente
   const [clientGeo, setClientGeo] = useState<{ ip: string; location: string }>({
@@ -138,23 +144,18 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
    * Valida as opções do formulário e abre a etapa de verificação por E-mail
    */
   const handleInitiateSign = async () => {
-    if (authHealth !== 'yes') {
+    if (!authHealth) {
       setErrorMessage('É obrigatório autorizar o atendimento de saúde para prosseguir.');
       return;
     }
 
-    if (authData !== 'yes') {
+    if (!authData) {
       setErrorMessage('É obrigatório autorizar o tratamento de dados pessoais para prosseguir.');
       return;
     }
 
-    if (authImage === null) {
-      setErrorMessage('Por favor, selecione uma opção para o uso de imagem e voz.');
-      return;
-    }
-
     if (!readAndAccept) {
-      setErrorMessage('É obrigatório marcar o checkbox declarando que leu e concorda.');
+      setErrorMessage('É obrigatório declarar que leu e concorda com as disposições do Termo.');
       return;
     }
 
@@ -181,6 +182,11 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
       return;
     }
 
+    if (!signaturePngBase64) {
+      setOtpError('Por favor, desenhe sua assinatura no quadro antes de concluir.');
+      return;
+    }
+
     setSubmittingSign(true);
     setOtpError('');
 
@@ -193,7 +199,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         return;
       }
 
-      // 2. Submete a assinatura com o código OTP confirmado (sem necessidade de PNG base64 em disco)
+      // 2. Submete a assinatura com o código OTP confirmado e o desenho base64 da assinatura
       const resp = await apiClient.signDocument({
         token,
         otp_code: cleanOtp,
@@ -209,10 +215,10 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         minor_class: identityData.minorClass,
         minor_turn: identityData.minorTurn,
         institution_name: institutionName,
-        auth_health: authHealth || 'yes',
-        auth_data: authData || 'yes',
-        auth_image: authImage || 'no',
-        signature_png_base64: 'ELECTRONIC_SIGNATURE_OTP_CONFIRMED',
+        auth_health: authHealth ? 'yes' : 'no',
+        auth_data: authData ? 'yes' : 'no',
+        auth_image: authImage ? 'yes' : 'no',
+        signature_png_base64: signaturePngBase64,
         consent_lgpd_art11_art14: true,
         declaration_art299_penal: true,
         declaration_legal_responsibility: true,
@@ -277,378 +283,150 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         </div>
 
         <div className="space-y-6 sm:space-y-8 text-xs sm:text-sm text-slate-800">
-          <div className="space-y-5 sm:space-y-6">
             <div>
               <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-2">
-                2. PAINEL DE AUTORIZAÇÕES DIGITAIS (Seleção Obrigatória)
+                2. RESUMO DO TERMO DE CONSENTIMENTO E AUTORIZAÇÕES
               </h2>
-              <div className="text-slate-500 mt-1.5 text-xs sm:text-sm font-medium leading-relaxed text-justify space-y-2">
+              <div className="space-y-4 text-justify text-slate-700 leading-relaxed text-xs sm:text-sm pt-2">
                 <p>
-                  A Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018) estabelece regras para o tratamento de informações pessoais. Para que o(a) estudante participe das atividades clínicas e exames do projeto, é indispensável que você registre ativamente sua manifestação de consentimento ou recusa em cada item abaixo.
+                  Para que o(a) estudante participe das atividades clínicas e exames do projeto itinerante "Escola Cidadã — Saúde em Movimento" (parceria UnB, SESI-DF e Finatec), é necessário o registro do seu consentimento. De acordo com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018), a coleta e o processamento de informações pessoais e de saúde são realizados de forma segura e confidencial, com acesso estritamente restrito aos profissionais de saúde envolvidos.
                 </p>
                 <p>
-                  As opções <strong className="text-slate-800">"A"</strong> (Atendimento de Saúde) e <strong className="text-slate-800">"B"</strong> (Proteção e Tratamento de Dados) são obrigatórias, pois sem elas a equipe multiprofissional fica legalmente impedida de prestar qualquer atendimento clínico ou manter prontuários de acompanhamento. A opção <strong className="text-slate-800">"C"</strong> (Uso de Imagem) é opcional, e sua recusa não prejudicará o atendimento de saúde do(a) menor.
+                  Os dados coletados possuem finalidade puramente clínica e operacional para o arquivamento legal de prontuários médicos pelo prazo de 20 anos, não sendo comercializados ou utilizados para fins discriminatórios. O responsável legal poderá solicitar o acesso aos dados, correções ou a revogação imediata deste consentimento a qualquer momento, procurando a coordenação da escola ou a equipe de apoio presencial.
+                </p>
+                <p>
+                  Declaro, sob as penas da lei (Art. 299 do Código Penal - Falsidade Ideológica), que sou o(a) legítimo(a) responsável legal do(a) estudante qualificado(a) nesta plataforma e que as informações e documentos por mim inseridos são verdadeiros. As partes concordam em assinar este termo de consentimento por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de eficácia probatória e validade jurídica (MP 2.200-2/2001 e Lei 14.063/2020).
                 </p>
               </div>
             </div>
 
-            {/* A. Atendimento de Saúde */}
-            <div className="space-y-2.5">
-              <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide">
-                A. SOBRE O ATENDIMENTO DE SAÚDE (Obrigatório para participação)
+            {/* Painel de Aceites Granulares (4 Campos) */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 space-y-3.5 mt-4">
+              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 m-0 border-b border-slate-200 pb-2">
+                Opções de Consentimento e Declaração
               </h3>
-              <div className="space-y-2">
-                <label htmlFor="auth-health-yes" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
-                  <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
-                    <input
-                      id="auth-health-yes"
-                      type="radio"
-                      name="authHealth"
-                      checked={authHealth === 'yes'}
-                      onChange={() => setAuthHealth('yes')}
-                      className="sr-only"
-                    />
-                    {authHealth === 'yes' && (
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="absolute -top-1 -left-1 w-6 h-6 pointer-events-none select-none drop-shadow-xs"
-                        style={{ overflow: 'visible' }}
-                      >
-                        <path
-                          d="M2 2.5 C 6 8.5, 14 15.5, 22 22"
-                          fill="none"
-                          stroke="#023e8a"
-                          strokeWidth="2.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M21.5 2.5 C 15.5 9, 8 16, 2.5 22"
-                          fill="none"
-                          stroke="#023e8a"
-                          strokeWidth="2.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-slate-700 leading-relaxed text-xs sm:text-sm">
-                    <strong className="text-slate-950 font-bold">AUTORIZO</strong> o(a) estudante a participar do projeto e a passar pelas triagens, consultas e avaliações clínicas oferecidas pela equipe multiprofissional nas unidades móveis.
+              
+              <div className="space-y-3">
+                {/* Campo 1: Atendimento de Saúde */}
+                <label className="flex items-start gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={authHealth}
+                    onChange={(e) => setAuthHealth(e.target.checked)}
+                    className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
+                  />
+                  <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
+                    <strong>AUTORIZO</strong> a realização do atendimento de saúde (odontológico, oftalmológico, fonoaudiológico, terapia comunitária e oficinas) no estudante. <span className="text-red-500 font-bold">* (Obrigatório)</span>
                   </span>
                 </label>
 
-                <label htmlFor="auth-health-no" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
-                  <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
-                    <input
-                      id="auth-health-no"
-                      type="radio"
-                      name="authHealth"
-                      checked={authHealth === 'no'}
-                      onChange={() => setAuthHealth('no')}
-                      className="sr-only"
-                    />
-                    {authHealth === 'no' && (
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="absolute -top-1 -left-1 w-6 h-6 pointer-events-none select-none drop-shadow-xs"
-                        style={{ overflow: 'visible' }}
-                      >
-                        <path
-                          d="M2 2.5 C 6 8.5, 14 15.5, 22 22"
-                          fill="none"
-                          stroke="#023e8a"
-                          strokeWidth="2.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M21.5 2.5 C 15.5 9, 8 16, 2.5 22"
-                          fill="none"
-                          stroke="#023e8a"
-                          strokeWidth="2.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-slate-700 leading-relaxed text-xs sm:text-sm">
-                    <strong className="text-slate-950 font-bold">NÃO AUTORIZO</strong> o atendimento de saúde e a participação do(a) estudante no projeto. (Esta escolha impede a participação).
+                {/* Campo 2: Tratamento de Dados */}
+                <label className="flex items-start gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={authData}
+                    onChange={(e) => setAuthData(e.target.checked)}
+                    className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
+                  />
+                  <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
+                    <strong>AUTORIZO</strong> a coleta, processamento e armazenamento seguro dos dados pessoais e do prontuário médico gerado. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                  </span>
+                </label>
+
+                {/* Campo 3: Uso de Imagem */}
+                <label className="flex items-start gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={authImage}
+                    onChange={(e) => setAuthImage(e.target.checked)}
+                    className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
+                  />
+                  <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
+                    <strong>AUTORIZO</strong> o uso gratuito da imagem e voz do estudante em relatórios institucionais e divulgação pedagógica. <span className="text-slate-500 font-normal">(Opcional)</span>
+                  </span>
+                </label>
+
+                {/* Campo 4: Declaração Geral de Aceite */}
+                <label className="flex items-start gap-3 cursor-pointer select-none pt-2 border-t border-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={readAndAccept}
+                    onChange={(e) => setReadAndAccept(e.target.checked)}
+                    className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
+                  />
+                  <span className="text-xs sm:text-sm text-slate-900 font-bold leading-relaxed">
+                    DECLARO QUE LI, compreendi e concordo com todas as disposições deste Termo. Autorizo o registro de dados de auditoria do meu dispositivo no ato da assinatura. <span className="text-red-500 font-bold">* (Obrigatório)</span>
                   </span>
                 </label>
               </div>
             </div>
-
-            {/* B. Dados Pessoais */}
-            <div className="space-y-2.5 pt-3 border-t border-slate-100">
-              <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide">
-                B. SOBRE OS DADOS PESSOAIS E DE SAÚDE (Obrigatório para participação)
-              </h3>
-              <div className="space-y-2">
-                <label htmlFor="auth-data-yes" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
-                  <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
-                    <input
-                      id="auth-data-yes"
-                      type="radio"
-                      name="authData"
-                      checked={authData === 'yes'}
-                      onChange={() => setAuthData('yes')}
-                      className="sr-only"
-                    />
-                    {authData === 'yes' && (
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="absolute -top-1 -left-1 w-6 h-6 pointer-events-none select-none drop-shadow-xs"
-                        style={{ overflow: 'visible' }}
-                      >
-                        <path
-                          d="M2 2.5 C 6 8.5, 14 15.5, 22 22"
-                          fill="none"
-                          stroke="#023e8a"
-                          strokeWidth="2.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M21.5 2.5 C 15.5 9, 8 16, 2.5 22"
-                          fill="none"
-                          stroke="#023e8a"
-                          strokeWidth="2.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-slate-700 leading-relaxed text-xs sm:text-sm">
-                    <strong className="text-slate-950 font-bold">AUTORIZO</strong> a coleta, o registro e o armazenamento seguro dos dados pessoais e do prontuário médico gerado durante os atendimentos, ciente de que o acesso será restrito aos profissionais de saúde envolvidos.
-                  </span>
-                </label>
-
-                <label htmlFor="auth-data-no" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
-                  <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
-                    <input
-                      id="auth-data-no"
-                      type="radio"
-                      name="authData"
-                      checked={authData === 'no'}
-                      onChange={() => setAuthData('no')}
-                      className="sr-only"
-                    />
-                    {authData === 'no' && (
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="absolute -top-1 -left-1 w-6 h-6 pointer-events-none select-none drop-shadow-xs"
-                        style={{ overflow: 'visible' }}
-                      >
-                        <path
-                          d="M2 2.5 C 6 8.5, 14 15.5, 22 22"
-                          fill="none"
-                          stroke="#023e8a"
-                          strokeWidth="2.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M21.5 2.5 C 15.5 9, 8 16, 2.5 22"
-                          fill="none"
-                          stroke="#023e8a"
-                          strokeWidth="2.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-slate-700 leading-relaxed text-xs sm:text-sm">
-                    <strong className="text-slate-950 font-bold">NÃO AUTORIZO</strong> a coleta e o tratamento dos dados pessoais e de saúde. (Esta escolha impede a participação no projeto).
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            {/* C. Uso de Imagem */}
-            <div className="space-y-2.5 pt-3 border-t border-slate-100">
-              <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide">
-                C. SOBRE O USO DE IMAGEM E VOZ (Opcional)
-              </h3>
-              <div className="space-y-2">
-                <label htmlFor="auth-image-yes" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
-                  <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
-                    <input
-                      id="auth-image-yes"
-                      type="radio"
-                      name="authImage"
-                      checked={authImage === 'yes'}
-                      onChange={() => setAuthImage('yes')}
-                      className="sr-only"
-                    />
-                    {authImage === 'yes' && (
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="absolute -top-1 -left-1 w-6 h-6 pointer-events-none select-none drop-shadow-xs"
-                        style={{ overflow: 'visible' }}
-                      >
-                        <path
-                          d="M2 2.5 C 6 8.5, 14 15.5, 22 22"
-                          fill="none"
-                          stroke="#023e8a"
-                          strokeWidth="2.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M21.5 2.5 C 15.5 9, 8 16, 2.5 22"
-                          fill="none"
-                          stroke="#023e8a"
-                          strokeWidth="2.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-slate-700 leading-relaxed text-xs sm:text-sm">
-                    <strong className="text-slate-950 font-bold">AUTORIZO</strong> o uso gratuito da imagem e voz do(a) estudante, captadas durante as atividades do projeto, exclusivamente para fins de registro institucional, prestação de contas e divulgação educativa. (A recusa não impede o atendimento).
-                  </span>
-                </label>
-
-                <label htmlFor="auth-image-no" className="flex items-start gap-3 p-2.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer select-none group transition-all">
-                  <div className="relative mt-0.5 w-5 h-5 min-w-[20px] min-h-[20px] sm:w-4 sm:h-4 sm:min-w-[16px] sm:min-h-[16px] border border-slate-700 bg-white rounded flex items-center justify-center group-hover:border-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
-                    <input
-                      id="auth-image-no"
-                      type="radio"
-                      name="authImage"
-                      checked={authImage === 'no'}
-                      onChange={() => setAuthImage('no')}
-                      className="sr-only"
-                    />
-                    {authImage === 'no' && (
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="absolute -top-1 -left-1 w-6 h-6 pointer-events-none select-none drop-shadow-xs"
-                        style={{ overflow: 'visible' }}
-                      >
-                        <path
-                          d="M2 2.5 C 6 8.5, 14 15.5, 22 22"
-                          fill="none"
-                          stroke="#023e8a"
-                          strokeWidth="2.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M21.5 2.5 C 15.5 9, 8 16, 2.5 22"
-                          fill="none"
-                          stroke="#023e8a"
-                          strokeWidth="2.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-slate-700 leading-relaxed text-xs sm:text-sm">
-                    <strong className="text-slate-950 font-bold">NÃO AUTORIZO</strong> o uso de imagem e voz do(a) estudante. (Esta escolha não impede a participação nos atendimentos de saúde).
-                  </span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. COMPROMISSOS E DIREITOS DO TITULAR DOS DADOS */}
-          <div className="space-y-2.5 pt-4 border-t border-slate-200">
-            <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
-              3. COMPROMISSOS E DIREITOS DO TITULAR DOS DADOS
-            </h2>
-            <div className="space-y-2 text-slate-600 text-xs sm:text-sm leading-relaxed text-justify">
-              <p className="m-0">
-                <strong>Finalidade e Proteção:</strong> Os dados coletados possuem finalidade estritamente clínica e operacional. Não serão comercializados, repassados a terceiros alheios à execução do projeto ou utilizados para quaisquer fins discriminatórios.
-              </p>
-              <p className="m-0">
-                <strong>Direito de Revogação:</strong> O titular, representado por seu responsável legal, poderá solicitar o acesso aos dados, correções ou a revogação imediata deste consentimento a qualquer momento. Para isso, basta procurar a equipe de apoio presencial do projeto ou a coordenação da escola.
-              </p>
-              <p className="m-0 pt-1 text-[11px] text-slate-500">
-                Para mais informações sobre a retenção de dados e protocolos de segurança da informação, consulte nossa <a href="/privacidade" target="_blank" className="text-sesi-primary underline font-medium">Política de Privacidade e Termos de Uso</a>.
-              </p>
-            </div>
-          </div>
-
-          {/* 4. VALIDADE JURÍDICA DA ASSINATURA ELETRÔNICA */}
-          <div className="space-y-2.5 pt-4 border-t border-slate-200">
-            <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
-              4. VALIDADE JURÍDICA DA ASSINATURA ELETRÔNICA (Declaração Legal)
-            </h2>
-            <div className="space-y-2 text-slate-600 text-xs sm:text-sm leading-relaxed text-justify">
-              <p className="m-0">
-                Declaro, sob as penas da lei (Art. 299 do Código Penal - Falsidade Ideológica), que sou o(a) legítimo(a) responsável legal do(a) estudante qualificado(a) nesta plataforma e que as informações e documentos por mim inseridos são verdadeiros.
-              </p>
-              <p className="m-0">
-                As partes (SESI Saúde e o signatário) concordam expressamente em assinar este termo de consentimento por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de eficácia probatória e validade jurídica, nos termos do Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001, da Lei nº 14.063/2020 e da jurisprudência do STJ (REsp 2.205.708/PR). Estou ciente e concordo que a plataforma registrará e armazenará, de forma segura, os dados de auditoria para comprovação de autoria (endereço IP, data/hora exata do registro, geolocalização e e-mail) e integridade do documento assinado (resumo criptográfico hash SHA-256).
-              </p>
-            </div>
-          </div>
-
-          {/* Checkbox Obrigatório */}
-          <div className="pt-2">
-            <label htmlFor="field-readAndAccept" className="flex items-start gap-3 p-3.5 sm:p-3 border-2 border-slate-200 hover:border-slate-300 rounded-xl bg-slate-50 cursor-pointer select-none transition-colors">
-              <input
-                id="field-readAndAccept"
-                name="readAndAccept"
-                type="checkbox"
-                checked={readAndAccept}
-                onChange={(e) => setReadAndAccept(e.target.checked)}
-                className="mt-0.5 w-5 h-5 min-w-[20px] text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
-              />
-              <span className="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
-                DECLARO QUE LI, compreendi e concordo com todas as disposições deste Termo. Autorizo o registro dos dados técnicos do meu dispositivo no ato da assinatura, para fins de confirmação de autoria e conformidade com a LGPD e a legislação vigente.
-              </span>
-            </label>
-          </div>
 
           {/* 5. ASSINATURA ELETRÔNICA E VALIDAÇÃO DE IDENTIDADE */}
-          <div className="pt-4 sm:pt-6 border-t border-slate-200 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 m-0">
-                5. ASSINATURA ELETRÔNICA E VALIDAÇÃO DE IDENTIDADE
+          <div className="pt-5 sm:pt-6 border-t border-slate-200 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-1">
+              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#034b7f] m-0 flex items-center gap-1.5">
+                <Lock className="w-4 h-4 text-sesi-primary shrink-0" />
+                <span>5. Assinatura Eletrônica e Validação</span>
               </h3>
-              <span className="text-[10px] sm:text-xs text-slate-500 font-medium">
-                Amparada pela MP nº 2.200-2/2001, Lei nº 14.063/2020 e STJ REsp 2.205.708/PR
+              <span className="inline-flex px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-semibold border border-slate-200/60">
+                Resguardo legal: MP 2.200-2/2001 & Lei 14.063/2020
               </span>
             </div>
 
             {/* Painel Formal de Identificação do Signatário */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Assinante / Responsável Legal</span>
-                  <strong className="text-slate-900 font-bold text-xs sm:text-sm block mt-0.5">{identityData.signerName}</strong>
+            <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs text-left">
+              
+              {/* Grid de Informações com layout profissional */}
+              <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white">
+                <div className="space-y-1 p-3 rounded-xl bg-slate-50/50 border border-slate-100">
+                  <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Assinante / Responsável Legal</span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <strong className="text-slate-900 font-bold text-xs sm:text-sm leading-tight">{identityData.signerName}</strong>
+                  </div>
                 </div>
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Documento de Identificação (CPF)</span>
-                  <strong className="text-slate-800 font-mono text-xs sm:text-sm block mt-0.5">{identityData.signerCpf}</strong>
+
+                <div className="space-y-1 p-3 rounded-xl bg-slate-50/50 border border-slate-100">
+                  <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Documento de Identificação (CPF)</span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Fingerprint className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <strong className="text-slate-800 font-mono text-xs sm:text-sm leading-tight">{identityData.signerCpf}</strong>
+                  </div>
                 </div>
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Vínculo com o Estudante</span>
-                  <strong className="text-slate-800 text-xs sm:text-sm block mt-0.5">{identityData.signerRelationship}</strong>
+
+                <div className="space-y-1 p-3 rounded-xl bg-slate-50/50 border border-slate-100">
+                  <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Vínculo com o Estudante</span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <strong className="text-slate-800 text-xs sm:text-sm leading-tight">{identityData.signerRelationship}</strong>
+                  </div>
                 </div>
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">E-mail Cadastrado</span>
-                  <strong className="text-slate-800 text-xs sm:text-sm block mt-0.5">{identityData.signerEmail}</strong>
+
+                <div className="space-y-1 p-3 rounded-xl bg-slate-50/50 border border-slate-100">
+                  <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">E-mail Cadastrado</span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <strong className="text-slate-800 text-xs sm:text-sm leading-tight truncate">{identityData.signerEmail}</strong>
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-200 space-y-2 text-xs sm:text-sm text-slate-600 leading-relaxed text-justify">
-                <p className="m-0 font-bold text-slate-800">
-                  Confirmação de Segurança por E-mail:
-                </p>
-                <p className="m-0">
-                  Para concluir a assinatura e garantir a segurança do processo, enviaremos um código temporário de 6 (seis) dígitos para o e-mail cadastrado (<strong className="break-all">{identityData.signerEmail}</strong>).
-                </p>
-                <p className="m-0 text-[11px] text-amber-600 font-semibold flex items-center gap-1">
-                  ⏱️ O código temporário expira em 5 minutos.
-                </p>
+              {/* Seção Informativa de Segurança */}
+              <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-150 space-y-2.5 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                <div className="flex items-start gap-2.5">
+                  <Mail className="w-4 h-4 text-sesi-primary shrink-0 mt-0.5" />
+                  <div className="space-y-1 text-justify">
+                    <strong className="text-slate-800 block">Confirmação de Segurança por E-mail:</strong>
+                    <p className="m-0 text-xs text-slate-500">
+                      Para concluir a assinatura e garantir a integridade do processo, um código temporário de 6 dígitos será enviado para <span className="text-slate-900 font-bold select-all break-all">{identityData.signerEmail}</span>.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-100 text-amber-800 rounded-lg text-[10px] sm:text-xs font-semibold">
+                  <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>Código de segurança expira em 5 minutos</span>
+                </div>
               </div>
 
             </div>
@@ -670,9 +448,8 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 type="button"
                 onClick={handleInitiateSign}
                 disabled={
-                  authHealth !== 'yes' ||
-                  authData !== 'yes' ||
-                  authImage === null ||
+                  !authHealth ||
+                  !authData ||
                   !readAndAccept ||
                   otpSending
                 }
@@ -803,6 +580,12 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   </label>
                 </div>
 
+                {/* Quadro de Assinatura por Desenho */}
+                <SignaturePad
+                  onSave={(base64) => setSignaturePngBase64(base64)}
+                  onClear={() => setSignaturePngBase64('')}
+                />
+
                 {/* Mensagem de Erro do OTP */}
                 {otpError && (
                   <div className="p-2.5 bg-red-50 border border-red-200 rounded text-red-700 text-xs flex items-center gap-2">
@@ -854,7 +637,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   <button
                     type="button"
                     onClick={handleVerifyAndFinalizeSign}
-                    disabled={otpCode.length < 6 || !declarationLegalResponsibility || submittingSign}
+                    disabled={otpCode.length < 6 || !declarationLegalResponsibility || !signaturePngBase64 || submittingSign}
                     className="w-full py-2.5 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {submittingSign ? (
@@ -905,6 +688,131 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         <div className="absolute top-4 sm:top-9 right-4 sm:right-12 font-sans text-xs text-slate-400">
           3
         </div>
+      </div>
+    </div>
+  );
+};
+
+interface SignaturePadProps {
+  onSave: (base64Png: string) => void;
+  onClear: () => void;
+}
+
+const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasDrawn, setHasDrawn] = useState(false);
+
+  // Ajusta o tamanho real do canvas para coincidir com o tamanho visível (responsivo)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = 120; // altura fixa desejada
+  }, []);
+
+  const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+
+    if ('touches' in e) {
+      if (e.touches.length === 0) return { x: 0, y: 0 };
+      return {
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top,
+      };
+    } else {
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
+    }
+  };
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const coords = getCoordinates(e);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.strokeStyle = '#034b7f';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(coords.x, coords.y);
+    setIsDrawing(true);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const coords = getCoordinates(e);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.lineTo(coords.x, coords.y);
+    ctx.stroke();
+    setHasDrawn(true);
+
+    const base64 = canvas.toDataURL('image/png');
+    onSave(base64);
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const handleClear = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasDrawn(false);
+    onClear();
+  };
+
+  return (
+    <div className="space-y-1 text-left">
+      <div className="flex items-center justify-between">
+        <label className="block text-[10px] font-bold text-slate-500 uppercase">
+          Assinatura Manual (Desenhe abaixo) <span className="text-red-500">*</span>
+        </label>
+        {hasDrawn && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="text-[10px] text-red-500 hover:text-red-700 font-bold uppercase transition-colors"
+          >
+            Limpar
+          </button>
+        )}
+      </div>
+      <div className="border-2 border-dashed border-slate-300 rounded-lg overflow-hidden bg-slate-50 relative group">
+        <canvas
+          ref={canvasRef}
+          onMouseDown={startDrawing}
+          onMouseMove={draw}
+          onMouseUp={stopDrawing}
+          onMouseLeave={stopDrawing}
+          onTouchStart={startDrawing}
+          onTouchMove={draw}
+          onTouchEnd={stopDrawing}
+          className="w-full h-[120px] block cursor-crosshair touch-none"
+        />
+        {!hasDrawn && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 text-[11px] font-medium font-sans">
+            Desenhe sua assinatura aqui
+          </div>
+        )}
       </div>
     </div>
   );

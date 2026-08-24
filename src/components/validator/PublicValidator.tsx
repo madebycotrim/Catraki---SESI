@@ -292,7 +292,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                       {validationResult.procedure_title || 'Escola Cidadã — Saúde em Movimento'}
                     </strong>
                     <span className="text-[10px] text-slate-500 block mt-0.5">
-                      SESI-DF • UnB • FINATEC
+                      SESI-DF • UnB
                     </span>
                   </div>
                 </div>

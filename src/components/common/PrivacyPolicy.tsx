@@ -46,7 +46,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             POLÍTICA DE PRIVACIDADE E SEGURANÇA DA INFORMAÇÃO
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Plataforma Catraki • SESI-DF • Universidade de Brasília (UnB) • FINATEC
+            Plataforma Catraki • SESI-DF • Universidade de Brasília (UnB)
           </p>
         </div>
 
@@ -59,7 +59,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               <span>1. Compromisso com a Privacidade e o Sigilo</span>
             </h2>
             <p>
-              A presente Política de Privacidade regula o tratamento de dados pessoais e de saúde de crianças, adolescentes e seus respectivos responsáveis legais no âmbito das ações clínicas e preventivas do projeto de extensão e promoção da saúde <strong>Escola Cidadã — Saúde em Movimento</strong>. O projeto é executado em regime de co-controladoria conjunta pela <strong>Universidade de Brasília (Faculdade de Ciências da Saúde - FS/UnB)</strong>, pelo <strong>SESI-DF</strong> e pela <strong>Fundação de Empreendimentos Científicos e Tecnológicos (FINATEC)</strong>, viabilizado por recursos de emenda parlamentar da Senadora Leila Barros e operacionalizado através da plataforma <strong>Catraki</strong>.
+              A presente Política de Privacidade regula o tratamento de dados pessoais e de saúde de crianças, adolescentes e seus respectivos responsáveis legais no âmbito das ações clínicas e preventivas do projeto de extensão e promoção da saúde <strong>Escola Cidadã — Saúde em Movimento</strong>. O projeto é executado em regime de co-controladoria conjunta pela <strong>Universidade de Brasília (Faculdade de Ciências da Saúde - FS/UnB)</strong> e pelo <strong>SESI-DF</strong>, viabilizado por recursos de emenda parlamentar da Senadora Leila Barros e operacionalizado através da plataforma <strong>Catraki</strong>.
             </p>
           </section>
  

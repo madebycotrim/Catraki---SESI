@@ -29,7 +29,7 @@ const SEED_TEMPLATES: DocumentTemplate[] = [
     id: 'proc_escola_cidada',
     version: 1,
     title: 'Escola Cidadã — Saúde em Movimento',
-    procedure_description: 'Autorização para atendimento do aluno nas ações do projeto Escola Cidadã — Saúde em Movimento (UnB + SESI-DF + Finatec), sem a presença do responsável legal, com consentimento granular para tratamento de dados pessoais (LGPD) e uso de imagem, nome e voz (ECA/Art. 17).',
+    procedure_description: 'Autorização para atendimento do aluno nas ações do projeto Escola Cidadã — Saúde em Movimento (UnB + SESI-DF), sem a presença do responsável legal, com consentimento granular para tratamento de dados pessoais (LGPD) e uso de imagem, nome e voz (ECA/Art. 17).',
     content_markdown: `## TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)
 ### Autorização de Atendimento de Saúde, Tratamento de Dados e Uso de Imagem
 
@@ -60,7 +60,7 @@ Este formulário digital tem o objetivo de garantir a segurança, a privacidade 
 
 ## 2. SOBRE O PROJETO
 
-O **Escola Cidadã: Saúde em Movimento** é uma iniciativa de extensão da **Universidade de Brasília (UnB)**, por meio da Faculdade de Ciências da Saúde (FS/UnB), realizada em parceria com o **Serviço Social da Indústria do Distrito Federal (SESI-DF)** e a **Fundação de Empreendimentos Científicos e Tecnológicos (Finatec)**, mediante acordo de cooperação técnica. O projeto é financiado por emenda parlamentar da Bancada do Distrito Federal.
+O **Escola Cidadã: Saúde em Movimento** é uma iniciativa de extensão da **Universidade de Brasília (UnB)**, por meio da Faculdade de Ciências da Saúde (FS/UnB), realizada em parceria com o **Serviço Social da Indústria do Distrito Federal (SESI-DF)**, mediante acordo de cooperação técnica. O projeto é financiado por emenda parlamentar da Bancada do Distrito Federal.
 
 **Público-alvo:** Estudantes e comunidade a partir de 14 anos, matriculados em escolas públicas do Distrito Federal.
 
@@ -92,7 +92,7 @@ A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que 
 
 **⚠ Atenção: A recusa neste item impede a participação do(a) estudante no projeto.**
 
-> **(B1) AUTORIZO** a coleta, armazenamento e tratamento de dados pessoais e sensíveis (saúde) do(a) estudante pela UnB, SESI-DF e Finatec, nos termos do **Art. 14 da LGPD**, ciente de que serão mantidos em ambiente digital seguro, exclusivamente para fins médicos, educacionais e institucionais do projeto, pelo prazo legal de **20 (vinte) anos** para fins de arquivamento de prontuário de saúde.
+> **(B1) AUTORIZO** a coleta, armazenamento e tratamento de dados pessoais e sensíveis (saúde) do(a) estudante pela UnB e SESI-DF, nos termos do **Art. 14 da LGPD**, ciente de que serão mantidos em ambiente digital seguro, exclusivamente para fins médicos, educacionais e institucionais do projeto, pelo prazo legal de **20 (vinte) anos** para fins de arquivamento de prontuário de saúde.
 
 > **(B2) NÃO AUTORIZO** o tratamento de dados. *(Impede a participação.)*
 
@@ -104,11 +104,11 @@ A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que 
 
 ### C. SOBRE O USO DE IMAGEM E VOZ *(Opcional — não impede o atendimento)*
 
-> **(C1) AUTORIZO** de forma gratuita o uso da imagem e voz do(a) estudante em fotos e vídeos do projeto, pela **Universidade de Brasília (UnB)**, **SESI-DF** e **Finatec**, exclusivamente para documentação, relatórios institucionais, peças de comunicação e divulgação do projeto em canais oficiais (site, redes sociais institucionais, materiais impressos), respeitando a dignidade e os direitos do(a) menor, nos termos do **Art. 17 do ECA**.
+> **(C1) AUTORIZO** de forma gratuita o uso da imagem e voz do(a) estudante em fotos e vídeos do projeto, pela **Universidade de Brasília (UnB)** e **SESI-DF**, exclusivamente para documentação, relatórios institucionais, peças de comunicação e divulgação do projeto em canais oficiais (site, redes sociais institucionais, materiais impressos), respeitando a dignidade e os direitos do(a) menor, nos termos do **Art. 17 do ECA**.
 
 > **(C2) NÃO AUTORIZO** o uso da imagem. *(O(a) estudante participará normalmente de todos os atendimentos e não será fotografado(a) ou filmado(a).)*
 
-**É expressamente proibido** o uso das imagens para fins comerciais, vexatórios, humilhantes ou discriminatórios, sob pena do **Art. 241 do ECA**.
+**É expressamente proibido** o uso das imagens para fins comerciais, vexatórios, humilhantes ou discriminatórios, sob pena do **Art. 241 do ECA**.,
 
 ---
 

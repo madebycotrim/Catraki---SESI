@@ -289,7 +289,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               </h2>
               <div className="space-y-4 text-justify text-slate-700 leading-relaxed text-xs sm:text-sm pt-2">
                 <p>
-                  Para que o(a) estudante participe das atividades clínicas e exames do projeto itinerante "Escola Cidadã — Saúde em Movimento" (parceria UnB, SESI-DF e Finatec), é necessário o registro do seu consentimento. De acordo com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018), a coleta e o processamento de informações pessoais e de saúde são realizados de forma segura e confidencial, com acesso estritamente restrito aos profissionais de saúde envolvidos.
+                  Para que o(a) estudante participe das atividades clínicas e exames do projeto itinerante "Escola Cidadã — Saúde em Movimento" (parceria UnB e SESI-DF), é necessário o registro do seu consentimento. De acordo com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018), a coleta e o processamento de informações pessoais e de saúde são realizados de forma segura e confidencial, com acesso estritamente restrito aos profissionais de saúde envolvidos.
                 </p>
                 <p>
                   Os dados coletados possuem finalidade puramente clínica e operacional para o arquivamento legal de prontuários médicos pelo prazo de 20 anos, não sendo comercializados ou utilizados para fins discriminatórios. O responsável legal poderá solicitar o acesso aos dados, correções ou a revogação imediata deste consentimento a qualquer momento, procurando a coordenação da escola ou a equipe de apoio presencial.

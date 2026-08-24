@@ -193,6 +193,9 @@ export interface PublicValidationResponse {
   procedure_title: string;
   procedure_description: string;
   minor_name_initials: string;
+  minor_series?: string | null;
+  minor_class?: string | null;
+  minor_turn?: string | null;
   document_status: DocumentStatus;
   chain_position: number;
   prev_log_hash: string | null;

@@ -388,35 +388,46 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
       const resendApiKey = (c.env as any).RESEND_API_KEY;
       const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
 
-      const otpHtml = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
-        <div style="border-bottom: 2px solid #034b7f; padding-bottom: 12px; margin-bottom: 20px;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="vertical-align: middle;">
-                <h2 style="color: #034b7f; margin: 0; font-size: 18px; font-weight: bold;">Escola Cidadã — Saúde em Movimento</h2>
-                <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Validação de Autoria por Código Eletrônico</span>
-              </td>
-              <td style="width: 40px; vertical-align: middle; text-align: right;">
-                <img src="https://www.catraki.com.br/catraki.png" alt="Catraki" style="width: 36px; height: 36px; border-radius: 6px;" />
-              </td>
-            </tr>
-          </table>
-        </div>
-        <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 12px 0;">Olá,</p>
-        <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
-          Para autenticar e concluir a assinatura do Termo de Consentimento referente ao(à) estudante <strong>${studentName}</strong>, utilize o código de segurança abaixo:
-        </p>
-        <div style="background: #f0f9ff; border: 2px solid #bae6fd; border-radius: 10px; padding: 18px; text-align: center; margin: 20px 0;">
-          <span style="font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #034b7f; font-family: monospace;">${otpCode}</span>
-        </div>
-        <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 20px 0 0 0;">
-          ⏱️ <strong>Validade:</strong> Este código expira em 5 minutos. Se você não solicitou este procedimento, por favor desconsidere este e-mail.
-        </p>
-        <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 11px; color: #94a3b8; text-align: center; line-height: 1.5;">
-          Assinatura Eletrônica Avançada • Lei Federal nº 14.063/2020 • Plataforma Catraki<br />
-          Para mais informações sobre como protegemos seus dados, consulte nossa <a href="https://www.catraki.com.br/privacidade" style="color: #034b7f; text-decoration: underline;">Política de Privacidade e Termos de Uso</a>.
-        </div>
-      </div>`;
+      const otpHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="background-color: #f1f5f9; padding: 28px 10px; color: #1e293b; line-height: 1.6;">
+    <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 32px 28px;">
+      <div style="border-bottom: 2.5px solid #034b7f; padding-bottom: 16px; margin-bottom: 22px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="vertical-align: middle;">
+              <h2 style="color: #034b7f; margin: 0; font-size: 15px; font-weight: 800; text-transform: uppercase;">Escola Cidadã — Saúde em Movimento</h2>
+              <span style="color: #64748b; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; display: block; margin-top: 2px;">Validação de Autoria por Código Eletrônico</span>
+            </td>
+            <td style="width: 40px; vertical-align: middle; text-align: right;">
+              <img src="https://www.catraki.com.br/catraki.png" alt="Catraki" style="width: 36px; height: 36px; border-radius: 6px;" />
+            </td>
+          </tr>
+        </table>
+      </div>
+      <p style="color: #334155; font-size: 13.5px; line-height: 1.6; margin: 0 0 12px 0;">Olá,</p>
+      <p style="color: #334155; font-size: 13.5px; line-height: 1.6; margin: 0 0 20px 0;">
+        Para autenticar e concluir a assinatura do Termo de Consentimento referente ao(à) estudante <strong>${studentName}</strong>, utilize o código de segurança abaixo:
+      </p>
+      <div style="background: #f0f9ff; border: 2px solid #bae6fd; border-radius: 10px; padding: 22px; text-align: center; margin: 20px 0;">
+        <span style="font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #034b7f; font-family: monospace;">${otpCode}</span>
+      </div>
+      <p style="color: #64748b; font-size: 11.5px; line-height: 1.5; margin: 20px 0 0 0;">
+        ⏱️ <strong>Validade:</strong> Este código expira em 5 minutes. Se você não solicitou este procedimento, por favor desconsidere este e-mail.
+      </p>
+      <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 10.5px; color: #94a3b8; text-align: center; line-height: 1.5;">
+        Assinatura Eletrônica Avançada • Lei Federal nº 14.063/2020 • Plataforma Catraki<br />
+        Para mais informações sobre como protegemos seus dados, consulte nossa <a href="https://www.catraki.com.br/privacidade" style="color: #034b7f; text-decoration: underline;">Política de Privacidade e Termos de Uso</a>.
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
 
       if (resendApiKey) {
         try {
@@ -884,6 +895,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
              minor_name = COALESCE(?, minor_name), 
              minor_birth_date = COALESCE(?, minor_birth_date),
              minor_cpf = ?,
+             minor_series = ?,
+             minor_class = ?,
+             minor_turn = ?,
              signed_pdf_r2_key = ?, 
              otp_secret_hash = NULL,
              otp_verified_at = ?,
@@ -894,6 +908,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         parsed.data.minor_name || doc.minor_name || null,
         parsed.data.minor_birth_date || doc.minor_birth_date || null,
         parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : null,
+        parsed.data.minor_series || null,
+        parsed.data.minor_class || null,
+        parsed.data.minor_turn || null,
         pdfR2Key,
         signedAtIso,
         docParentHash,
@@ -1137,6 +1154,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     manifest_sha256: manifestSha256,
     log_row_hash: logRowHash,
     signed_at_utc: signedAtIso,
+    ip_address: ipAddress,
+    geo_city: geoCity === 'Local' ? 'Brasília' : geoCity,
+    geo_region: geoRegion === 'BR-SP' ? 'DF' : geoRegion,
     tsa_authority: 'Servidor Sincronizado - Cloudflare',
     validation_url: `/validar/${validationCode}`,
     message: 'Autorização médica assinada eletronicamente com sucesso e comprovante PDF enviado para o e-mail.',

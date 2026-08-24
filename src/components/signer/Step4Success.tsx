@@ -28,6 +28,7 @@ interface Step4SuccessProps {
     otp_channel?: 'email' | 'sms';
   };
   signerName: string;
+  signerRelationship?: string;
   signerEmail?: string;
   minorName: string;
   procedureTitle: string;
@@ -37,6 +38,7 @@ interface Step4SuccessProps {
 export const Step4Success: React.FC<Step4SuccessProps> = ({
   signResult,
   signerName,
+  signerRelationship,
   signerEmail,
   minorName,
   procedureTitle,
@@ -163,16 +165,18 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               </div>
               <div>
                 <span className="block text-[10px] font-bold text-slate-400 uppercase">Responsável Legal</span>
-                <strong className="text-slate-800 font-semibold">{signerName}</strong>
+                <strong className="text-slate-800 font-semibold">
+                  {signerName} {signerRelationship ? `(${signerRelationship})` : ''}
+                </strong>
               </div>
               <div className="sm:col-span-2">
                 <span className="block text-[10px] font-bold text-slate-400 uppercase">Projeto / Atividade</span>
                 <strong className="text-slate-800 font-semibold">{procedureTitle}</strong>
               </div>
               <div className="sm:col-span-2 pt-1.5 border-t border-slate-200">
-                <span className="block text-[10px] font-bold text-slate-400 uppercase">Status Jurídico</span>
+                <span className="block text-[10px] font-bold text-slate-400 uppercase">Status</span>
                 <span className="inline-flex items-center font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded text-xs mt-0.5 border border-emerald-200">
-                  ✓ DOCUMENTO ASSINADO E VÁLIDO PERANTE A LEI
+                  ✓ Autorização registrada com sucesso
                 </span>
               </div>
             </div>
@@ -225,10 +229,10 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
 
                   <div className="bg-white p-2.5 border border-slate-200 rounded-lg sm:col-span-2">
                     <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-sesi-primary" /> Data e Hora (UTC):
+                      <Clock className="w-3.5 h-3.5 text-sesi-primary" /> Data e Hora:
                     </span>
                     <span className="font-mono text-xs font-bold text-slate-700">
-                      {new Date(signResult.signed_at_utc || signResult.signed_at || new Date().toISOString()).toLocaleString('pt-BR', { timeZone: 'UTC' })} UTC
+                      {new Date(signResult.signed_at_utc || signResult.signed_at || new Date().toISOString()).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Horário de Brasília)
                     </span>
                   </div>
                   
@@ -258,8 +262,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                     <QrCode className="w-8 h-8 text-black" />
                   </div>
                 )}
-                <span className="text-[10.5px] font-black text-black uppercase tracking-wider mb-0.5">Validação Pública</span>
-                <span className="text-[9px] text-slate-400 leading-tight">Escaneie para consultar autenticidade imediata.</span>
+                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mt-1">Validação Online</span>
               </div>
             </div>
 
@@ -287,18 +290,18 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               />
               <div className="space-y-1 text-xs sm:text-sm">
                 <div className="font-bold text-slate-900 leading-snug">
-                  Documento assinado eletronicamente com validade jurídica.
+                  Autorização registrada eletronicamente pela plataforma Catraki.
                 </div>
                 <div className="text-slate-600 text-xs leading-relaxed">
-                  Para conferir a validade, acesse <span className="text-sesi-primary font-bold">https://www.catraki.com.br/validar</span> e utilize o código <strong className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">{validationCode}</strong>.
+                  Para consultar ou imprimir este registro, acesse <span className="text-sesi-primary font-bold">https://www.catraki.com.br/validar</span> e utilize o código <strong className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">{validationCode}</strong>.
                 </div>
                 <div className="text-slate-500 text-[10px] sm:text-xs leading-normal">
-                  As assinaturas eletrônicas têm validade jurídica prevista na <strong>Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º)</strong>, na <strong>Lei Federal nº 14.063/2020 (Art. 4º, II)</strong> e jurisprudência consolidada do Superior Tribunal de Justiça (<strong>STJ - REsp 2.205.708/PR</strong>).
+                  Assinatura eletrônica gerada nos termos da <strong>Medida Provisória nº 2.200-2/2001</strong> e da <strong>Lei Federal nº 14.063/2020</strong>.
                 </div>
               </div>
             </div>
             <div className="pt-2 border-t border-dashed border-slate-200 text-[10px] sm:text-[11px] text-slate-500 text-left leading-relaxed">
-              🔒 <strong>Comprovante oficial:</strong> Este registro confirma a assinatura válida do termo <strong className="text-slate-700">{validationCode}</strong> e pode ser consultado a qualquer momento no validador público da plataforma Catraki.
+              🔒 <strong>Comprovante oficial:</strong> Este registro confirma a autorização <strong className="text-slate-700">{validationCode}</strong> e pode ser consultado a qualquer momento no validador público da plataforma Catraki.
             </div>
           </div>
 

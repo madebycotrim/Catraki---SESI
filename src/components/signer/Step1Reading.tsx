@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Info, Eye } from 'lucide-react';
+import { ChevronRight, Info, Eye, HelpCircle } from 'lucide-react';
 import type { Institution } from '../../lib/types.ts';
 
 interface Step1ReadingProps {
@@ -89,7 +89,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
               <span>O que você precisará autorizar?</span>
             </h2>
             <p className="leading-relaxed pl-2 sm:pl-6 text-slate-700 m-0 text-xs sm:text-sm">
-              Na próxima etapa, tenha em mãos o seu CPF e o CPF do(a) estudante — dados necessários para a validação da idade mínima (14 anos) e para garantir a validade jurídica da assinatura eletrônica. Você precisará registrar suas escolhas sobre três pontos fundamentais:
+              Na próxima etapa, tenha em mãos o seu CPF e o CPF do(a) estudante. Você precisará registrar suas escolhas sobre três pontos:
             </p>
             <ul className="list-disc pl-6 sm:pl-12 text-slate-700 space-y-1.5 leading-relaxed text-xs sm:text-sm">
               <li>
@@ -115,9 +115,12 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
             </p>
           </div>
 
-          <div className="bg-sky-50/60 border border-sky-100/80 rounded-xl p-3.5 mt-2 text-[11px] sm:text-xs text-sky-950 leading-relaxed">
-            <strong className="text-sky-950 block mb-1">📞 Precisa de suporte?</strong>
-            Caso o código de segurança demore a chegar, verifique também as pastas de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong> do seu e-mail. Se persistir a dificuldade ou para erros na validação de CPF, procure a coordenação da escola ou a equipe de apoio presencial do projeto.
+          <div className="bg-blue-50/70 border border-blue-200 p-3.5 sm:p-4 rounded-xl flex gap-3 text-xs text-blue-900 mt-4 sm:mt-6 leading-relaxed">
+            <HelpCircle className="w-4 h-4 shrink-0 text-blue-600 mt-0.5" />
+            <div>
+              <strong className="text-blue-900 block mb-0.5">Precisa de suporte?</strong>
+              Caso o código de segurança demore a chegar, verifique também as pastas de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong> do seu e-mail. Se persistir a dificuldade ou para erros na validação de CPF, procure a coordenação da escola ou a equipe de apoio presencial do projeto.
+            </div>
           </div>
 
           {/* Botão de ação integrado na folha A4 */}

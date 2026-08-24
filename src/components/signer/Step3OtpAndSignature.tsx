@@ -289,13 +289,13 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               </h2>
               <div className="space-y-4 text-justify text-slate-700 leading-relaxed text-xs sm:text-sm pt-2">
                 <p>
-                  Para que o(a) estudante participe das atividades clínicas e exames do projeto itinerante "Escola Cidadã — Saúde em Movimento" (parceria UnB e SESI-DF), é necessário o registro do seu consentimento. De acordo com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018), a coleta e o processamento de informações pessoais e de saúde são realizados de forma segura e confidencial, com acesso estritamente restrito aos profissionais de saúde envolvidos.
+                  Para que o(a) estudante participe das atividades do projeto itinerante “Escola Cidadã — Saúde em Movimento” (parceria UnB e SESI-DF), pedimos o seu consentimento. Os dados informados são usados exclusivamente para o registro desta autorização e são protegidos nos termos da Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).
                 </p>
                 <p>
-                  Os dados coletados possuem a finalidade exclusiva de registro e comprovação legal do consentimento de participação do(a) estudante no projeto, não sendo comercializados ou utilizados para fins discriminatórios. O responsável legal poderá solicitar o acesso aos dados, correções ou a revogação imediata deste consentimento a qualquer momento, procurando a coordenação da escola ou a equipe de apoio presencial.
+                  Você pode solicitar o acesso, a correção ou o cancelamento desta autorização a qualquer momento, procurando a coordenação da escola ou a equipe de apoio presencial.
                 </p>
                 <p>
-                  Declaro, sob as penas da lei (Art. 299 do Código Penal - Falsidade Ideológica), que sou o(a) legítimo(a) responsável legal do(a) estudante qualificado(a) nesta plataforma e que as informações e documentos por mim inseridos são verdadeiros. As partes concordam em assinar este termo de consentimento por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de eficácia probatória e validade jurídica (MP 2.200-2/2001 e Lei 14.063/2020).
+                  Ao assinar, você confirma que é o(a) responsável legal pelo(a) menor e que as informações prestadas são verdadeiras. O registro é feito de forma eletrônica através da plataforma Catraki, nos termos da MP 2.200-2/2001 e da Lei 14.063/2020.
                 </p>
               </div>
             </div>
@@ -575,7 +575,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                       className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                     />
                     <span className="text-[10px] sm:text-[11px] font-bold text-slate-800 leading-normal text-justify">
-                      Declaro que sou o responsável legal pelo menor acima citado, aceito utilizar este meio eletrônico para emissão de consentimento e reconheço a validade jurídica desta assinatura, nos termos da MP 2.200-2/2001 e Lei 14.063/2020.
+                      Declaro que sou o(a) responsável legal pelo(a) menor acima e aceito registrar este consentimento de forma eletrônica através da plataforma Catraki.
                     </span>
                   </label>
                 </div>

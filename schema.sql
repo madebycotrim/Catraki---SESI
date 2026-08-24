@@ -39,6 +39,9 @@
     minor_name TEXT NOT NULL,
     minor_birth_date TEXT NOT NULL,
     minor_cpf TEXT,
+    minor_series TEXT,
+    minor_class TEXT,
+    minor_turn TEXT,
     parent_name TEXT,
     parent_email_encrypted TEXT,
     parent_phone_encrypted TEXT,
@@ -226,7 +229,7 @@
   ) VALUES (
     'proc_escola_cidada',
     1,
-    'Projeto Escola Cidadã: Saúde em Movimento',
+    'Escola Cidadã: Saúde em Movimento',
     'Autorização para atendimento do aluno nas ações do projeto Escola Cidadã: Saúde em Movimento (UnB + SESI-DF), sem a presença do responsável legal, com consentimento granular para tratamento de dados pessoais (LGPD) e uso de imagem, nome e voz (ECA/Art. 17).',
     '## TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)
   ### Autorização de Atendimento de Saúde, Tratamento de Dados e Uso de Imagem

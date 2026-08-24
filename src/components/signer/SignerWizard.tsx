@@ -137,6 +137,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
         <Step4Success
           signResult={signResult}
           signerName={formData.signerName}
+          signerRelationship={formData.signerRelationship}
           signerEmail={formData.signerEmail}
           minorName={formData.minorName}
           procedureTitle={documentData.procedure_title}

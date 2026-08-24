@@ -31,7 +31,7 @@ publicRouter.get('/validate/:query', async (c) => {
   if (cleanLower.length === 64 && /^[0-9a-f]{64}$/.test(cleanLower)) {
     // 1. Busca por Hash SHA-256 exato de 64 caracteres
     record = await db.prepare(
-      `SELECT a.*, d.minor_name, d.status as doc_status, d.revoked_at, d.revoked_reason,
+      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, d.revoked_at, d.revoked_reason,
               t.title as template_title, t.procedure_description
        FROM audit_logs a
        LEFT JOIN documents d ON a.document_id = d.id
@@ -45,7 +45,7 @@ publicRouter.get('/validate/:query', async (c) => {
     const hexSuffix = searchHex.substring(4, 8);
 
     record = await db.prepare(
-      `SELECT a.*, d.minor_name, d.status as doc_status, d.revoked_at, d.revoked_reason,
+      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, d.revoked_at, d.revoked_reason,
               t.title as template_title, t.procedure_description
        FROM audit_logs a
        LEFT JOIN documents d ON a.document_id = d.id
@@ -56,7 +56,7 @@ publicRouter.get('/validate/:query', async (c) => {
   } else if (clean.startsWith('DOC-') && clean.length >= 12) {
     // 3. Busca por identificador exato de documento DOC-YYYYMMDD-HHMMSS
     record = await db.prepare(
-      `SELECT a.*, d.minor_name, d.status as doc_status, d.revoked_at, d.revoked_reason,
+      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, d.revoked_at, d.revoked_reason,
               t.title as template_title, t.procedure_description
        FROM audit_logs a
        LEFT JOIN documents d ON a.document_id = d.id
@@ -101,6 +101,9 @@ publicRouter.get('/validate/:query', async (c) => {
     procedure_title: record.template_title,
     procedure_description: record.procedure_description,
     minor_name_initials: getInitials(record.minor_name),
+    minor_series: record.minor_series,
+    minor_class: record.minor_class,
+    minor_turn: record.minor_turn,
     document_status: record.doc_status,
     chain_position: positionResult?.pos || 1,
     prev_log_hash: record.prev_log_hash,

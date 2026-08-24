@@ -286,7 +286,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                      Projeto / Atividade
+                      Atividade
                     </span>
                     <strong className="text-slate-900 font-bold text-xs block leading-snug">
                       {validationResult.procedure_title || 'Escola Cidadã — Saúde em Movimento'}
@@ -309,8 +309,17 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                     <strong className="text-slate-900 font-bold text-xs block leading-snug">
                       {validationResult.minor_name_initials}
                     </strong>
+                    {(validationResult.minor_series || validationResult.minor_class || validationResult.minor_turn) && (
+                      <span className="text-[10px] text-slate-600 block mt-0.5 font-medium">
+                        {[
+                          validationResult.minor_series ? `Série: ${validationResult.minor_series}` : '',
+                          validationResult.minor_class ? `Turma: ${validationResult.minor_class}` : '',
+                          validationResult.minor_turn ? `Turno: ${validationResult.minor_turn}` : ''
+                        ].filter(Boolean).join(' • ')}
+                      </span>
+                    )}
                     <span className="text-[9px] text-emerald-700 font-semibold block mt-0.5">
-                      Atendimento Clínico Autorizado ✓ (Iniciais protegidas pela LGPD)
+                      Atendimento Autorizado ✓ (Iniciais protegidas pela LGPD)
                     </span>
                   </div>
                 </div>
@@ -326,7 +335,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                         Responsável Legal (Signatário)
                       </span>
                       <strong className="text-slate-900 font-bold text-xs block">
-                        {validationResult.signer_name}
+                        {validationResult.signer_name} {validationResult.signer_relationship ? `(${validationResult.signer_relationship})` : ''}
                       </strong>
                       <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-slate-600">
                         <span>CPF: <strong className="font-mono text-slate-700">{validationResult.signer_cpf_masked}</strong></span>

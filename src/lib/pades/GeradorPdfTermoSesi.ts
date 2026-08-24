@@ -76,46 +76,35 @@ export class GeradorPdfTermoSesi {
       color: corAzulSesi,
     });
 
-    // 2. Seção 1 - Identificação
-    y -= 25;
-    page.drawText('1. IDENTIFICAÇÃO DAS PARTES', {
+    // 2. Seção 1 - Texto de Apresentação (TCLE - Formato Parágrafo ABNT)
+    y -= 22;
+
+    // Padrão ABNT NBR 6024 - parágrafo corrido com recuo
+    const textoIntro = `Eu, ${dados.nomeResponsavel}, portador(a) do CPF ${dados.cpfResponsavelMascarado}, na qualidade de ${dados.parentesco} do(a) estudante ${dados.nomeMenor}, nascido(a) em ${dados.dataNascimentoMenor}, portador(a) do CPF ${dados.cpfResponsavelMascarado}, declaro estar ciente do conteúdo deste Termo de Consentimento Livre e Esclarecido e manifesto livremente minha vontade de participação.`;
+    const linhasIntro = this.quebrarTextoJustificado(textoIntro, 88);
+    for (const linha of linhasIntro) {
+      page.drawText(linha, {
+        x: margemEsquerda + (linhasIntro.indexOf(linha) === 0 ? 18 : 0),
+        y,
+        size: 9,
+        font: fontRegular,
+        color: corTexto,
+      });
+      y -= 13;
+    }
+
+    // 3. Seção 2 - Descrição do Procedimento
+    y -= 10;
+    page.drawText(`1. SOBRE A ATIVIDADE: ${dados.tituloProcedimento.toUpperCase()}`, {
       x: margemEsquerda,
       y,
       size: 10,
       font: fontBold,
       color: corAzulSesi,
-    });
-
-    y -= 16;
-    page.drawText(`Aluno(a) / Menor: ${dados.nomeMenor} | Nasc.: ${dados.dataNascimentoMenor}`, {
-      x: margemEsquerda,
-      y,
-      size: 9,
-      font: fontRegular,
-      color: corTexto,
     });
 
     y -= 14;
-    page.drawText(`Responsável Legal: ${dados.nomeResponsavel} (CPF: ${dados.cpfResponsavelMascarado}) - Vínculo: ${dados.parentesco}`, {
-      x: margemEsquerda,
-      y,
-      size: 9,
-      font: fontRegular,
-      color: corTexto,
-    });
-
-    // 3. Seção 2 - Descrição do Procedimento
-    y -= 25;
-    page.drawText(`2. PROCEDIMENTO: ${dados.tituloProcedimento.toUpperCase()}`, {
-      x: margemEsquerda,
-      y,
-      size: 10,
-      font: fontBold,
-      color: corAzulSesi,
-    });
-
-    y -= 16;
-    const linhasDescricao = this.quebrarTexto(dados.descricaoProcedimento, 85);
+    const linhasDescricao = this.quebrarTexto(dados.descricaoProcedimento, 88);
     for (const linha of linhasDescricao) {
       page.drawText(linha, {
         x: margemEsquerda,
@@ -129,7 +118,7 @@ export class GeradorPdfTermoSesi {
 
     // 4. Seção 3 - Autorizações e Consentimento LGPD
     y -= 15;
-    page.drawText('3. AUTORIZAÇÕES EXPRESSAS E BASE LEGAL (LGPD Art. 11/14)', {
+    page.drawText('2. AUTORIZAÇÕES E CONSENTIMENTO', {
       x: margemEsquerda,
       y,
       size: 10,
@@ -137,8 +126,8 @@ export class GeradorPdfTermoSesi {
       color: corAzulSesi,
     });
 
-    y -= 16;
-    page.drawText('Adicionalmente, manifesto de forma expressa, livre e inequívoca meu consentimento em relação às seguintes condições:', {
+    y -= 14;
+    page.drawText('Manifesto meu consentimento livre e esclarecido em relação às seguintes condições:', {
       x: margemEsquerda,
       y,
       size: 8.5,
@@ -251,9 +240,9 @@ export class GeradorPdfTermoSesi {
       y -= 11;
     }
 
-    // 5. Seção 4 - Assinatura e Trilha de Validação
+    // 5. Seção 4 - Assinatura
     y -= 30;
-    page.drawText('4. DECLARAÇÃO E ASSINATURA ELETRÔNICA (MP 2.200-2/2001 E LEI 14.063/2020)', {
+    page.drawText('3. DECLARAÇÃO E ASSINATURA ELETRÔNICA', {
       x: margemEsquerda,
       y,
       size: 10,
@@ -262,7 +251,7 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 14;
-    page.drawText('Declaro sob as penas do Art. 299 do Código Penal que as informações fornecidas são legítimas.', {
+    page.drawText('Declaro que as informações prestadas são verdadeiras e que sou o(a) responsável legal pelo(a) menor acima identificado(a).', {
       x: margemEsquerda,
       y,
       size: 7.5,
@@ -271,16 +260,7 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 10;
-    page.drawText('As partes concordam em assinar este termo de forma eletrônica através da plataforma Catraki, reconhecendo a sua', {
-      x: margemEsquerda,
-      y,
-      size: 7.5,
-      font: fontRegular,
-      color: corCinza,
-    });
-
-    y -= 10;
-    page.drawText('validade jurídica e eficácia probatória nos termos da MP 2.200-2/2001 e da Lei nº 14.063/2020.', {
+    page.drawText('O registro eletrônico deste consentimento foi realizado através da plataforma Catraki, conforme MP 2.200-2/2001 e Lei nº 14.063/2020.', {
       x: margemEsquerda,
       y,
       size: 7.5,
@@ -355,7 +335,7 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 10;
-    page.drawText('Assinatura Eletrônica com validade jurídica (MP 2.200-2/2001 e Lei nº 14.063/2020)', {
+    page.drawText('Assinatura Eletrônica — Plataforma Catraki (MP 2.200-2/2001 e Lei nº 14.063/2020)', {
       x: margemEsquerda,
       y,
       size: 7.5,
@@ -374,7 +354,7 @@ export class GeradorPdfTermoSesi {
     });
 
     // Rodapé da Página 1
-    page.drawText('Documento assinado eletronicamente através da plataforma Catraki com validade jurídica (MP 2.200-2/2001 e Lei 14.063/2020).', {
+    page.drawText('Autorização registrada eletronicamente via plataforma Catraki | MP 2.200-2/2001 e Lei 14.063/2020.', {
       x: margemEsquerda,
       y: 25,
       size: 6.5,
@@ -605,5 +585,10 @@ export class GeradorPdfTermoSesi {
     }
     if (linhaAtual) linhas.push(linhaAtual);
     return linhas;
+  }
+
+  // Alias para uso em parágrafos com recuo no primeiro parágrafo
+  private static quebrarTextoJustificado(texto: string, maxCaracteres: number): string[] {
+    return this.quebrarTexto(texto, maxCaracteres);
   }
 }

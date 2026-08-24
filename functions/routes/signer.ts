@@ -976,6 +976,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       <div style="border-bottom: 2.5px solid #034b7f; padding-bottom: 16px; margin-bottom: 22px;">
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
+            <td style="width: 44px; vertical-align: middle; padding-right: 12px;">
+              <img src="https://www.catraki.com.br/catraki.png" style="width: 36px; height: 36px; display: block; border-radius: 6px;" alt="Catraki Logo" />
+            </td>
             <td style="vertical-align: middle;">
               <h2 style="font-size: 14px; font-weight: 800; color: #034b7f; margin: 0; text-transform: uppercase;">ESCOLA CIDADÃ</h2>
               <span style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">Saúde em Movimento</span>
@@ -992,9 +995,43 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         <div style="font-size: 11px; color: #475569; margin-top: 4px;">Comprovante de Autorização para Atendimento e Triagens em Saúde</div>
       </div>
       <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; text-align: justify;">
-        <p style="text-indent: 28px; margin: 0;">
+        <p style="text-indent: 28px; margin: 0 0 16px 0;">
           Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhoneText}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeriesText}${studentTurnText}, declaro sob as penas da lei que <strong>AUTORIZO a realização das triagens e atendimentos de saúde do(a) estudante</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>.
         </p>
+      </div>
+      <div style="margin-bottom: 20px; font-size: 12px; line-height: 1.6; text-align: justify; border-top: 1px solid #cbd5e1; padding-top: 14px;">
+        <p style="margin: 0 0 10px 0; font-weight: bold; color: #475569;">
+          Adicionalmente, manifesto de forma expressa, livre e inequívoca meu consentimento em relação às seguintes condições:
+        </p>
+        <ul style="list-style-type: none; padding-left: 0; margin: 0;">
+          <li style="margin-bottom: 12px;">
+            <strong>a) Circuito de Saúde e Especialidades:</strong> 
+            <span style="font-weight: bold; color: ${parsed.data.auth_health === 'yes' ? '#107c41' : '#c80000'};">
+              [ ${parsed.data.auth_health === 'yes' ? '✓ AUTORIZO' : 'X NÃO AUTORIZO'} ]
+            </span>
+            <span style="color: #475569; font-size: 11px; display: block; margin-top: 2px;">
+              — Fica autorizada a realização de triagens preventivas e avaliações clínicas no circuito oficial do projeto (Oftalmologia, Audiometria, Odontologia, Psicologia e Nutrição).
+            </span>
+          </li>
+          <li style="margin-bottom: 12px;">
+            <strong>b) Tratamento de Dados Pessoais:</strong>
+            <span style="font-weight: bold; color: ${parsed.data.auth_data === 'yes' ? '#107c41' : '#c80000'};">
+              [ ${parsed.data.auth_data === 'yes' ? '✓ AUTORIZO' : 'X NÃO AUTORIZO'} ]
+            </span>
+            <span style="color: #475569; font-size: 11px; display: block; margin-top: 2px;">
+              — Fica expressamente autorizada a coleta e o processamento seguro dos dados pessoais para finalidade exclusiva de registro e comprovação legal do consentimento de participação do estudante no projeto.
+            </span>
+          </li>
+          <li style="margin-bottom: 12px;">
+            <strong>c) Captação e Uso de Imagem e Voz:</strong>
+            <span style="font-weight: bold; color: ${parsed.data.auth_image === 'yes' ? '#107c41' : '#c80000'};">
+              [ ${parsed.data.auth_image === 'yes' ? '✓ AUTORIZO' : 'X NÃO AUTORIZO'} ]
+            </span>
+            <span style="color: #475569; font-size: 11px; display: block; margin-top: 2px;">
+              — Fica autorizada de forma gratuita a captação e veiculação de fotos/vídeos do estudante para documentação institucional e relatórios de prestação de contas, respeitando a sua dignidade (ECA, Art. 17).
+            </span>
+          </li>
+        </ul>
       </div>
       <div style="margin: 16px 0; background-color: #fffbeb; border: 1.5px solid #fef3c7; border-radius: 8px; padding: 12px 16px; font-size: 11.5px; color: #78350f;">
         <strong>⚠️ AVISO OPERACIONAL IMPORTANTE:</strong> Este comprovante oficial atesta a autorização legal. Contudo, <strong>esta assinatura não garante atendimento presencial imediato</strong>, que fica condicionado à capacidade diária máxima de atendimentos no local.

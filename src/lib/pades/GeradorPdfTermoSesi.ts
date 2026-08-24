@@ -138,8 +138,7 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 16;
-    const statusSaude = dados.autorizacaoSaude ? '[X] AUTORIZADO' : '[ ] NÃO AUTORIZADO';
-    page.drawText(`${statusSaude} - Realização do atendimento de triagem e avaliação clínica em saúde escolar.`, {
+    page.drawText('Adicionalmente, manifesto de forma expressa, livre e inequívoca meu consentimento em relação às seguintes condições:', {
       x: margemEsquerda,
       y,
       size: 8.5,
@@ -147,25 +146,110 @@ export class GeradorPdfTermoSesi {
       color: corTexto,
     });
 
-    y -= 13;
-    const statusDados = dados.autorizacaoDados ? '[X] AUTORIZADO' : '[ ] NÃO AUTORIZADO';
-    page.drawText(`${statusDados} - Tratamento e registro de dados de saúde para fins de acompanhamento escolar preventivo.`, {
+    y -= 18;
+    page.drawText('a) Circuito de Saúde e Especialidades: ', {
       x: margemEsquerda,
       y,
       size: 8.5,
-      font: fontRegular,
+      font: fontBold,
       color: corTexto,
+    });
+    
+    let xOffset = margemEsquerda + 170;
+    const statusSaudeText = dados.autorizacaoSaude ? '[ AUTORIZO ]' : '[ NÃO AUTORIZO ]';
+    const statusSaudeColor = dados.autorizacaoSaude ? rgb(16/255, 124/255, 65/255) : rgb(200/255, 0, 0);
+    
+    page.drawText(statusSaudeText, {
+      x: xOffset,
+      y,
+      size: 8.5,
+      font: fontBold,
+      color: statusSaudeColor,
     });
 
-    y -= 13;
-    const statusImg = dados.autorizacaoImagem ? '[X] AUTORIZADO' : '[ ] NÃO AUTORIZADO';
-    page.drawText(`${statusImg} - Registro institucional de fotos/vídeos das ações educativas para fins pedagógicos.`, {
+    const descSaude = ' — Fica autorizada a realização de triagens preventivas e avaliações clínicas de forma integrada no circuito de especialidades oficiais do projeto: Oftalmologia, Audiometria, Odontologia, Psicologia e Nutrição.';
+    y -= 12;
+    const linhasDescSaude = this.quebrarTexto(descSaude, 95);
+    for (const linha of linhasDescSaude) {
+      page.drawText(linha, {
+        x: margemEsquerda + 15,
+        y,
+        size: 8,
+        font: fontRegular,
+        color: corTexto,
+      });
+      y -= 11;
+    }
+
+    y -= 8;
+    page.drawText('b) Tratamento de Dados Pessoais: ', {
       x: margemEsquerda,
       y,
       size: 8.5,
-      font: fontRegular,
+      font: fontBold,
       color: corTexto,
     });
+    
+    xOffset = margemEsquerda + 145;
+    const statusDadosText = dados.autorizacaoDados ? '[ AUTORIZO ]' : '[ NÃO AUTORIZO ]';
+    const statusDadosColor = dados.autorizacaoDados ? rgb(16/255, 124/255, 65/255) : rgb(200/255, 0, 0);
+    
+    page.drawText(statusDadosText, {
+      x: xOffset,
+      y,
+      size: 8.5,
+      font: fontBold,
+      color: statusDadosColor,
+    });
+
+    const descDados = ' — Fica expressamente autorizada a coleta e o processamento seguro dos dados pessoais para finalidade exclusiva de registro e comprovação legal do consentimento de participação do estudante no projeto.';
+    y -= 12;
+    const linhasDescDados = this.quebrarTexto(descDados, 95);
+    for (const linha of linhasDescDados) {
+      page.drawText(linha, {
+        x: margemEsquerda + 15,
+        y,
+        size: 8,
+        font: fontRegular,
+        color: corTexto,
+      });
+      y -= 11;
+    }
+
+    y -= 8;
+    page.drawText('c) Captação e Uso de Imagem e Voz: ', {
+      x: margemEsquerda,
+      y,
+      size: 8.5,
+      font: fontBold,
+      color: corTexto,
+    });
+    
+    xOffset = margemEsquerda + 160;
+    const statusImgText = dados.autorizacaoImagem ? '[ AUTORIZO ]' : '[ NÃO AUTORIZO ]';
+    const statusImgColor = dados.autorizacaoImagem ? rgb(16/255, 124/255, 65/255) : rgb(200/255, 0, 0);
+    
+    page.drawText(statusImgText, {
+      x: xOffset,
+      y,
+      size: 8.5,
+      font: fontBold,
+      color: statusImgColor,
+    });
+
+    const descImg = ' — Fica autorizada de forma gratuita a captação e veiculação de fotos/vídeos do estudante para documentação institucional e relatórios de prestação de contas, respeitando a sua dignidade (ECA, Art. 17).';
+    y -= 12;
+    const linhasDescImg = this.quebrarTexto(descImg, 95);
+    for (const linha of linhasDescImg) {
+      page.drawText(linha, {
+        x: margemEsquerda + 15,
+        y,
+        size: 8,
+        font: fontRegular,
+        color: corTexto,
+      });
+      y -= 11;
+    }
 
     // 5. Seção 4 - Assinatura e Trilha de Validação
     y -= 30;

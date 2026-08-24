@@ -17,8 +17,8 @@ interface Step2IdentityProps {
 }
 
 export const Step2Identity: React.FC<Step2IdentityProps> = ({ token, minorName, onVerified, onBack }) => {
-  const [signerName, setSignerName] = useState('Mateus Cotrim');
-  const [signerCpfRaw, setSignerCpfRaw] = useState('12345678909');
+  const [signerName, setSignerName] = useState('');
+  const [signerCpfRaw, setSignerCpfRaw] = useState('');
   const [relationship, setRelationship] = useState<SignerRelationship>('Pai');
   
   const [checkingMatricula, setCheckingMatricula] = useState(false);
@@ -263,9 +263,6 @@ export const Step2Identity: React.FC<Step2IdentityProps> = ({ token, minorName, 
                 </>
               )}
             </button>
-            <p className="text-[11px] text-slate-500 text-center mt-2">
-              Dica: O CPF de teste <code className="text-sesi-primary font-mono bg-blue-50 px-1 py-0.5 rounded">123.456.789-09</code> (Mateus Cotrim) possui vínculo direto pré-cadastrado.
-            </p>
           </div>
         )}
 
@@ -388,23 +385,14 @@ export const Step2Identity: React.FC<Step2IdentityProps> = ({ token, minorName, 
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs space-y-2">
                 <div className="flex items-center gap-2 font-semibold text-sesi-green text-sm">
                   <CheckCircle2 className="w-5 h-5" />
-                  <span>Documentos em Análise Manual</span>
+                  <span>Documentos Recebidos — Análise em Andamento</span>
                 </div>
                 <p className="text-slate-600">
                   Protocolo de Revisão: <span className="font-mono text-sesi-primary font-bold">{reviewProtocol}</span>
                 </p>
                 <p className="text-slate-500 text-[11px]">
-                  A secretaria da escola analisará os documentos e liberará o link de assinatura. Você pode acompanhar pelo painel para testes imediatos.
+                  A equipe do SESI analisará os documentos enviados e, após aprovação, o link de assinatura será liberado. Em caso de dúvidas, procure a coordenação da escola ou a equipe de apoio presencial do projeto.
                 </p>
-                <div className="pt-2">
-                  <button
-                    onClick={handleProceedToOtp}
-                    className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs border border-slate-300 flex items-center gap-2 cursor-pointer transition-colors"
-                  >
-                    <span>Prosseguir em Modo Demonstração (Simular Aprovação)</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
               </div>
             )}
           </div>

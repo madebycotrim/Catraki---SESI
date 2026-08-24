@@ -237,6 +237,8 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   <option value="Pai">Pai</option>
                   <option value="Tutor(a) Legal">Tutor(a) Legal</option>
                   <option value="Responsável por Guarda Judicial">Responsável por Guarda Judicial</option>
+                  <option value="Avô/Avó">Avô/Avó</option>
+                  <option value="Tio/Tia">Tio/Tia</option>
                 </select>
                 {errors.signerRelationship && <span className="text-[10px] font-semibold text-red-500">{errors.signerRelationship}</span>}
               </div>

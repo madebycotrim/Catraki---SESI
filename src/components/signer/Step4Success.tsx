@@ -118,7 +118,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               Escola Cidadã — Saúde em Movimento
             </p>
             <p className="text-xs sm:text-[9pt] text-slate-800 m-0 font-bold">
-              Comprovante de Assinatura
+              Comprovante de Assinatura Eletrônica
             </p>
             <p className="text-[10px] sm:text-[8pt] text-slate-500 m-0">
               {dataHoje}
@@ -133,10 +133,10 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
             <span>Assinatura Concluída</span>
           </div>
           <h1 className="text-sm sm:text-base font-bold uppercase tracking-wide text-slate-900 m-0">
-            RECIBO DE ASSINATURA ELETRÔNICA
+            COMPROVANTE DE ASSINATURA ELETRÔNICA
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Comprovante de manifestação de consentimento e aceite eletrônico.
+            Comprovante de manifestação de consentimento e aceite eletrônico — Art. 4º, II, Lei nº 14.063/2020.
           </p>
         </div>
 
@@ -219,7 +219,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                         <MailCheck className="w-3.5 h-3.5 text-sesi-primary" /> Método de Autenticação:
                       </span>
                       <span className="font-semibold text-xs text-slate-800">
-                        Código de Segurança OTP por E-mail
+                        Código de Segurança OTP por {signResult.otp_channel === 'sms' ? 'SMS' : 'E-mail'}
                       </span>
                     </div>
                     <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
@@ -238,12 +238,20 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                   
                   <div className="bg-white p-2.5 border border-slate-200 rounded-lg">
                     <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Endereço IP:</span>
-                    <span className="font-mono text-xs font-bold text-slate-700 break-all">{signResult.ip_address || '189.126.217.88'}</span>
+                    <span className="font-mono text-xs font-bold text-slate-700 break-all">
+                      {signResult.ip_address && signResult.ip_address !== 'não registrado'
+                        ? signResult.ip_address
+                        : 'Registrado no sistema'}
+                    </span>
                   </div>
 
                   <div className="bg-white p-2.5 border border-slate-200 rounded-lg">
                     <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Localização:</span>
-                    <span className="font-mono text-xs font-bold text-slate-700">{signResult.geo_city ? `${signResult.geo_city}, ${signResult.geo_region || 'DF'}` : 'Brasília, DF'}</span>
+                    <span className="font-mono text-xs font-bold text-slate-700">
+                      {signResult.geo_city
+                        ? `${signResult.geo_city}${signResult.geo_region ? `, ${signResult.geo_region}` : ''}`
+                        : 'Registrada no sistema'}
+                    </span>
                   </div>
                 </div>
 
@@ -296,7 +304,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                   Para consultar ou imprimir este registro, acesse <span className="text-sesi-primary font-bold">https://www.catraki.com.br/validar</span> e utilize o código <strong className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">{validationCode}</strong>.
                 </div>
                 <div className="text-slate-500 text-[10px] sm:text-xs leading-normal">
-                  Assinatura eletrônica gerada nos termos da <strong>Medida Provisória nº 2.200-2/2001</strong> e da <strong>Lei Federal nº 14.063/2020</strong>.
+                  Assinatura Eletrônica Avançada emitida nos termos do <strong>Art. 4º, II, da Lei Federal nº 14.063/2020</strong>, do <strong>Art. 10, §2º, da Medida Provisória nº 2.200-2/2001</strong>, da <strong>LGPD (Lei nº 13.709/2018)</strong>, do <strong>ECA (Art. 17)</strong> e da jurisprudência consolidada do <strong>STJ (REsp 2.205.708/PR)</strong>.
                 </div>
               </div>
             </div>

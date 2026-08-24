@@ -255,7 +255,8 @@ export async function generateTsaTimestampToken(
   tsaEndpoint?: string
 ): Promise<{ token: string; tsaName: string; timestamp: string; verified: boolean }> {
   const timestampIso = new Date().toISOString();
-  const tsaAuthority = 'Autoridade de Carimbo do Tempo (RFC 3161 - Sincronizado NTP.br)';
+  // Nome correto: TSA interno Catraki — não confundir com ICP-Brasil
+  const tsaAuthority = 'Catraki TSA Interno (Sincronizado NTP.br / RFC 3161-Like — Não-ICP)';
 
   if (tsaEndpoint && !tsaEndpoint.includes('localhost')) {
     try {
@@ -278,7 +279,8 @@ export async function generateTsaTimestampToken(
 
   const tokenPayload = {
     version: 1,
-    policy: '2.16.76.1.4.1 (ICP-Brasil Padrão)',
+    // OID próprio Catraki (não-ICP) — evita confusão com OID ICP-Brasil 2.16.76.1.4.1
+    policy: '1.3.6.1.4.1.99999.1 (Catraki Internal TSA — Non-ICP)',
     imprint: {
       hashAlgorithm: 'SHA-256',
       hashedMessage: manifestHash,

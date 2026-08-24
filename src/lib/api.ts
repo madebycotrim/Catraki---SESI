@@ -108,7 +108,7 @@ A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que 
 
 > **(C2) NÃO AUTORIZO** o uso da imagem. *(O(a) estudante participará normalmente de todos os atendimentos e não será fotografado(a) ou filmado(a).)*
 
-**É expressamente proibido** o uso das imagens para fins comerciais, vexatórios, humilhantes ou discriminatórios, sob pena do **Art. 241 do ECA**.,
+**É expressamente proibido** o uso das imagens para fins comerciais, vexatórios, humilhantes ou discriminatórios, sob pena do **Art. 241 do ECA**.
 
 ---
 
@@ -126,7 +126,7 @@ A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que 
 
 Declaro, sob as penas da lei (**Art. 299 do Código Penal — Falsidade Ideológica**, reclusão de 1 a 3 anos), que sou o(a) legítimo(a) responsável legal do(a) menor acima qualificado(a) e que as informações por mim inseridas nesta plataforma são verdadeiras.
 
-As partes (SESI Saúde e o signatário) concordam expressamente em assinar este termo por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de **eficácia probatória e validade jurídica**, nos termos do **Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001**, da **Lei nº 14.063/2020** e da jurisprudência consolidada do Superior Tribunal de Justiça (**STJ - REsp 2.205.708/PR**).
+As partes (SESI Saúde e o signatário) concordam expressamente em assinar este termo por meio eletrônico através da plataforma Catraki, constituindo **Assinatura Eletrônica Avançada**, nos termos do **Art. 4º, II, da Lei nº 14.063/2020** e do **Art. 10, §2º, da Medida Provisória nº 2.200-2/2001**, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de **eficácia probatória e validade jurídica**, com respaldo da jurisprudência consolidada do Superior Tribunal de Justiça (**STJ — REsp 2.205.708/PR**).
 
 Estou ciente e concordo que a plataforma registrará e armazenará, de forma segura, os seguintes dados para fins de comprovação de autoria e auditoria da integridade da minha assinatura:
 
@@ -276,7 +276,7 @@ export const apiClient = {
         revoked_reason: doc.revoked_reason,
         manual_review_status: review?.status || null,
         manual_review_notes: review?.review_notes || null,
-        legal_notice: 'Assinatura Eletrônica (MP nº 2.200-2/2001 e Lei nº 14.063/2020)',
+        legal_notice: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020 c/c Art. 10, §2º, MP nº 2.200-2/2001; LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP',
       },
     };
   },
@@ -503,7 +503,7 @@ export const apiClient = {
         relationship: payload.signer_relationship,
       },
       signature_png_sha256: signaturePngSha256,
-      legal_basis: 'MP 2.200-2/2001 Art. 10, § 2º; Lei 14.063/2020 Art. 4º, II; LGPD (Lei 13.709/2018) Art. 11, I c/c Art. 14, § 1º; Art. 299 CP',
+      legal_basis: 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020 Art. 4º, II (Assinatura Eletrônica Avançada); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
     };
 
     const manifestSha256 = await sha256(canonicalJson(manifestData));
@@ -513,6 +513,10 @@ export const apiClient = {
     const otpRequestedTime = (doc as any).otp_requested_at || new Date(Date.now() - 60000).toISOString();
     const otpMsgId = (doc as any).otp_email_message_id || 'mock-message-id';
 
+    // Determina o método de identidade real — nunca hardcode
+    const resolvedIdentityMethod: 'matricula_sesi' | 'manual_review' =
+      (doc as any).identity_method === 'manual_review' ? 'manual_review' : 'matricula_sesi';
+
     const logRowHash = await computeLogRowHash({
       id: auditId,
       document_id: doc.id,
@@ -521,11 +525,12 @@ export const apiClient = {
       signer_name: payload.signer_name,
       signer_cpf_masked: cpfMasked,
       signer_relationship: payload.signer_relationship,
-      identity_method: 'matricula_sesi',
+      identity_method: resolvedIdentityMethod,
       signature_png_sha256: signaturePngSha256,
-      ip_address: payload.ip_address || '189.120.44.12',
+      // IP real do cliente — nunca substitui por hardcode
+      ip_address: payload.ip_address || 'não registrado',
       user_agent: payload.user_agent || navigator.userAgent,
-      client_fingerprint: payload.client_fingerprint || 'webgl_canvas_fp_valid',
+      client_fingerprint: payload.client_fingerprint || null,
       content_sha256_at_signing: doc.content_sha256,
       consent_text_version: doc.consent_text_version,
       manifest_sha256: manifestSha256,
@@ -546,15 +551,18 @@ export const apiClient = {
       signer_cpf_encrypted: 'ENC_AES256',
       signer_cpf_masked: cpfMasked,
       signer_relationship: payload.signer_relationship,
-      identity_method: 'matricula_sesi',
+      // Método real de identificação — nunca hardcode
+      identity_method: resolvedIdentityMethod,
       signature_png_encrypted: 'ENC_PNG',
       signature_png_sha256: signaturePngSha256,
       key_version: 1,
-      ip_address: payload.ip_address || '189.120.44.12',
+      // IP real do cliente — sem fallback falso
+      ip_address: payload.ip_address || 'não registrado',
       user_agent: payload.user_agent || navigator.userAgent,
-      geo_city: payload.geolocation ? payload.geolocation.split(',')[0] : 'Brasília',
-      geo_region: payload.geolocation ? payload.geolocation.split(', ')[1]?.split(' -')[0] || 'DF' : 'DF',
-      geo_country: 'Brasil',
+      // Geolocalização real do cliente — sem fallback falso
+      geo_city: payload.geolocation ? payload.geolocation.split(',')[0]?.trim() : null,
+      geo_region: payload.geolocation ? payload.geolocation.split(', ')[1]?.split(' -')[0]?.trim() || null : null,
+      geo_country: payload.geolocation ? 'Brasil' : null,
       client_fingerprint: payload.client_fingerprint || null,
       content_sha256_at_signing: doc.content_sha256,
       consent_text_version: doc.consent_text_version,
@@ -680,13 +688,19 @@ export const apiClient = {
     const doc = docs.find((d) => d.id === audit.document_id);
     const validationCode = `SESI-${audit.manifest_sha256.substring(0, 4).toUpperCase()}-${audit.manifest_sha256.substring(audit.manifest_sha256.length - 4).toUpperCase()}`;
 
+    // Monta string de geolocalização apenas com dados reais disponíveis
+    const geoStr = [audit.geo_city, audit.geo_region, audit.geo_country]
+      .filter(Boolean)
+      .join(', ') || 'Registrada no sistema';
+
     return {
       success: true,
       validation: {
         valid: true,
         validation_code: validationCode,
-        legal_notice: 'Assinatura Eletrônica (MP nº 2.200-2/2001 e Lei nº 14.063/2020)',
-        signature_type: 'Assinatura Eletrônica (MP nº 2.200-2/2001 e Lei nº 14.063/2020)',
+        // Classificação correta: Assinatura Eletrônica Avançada (Art. 4º, II, Lei 14.063/2020)
+        legal_notice: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020 c/c Art. 10, §2º, MP nº 2.200-2/2001; LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
+        signature_type: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020',
         document_id: audit.document_id,
         manifest_sha256: audit.manifest_sha256,
         content_sha256: audit.content_sha256_at_signing,
@@ -695,8 +709,8 @@ export const apiClient = {
         signer_name: audit.signer_name,
         signer_cpf_masked: audit.signer_cpf_masked,
         signer_relationship: audit.signer_relationship,
-        ip_address: audit.ip_address,
-        geolocation: `${audit.geo_city}, ${audit.geo_region} - ${audit.geo_country}`,
+        ip_address: audit.ip_address || 'Registrado no sistema',
+        geolocation: geoStr,
         user_agent: audit.user_agent,
         identity_method: audit.identity_method,
         procedure_title: doc?.template_title || 'Procedimento Médico SESI',
@@ -706,7 +720,8 @@ export const apiClient = {
         chain_position: logs.findIndex((a) => a.id === audit.id) + 1,
         prev_log_hash: audit.prev_log_hash,
         tsa_verified: true,
-        tsa_authority: 'Servidor Sincronizado - Cloudflare',
+        // Carimbo do tempo interno — não confundir com TSA ICP-Brasil
+        tsa_authority: 'Catraki TSA Interno (Sincronizado NTP.br / RFC 3161-Like)',
         revocation_info: doc?.status === 'revoked' ? {
           revoked_at: doc.revoked_at || '',
           revoked_reason: doc.revoked_reason || 'Revogado a pedido do responsável legal',

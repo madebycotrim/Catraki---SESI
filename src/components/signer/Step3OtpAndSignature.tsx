@@ -295,7 +295,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   Você pode solicitar o acesso, a correção ou o cancelamento desta autorização a qualquer momento, procurando a coordenação da escola ou a equipe de apoio presencial.
                 </p>
                 <p>
-                  Ao assinar, você confirma que é o(a) responsável legal pelo(a) menor e que as informações prestadas são verdadeiras. O registro é feito de forma eletrônica através da plataforma Catraki, nos termos da MP 2.200-2/2001 e da Lei 14.063/2020.
+                  Ao assinar, você confirma que é o(a) responsável legal pelo(a) menor e que as informações prestadas são verdadeiras. O registro é feito de forma eletrônica através da plataforma Catraki, constituindo <strong>Assinatura Eletrônica Avançada</strong> nos termos do <strong>Art. 4º, II, da Lei nº 14.063/2020</strong>, do <strong>Art. 10, §2º, da MP 2.200-2/2001</strong>, da <strong>LGPD (Lei nº 13.709/2018)</strong> e do <strong>ECA (Art. 17)</strong>, com respaldo da jurisprudência do STJ (REsp 2.205.708/PR).
                 </p>
               </div>
             </div>
@@ -369,7 +369,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 <span>5. Assinatura Eletrônica e Validação</span>
               </h3>
               <span className="inline-flex px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-semibold border border-slate-200/60">
-                Resguardo legal: MP 2.200-2/2001 & Lei 14.063/2020
+                Resguardo legal: Art. 4º, II, Lei 14.063/2020 | MP 2.200-2/2001 | LGPD | ECA Art. 17
               </span>
             </div>
 

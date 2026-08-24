@@ -477,7 +477,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                     <div className="bg-white border border-slate-200 rounded-xl p-2">
                       <span className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Localização Estimada</span>
                       <div className="font-mono text-[10.5px] font-bold text-slate-800">
-                        {validationResult.geolocation || 'Brasília, DF - Brasil'}
+                        {validationResult.geolocation || 'Registrada no sistema'}
                       </div>
                     </div>
                   </div>

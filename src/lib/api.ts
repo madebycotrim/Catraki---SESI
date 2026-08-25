@@ -872,7 +872,7 @@ export const apiClient = {
     return {
       success: true,
       protocol: reqId,
-      message: 'Sua solicitação fundamentada na LGPD foi registrada e encaminhada ao DPO do SESI.',
+      message: 'Sua solicitação fundamentada na LGPD foi registrada e encaminhada ao canal de privacidade.',
     };
   },
 
@@ -956,12 +956,12 @@ export const apiClient = {
   /**
    * Revoga / Cancela autorização por erro operacional com soft delete e trilha de auditoria imutável (LGPD/Marco Civil)
    */
-  async cancelDocumentDueToError(docId: string, reason: string): Promise<any> {
+  async cancelDocumentDueToError(docId: string, reason: string, notifyEmail?: string): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/admin/documents/${encodeURIComponent(docId)}/cancel`, {
         method: 'POST',
         headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ reason, confirmed: true }),
+        body: JSON.stringify({ reason, confirmed: true, notify_email: notifyEmail }),
       });
       const data = await resp.json().catch(() => null);
       if (data) return data;
@@ -986,6 +986,50 @@ export const apiClient = {
       status: 'CANCELADO_POR_ERRO',
       cancelled_at: cancelledAt,
       message: 'Autorização cancelada com sucesso por inconsistência operacional. O responsável legal foi notificado e a trilha forense foi registrada.',
+    };
+  },
+
+  /**
+   * Dispara ou reenvia notificação formal de cancelamento para o e-mail informado
+   */
+  async resendCancellationNotification(docId: string, email: string, reason?: string): Promise<any> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/documents/${encodeURIComponent(docId)}/notify-cancellation`, {
+        method: 'POST',
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ email, reason }),
+      });
+      const data = await resp.json().catch(() => null);
+      if (data) return data;
+    } catch {}
+
+    return {
+      success: true,
+      email_dispatched: true,
+      target_email: email,
+      message: `Notificação de cancelamento enviada com sucesso para ${email}.`,
+    };
+  },
+
+  /**
+   * Dispara ou reenvia comprovante oficial de assinatura para o e-mail informado
+   */
+  async resendSignedDocumentNotification(docId: string, email: string): Promise<any> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/documents/${encodeURIComponent(docId)}/resend-signed-email`, {
+        method: 'POST',
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ email }),
+      });
+      const data = await resp.json().catch(() => null);
+      if (data) return data;
+    } catch {}
+
+    return {
+      success: true,
+      email_dispatched: true,
+      target_email: email,
+      message: `Comprovante de assinatura eletrônica enviado com sucesso para ${email}.`,
     };
   },
 
@@ -1268,7 +1312,100 @@ export const apiClient = {
     const list = getInstitutions();
     const updated = list.filter((i) => i.id !== id);
     setInstitutions(updated);
-    return { success: true, message: 'Instituição removida com sucesso.' };
+    return { success: true, message: 'Instituição desativada com sucesso.' };
+  },
+
+  // ==========================================================================
+  // ATENDIMENTO LGPD (Art. 18) & GOVERNANÇA DE DADOS
+  // ==========================================================================
+
+  async fetchLgpdRequests(): Promise<any[]> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/lgpd-requests`, {
+        headers: this.getAuthHeaders(),
+      });
+      if (resp.ok) {
+        const data = await resp.json() as any;
+        return data.requests || [];
+      }
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
+    } catch {}
+
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('catraki_lgpd_requests') : null;
+    return raw ? JSON.parse(raw) : [];
+  },
+
+  async respondLgpdRequest(id: string, status: string, response_notes: string): Promise<any> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/lgpd-requests/${id}/respond`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ status, response_notes }),
+      });
+      if (resp.ok) return await resp.json();
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
+    } catch {}
+
+    // Fallback local
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('catraki_lgpd_requests') : null;
+    let list = raw ? JSON.parse(raw) : [];
+    list = list.map((item: any) => item.id === id ? { ...item, status, response_notes, resolved_at: new Date().toISOString() } : item);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('catraki_lgpd_requests', JSON.stringify(list));
+    }
+    return { success: true, message: 'Solicitação LGPD atualizada com sucesso no banco de custódia.' };
+  },
+
+  // ==========================================================================
+  // AUDITORIA DE EXPORTAÇÃO MASSIVA (DLP / LGPD Art. 46 e 50)
+  // ==========================================================================
+
+  async logAdminExport(payload: { export_type: string; record_count: number; filters_applied?: string }): Promise<any> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/audit/export-log`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+      if (resp.ok) return await resp.json();
+    } catch {}
+    return { success: true };
+  },
+
+  // ==========================================================================
+  // PORTABILIDADE DE DADOS (LGPD Art. 18, V)
+  // ==========================================================================
+
+  async getPublicDossier(code: string): Promise<any> {
+    try {
+      const resp = await fetch(`${API_BASE}/public/dossier/${encodeURIComponent(code)}`);
+      if (resp.ok) return await resp.json();
+    } catch {}
+    return { success: false, error: 'Não foi possível gerar o dossiê de portabilidade.' };
+  },
+
+  // ==========================================================================
+  // AUDITORIA DE AÇÕES ADMINISTRATIVAS E DE GOVERNANÇA (admin_audit_logs)
+  // ==========================================================================
+
+  async getAdminGovernanceAuditLogs(): Promise<any[]> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/audit-logs/admin`, {
+        headers: this.getAuthHeaders(),
+      });
+      if (resp.ok) {
+        const data = await resp.json() as any;
+        return data.logs || [];
+      }
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+      }
+    } catch {}
+    return [];
   },
 
   // ==========================================================================

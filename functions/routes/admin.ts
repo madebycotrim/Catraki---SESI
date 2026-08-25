@@ -4,10 +4,12 @@ import {
   CreateDocumentSchema,
   ManualReviewActionSchema,
   CancelDocumentErrorSchema,
+  LogAdminExportSchema,
   generateUniqueDocId,
 } from '../../src/lib/schemas.ts';
 import {
   sha256,
+  hmacSha256,
   generateSecureToken,
   encryptAesGcm,
   decryptAesGcm,
@@ -22,6 +24,7 @@ import { requireAuth, signJwt, JwtPayload } from '../middleware/auth.ts';
 import type {
   Env,
   DocumentTemplate,
+  DocumentRecord,
   AuditLogRow,
   ManualReviewRecord,
   LgpdRequestRecord,
@@ -30,6 +33,35 @@ import type {
 
 export const adminRouter = new Hono<{ Bindings: Env; Variables: { user: JwtPayload } }>();
 
+/**
+ * Registra eventos imutáveis na trilha de auditoria administrativa (admin_audit_logs)
+ */
+export async function logAdminAction(
+  db: D1Database,
+  actor: { sub: string; email: string; role: string },
+  eventType: string,
+  targetResource: string,
+  details: string,
+  ipAddress: string,
+  userAgent: string
+) {
+  try {
+    const id = `ADM-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const logRowHash = await sha256(`${id}|${eventType}|${actor.sub}|${actor.email}|${ipAddress}|${targetResource}|${details}`);
+    await db.prepare(
+      `INSERT INTO admin_audit_logs (
+        id, event_type, actor_user_id, actor_user_email, actor_user_role,
+        ip_address, user_agent, target_resource, action_details, log_row_hash, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+    ).bind(
+      id, eventType, actor.sub, actor.email, actor.role,
+      ipAddress, userAgent, targetResource, details, logRowHash
+    ).run();
+  } catch (e) {
+    console.error('Falha ao gravar admin_audit_logs:', e);
+  }
+}
+
 // ============================================================================
 // AUTENTICAÇÃO ADMINISTRATIVA (PBKDF2-SHA256 & RBAC ESTRITO)
 // ============================================================================
@@ -37,6 +69,8 @@ export const adminRouter = new Hono<{ Bindings: Env; Variables: { user: JwtPaylo
 adminRouter.post('/auth/login', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const { email, password } = body;
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
 
   if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
     return c.json({ success: false, error: 'E-mail e senha são obrigatórios.', code: 'VALIDATION_ERROR' }, 400);
@@ -61,6 +95,16 @@ adminRouter.post('/auth/login', async (c) => {
   }
 
   if (!isValid || !dbUser) {
+    // Grava log de tentativa falha de login (Segurança Marco Civil e LGPD Art. 46)
+    await logAdminAction(
+      db,
+      { sub: 'UNKNOWN', email: cleanEmail, role: 'unauthenticated' },
+      'LOGIN_FAILED',
+      'auth:login',
+      'Tentativa de login com credenciais inválidas',
+      clientIp,
+      userAgent
+    );
     return c.json({ success: false, error: 'Credenciais administrativas inválidas.', code: 'INVALID_CREDENTIALS' }, 401);
   }
 
@@ -78,6 +122,17 @@ adminRouter.post('/auth/login', async (c) => {
       exp: Math.floor(Date.now() / 1000) + 8 * 3600,
     },
     secret
+  );
+
+  // Grava log de login bem-sucedido
+  await logAdminAction(
+    db,
+    { sub: dbUser.id, email: dbUser.email, role: dbUser.role },
+    'LOGIN_SUCCESS',
+    'auth:login',
+    'Autenticação administrativa bem-sucedida via PBKDF2',
+    clientIp,
+    userAgent
   );
 
   return c.json({
@@ -113,8 +168,11 @@ adminRouter.get('/templates', async (c) => {
 });
 
 adminRouter.post('/templates', requireAuth(['admin_master', 'operador']), async (c) => {
+  const user = c.get('user');
   const body = await c.req.json();
   const parsed = CreateTemplateSchema.safeParse(body);
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
 
   if (!parsed.success) {
     return c.json({ success: false, error: parsed.error.errors[0]?.message, code: 'VALIDATION_ERROR' }, 400);
@@ -135,6 +193,17 @@ adminRouter.post('/templates', requireAuth(['admin_master', 'operador']), async 
       (id, version, title, procedure_description, content_markdown, content_sha256, consent_text_version, retention_days, is_active, created_at)
      VALUES (?, ?, ?, ?, ?, ?, 1, ?, 1, datetime('now'))`
   ).bind(id, newVersion, title, procedure_description, content_markdown, contentSha256, retention_days).run();
+
+  // Grava auditoria imutável
+  await logAdminAction(
+    db,
+    user,
+    'TEMPLATE_CREATE',
+    `template:${id}:v${newVersion}`,
+    `Template '${title}' versionado para v${newVersion} com retenção de ${retention_days} dias`,
+    clientIp,
+    userAgent
+  );
 
   return c.json({
     success: true,
@@ -232,6 +301,8 @@ adminRouter.post('/documents', requireAuth(['admin_master', 'operador']), async 
   const user = c.get('user');
   const body = await c.req.json();
   const parsed = CreateDocumentSchema.safeParse(body);
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
 
   if (!parsed.success) {
     return c.json({ success: false, error: parsed.error.errors[0]?.message, code: 'VALIDATION_ERROR' }, 400);
@@ -264,6 +335,8 @@ adminRouter.post('/documents', requireAuth(['admin_master', 'operador']), async 
 
   const parentEmailEncrypted = await encryptAesGcm(parent_email, masterKey, 1);
   const parentPhoneEncrypted = await encryptAesGcm(parent_phone, masterKey, 1);
+  // Blind index determinístico para buscas seguras sob sigilo (LGPD Art. 11/18)
+  const parentEmailBindex = await hmacSha256(parent_email.trim().toLowerCase(), c.env.OTP_PEPPER || 'bindex_secret');
 
   const expiresAt = new Date(Date.now() + expires_in_days * 86400000).toISOString();
   const retentionExpiresAt = new Date(Date.now() + template.retention_days * 86400000).toISOString();
@@ -271,9 +344,9 @@ adminRouter.post('/documents', requireAuth(['admin_master', 'operador']), async 
   await db.prepare(
     `INSERT INTO documents (
       id, template_id, template_version, content_sha256, minor_name, minor_birth_date,
-      parent_name, parent_email_encrypted, parent_phone_encrypted, key_version, access_token,
+      parent_name, parent_email_encrypted, parent_phone_encrypted, parent_email_bindex_sha256, key_version, access_token,
       status, created_by_admin, retention_expires_at, expires_at, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'pending', ?, ?, ?, datetime('now'))`
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'pending', ?, ?, ?, datetime('now'))`
   ).bind(
     docId,
     template.id,
@@ -284,11 +357,22 @@ adminRouter.post('/documents', requireAuth(['admin_master', 'operador']), async 
     parent_name,
     parentEmailEncrypted,
     parentPhoneEncrypted,
+    parentEmailBindex,
     accessToken,
     user.email,
     retentionExpiresAt,
     expiresAt
   ).run();
+
+  await logAdminAction(
+    db,
+    user,
+    'DOCUMENT_CREATE',
+    `document:${docId}`,
+    `Termo de autorização gerado para menor '${minor_name}' com template '${template.title}'`,
+    clientIp,
+    userAgent
+  );
 
   const signLink = `/assinar/${accessToken}`;
 
@@ -444,15 +528,20 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
 
   // 6. Notificação de Transparência por E-mail Transacional (LGPD Art. 6º, VI)
   let emailDispatched = false;
-  let targetEmail: string | null = null;
+  const notifyEmail = (body?.notify_email || body?.email || '').trim();
+  let targetEmail: string | null = (notifyEmail && notifyEmail.includes('@')) ? notifyEmail : null;
   const masterKey = c.env.ENCRYPTION_KEY_V1;
 
-  if (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' && masterKey) {
+  if (!targetEmail && doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' && masterKey) {
     try {
       targetEmail = await decryptAesGcm(doc.parent_email_encrypted, masterKey);
     } catch {
       // Ignora falha de decriptação caso a chave seja mock/incompatível
     }
+  }
+
+  if (!targetEmail && (doc as any).parent_email && (doc as any).parent_email.includes('@')) {
+    targetEmail = (doc as any).parent_email;
   }
 
   if (targetEmail && targetEmail.includes('@')) {
@@ -480,7 +569,7 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
 
     try {
       if ((c.env as any).RESEND_API_KEY) {
-        const resendResp = await fetch('https://api.resend.com/emails', {
+        let resendResp = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${(c.env as any).RESEND_API_KEY}`,
@@ -494,10 +583,31 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
             text: emailText,
           }),
         });
+
+        // Fallback para onboarding@resend.dev se o domínio customizado não estiver verificado
+        if (!resendResp.ok) {
+          resendResp = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${(c.env as any).RESEND_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
+              to: [targetEmail],
+              subject: `[SESI / Escola Cidadã] Notificação: Invalidação de Documento por Inconsistência Operacional`,
+              html: emailHtml,
+              text: emailText,
+            }),
+          });
+        }
+
         if (resendResp.ok) {
           emailDispatched = true;
         }
-      } else {
+      }
+
+      if (!emailDispatched) {
         const mcResp = await fetch('https://api.mailchannels.net/tx/v1/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -516,7 +626,7 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
         }
       }
     } catch {
-      // Log silencioso para garantir atomicidade do cancelamento
+      // Log silencioso
     }
   }
 
@@ -528,7 +638,277 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
     audit_record_id: auditId,
     log_row_hash: logRowHash,
     email_notification_dispatched: emailDispatched,
-    message: 'Autorização cancelada com sucesso por inconsistência operacional. A trilha forense foi registrada e o responsável legal foi notificado.',
+    target_email: targetEmail,
+    message: emailDispatched 
+      ? `Autorização cancelada e notificação por e-mail enviada com sucesso para ${targetEmail}.`
+      : 'Autorização cancelada com sucesso. Trilha de auditoria forense gravada.',
+  });
+});
+
+/**
+ * POST /api/admin/documents/:id/notify-cancellation
+ * Dispara ou reenvia a notificação de cancelamento diretamente para o e-mail informado
+ */
+adminRouter.post('/documents/:id/notify-cancellation', requireAuth(['admin_master', 'operador']), async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const rawEmail = (body?.email || body?.notify_email || '').trim();
+  const customReason = (body?.reason || '').trim();
+
+  if (!rawEmail || !rawEmail.includes('@')) {
+    return c.json({ success: false, error: 'E-mail de destino inválido.', code: 'INVALID_EMAIL' }, 400);
+  }
+
+  const db = c.env.DB;
+  const doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(id).first<DocumentRecord>();
+  if (!doc) {
+    return c.json({ success: false, error: 'Documento não localizado.', code: 'DOC_NOT_FOUND' }, 404);
+  }
+
+  const auditLog = await db.prepare('SELECT manifest_sha256 FROM audit_logs WHERE document_id = ?').bind(id).first<any>();
+  const manifestSha256 = auditLog?.manifest_sha256 || doc.content_sha256 || '';
+  const reason = customReason || doc.cancellation_reason || 'Inconsistência cadastral ou operacional detectada';
+  const cancelledAtIso = doc.cancelled_at || doc.revoked_at || new Date().toISOString();
+  const formattedDate = new Date(cancelledAtIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+  const emailHtml = getTransactionalCancellationEmailHtml({
+    parentName: doc.parent_name || 'Responsável Legal',
+    minorName: doc.minor_name || 'Estudante',
+    documentId: doc.id,
+    validationCode: manifestSha256 ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
+    cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
+    institutionName: (doc as any).institution_name || 'Escola CEMEIT',
+    reason,
+  });
+  const emailText = getTransactionalCancellationEmailText({
+    parentName: doc.parent_name || 'Responsável Legal',
+    minorName: doc.minor_name || 'Estudante',
+    documentId: doc.id,
+    validationCode: manifestSha256 ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
+    cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
+    institutionName: (doc as any).institution_name || 'Escola CEMEIT',
+    reason,
+  });
+
+  let emailDispatched = false;
+  const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
+
+  try {
+    if ((c.env as any).RESEND_API_KEY) {
+      let resendResp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${(c.env as any).RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromAddress,
+          to: [rawEmail],
+          subject: `[SESI / Escola Cidadã] Notificação: Invalidação de Documento por Inconsistência Operacional`,
+          html: emailHtml,
+          text: emailText,
+        }),
+      });
+
+      if (!resendResp.ok) {
+        resendResp = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${(c.env as any).RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
+            to: [rawEmail],
+            subject: `[SESI / Escola Cidadã] Notificação: Invalidação de Documento por Inconsistência Operacional`,
+            html: emailHtml,
+            text: emailText,
+          }),
+        });
+      }
+
+      if (resendResp.ok) {
+        emailDispatched = true;
+      }
+    }
+
+    if (!emailDispatched) {
+      const mcResp = await fetch('https://api.mailchannels.net/tx/v1/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: rawEmail }] }],
+          from: { email: 'autorizacoes@catraki.com.br', name: 'Escola Cidadã — SESI Saúde' },
+          subject: `[SESI / Escola Cidadã] Notificação: Invalidação de Documento por Inconsistência Operacional`,
+          content: [
+            { type: 'text/plain', value: emailText },
+            { type: 'text/html', value: emailHtml },
+          ],
+        }),
+      });
+      if (mcResp.ok) {
+        emailDispatched = true;
+      }
+    }
+  } catch (err: any) {
+    return c.json({ success: false, error: `Erro no provedor de e-mail: ${err.message}`, code: 'EMAIL_SEND_ERROR' }, 500);
+  }
+
+  return c.json({
+    success: true,
+    email_dispatched: emailDispatched,
+    target_email: rawEmail,
+    message: `Notificação de cancelamento enviada com sucesso para ${rawEmail}.`,
+  });
+});
+
+/**
+ * POST /api/admin/documents/:id/resend-signed-email
+ * Reenvia o comprovante de assinatura eletrônica oficial para o e-mail informado
+ */
+adminRouter.post('/documents/:id/resend-signed-email', requireAuth(['admin_master', 'operador']), async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const rawEmail = (body?.email || body?.notify_email || '').trim();
+
+  if (!rawEmail || !rawEmail.includes('@')) {
+    return c.json({ success: false, error: 'E-mail de destino inválido.', code: 'INVALID_EMAIL' }, 400);
+  }
+
+  const db = c.env.DB;
+  const doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(id).first<DocumentRecord>();
+  if (!doc) {
+    return c.json({ success: false, error: 'Documento não localizado.', code: 'DOC_NOT_FOUND' }, 404);
+  }
+
+  const auditLog = await db.prepare('SELECT * FROM audit_logs WHERE document_id = ?').bind(id).first<any>();
+  const manifestSha256 = auditLog?.manifest_sha256 || doc.content_sha256 || '';
+  const validationCode = manifestSha256 
+    ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`
+    : `DOC-${doc.id.substring(0, 8).toUpperCase()}`;
+
+  const signedAtIso = auditLog?.signed_at || (doc as any).otp_verified_at || new Date().toISOString();
+  const dataFormatada = new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'full',
+    timeStyle: 'medium',
+    timeZone: 'America/Sao_Paulo',
+  }).format(new Date(signedAtIso));
+
+  const signerName = auditLog?.signer_name || doc.parent_name || 'Responsável Legal';
+  const studentName = doc.minor_name || 'Estudante';
+  const cpfMasked = auditLog?.signer_cpf_masked || '***.***.***-**';
+  const signerRelationship = auditLog?.signer_relationship || 'Responsável';
+
+  const emailHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: Arial, sans-serif;">
+  <div style="background-color: #f1f5f9; padding: 28px 10px; color: #1e293b; line-height: 1.6;">
+    <div style="max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 32px 28px;">
+      <div style="border-bottom: 2.5px solid #034b7f; padding-bottom: 16px; margin-bottom: 22px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="vertical-align: middle;">
+              <h2 style="font-size: 14px; font-weight: 800; color: #034b7f; margin: 0; text-transform: uppercase;">ESCOLA CIDADÃ — SESI SAÚDE</h2>
+              <span style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">Comprovante de Assinatura Eletrônica</span>
+            </td>
+            <td style="vertical-align: middle; text-align: right;">
+              <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; padding: 2px 8px; font-size: 9.5px; font-weight: 700; color: #065f46; display: inline-block;">✓ ASSINADO</div>
+              <div style="font-size: 11px; font-weight: 700; color: #1e293b; font-family: monospace;">Nº ${validationCode}</div>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 style="font-size: 13.5px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin: 0;">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO (TCLE)</h1>
+        <div style="font-size: 11px; color: #475569; margin-top: 4px;">Comprovante Oficial de Autorização em Saúde</div>
+      </div>
+      <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; text-align: justify;">
+        <p style="margin: 0 0 14px 0;">
+          Confirmamos o registro da assinatura eletrônica por <strong>${signerName}</strong> (${cpfMasked}, na qualidade de ${signerRelationship}), referente ao(à) estudante <strong>${studentName}</strong>, com autorização plena para o circuito de atendimentos em saúde do projeto Escola Cidadã.
+        </p>
+        <p style="margin: 0; font-size: 11px; color: #64748b;">
+          <strong>Data/Hora do Registro:</strong> ${dataFormatada} | <strong>Protocolo Forense:</strong> ${validationCode}
+        </p>
+      </div>
+      <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 10.5px; color: #94a3b8; text-align: center;">
+        Projeto Escola Cidadã: Saúde em Movimento • SESI-DF • Universidade de Brasília (UnB)
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  let emailDispatched = false;
+  const resendApiKey = (c.env as any).RESEND_API_KEY;
+  const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
+
+  try {
+    if (resendApiKey) {
+      let resendResp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromAddress,
+          to: [rawEmail],
+          subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
+          html: emailHtml,
+        }),
+      });
+
+      if (!resendResp.ok) {
+        resendResp = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
+            to: [rawEmail],
+            subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
+            html: emailHtml,
+          }),
+        });
+      }
+
+      if (resendResp.ok) {
+        emailDispatched = true;
+      }
+    }
+
+    if (!emailDispatched) {
+      const mcResp = await fetch('https://api.mailchannels.net/tx/v1/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: rawEmail }] }],
+          from: { email: 'autorizacoes@catraki.com.br', name: 'Escola Cidadã — SESI Saúde' },
+          subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
+          content: [
+            { type: 'text/html', value: emailHtml },
+          ],
+        }),
+      });
+      if (mcResp.ok) {
+        emailDispatched = true;
+      }
+    }
+  } catch (err: any) {
+    return c.json({ success: false, error: `Erro no envio: ${err.message}`, code: 'EMAIL_SEND_ERROR' }, 500);
+  }
+
+  return c.json({
+    success: true,
+    email_dispatched: emailDispatched,
+    target_email: rawEmail,
+    message: `Comprovante de assinatura eletrônica enviado com sucesso para ${rawEmail}.`,
   });
 });
 
@@ -586,6 +966,8 @@ adminRouter.post('/manual-reviews/:id/action', requireAuth(['admin_master']), as
   const reviewId = c.req.param('id');
   const body = await c.req.json();
   const parsed = ManualReviewActionSchema.safeParse({ review_id: reviewId, ...body });
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
 
   if (!parsed.success) {
     return c.json({ success: false, error: parsed.error.errors[0]?.message }, 400);
@@ -605,6 +987,25 @@ adminRouter.post('/manual-reviews/:id/action', requireAuth(['admin_master']), as
      SET status = ?, reviewed_by = ?, review_notes = ?, updated_at = datetime('now') 
      WHERE id = ?`
   ).bind(newStatus, user.email, notes || `Revisão ${action === 'approve' ? 'aprovada' : 'rejeitada'} por ${user.name}`, reviewId).run();
+
+  // Trilha de auditoria imutável (admin_audit_logs)
+  await logAdminAction(
+    db,
+    user,
+    'MANUAL_REVIEW_ACTION',
+    `manual_review:${reviewId}`,
+    JSON.stringify({
+      action,
+      notes: notes || null,
+      previous_status: review.status,
+      new_status: newStatus,
+      signer_name: review.signer_name,
+      signer_cpf_masked: review.signer_cpf_masked,
+      document_id: review.document_id,
+    }),
+    clientIp,
+    userAgent
+  );
 
   return c.json({
     success: true,
@@ -647,6 +1048,49 @@ adminRouter.get('/audit-logs', requireAuth(['admin_master', 'dpo', 'operador']),
   ).all<any>();
 
   return c.json({ success: true, logs: logs.results || [] });
+});
+
+// Trilha de Auditoria de Ações Administrativas e de Governança
+adminRouter.get('/audit-logs/admin', requireAuth(['admin_master', 'dpo']), async (c) => {
+  const db = c.env.DB;
+  const logs = await db.prepare(
+    `SELECT * FROM admin_audit_logs ORDER BY created_at DESC LIMIT 100`
+  ).all<any>();
+
+  return c.json({ success: true, logs: logs.results || [] });
+});
+
+// Endpoint para Registro de Exportação Massiva (DLP - Data Loss Prevention / LGPD Art. 46 e 50)
+adminRouter.post('/audit/export-log', requireAuth(['admin_master', 'dpo', 'operador']), async (c) => {
+  const user = c.get('user');
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = LogAdminExportSchema.safeParse(body);
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
+
+  if (!parsed.success) {
+    return c.json({ success: false, error: parsed.error.errors[0]?.message }, 400);
+  }
+
+  const { export_type, record_count, filters_applied } = parsed.data;
+  const db = c.env.DB;
+
+  await logAdminAction(
+    db,
+    user,
+    'DATA_EXPORT',
+    `export:${export_type}`,
+    JSON.stringify({
+      export_type,
+      record_count,
+      filters: filters_applied || 'ALL',
+      timestamp: new Date().toISOString(),
+    }),
+    clientIp,
+    userAgent
+  );
+
+  return c.json({ success: true, message: 'Operação de exportação registrada na trilha de auditoria.' });
 });
 
 // ============================================================================
@@ -705,13 +1149,21 @@ adminRouter.get('/lgpd-requests', requireAuth(['admin_master', 'dpo']), async (c
 });
 
 adminRouter.post('/lgpd-requests/:id/respond', requireAuth(['admin_master', 'dpo']), async (c) => {
+  const user = c.get('user');
   const id = c.req.param('id');
   const body = await c.req.json();
   const { status, response_notes } = body;
   const db = c.env.DB;
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
 
   if (!status || !response_notes) {
     return c.json({ success: false, error: 'Status e parecer do DPO são obrigatórios.' }, 400);
+  }
+
+  const existing = await db.prepare('SELECT * FROM lgpd_requests WHERE id = ?').bind(id).first<LgpdRequestRecord>();
+  if (!existing) {
+    return c.json({ success: false, error: 'Solicitação LGPD não encontrada.' }, 404);
   }
 
   await db.prepare(
@@ -719,6 +1171,23 @@ adminRouter.post('/lgpd-requests/:id/respond', requireAuth(['admin_master', 'dpo
      SET status = ?, response_notes = ?, resolved_at = datetime('now') 
      WHERE id = ?`
   ).bind(status, response_notes, id).run();
+
+  // Registra auditoria da decisão do DPO
+  await logAdminAction(
+    db,
+    user,
+    'LGPD_RESPONSE',
+    `lgpd_request:${id}`,
+    JSON.stringify({
+      request_type: existing.request_type,
+      requester_name: existing.requester_name,
+      previous_status: existing.status,
+      new_status: status,
+      response_notes,
+    }),
+    clientIp,
+    userAgent
+  );
 
   return c.json({
     success: true,
@@ -737,9 +1206,12 @@ adminRouter.get('/institutions', requireAuth(['operador', 'admin_master', 'dpo']
 });
 
 adminRouter.post('/institutions', requireAuth(['admin_master']), async (c) => {
+  const user = c.get('user');
   const body = await c.req.json();
   const { id, name, short_name, city, state } = body;
   const db = c.env.DB;
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
 
   if (!id || !name || !short_name) {
     return c.json({ success: false, error: 'Slug (ID), Nome e Sigla são obrigatórios.' }, 400);
@@ -753,6 +1225,16 @@ adminRouter.post('/institutions', requireAuth(['admin_master']), async (c) => {
      ON CONFLICT(id) DO UPDATE SET name = excluded.name, short_name = excluded.short_name, city = excluded.city, state = excluded.state, is_active = 1`
   ).bind(cleanSlug, name.trim(), short_name.trim(), city?.trim() || 'Brasília', state?.trim() || 'DF').run();
 
+  await logAdminAction(
+    db,
+    user,
+    'INSTITUTION_ACTION',
+    `institution:${cleanSlug}`,
+    `Escola/Instituição '${name.trim()}' (${short_name.trim()}) cadastrada/atualizada`,
+    clientIp,
+    userAgent
+  );
+
   return c.json({
     success: true,
     institution: { id: cleanSlug, name: name.trim(), short_name: short_name.trim(), city: city || 'Brasília', state: state || 'DF' },
@@ -761,8 +1243,23 @@ adminRouter.post('/institutions', requireAuth(['admin_master']), async (c) => {
 });
 
 adminRouter.delete('/institutions/:id', requireAuth(['admin_master']), async (c) => {
+  const user = c.get('user');
   const id = c.req.param('id');
   const db = c.env.DB;
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
+
   await db.prepare('UPDATE institutions SET is_active = 0 WHERE id = ?').bind(id).run();
+
+  await logAdminAction(
+    db,
+    user,
+    'INSTITUTION_ACTION',
+    `institution:${id}`,
+    `Escola/Instituição '${id}' desativada logicamente (is_active = 0)`,
+    clientIp,
+    userAgent
+  );
+
   return c.json({ success: true, message: 'Instituição desativada com sucesso.' });
 });

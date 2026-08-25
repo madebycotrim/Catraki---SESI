@@ -183,6 +183,40 @@ export interface LgpdRequestRecord {
   resolved_at?: string | null;
 }
 
+export interface AdminAuditLogRecord {
+  id: string;
+  event_type: string;
+  actor_user_id: string;
+  actor_user_email: string;
+  actor_user_role: string;
+  ip_address: string;
+  user_agent: string;
+  target_resource: string;
+  action_details: string;
+  log_row_hash: string;
+  created_at: string;
+}
+
+export interface ApplicationAccessLogRecord {
+  id: string;
+  ip_address: string;
+  user_agent: string;
+  endpoint_path: string;
+  http_method: string;
+  status_code: number;
+  session_token_hash?: string | null;
+  retention_until: string;
+  created_at: string;
+}
+
+export interface SpecialtiesConsent {
+  oftalmologia: boolean;
+  audiometria: boolean;
+  odontologia: boolean;
+  psicologia: boolean;
+  nutricao: boolean;
+}
+
 export interface AdminUser {
   id: string;
   name: string;

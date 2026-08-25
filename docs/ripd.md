@@ -3,7 +3,7 @@
 
 **Data de Elaboração:** 19 de Agosto de 2026  
 **Versão do Documento:** 1.0  
-**Encarregado pelo Tratamento de Dados (DPO):** Dra. Juliana Mendes (`dpo@sesi.org.br`)  
+**Encarregado pelo Tratamento de Dados (DPO):** Comitê de Privacidade Catraki (`dpo@catraki.com.br`)  
 **Responsável Técnico / Segurança:** Equipe de Arquitetura de Software e AppSec  
 **Enquadramento Legal:** LGPD (Lei nº 13.709/2018), com foco estrito nos **Art. 11 (Dado Sensível de Saúde)**, **Art. 14 (Tratamento de Dados de Crianças e Adolescentes)**, **Art. 18 (Direitos do Titular)** e **Art. 38 (Elaboração de RIPD)**.
 

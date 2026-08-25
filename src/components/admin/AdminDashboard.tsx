@@ -11,7 +11,6 @@ import {
   Building2,
   Plus,
   ShieldAlert,
-  Lock,
   Info,
   X,
   ShieldCheck,
@@ -23,7 +22,20 @@ import {
   Calendar,
   Loader2,
   FileCheck,
-  Clock
+  Clock,
+  GraduationCap,
+  Printer,
+  Eye,
+  Ear,
+  Smile,
+  Brain,
+  Apple,
+  HeartPulse,
+  Cake,
+  UserCheck,
+  Sparkles,
+  Mail,
+  Send
 } from 'lucide-react';
 import JSZip from 'jszip';
 import { GeradorPdfTermoSesi } from '../../lib/pades/GeradorPdfTermoSesi.ts';
@@ -56,14 +68,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [showNewSchoolModal, setShowNewSchoolModal] = useState(false);
 
+  // Estados do Modal de Ficha Completa do Aluno (Triagem SESI Saúde)
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedAuthForDetails, setSelectedAuthForDetails] = useState<any | null>(null);
+
   // Estados do Modal de Revogação / Cancelamento por Erro
   const [showRevocationModal, setShowRevocationModal] = useState(false);
   const [selectedAuthToRevoke, setSelectedAuthToRevoke] = useState<any | null>(null);
   const [revocationReason, setRevocationReason] = useState('');
+  const [notifyEmail, setNotifyEmail] = useState('');
   const [revocationConfirmed, setRevocationConfirmed] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
   const [revocationError, setRevocationError] = useState('');
   const [revocationSuccessToast, setRevocationSuccessToast] = useState<string | null>(null);
+
+  // Estados do Modal de Reenvio de E-mail de Cancelamento
+  const [showResendEmailModal, setShowResendEmailModal] = useState(false);
+  const [selectedAuthForResendEmail, setSelectedAuthForResendEmail] = useState<any | null>(null);
+  const [resendEmailInput, setResendEmailInput] = useState('');
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
+  const [resendEmailFeedback, setResendEmailFeedback] = useState<{ success: boolean; message: string } | null>(null);
 
   // Formulário de nova escola
   const [newSchoolData, setNewSchoolData] = useState({
@@ -204,9 +228,91 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  const handleOpenDetailsModal = (auth: any) => {
+    setSelectedAuthForDetails(auth);
+    setShowDetailsModal(true);
+  };
+
+  const handlePrintStudentCard = () => {
+    window.print();
+  };
+
+  const formatStudentSeriesClass = (series?: string, minorClass?: string) => {
+    let s = (series || '').trim();
+    if (/^\d+$/.test(s)) s = `${s}º Ano`;
+    else if (/^\d+º$/.test(s)) s = `${s} Ano`;
+
+    let c = (minorClass || '').trim();
+    if (c.toLowerCase().startsWith('turma ')) {
+      c = c.substring(6).trim();
+    }
+
+    if (s && c) return `${s} • Turma ${c}`;
+    if (s) return s;
+    if (c) return `Turma ${c}`;
+    return '';
+  };
+
+  const formatBirthDateAndAge = (birthDateStr?: string) => {
+    if (!birthDateStr) return null;
+    const str = birthDateStr.trim();
+    let dateObj: Date | null = null;
+    
+    if (str.includes('/')) {
+      const [d, m, y] = str.split('/');
+      if (d && m && y) {
+        dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+      }
+    } else if (str.includes('-')) {
+      const [y, m, d] = str.split('-');
+      if (y && m && d) {
+        dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+      }
+    }
+
+    if (!dateObj || isNaN(dateObj.getTime())) {
+      return { formattedDate: str, age: null };
+    }
+
+    const formattedDate = dateObj.toLocaleDateString('pt-BR');
+    const now = new Date();
+    let age = now.getFullYear() - dateObj.getFullYear();
+    const m = now.getMonth() - dateObj.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < dateObj.getDate())) {
+      age--;
+    }
+
+    return {
+      formattedDate,
+      age: age >= 0 && age <= 120 ? `${age} anos` : null,
+    };
+  };
+
+  const formatStatusInPortuguese = (status?: string) => {
+    if (!status) return 'Pendente';
+    switch (status.toLowerCase()) {
+      case 'signed':
+        return 'Autorizada (Assinada)';
+      case 'pending':
+        return 'Pendente';
+      case 'revoked':
+        return 'Negada (Revogada)';
+      case 'cancelado_por_erro':
+      case 'cancelled_error':
+        return 'Cancelada por Erro';
+      case 'draft':
+        return 'Rascunho';
+      case 'expired':
+        return 'Expirada';
+      default:
+        return status;
+    }
+  };
+
   const handleOpenRevokeModal = (auth: any) => {
     setSelectedAuthToRevoke(auth);
     setRevocationReason('');
+    setNotifyEmail(auth.parentEmail || '');
     setRevocationConfirmed(false);
     setRevocationError('');
     setShowRevocationModal(true);
@@ -227,7 +333,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setRevocationError('');
 
     try {
-      const res = await apiClient.cancelDocumentDueToError(selectedAuthToRevoke.id, revocationReason.trim());
+      const res = await apiClient.cancelDocumentDueToError(
+        selectedAuthToRevoke.id, 
+        revocationReason.trim(), 
+        notifyEmail.trim() || undefined
+      );
       setIsRevoking(false);
 
       if (res && res.success) {
@@ -243,10 +353,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )
         );
         setShowRevocationModal(false);
+        const emailMsg = res.target_email 
+          ? ` O e-mail de notificação foi enviado para ${res.target_email}.`
+          : ' Notificação registrada na trilha forense.';
         setRevocationSuccessToast(
-          `Autorização ${selectedAuthToRevoke.validationCode || selectedAuthToRevoke.id} revogada por inconsistência operacional. O responsável legal foi notificado.`
+          `Autorização ${selectedAuthToRevoke.validationCode || selectedAuthToRevoke.id} revogada por inconsistência operacional.${emailMsg}`
         );
-        setTimeout(() => setRevocationSuccessToast(null), 7000);
+        setTimeout(() => setRevocationSuccessToast(null), 8000);
       } else {
         setRevocationError(res?.error || 'Falha ao processar a revogação por erro. Verifique as permissões.');
       }
@@ -256,12 +369,67 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  const handleOpenResendEmailModal = (auth: any) => {
+    setSelectedAuthForResendEmail(auth);
+    setResendEmailInput(auth.parentEmail || '');
+    setResendEmailFeedback(null);
+    setShowResendEmailModal(true);
+  };
+
+  const handleConfirmResendEmail = async () => {
+    if (!selectedAuthForResendEmail || !resendEmailInput.trim() || !resendEmailInput.includes('@')) {
+      setResendEmailFeedback({ success: false, message: 'Por favor, informe um endereço de e-mail válido com @.' });
+      return;
+    }
+    setIsResendingEmail(true);
+    setResendEmailFeedback(null);
+    try {
+      const isCancellation = selectedAuthForResendEmail.status === 'CANCELADO_POR_ERRO' || selectedAuthForResendEmail.status === 'cancelled_error';
+      const res = isCancellation
+        ? await apiClient.resendCancellationNotification(
+            selectedAuthForResendEmail.id,
+            resendEmailInput.trim(),
+            selectedAuthForResendEmail.cancellationReason
+          )
+        : await apiClient.resendSignedDocumentNotification(
+            selectedAuthForResendEmail.id,
+            resendEmailInput.trim()
+          );
+      setIsResendingEmail(false);
+      if (res && res.success) {
+        setResendEmailFeedback({
+          success: true,
+          message: isCancellation
+            ? `Notificação de cancelamento enviada com sucesso para ${resendEmailInput.trim()}!`
+            : `Comprovante de assinatura eletrônica enviado com sucesso para ${resendEmailInput.trim()}!`,
+        });
+        setTimeout(() => {
+          setShowResendEmailModal(false);
+        }, 2500);
+      } else {
+        setResendEmailFeedback({
+          success: false,
+          message: res?.error || 'Falha ao despachar e-mail.',
+        });
+      }
+    } catch (err: any) {
+      setIsResendingEmail(false);
+      setResendEmailFeedback({
+        success: false,
+        message: err?.message || 'Erro de conexão ao despachar notificação.',
+      });
+    }
+  };
+
   const filteredAuths = authorizations.filter((auth) => {
     const matchesSearch =
       auth.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       auth.parentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       auth.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (auth.validationCode && auth.validationCode.toLowerCase().includes(searchTerm.toLowerCase()));
+      (auth.validationCode && auth.validationCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (auth.minorSeries && auth.minorSeries.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (auth.minorClass && auth.minorClass.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (auth.minorTurn && auth.minorTurn.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesInstitution =
       selectedInstitution === 'all' ||
@@ -306,11 +474,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   /**
    * Exporta a lista consolidada de autorizações em formato CSV compatível com Excel (BOM UTF-8)
    */
-  const handleExportCsv = () => {
+  const handleExportCsv = async () => {
     if (filteredAuths.length === 0) {
       alert('Nenhuma autorização disponível para exportar com os filtros atuais.');
       return;
     }
+
+    // Registra operação de exportação na trilha imutável de auditoria (DLP / LGPD Art. 46 e 50)
+    await apiClient.logAdminExport({
+      export_type: 'CSV_CONSOLIDATED',
+      record_count: filteredAuths.length,
+      filters_applied: JSON.stringify({ institution: selectedInstitution, status: selectedStatus, search: searchTerm }),
+    });
 
     const headers = [
       'Código Validação',
@@ -380,6 +555,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     setIsExportingZip(true);
     try {
+      // Registra operação de download em lote na trilha de auditoria (DLP / LGPD Art. 46 e 50)
+      await apiClient.logAdminExport({
+        export_type: 'ZIP_PDFS',
+        record_count: filteredAuths.length,
+        filters_applied: JSON.stringify({ institution: selectedInstitution, status: selectedStatus, search: searchTerm }),
+      });
+
       const zip = new JSZip();
       const folder = zip.folder('autorizacoes_assinadas_sesi');
 
@@ -683,16 +865,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Tabela de Autorizações com Rolagem Horizontal Suave */}
           <div className="bg-white rounded-2xl shadow-xs border border-slate-200/90 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[720px]">
+              <table className="w-full text-left border-collapse min-w-[960px]">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
-                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Código</th>
-                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Paciente / Aluno</th>
-                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Responsável Legal</th>
-                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Instituição / Escola</th>
-                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Status</th>
-                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Data</th>
-                    <th className="px-4 sm:px-6 py-3.5 sm:py-4 text-right">Ação</th>
+                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Código</th>
+                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Paciente / Aluno</th>
+                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Ano / Turma</th>
+                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Responsável Legal</th>
+                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Instituição / Escola</th>
+                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Atendimentos</th>
+                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Status</th>
+                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Data</th>
+                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4 text-right">Ação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
@@ -702,92 +886,180 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       const isCancelled = auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error';
                       const isRevoked = auth.status === 'revoked';
                       const isPending = !isSigned && !isCancelled && !isRevoked;
+                      const birthInfo = formatBirthDateAndAge(auth.birthDate);
+                      const seriesClassText = formatStudentSeriesClass(auth.minorSeries, auth.minorClass);
 
                       return (
                         <tr 
                           key={auth.id} 
                           className={`hover:bg-slate-50/70 transition-colors ${isCancelled ? 'bg-amber-50/30' : ''}`}
                         >
-                          <td className="px-4 sm:px-6 py-3.5 sm:py-4 whitespace-nowrap">
+                          {/* Coluna 1: Código de Validação */}
+                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4 whitespace-nowrap">
                             <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 border border-slate-200 px-2 py-1 rounded-md">
                               {auth.validationCode || auth.id}
                             </span>
                           </td>
-                          <td className="px-4 sm:px-6 py-3.5 sm:py-4">
+
+                          {/* Coluna 2: Paciente / Aluno + Data Nasc/Idade */}
+                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
                             <div>
                               <div className="font-bold text-slate-900 text-xs sm:text-sm">{auth.studentName}</div>
-                              <div className="text-[11px] text-slate-400 font-mono mt-0.5">{auth.studentCpfMasked}</div>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                <span className="text-[11px] text-slate-500 font-mono">{auth.studentCpfMasked}</span>
+                                {birthInfo && (
+                                  <span className="text-[10px] text-slate-600 font-medium bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200" title="Data de Nascimento">
+                                    🎂 {birthInfo.formattedDate} {birthInfo.age ? `(${birthInfo.age})` : ''}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </td>
-                          <td className="px-4 sm:px-6 py-3.5 sm:py-4">
+
+                          {/* Coluna 3: Ano / Série, Turma e Turno (Destaque SESI) */}
+                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
+                            {seriesClassText ? (
+                              <div className="flex flex-col gap-1">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 text-xs font-bold w-fit shadow-xs">
+                                  <GraduationCap className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                  <span>{seriesClassText}</span>
+                                </span>
+                                {auth.minorTurn && (
+                                  <span className="text-[10px] text-slate-500 font-medium capitalize pl-0.5">
+                                    Turno: <strong className="text-slate-700">{auth.minorTurn}</strong>
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 text-xs italic">Não informado</span>
+                            )}
+                          </td>
+
+                          {/* Coluna 4: Responsável Legal + Vínculo */}
+                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
                             <div className="text-xs text-slate-700 font-medium">
-                              <span className="font-bold">{auth.parentName}</span>
-                              <div className="text-[11px] text-slate-400 font-mono mt-0.5">{auth.parentCpfMasked} ({auth.relationship})</div>
+                              <span className="font-bold text-slate-900">{auth.parentName}</span>
+                              <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex items-center gap-1">
+                                <span>{auth.parentCpfMasked}</span>
+                                <span className="bg-slate-100 px-1.5 py-0.2 rounded text-[10px] font-semibold text-slate-600 uppercase border border-slate-200">
+                                  {auth.relationship}
+                                </span>
+                              </div>
                             </div>
                           </td>
-                          <td className="px-4 sm:px-6 py-3.5 sm:py-4">
+
+                          {/* Coluna 5: Instituição / Escola */}
+                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold">
                               <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                              <span className="truncate max-w-[150px]">{auth.institutionName}</span>
+                              <span className="truncate max-w-[140px]">{auth.institutionName}</span>
                             </span>
                           </td>
-                          <td className="px-4 sm:px-6 py-3.5 sm:py-4">
+
+                          {/* Coluna 6: Atendimentos & Imagem */}
+                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
+                            {isSigned ? (
+                              <div className="flex flex-col gap-1">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold w-fit" title="Oftalmologia, Audiometria, Odontologia, Psicologia e Nutrição">
+                                  <Sparkles className="w-3 h-3 text-emerald-600" />
+                                  <span>Saúde 5 em 1</span>
+                                </span>
+                                {auth.authImage ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold w-fit" title="Uso de Imagem e Voz Autorizado">
+                                    <Camera className="w-3 h-3 text-blue-600" />
+                                    <span>Foto/Voz Sim</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200 text-[10px] font-semibold w-fit" title="Uso de Imagem e Voz Recusado">
+                                    <span>Sem Foto</span>
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 text-xs">—</span>
+                            )}
+                          </td>
+
+                          {/* Coluna 7: Status */}
+                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
                             {isSigned && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold whitespace-nowrap">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
                                 <span>Autorizada</span>
                               </span>
                             )}
                             {isCancelled && (
                               <span 
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-300 text-[11px] font-bold shadow-xs" 
-                                title="Autorização invalidada administrativamente por inconsistência cadastral (Soft Delete preservado para fins periciais)"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-300 text-[11px] font-bold shadow-xs whitespace-nowrap" 
+                                title="Autorização invalidada administrativamente por inconsistência cadastral"
                               >
                                 <ShieldAlert className="w-3 h-3 text-amber-700 shrink-0" />
                                 <span>Cancelada por Erro</span>
                               </span>
                             )}
                             {isRevoked && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 text-red-800 border border-red-200 text-[11px] font-bold">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 text-red-800 border border-red-200 text-[11px] font-bold whitespace-nowrap">
                                 <AlertTriangle className="w-3 h-3 text-red-600 shrink-0" />
-                                <span>Negada (Responsável)</span>
+                                <span>Negada</span>
                               </span>
                             )}
                             {isPending && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold whitespace-nowrap">
                                 <Clock className="w-3 h-3 text-slate-500 shrink-0" />
                                 <span>Pendente</span>
                               </span>
                             )}
                           </td>
-                          <td className="px-4 sm:px-6 py-3.5 sm:py-4">
+
+                          {/* Coluna 8: Data */}
+                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
                             <span className="text-xs text-slate-600 font-medium whitespace-nowrap">
                               {auth.dateSent}
                             </span>
                           </td>
-                          <td className="px-4 sm:px-6 py-3.5 sm:py-4 text-right">
+
+                          {/* Coluna 9: Ações */}
+                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4 text-right whitespace-nowrap">
                             {isCancelled ? (
-                              <span 
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold select-none" 
-                                title="Documento invalidado em modo somente-leitura imutável"
-                              >
-                                <Lock className="w-3.5 h-3.5 text-slate-400" />
-                                <span>Somente Leitura</span>
-                              </span>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => handleOpenDetailsModal(auth)}
+                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer"
+                                  title="Ver Ficha Completa do Aluno"
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-slate-500" /> 
+                                  <span>Ver Ficha</span>
+                                </button>
+                                <button
+                                  onClick={() => handleOpenResendEmailModal(auth)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                                  title="Reenviar Notificação de Cancelamento por E-mail ao Responsável"
+                                >
+                                  <Mail className="w-3.5 h-3.5 text-amber-700" />
+                                  <span>Reenviar E-mail</span>
+                                </button>
+                              </div>
                             ) : isSigned ? (
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
-                                  onClick={() => onNavigateToValidatorHash(auth.hash!)}
-                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-blue-50 hover:text-sesi-primary hover:border-blue-200 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
-                                  title="Ver dados forenses e certificado de autenticidade"
+                                  onClick={() => handleOpenDetailsModal(auth)}
+                                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-sesi-primary hover:bg-blue-800 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                                  title="Abrir Ficha Completa de Triagem do Estudante (SESI Saúde)"
                                 >
-                                  <FileText className="w-3.5 h-3.5" /> 
-                                  <span>Ver Detalhes</span>
+                                  <FileText className="w-3.5 h-3.5 text-white" /> 
+                                  <span>Ver Ficha Completa</span>
+                                </button>
+                                <button
+                                  onClick={() => handleOpenResendEmailModal(auth)}
+                                  className="inline-flex items-center justify-center p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer shadow-2xs"
+                                  title="Reenviar Comprovante de Assinatura por E-mail ao Responsável"
+                                >
+                                  <Mail className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() => handleOpenRevokeModal(auth)}
-                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
-                                  title="Revogar autorização por inconsistência cadastral ou operacional"
+                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer"
+                                  title="Revogar autorização por inconsistência cadastral ou erro de turma/nome"
                                 >
                                   <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
                                   <span>Revogar por Erro</span>
@@ -796,20 +1068,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             ) : (
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
+                                  onClick={() => handleOpenDetailsModal(auth)}
+                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer"
+                                  title="Ver dados cadastrais"
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-slate-500" /> 
+                                  <span>Ver Ficha</span>
+                                </button>
+                                <button
                                   onClick={() => handleCopySchoolLink(auth.institutionId || 'cemeit')}
-                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium shadow-xs transition-all cursor-pointer whitespace-nowrap"
-                                  title="Copiar link de assinatura para enviar aos pais"
+                                  className="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium shadow-xs transition-all cursor-pointer"
+                                  title="Copiar link de assinatura para os pais"
                                 >
                                   <Copy className="w-3.5 h-3.5 text-slate-400" />
                                   <span>Link</span>
                                 </button>
                                 <button
                                   onClick={() => handleOpenRevokeModal(auth)}
-                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
+                                  className="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-white border border-amber-200 hover:bg-amber-50 hover:text-amber-900 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer"
                                   title="Cancelar termo pendente por inconsistência de dados"
                                 >
                                   <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                                  <span>Revogar por Erro</span>
+                                  <span>Revogar</span>
                                 </button>
                               </div>
                             )}
@@ -1116,7 +1396,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Situação Vigente:</span>
-                  <span className="font-bold text-amber-700 capitalize block">{selectedAuthToRevoke.status}</span>
+                  <span className="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 block w-fit text-xs mt-0.5">
+                    {formatStatusInPortuguese(selectedAuthToRevoke.status)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1153,6 +1435,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 placeholder="Descreva detalhadamente a inconsistência operacional ou divergência cadastral (Ex: 'Erro de digitação do CPF pelo responsável legal na matrícula')..."
                 className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 placeholder:text-slate-400 leading-relaxed resize-none disabled:bg-slate-100"
               />
+            </div>
+
+            {/* Campo: E-mail de Notificação Instantânea ao Responsável */}
+            <div className="space-y-1.5">
+              <label htmlFor="notify-email" className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                E-mail para Notificação do Responsável <span className="text-slate-400 font-normal lowercase">(disparo imediato)</span>
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  id="notify-email"
+                  type="email"
+                  value={notifyEmail}
+                  disabled={isRevoking}
+                  onChange={(e) => setNotifyEmail(e.target.value)}
+                  placeholder="exemplo: pai.responsavel@gmail.com..."
+                  className="w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 placeholder:text-slate-400 disabled:bg-slate-100"
+                />
+              </div>
+              <p className="text-[11px] text-slate-500">
+                O responsável receberá o comprovante formal de cancelamento com protocolo e data/hora.
+              </p>
             </div>
 
             {/* Checkbox de Dupla Confirmação */}
@@ -1204,6 +1508,404 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <>
                     <ShieldAlert className="w-4 h-4" />
                     <span>Confirmar Revogação por Erro</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: FICHA CADASTRAL E DE TRIAGEM CLÍNICA DO ESTUDANTE — FOLHA A4 SEM BORDAS (SESI SAÚDE) */}
+      {showDetailsModal && selectedAuthForDetails && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200 overflow-y-auto"
+          onClick={() => setShowDetailsModal(false)}
+        >
+          <div 
+            className="document-sheet-a4 max-w-3xl w-full animate-in zoom-in-95 duration-200 text-left my-6 space-y-5 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Timbrado Oficial SESI / UnB (Padrão A4) */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b-2 border-[#034b7f] pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-sesi-primary text-white flex items-center justify-center font-bold text-xl shadow-xs shrink-0">
+                  <GraduationCap className="w-7 h-7" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+                      Ficha do Estudante &bull; SESI Saúde
+                    </h3>
+                    <span className="font-mono text-xs font-bold text-blue-900 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-lg">
+                      {selectedAuthForDetails.validationCode || selectedAuthForDetails.id}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                    Projeto Escola Cidadã: Saúde em Movimento (SESI-DF &bull; Universidade de Brasília)
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handlePrintStudentCard}
+                  className="px-3 py-2 rounded-xl bg-blue-50 text-sesi-primary hover:bg-blue-100 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Imprimir Ficha de Triagem em Folha A4"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Imprimir A4</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDetailsModal(false)}
+                  className="text-slate-400 hover:text-slate-600 rounded-xl p-2 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Grid de Conteúdo A4 */}
+            <div className="space-y-4">
+              
+              {/* Bloco 1: Identificação Escolar do Estudante */}
+              <div className="bg-gradient-to-br from-blue-50/60 to-white border border-blue-100 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-blue-100/80 pb-2">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-sesi-primary" />
+                    <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">Identificação Escolar do Estudante</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>{formatStatusInPortuguese(selectedAuthForDetails.status)}</span>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Nome do Aluno(a):</span>
+                    <span className="font-bold text-slate-900 text-sm">{selectedAuthForDetails.studentName}</span>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">CPF do Aluno(a):</span>
+                    <span className="font-mono font-bold text-slate-800">{selectedAuthForDetails.studentCpfMasked}</span>
+                  </div>
+
+                  {/* DESTAQUE: ANO / SÉRIE, TURMA E TURNO */}
+                  <div className="sm:col-span-2 bg-white rounded-xl p-3 border border-blue-200 shadow-2xs">
+                    <span className="text-blue-900 block text-[10px] uppercase font-bold mb-2 flex items-center gap-1.5">
+                      <GraduationCap className="w-4 h-4 text-blue-600" />
+                      <span>Enturmação Escolar Oficial na Unidade de Ensino:</span>
+                    </span>
+                    <div className="grid grid-cols-3 gap-2.5 text-center">
+                      <div className="bg-blue-50/70 rounded-xl p-2.5 border border-blue-100">
+                        <span className="text-[10px] text-blue-700 font-bold block uppercase">Ano / Série</span>
+                        <strong className="text-xs sm:text-sm text-blue-950 font-bold">
+                          {selectedAuthForDetails.minorSeries ? formatStudentSeriesClass(selectedAuthForDetails.minorSeries) : 'Não informado'}
+                        </strong>
+                      </div>
+                      <div className="bg-blue-50/70 rounded-xl p-2.5 border border-blue-100">
+                        <span className="text-[10px] text-blue-700 font-bold block uppercase">Turma</span>
+                        <strong className="text-xs sm:text-sm text-blue-950 font-bold">
+                          {selectedAuthForDetails.minorClass ? `Turma ${selectedAuthForDetails.minorClass}` : 'Não informada'}
+                        </strong>
+                      </div>
+                      <div className="bg-blue-50/70 rounded-xl p-2.5 border border-blue-100">
+                        <span className="text-[10px] text-blue-700 font-bold block uppercase">Turno</span>
+                        <strong className="text-xs sm:text-sm text-blue-950 font-bold capitalize">
+                          {selectedAuthForDetails.minorTurn || 'Matutino'}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Data de Nascimento & Idade:</span>
+                    <span className="font-medium text-slate-800 flex items-center gap-1.5 mt-0.5">
+                      <Cake className="w-3.5 h-3.5 text-slate-400" />
+                      {formatBirthDateAndAge(selectedAuthForDetails.birthDate)?.formattedDate || 'Não informada'}
+                      {formatBirthDateAndAge(selectedAuthForDetails.birthDate)?.age && (
+                        <strong className="text-blue-700 ml-1">({formatBirthDateAndAge(selectedAuthForDetails.birthDate)?.age})</strong>
+                      )}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Instituição / Escola:</span>
+                    <span className="font-bold text-slate-800 flex items-center gap-1.5 mt-0.5">
+                      <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                      {selectedAuthForDetails.institutionName}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloco 2: Responsável Legal */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs space-y-2">
+                <div className="flex items-center gap-2 border-b border-slate-200 pb-1.5">
+                  <Users className="w-4 h-4 text-slate-600" />
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Responsável Legal Cadastrado</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Nome Completo:</span>
+                    <span className="font-bold text-slate-900">{selectedAuthForDetails.parentName}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">CPF do Responsável:</span>
+                    <span className="font-mono font-medium text-slate-800">{selectedAuthForDetails.parentCpfMasked}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Grau de Parentesco / Vínculo:</span>
+                    <span className="inline-block bg-white px-2.5 py-0.5 rounded border border-slate-200 font-bold text-slate-800 capitalize">
+                      {selectedAuthForDetails.relationship}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloco 3: Grade de Atendimentos Clínicos Autorizados (SESI Saúde) */}
+              <div className="border border-emerald-200/90 bg-emerald-50/40 rounded-2xl p-4 text-xs space-y-2.5">
+                <div className="flex items-center justify-between border-b border-emerald-200 pb-1.5">
+                  <div className="flex items-center gap-2">
+                    <HeartPulse className="w-4 h-4 text-emerald-700" />
+                    <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                      Grade de Atendimentos de Saúde (SESI 5 em 1)
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                    100% Gratuito
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                  <div className="bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <strong className="block text-slate-800 text-[11px]">Oftalmologia</strong>
+                      <span className="text-[10px] text-emerald-700 font-semibold">Acuidade Visual &bull; Autorizado ✓</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs flex items-center gap-2">
+                    <Ear className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <strong className="block text-slate-800 text-[11px]">Audiometria</strong>
+                      <span className="text-[10px] text-emerald-700 font-semibold">Triagem Auditiva &bull; Autorizado ✓</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs flex items-center gap-2">
+                    <Smile className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <strong className="block text-slate-800 text-[11px]">Odontologia</strong>
+                      <span className="text-[10px] text-emerald-700 font-semibold">Saúde Bucal &bull; Autorizado ✓</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs flex items-center gap-2">
+                    <Apple className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <strong className="block text-slate-800 text-[11px]">Nutrição</strong>
+                      <span className="text-[10px] text-emerald-700 font-semibold">Antropometria &bull; Autorizado ✓</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <strong className="block text-slate-800 text-[11px]">Psicologia</strong>
+                      <span className="text-[10px] text-emerald-700 font-semibold">Acolhimento &bull; Autorizado ✓</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs flex items-center gap-2">
+                    <Camera className="w-4 h-4 text-blue-600 shrink-0" />
+                    <div>
+                      <strong className="block text-slate-800 text-[11px]">Uso de Imagem</strong>
+                      <span className={`text-[10px] font-bold ${selectedAuthForDetails.authImage ? 'text-blue-700' : 'text-slate-500'}`}>
+                        {selectedAuthForDetails.authImage ? 'Autorizado ✓' : 'Não Autorizado ✕'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloco 4: Trilha de Auditoria e Hash Criptográfico */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-700">Hash SHA-256 do Manifesto:</span>
+                  <span className="font-mono text-[10px] text-slate-500 truncate max-w-[300px]">
+                    {selectedAuthForDetails.hash}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-slate-500 text-[10px]">
+                  <span>Assinatura Eletrônica Avançada (Lei nº 14.063/2020)</span>
+                  <span>Data de Registro: {selectedAuthForDetails.dateSent}</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Rodapé e Ações */}
+            <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+              {selectedAuthForDetails.hash && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    onNavigateToValidatorHash(selectedAuthForDetails.hash);
+                  }}
+                  className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-sesi-primary hover:bg-blue-50 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 border border-blue-200"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Abrir no Validador Público</span>
+                </button>
+              )}
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowDetailsModal(false)}
+                  className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer text-center"
+                >
+                  Fechar
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrintStudentCard}
+                  className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-sesi-primary hover:bg-blue-800 text-white rounded-xl transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Imprimir Ficha A4</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: REENVIAR E-MAIL DE NOTIFICAÇÃO DE CANCELAMENTO */}
+      {showResendEmailModal && selectedAuthForResendEmail && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 animate-in fade-in duration-200"
+          onClick={() => setShowResendEmailModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-200 text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3.5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold shadow-xs shrink-0">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 leading-tight">
+                    Reenviar Notificação de Cancelamento
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Disparo de transparência e comprovante de invalidação (LGPD)
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowResendEmailModal(false)}
+                className="text-slate-400 hover:text-slate-600 rounded-lg p-1.5 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Resumo do Documento */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-xs space-y-2">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                <span className="text-slate-400 text-[10px] font-bold uppercase">Código do Termo:</span>
+                <span className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200">
+                  {selectedAuthForResendEmail.validationCode || selectedAuthForResendEmail.id}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Estudante:</span>
+                  <span className="font-bold text-slate-900 truncate block">{selectedAuthForResendEmail.studentName}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Responsável Legal:</span>
+                  <span className="font-bold text-slate-800 truncate block">{selectedAuthForResendEmail.parentName}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Input de E-mail */}
+            <div className="space-y-1.5">
+              <label htmlFor="resend-email-input" className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                E-mail do Responsável para Envio <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  id="resend-email-input"
+                  type="email"
+                  value={resendEmailInput}
+                  disabled={isResendingEmail}
+                  onChange={(e) => setResendEmailInput(e.target.value)}
+                  placeholder="Digite o e-mail (ex: pai.responsavel@gmail.com)..."
+                  className="w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 placeholder:text-slate-400 disabled:bg-slate-100"
+                />
+              </div>
+              <p className="text-[11px] text-slate-500">
+                O e-mail será despachado imediatamente com o layout formal timbrado do SESI e protocolo de invalidação.
+              </p>
+            </div>
+
+            {/* Mensagem de Feedback */}
+            {resendEmailFeedback && (
+              <div className={`p-3 rounded-xl text-xs flex items-center gap-2 border ${
+                resendEmailFeedback.success 
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                  : 'bg-red-50 text-red-800 border-red-200'
+              }`}>
+                {resendEmailFeedback.success ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                )}
+                <span>{resendEmailFeedback.message}</span>
+              </div>
+            )}
+
+            {/* Ações */}
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                disabled={isResendingEmail}
+                onClick={() => setShowResendEmailModal(false)}
+                className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isResendingEmail || !resendEmailInput.trim() || !resendEmailInput.includes('@')}
+                onClick={handleConfirmResendEmail}
+                className="px-5 py-2.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isResendingEmail ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Enviando E-mail...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Disparar E-mail Agora</span>
                   </>
                 )}
               </button>

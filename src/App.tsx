@@ -5,10 +5,11 @@ import { PublicValidator } from './components/validator/PublicValidator.tsx';
 import { AdminDashboard } from './components/admin/AdminDashboard.tsx';
 import { AdminLogin } from './components/admin/AdminLogin.tsx';
 import { PrivacyPolicy } from './components/common/PrivacyPolicy.tsx';
+import { TermsOfUse } from './components/common/TermsOfUse.tsx';
 import { apiClient } from './lib/api.ts';
 
 export function App() {
-  const [currentView, setCurrentView] = useState<'signer' | 'validator' | 'admin' | 'privacy'>('signer');
+  const [currentView, setCurrentView] = useState<'signer' | 'validator' | 'admin' | 'privacy' | 'terms'>('signer');
   const [activeSignerToken, setActiveSignerToken] = useState('projeto-escola-cidada-2026');
   const [activeSchoolSlug, setActiveSchoolSlug] = useState('cemeit');
   const [activeValidatorHash, setActiveValidatorHash] = useState('');
@@ -87,7 +88,9 @@ export function App() {
       } else if (path === '/revogar') {
         setCurrentView('signer');
         window.history.replaceState({}, '', '/autorizar/cemeit');
-      } else if (path === '/privacidade' || path === '/termos') {
+      } else if (path === '/termos') {
+        setCurrentView('terms');
+      } else if (path === '/privacidade') {
         setCurrentView('privacy');
       } else if (path === '/admin') {
         setCurrentView('admin');
@@ -104,7 +107,7 @@ export function App() {
     return () => window.removeEventListener('popstate', tratarRota);
   }, []);
 
-  const navegarParaView = (view: 'signer' | 'validator' | 'admin' | 'privacy', path: string) => {
+  const navegarParaView = (view: 'signer' | 'validator' | 'admin' | 'privacy' | 'terms', path: string) => {
     setCurrentView(view);
     window.history.pushState({}, '', path);
   };
@@ -124,8 +127,7 @@ export function App() {
     }
   };
 
-
-  const isPublicView = currentView === 'signer' || currentView === 'validator' || currentView === 'privacy';
+  const isPublicView = currentView === 'signer' || currentView === 'validator' || currentView === 'privacy' || currentView === 'terms';
 
   return (
     <div className="min-h-screen flex flex-col bg-[#edf1f5] text-slate-800 font-sans selection:bg-blue-500 selection:text-white">
@@ -133,7 +135,7 @@ export function App() {
       {/* Header Superior - Oculto para pais (visão pública) */}
       {!isPublicView && (
         <Header 
-          currentView={currentView} 
+          currentView={currentView as any} 
           onNavigate={(v) => {
             if (v === 'admin') navegarParaView('admin', '/admin');
             else if (v === 'signer') navegarParaView('signer', '/autorizar/cemeit');
@@ -183,11 +185,15 @@ export function App() {
           </div>
         )}
 
-
-
         {currentView === 'privacy' && (
           <div className="w-full px-2 sm:px-6 md:px-8 py-2 sm:py-4 max-w-4xl mx-auto">
             <PrivacyPolicy onBack={() => navigateToSigner()} />
+          </div>
+        )}
+
+        {currentView === 'terms' && (
+          <div className="w-full px-2 sm:px-6 md:px-8 py-2 sm:py-4 max-w-4xl mx-auto">
+            <TermsOfUse onBack={() => navigateToSigner()} />
           </div>
         )}
 

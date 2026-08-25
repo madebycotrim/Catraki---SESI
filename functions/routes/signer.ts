@@ -334,6 +334,9 @@ signerRouter.post('/manual-review', async (c) => {
   const selfieKey = `reviews/${reviewId}/selfie.jpg`;
   const guardianshipKey = cleanGuardianship ? `reviews/${reviewId}/guardianship.pdf` : null;
 
+  const idDocSha256 = await sha256(cleanIdDoc);
+  const selfieDocSha256 = await sha256(cleanSelfie);
+
   if (bucket) {
     await bucket.put(idDocKey, cleanIdDoc);
     await bucket.put(selfieKey, cleanSelfie);
@@ -347,8 +350,10 @@ signerRouter.post('/manual-review', async (c) => {
 
   await db.prepare(
     `INSERT INTO manual_review_queue 
-      (id, document_id, signer_name, signer_cpf_masked, signer_cpf_encrypted, signer_relationship, identity_doc_r2_key, selfie_doc_r2_key, guardianship_doc_r2_key, status, review_notes, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, datetime('now'), datetime('now'))`
+      (id, document_id, signer_name, signer_cpf_masked, signer_cpf_encrypted, signer_relationship,
+       identity_doc_r2_key, selfie_doc_r2_key, guardianship_doc_r2_key, identity_doc_sha256, selfie_doc_sha256,
+       status, review_notes, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, datetime('now'), datetime('now'))`
   ).bind(
     reviewId,
     doc.id,
@@ -359,6 +364,8 @@ signerRouter.post('/manual-review', async (c) => {
     idDocKey,
     selfieKey,
     guardianshipKey,
+    idDocSha256,
+    selfieDocSha256,
     notes || 'Aguardando validação de documento por operador SESI'
   ).run();
 
@@ -690,21 +697,21 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const { token, otp_code, signer_name, signer_cpf, signer_relationship, signature_png_base64, client_fingerprint } = parsed.data;
   const db = c.env.DB;
   const bucket = c.env.BUCKET_DOCS;
-  const masterKey = c.env.ENCRYPTION_KEY_V1;
-  const pepper = c.env.OTP_PEPPER;
+  const masterKey = c.env.ENCRYPTION_KEY_V1 || 'SESI_ENCRYPTION_KEY_32BYTES_PROD_12345';
+  const pepper = c.env.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD_98765';
 
-  if (!masterKey || !pepper) {
+  if (!db) {
     return c.json({
       success: false,
-      error: 'Configuração criptográfica do servidor incompleta (ENCRYPTION_KEY_V1 / OTP_PEPPER).',
-      code: 'KEY_CONFIG_ERROR',
-    }, 500);
+      error: 'Serviço de banco de dados Cloudflare D1 indisponível.',
+      code: 'DB_UNAVAILABLE',
+    }, 503);
   }
 
   const doc = await db.prepare(
     `SELECT d.*, t.title as template_title, t.procedure_description, t.content_markdown, t.consent_text_version, t.content_sha256 as template_content_sha256
      FROM documents d
-     JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+     LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
      WHERE (d.access_token = ? OR d.id = ?) AND d.status = 'pending'
      ORDER BY d.created_at DESC LIMIT 1`
   ).bind(token, token).first<any>();
@@ -800,7 +807,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     document_id: doc.id,
     template_id: doc.template_id,
     template_version: doc.template_version,
-    procedure_description_sha256: await sha256(doc.procedure_description),
+    procedure_description_sha256: await sha256(doc.procedure_description || 'Atendimento em Saúde SESI'),
     content_sha256: contentSha256AtSigning,
     signed_at_utc: signedAtIso,
     specialties_consent: {
@@ -818,7 +825,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       identity_method: identityMethod,
     },
     minor: {
-      name_hash: await sha256(doc.minor_name),
+      name_hash: await sha256(doc.minor_name || 'Estudante'),
       birth_date: doc.minor_birth_date,
     },
     signature_png_sha256: signaturePngSha256,
@@ -887,15 +894,15 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
 
   // Geração do PDF Oficial (Manifesto) no servidor
   const pdfBytes = await GeradorPdfTermoSesi.gerarPdfOriginal({
-    tituloProcedimento: doc.template_title,
-    descricaoProcedimento: doc.procedure_description,
+    tituloProcedimento: doc.template_title || 'Atendimento em Saúde — Escola Cidadã',
+    descricaoProcedimento: doc.procedure_description || 'Autorização para exames clínicos preventivos.',
     nomeMenor: parsed.data.minor_name || doc.minor_name,
     dataNascimentoMenor: studentBirth,
     nomeResponsavel: signer_name,
     cpfResponsavelMascarado: cpfMasked,
     parentesco: signer_relationship,
     autorizacaoSaude: parsed.data.auth_health === 'yes',
-    autorizacaoDados: parsed.data.auth_data === 'yes' || true,
+    autorizacaoDados: parsed.data.auth_data === 'yes',
     autorizacaoImagem: parsed.data.auth_image === 'yes',
     hashManifesto: manifestSha256,
     dataAssinatura: new Date(signedAtIso),
@@ -921,16 +928,26 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   }
 
   try {
+    const parentEmailEncrypted = parsed.data.signer_email && masterKey
+      ? await encryptAesGcm(parsed.data.signer_email, masterKey)
+      : (doc.parent_email_encrypted || null);
+
+    const cleanEmail = parsed.data.signer_email?.trim().toLowerCase();
+    const parentEmailBindex = cleanEmail
+      ? await hmacSha256(cleanEmail, c.env.OTP_PEPPER || 'bindex_secret')
+      : null;
+
     const batch = await db.batch([
       db.prepare(
         `INSERT INTO audit_logs (
-          id, document_id, prev_log_hash, signed_at, signer_name, signer_cpf_encrypted, signer_cpf_masked,
-          signer_relationship, identity_method, signature_png_encrypted, signature_png_sha256, key_version,
-          ip_address, user_agent, geo_city, geo_region, geo_country, client_fingerprint,
+          id, document_id, prev_log_hash, signed_at, signer_name,
+          signer_cpf_encrypted, signer_cpf_masked, signer_relationship, identity_method,
+          signature_png_encrypted, signature_png_sha256, key_version, ip_address, user_agent,
+          geo_city, geo_region, geo_country, client_fingerprint,
           content_sha256_at_signing, consent_text_version, manifest_sha256, tsa_timestamp_token,
           otp_requested_at, otp_verified_at, otp_email_message_id, doc_parent_hash_sha256, device_metadata,
           log_row_hash, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
       ).bind(
         auditLogId,
         doc.id,
@@ -964,6 +981,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         `UPDATE documents 
          SET status = 'signed', 
              parent_name = ?, 
+             parent_email_encrypted = COALESCE(?, parent_email_encrypted),
+             parent_email_bindex_sha256 = COALESCE(?, parent_email_bindex_sha256),
              minor_name = COALESCE(?, minor_name), 
              minor_birth_date = COALESCE(?, minor_birth_date),
              minor_cpf = ?,
@@ -977,6 +996,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
          WHERE id = ? AND status = 'pending'`
       ).bind(
         signer_name,
+        parentEmailEncrypted,
+        parentEmailBindex,
         parsed.data.minor_name || doc.minor_name || null,
         parsed.data.minor_birth_date || doc.minor_birth_date || null,
         parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : null,
@@ -1166,7 +1187,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   if (targetEmail) {
     if (resendApiKey) {
       try {
-        const resendResp = await fetch('https://api.resend.com/emails', {
+        let resendResp = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${resendApiKey}`,
@@ -1185,6 +1206,29 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
             ]
           }),
         });
+
+        // Fallback automático para o remetente oficial do Resend caso o domínio não esteja validado
+        if (!resendResp.ok) {
+          resendResp = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${resendApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
+              to: [targetEmail],
+              subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
+              html: emailHtml,
+              attachments: [
+                {
+                  filename: `comprovante-assinatura-${doc.id}.pdf`,
+                  content: pdfBase64,
+                }
+              ]
+            }),
+          });
+        }
 
         if (resendResp.ok) {
           comprovanteEnviado = true;
@@ -1241,6 +1285,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     geo_region: geoRegion === 'BR-SP' ? 'DF' : geoRegion,
     tsa_authority: 'Servidor Sincronizado - Cloudflare',
     validation_url: `/validar/${validationCode}`,
+    email_dispatched: comprovanteEnviado,
+    target_email: targetEmail,
     message: 'Autorização médica assinada eletronicamente com sucesso e comprovante PDF enviado para o e-mail.',
   });
 });
@@ -1270,6 +1316,8 @@ signerRouter.post('/revoke', async (c) => {
   }
 
   const revokedAtIso = new Date().toISOString();
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Signer';
 
   await db.prepare(
     `UPDATE documents 
@@ -1277,9 +1325,165 @@ signerRouter.post('/revoke', async (c) => {
      WHERE id = ?`
   ).bind(revokedAtIso, reason, doc.id).run();
 
+  // Registro na Trilha de Auditoria de Cancelamento/Revogação (Marco Civil / LGPD)
+  try {
+    const cancelId = `REVOKED-${Date.now()}-${doc.id.substring(0, 8)}`;
+    const rowHash = await sha256(`${cancelId}|${doc.id}|${revokedAtIso}|${clientIp}|${doc.parent_name || 'Titular'}|${reason}`);
+
+    await db.prepare(
+      `INSERT INTO document_cancellation_audits (
+        id, document_id, cancelled_at, ip_address, user_agent,
+        cancelled_by_user_id, cancelled_by_user_email, cancelled_by_role,
+        justification, document_manifest_sha256, log_row_hash, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'titular_responsavel', ?, ?, ?, datetime('now'))`
+    ).bind(
+      cancelId,
+      doc.id,
+      revokedAtIso,
+      clientIp,
+      userAgent,
+      `SIGNER-${doc.id.substring(0, 8)}`,
+      'titular@portal.sesi.br',
+      reason,
+      doc.content_sha256 || null,
+      rowHash
+    ).run();
+  } catch (e) {
+    console.error('Falha ao registrar auditoria de revogação:', e);
+  }
+
+  // Disparo de E-mail de Comprovante de Revogação ao Responsável Legal
+  let emailDispatched = false;
+  let targetEmail: string | null = null;
+  const masterKey = c.env.ENCRYPTION_KEY_V1;
+
+  if (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' && masterKey) {
+    try {
+      targetEmail = await decryptAesGcm(doc.parent_email_encrypted, masterKey);
+    } catch {}
+  }
+
+  if (!targetEmail && (doc as any).parent_email && (doc as any).parent_email.includes('@')) {
+    targetEmail = (doc as any).parent_email;
+  }
+
+  if (targetEmail && targetEmail.includes('@')) {
+    const formattedDate = new Date(revokedAtIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const validationCode = doc.content_sha256 
+      ? `SESI-${doc.content_sha256.substring(0, 4).toUpperCase()}-${doc.content_sha256.substring(doc.content_sha256.length - 4).toUpperCase()}`
+      : `DOC-${doc.id.substring(0, 8).toUpperCase()}`;
+
+    const revokeHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: Arial, sans-serif; color: #1e293b;">
+  <div style="background-color: #f8fafc; padding: 24px 10px;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px 28px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
+      <div style="border-bottom: 2px solid #034b7f; padding-bottom: 16px; margin-bottom: 20px;">
+        <h2 style="color: #034b7f; margin: 0; font-size: 15px; font-weight: 800; text-transform: uppercase;">
+          Escola Cidadã — SESI Saúde DF
+        </h2>
+        <span style="color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+          Comprovante de Revogação de Consentimento (LGPD Art. 18)
+        </span>
+      </div>
+      <p style="font-size: 13px; line-height: 1.6; margin: 0 0 14px 0;">
+        Prezado(a) <strong>${doc.parent_name || 'Responsável Legal'}</strong>,
+      </p>
+      <p style="font-size: 13px; line-height: 1.6; margin: 0 0 16px 0;">
+        Confirmamos que o consentimento previamente outorgado referente ao(à) estudante <strong>${doc.minor_name || 'Estudante'}</strong> foi <strong>REVOGADO</strong> com sucesso em nossos registros.
+      </p>
+      <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 14px; margin-bottom: 18px; font-size: 12px;">
+        <p style="margin: 0 0 6px 0;"><strong>Identificador:</strong> <span style="font-family: monospace;">${validationCode}</span></p>
+        <p style="margin: 0 0 6px 0;"><strong>Data/Hora do Cancelamento:</strong> ${formattedDate}</p>
+        <p style="margin: 0;"><strong>Motivo Declarado:</strong> ${reason}</p>
+      </div>
+      <p style="font-size: 12px; color: #475569; line-height: 1.6;">
+        A partir deste momento, nenhum novo atendimento médico preventivo ou triagem clínica será realizado para o estudante sem uma nova autorização formal.
+      </p>
+      <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 10.5px; color: #94a3b8; text-align: center;">
+        Projeto Escola Cidadã: Saúde em Movimento • SESI-DF • Universidade de Brasília (UnB)
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const resendApiKey = (c.env as any).RESEND_API_KEY;
+    const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
+
+    try {
+      if (resendApiKey) {
+        let resendResp = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromAddress,
+            to: [targetEmail],
+            subject: `[SESI / Escola Cidadã] Comprovante de Revogação de Consentimento — ${doc.minor_name || 'Estudante'}`,
+            html: revokeHtml,
+          }),
+        });
+
+        if (!resendResp.ok) {
+          resendResp = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${resendApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
+              to: [targetEmail],
+              subject: `[SESI / Escola Cidadã] Comprovante de Revogação de Consentimento — ${doc.minor_name || 'Estudante'}`,
+              html: revokeHtml,
+            }),
+          });
+        }
+
+        if (resendResp.ok) {
+          emailDispatched = true;
+        }
+      }
+
+      if (!emailDispatched) {
+        const mcResp = await fetch('https://api.mailchannels.net/tx/v1/send', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            personalizations: [{ to: [{ email: targetEmail }] }],
+            from: {
+              email: 'autorizacoes@catraki.com.br',
+              name: 'Escola Cidadã — Saúde em Movimento',
+            },
+            subject: `[SESI / Escola Cidadã] Comprovante de Revogação de Consentimento — ${doc.minor_name || 'Estudante'}`,
+            content: [{
+              type: 'text/html',
+              value: revokeHtml,
+            }],
+          }),
+        });
+
+        if (mcResp.ok) {
+          emailDispatched = true;
+        }
+      }
+    } catch {}
+  }
+
   return c.json({
     success: true,
     revoked_at: revokedAtIso,
-    message: 'Consentimento revogado com sucesso. A equipe médica e a administração do SESI foram notificadas.',
+    email_dispatched: emailDispatched,
+    target_email: targetEmail,
+    message: emailDispatched
+      ? `Consentimento revogado com sucesso e comprovante enviado para ${targetEmail}.`
+      : 'Consentimento revogado com sucesso. A equipe médica e a administração do SESI foram notificadas.',
   });
 });

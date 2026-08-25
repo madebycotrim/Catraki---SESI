@@ -43,7 +43,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         <div className="space-y-2.5">
           <div className="flex items-center gap-2 text-white font-semibold text-sm">
             <Lock className="w-4 h-4 text-purple-400" />
-            <span>Canal do Titular / DPO</span>
+            <span>Canal de Privacidade do Titular</span>
           </div>
           <p className="leading-relaxed text-slate-400">
             Para exercer seus direitos de acesso, correção, eliminação de dados ou revogação de consentimento (Art. 18 LGPD):
@@ -56,21 +56,33 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <span>Acessar Portal do Titular (Art. 18 LGPD)</span>
           </button>
           <p className="text-[11px] text-slate-500 text-center">
-            SESI — Serviço Social da Indústria • Departamento Regional
+            Catraki • Tecnologia em Assinaturas Digitais e Governança de Dados
           </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500">
         <div>
-          © {new Date().getFullYear()} Catraki. Todos os direitos reservados. Plataforma tecnológica operada por Catraki.
+          © {new Date().getFullYear()} Catraki. Todos os direitos reservados. Plataforma tecnológica proprietária desenvolvida e operada por Catraki.
         </div>
         <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Trilha de Auditoria Ativa
-          </span>
+          <button
+            onClick={() => onNavigate('privacy')}
+            className="hover:text-slate-300 transition-colors underline cursor-pointer"
+          >
+            Política de Privacidade
+          </button>
           <span>•</span>
-          <span>Registro Cronológico Digital</span>
+          <button
+            onClick={() => onNavigate('terms')}
+            className="hover:text-slate-300 transition-colors underline cursor-pointer"
+          >
+            Termos de Uso
+          </button>
+          <span>•</span>
+          <span className="flex items-center gap-1 text-emerald-400">
+            <ShieldCheck className="w-3.5 h-3.5" /> Trilha Forense Ativa
+          </span>
         </div>
       </div>
     </footer>

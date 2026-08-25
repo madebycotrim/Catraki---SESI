@@ -12,7 +12,7 @@
 | Papel | Responsável | Atribuição Principal |
 |---|---|---|
 | **Incident Commander (Líder da Crise)** | Gerente de Segurança da Informação (CISO) | Coordenação geral, tomada de decisões de contenção e isolamento. |
-| **Encarregado pelo Tratamento de Dados (DPO)** | Dra. Juliana Mendes (`dpo@sesi.org.br`) | Avaliação de riscos aos titulares, comunicação com a ANPD e órgãos reguladores. |
+| **Encarregado pelo Tratamento de Dados (DPO)** | Comitê de Privacidade Catraki (`dpo@catraki.com.br`) | Avaliação de riscos aos titulares, comunicação com a ANPD e órgãos reguladores. |
 | **Líder Técnico / AppSec** | Arquiteto de Software & Engenharia Cloud | Análise forense, aplicação de patches, rotação de chaves e restauração de dados. |
 | **Representante Jurídico / Médico** | Assessoria Jurídica e Diretoria de Saúde SESI | Validação de impactos em procedimentos médicos em andamento. |
 

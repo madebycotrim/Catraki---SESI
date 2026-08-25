@@ -229,6 +229,13 @@ export const SignDocumentSchema = z.object({
   auth_health: z.enum(['yes', 'no']).optional(),
   auth_data: z.enum(['yes', 'no']).optional(),
   auth_image: z.enum(['yes', 'no']).optional(),
+  specialties: z.object({
+    oftalmologia: z.boolean().optional(),
+    audiometria: z.boolean().optional(),
+    odontologia: z.boolean().optional(),
+    psicologia: z.boolean().optional(),
+    nutricao: z.boolean().optional(),
+  }).optional(),
   signature_png_base64: z.string()
     .min(10, 'Assinatura obrigatória')
     .refine((val) => val.startsWith('data:image/png;base64,') || val.length < 500000, {
@@ -244,6 +251,12 @@ export const SignDocumentSchema = z.object({
     errorMap: () => ({ message: 'É obrigatório declarar que é o responsável legal e reconhecer a validade jurídica da assinatura' })
   }),
   client_fingerprint: z.string().max(256).optional(),
+});
+
+export const LogAdminExportSchema = z.object({
+  export_type: z.enum(['CSV_CONSOLIDATED', 'ZIP_PDFS', 'STUDENT_CARD_PRINT', 'LGPD_DOSSIER']),
+  record_count: z.number().int().min(0),
+  filters_applied: z.string().max(1000).optional(),
 });
 
 export const RevokeConsentSchema = z.object({

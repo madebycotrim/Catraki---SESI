@@ -104,14 +104,18 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
 
           <section className="space-y-1.5">
             <h2 className="text-xs sm:text-sm font-bold uppercase text-slate-900">
-              5. Direitos do Titular e Canal Oficial do Encarregado (DPO)
+              5. Direitos do Titular e Canal de Atendimento de Privacidade
             </h2>
             <p>
-              Conforme o <strong>Artigo 18 da LGPD</strong>, o responsável legal tem o direito de solicitar a qualquer tempo a confirmação da existência de tratamento, o acesso aos dados, a correção de dados incompletos ou a <strong>revogação do consentimento</strong>.
+              Conforme o <strong>Artigo 18 da LGPD</strong>, o responsável legal tem o direito de solicitar a qualquer tempo a confirmação da existência de tratamento, o acesso aos dados, a portabilidade, a correção de dados incompletos ou a <strong>revogação do consentimento</strong>.
             </p>
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 space-y-1.5 mt-2 text-xs sm:text-sm text-slate-700">
-              <p className="font-bold text-slate-900 m-0">Canal de Atendimento do Titular:</p>
-              <p className="m-0">Para exercer seus direitos de titular ou solicitar esclarecimentos adicionais sobre a proteção de dados, você pode entrar em contato com a equipe de apoio presencial do projeto, com a coordenação da escola ou diretamente através do canal oficial do Encarregado de Proteção de Dados (DPO) do SESI.</p>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 sm:p-4 space-y-2 mt-2 text-xs sm:text-sm text-slate-700">
+              <p className="font-bold text-slate-900 m-0">Canais de Atendimento para Exercício de Direitos:</p>
+              <ul className="space-y-1 text-xs text-slate-600 m-0 list-disc list-inside">
+                <li><strong>E-mail de Contato para Privacidade:</strong> <a href="mailto:dpo@catraki.com.br" className="text-sesi-primary font-bold underline">dpo@catraki.com.br</a></li>
+                <li><strong>Portal de Autoatendimento do Titular:</strong> Disponível no validador público e canal Art. 18 LGPD desta plataforma</li>
+                <li><strong>Prazos de Atendimento:</strong> Conforme os prazos regulamentares da Autoridade Nacional de Proteção de Dados (ANPD)</li>
+              </ul>
             </div>
           </section>
 
@@ -119,7 +123,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
 
         {/* Rodapé e Barra Institucional */}
         <div className="pt-6 border-t border-slate-200 text-center text-xs text-slate-500">
-          <p className="m-0">Atualizado e homologado em 21 de agosto de 2026 • Catraki & SESI Saúde</p>
+          <p className="m-0">Atualizado e homologado em 21 de agosto de 2026 • Plataforma Catraki</p>
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden pointer-events-none z-10 leading-none">

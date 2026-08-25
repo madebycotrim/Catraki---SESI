@@ -117,6 +117,8 @@
     identity_doc_r2_key TEXT NOT NULL,
     selfie_doc_r2_key TEXT NOT NULL,
     guardianship_doc_r2_key TEXT,
+    identity_doc_sha256 TEXT,                  -- Hash SHA-256 da imagem de identidade (preservação pericial pós-expurgo R2)
+    selfie_doc_sha256 TEXT,                    -- Hash SHA-256 da selfie do responsável
     status TEXT CHECK(status IN ('pending','approved','rejected')) DEFAULT 'pending',
     reviewed_by TEXT,
     review_notes TEXT,
@@ -174,6 +176,34 @@
     justification TEXT NOT NULL,               -- Justificativa detalhada obrigatória
     document_manifest_sha256 TEXT,             -- Hash SHA-256 do documento / manifesto no cancelamento
     log_row_hash TEXT NOT NULL CHECK(LENGTH(log_row_hash) = 64), -- Hash SHA-256 para integridade e não repúdio
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- 10. Trilha de Auditoria de Ações Administrativas e de Segurança (Append-Only)
+  CREATE TABLE IF NOT EXISTS admin_audit_logs (
+    id TEXT PRIMARY KEY,                       -- Ex: 'ADM-20260825-103000-A1B2'
+    event_type TEXT NOT NULL,                  -- 'LOGIN_SUCCESS', 'LOGIN_FAILED', 'MANUAL_REVIEW_ACTION', 'LGPD_RESPONSE', 'INSTITUTION_ACTION', 'TEMPLATE_CREATE', 'DATA_EXPORT'
+    actor_user_id TEXT NOT NULL,               -- ID do operador
+    actor_user_email TEXT NOT NULL,            -- E-mail do operador
+    actor_user_role TEXT NOT NULL,             -- Perfil RBAC
+    ip_address TEXT NOT NULL,                  -- IP de origem (Art. 15 Marco Civil)
+    user_agent TEXT NOT NULL,
+    target_resource TEXT NOT NULL,             -- Recurso afetado (ex: 'manual_review:REV-123')
+    action_details TEXT NOT NULL,              -- JSON ou texto com diff/motivo/contagem
+    log_row_hash TEXT NOT NULL CHECK(LENGTH(log_row_hash) = 64),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- 11. Registros de Acesso a Aplicações (Marco Civil da Internet - Art. 15 da Lei 12.965/2014)
+  CREATE TABLE IF NOT EXISTS application_access_logs (
+    id TEXT PRIMARY KEY,
+    ip_address TEXT NOT NULL,
+    user_agent TEXT NOT NULL,
+    endpoint_path TEXT NOT NULL,
+    http_method TEXT NOT NULL,
+    status_code INTEGER NOT NULL,
+    session_token_hash TEXT,
+    retention_until DATETIME DEFAULT (datetime('now', '+180 days')), -- 6 meses regulatórios
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -254,6 +284,38 @@
     SELECT RAISE(ABORT, 'VIOLAÇÃO DE INTEGRIDADE: Documentos cancelados por inconsistência operacional entram em modo somente-leitura definitivo e não podem ser reativados.');
   END;
 
+  -- H. Bloqueio Físico contra Alterações ou Exclusões na Trilha de Auditoria Administrativa
+  CREATE TRIGGER IF NOT EXISTS prevent_admin_audit_update
+  BEFORE UPDATE ON admin_audit_logs
+  BEGIN
+    SELECT RAISE(ABORT, 'VIOLAÇÃO DE SEGURANÇA: admin_audit_logs é estritamente imutável (append-only).');
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS prevent_admin_audit_delete
+  BEFORE DELETE ON admin_audit_logs
+  BEGIN
+    SELECT RAISE(ABORT, 'VIOLAÇÃO DE SEGURANÇA: Registros de auditoria administrativa não podem ser apagados sob hipótese alguma.');
+  END;
+
+  -- I. Bloqueio de Exclusão Física em Templates, Solicitações LGPD e Escolas
+  CREATE TRIGGER IF NOT EXISTS prevent_templates_delete
+  BEFORE DELETE ON document_templates
+  BEGIN
+    SELECT RAISE(ABORT, 'VIOLAÇÃO LEGAL: Modelos e termos de consentimento não podem sofrer exclusão física. Utilize is_active = 0.');
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS prevent_lgpd_requests_delete
+  BEFORE DELETE ON lgpd_requests
+  BEGIN
+    SELECT RAISE(ABORT, 'VIOLAÇÃO LEGAL (LGPD Art. 18): Protocolos de atendimento ao titular devem ser mantidos permanentemente para auditoria da ANPD.');
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS prevent_institutions_delete
+  BEFORE DELETE ON institutions
+  BEGIN
+    SELECT RAISE(ABORT, 'VIOLAÇÃO DE INTEGRIDADE: Escolas participantes devem ser desativadas logicamente (is_active = 0) para manter o histórico das rotas.');
+  END;
+
   -- ============================================================================
   -- ÍNDICES DE ALTA PERFORMANCE E BUSCA SEGURA
   -- ============================================================================
@@ -270,6 +332,11 @@
   CREATE INDEX IF NOT EXISTS idx_cancel_doc ON document_cancellation_audits(document_id);
   CREATE INDEX IF NOT EXISTS idx_cancel_created ON document_cancellation_audits(created_at);
   CREATE INDEX IF NOT EXISTS idx_cancel_user ON document_cancellation_audits(cancelled_by_user_id);
+  CREATE INDEX IF NOT EXISTS idx_admin_audit_event ON admin_audit_logs(event_type);
+  CREATE INDEX IF NOT EXISTS idx_admin_audit_actor ON admin_audit_logs(actor_user_id);
+  CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit_logs(created_at);
+  CREATE INDEX IF NOT EXISTS idx_access_logs_retention ON application_access_logs(retention_until);
+  CREATE INDEX IF NOT EXISTS idx_access_logs_ip ON application_access_logs(ip_address);
 
   -- ============================================================================
   -- CARGA INICIAL DE DADOS (SEED DATA)

@@ -102,6 +102,33 @@ export function requireAuth(allowedRoles?: AdminRole[]): MiddlewareHandler<{ Bin
       );
     }
 
+    // Verificação de usuário ativo no banco de dados D1 (Segurança de Sessão e Revogação Imediata)
+    if (c.env.DB) {
+      try {
+        const dbUser = await c.env.DB.prepare(
+          'SELECT is_active, role FROM admin_users WHERE (id = ? OR email = ?) AND is_active = 1'
+        ).bind(payload.sub, payload.email).first<{ is_active: number; role: AdminRole }>();
+
+        if (!dbUser) {
+          return c.json(
+            {
+              success: false,
+              error: 'Acesso revogado. Usuário administrativo inativo ou desativado.',
+              code: 'USER_DEACTIVATED',
+            },
+            401
+          );
+        }
+
+        // Garante que o role do JWT reflete o role atualizado no banco
+        if (dbUser.role) {
+          payload.role = dbUser.role;
+        }
+      } catch {
+        // Fallback gracioso caso a tabela esteja em migração inicial
+      }
+    }
+
     c.set('user', payload);
     await next();
   };

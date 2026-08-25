@@ -51,6 +51,13 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const [authHealth, setAuthHealth] = useState(false);
   const [authData, setAuthData] = useState(false);
   const [authImage, setAuthImage] = useState(false);
+  const [specialties, setSpecialties] = useState({
+    oftalmologia: true,
+    odontologia: true,
+    audiometria: true,
+    psicologia: true,
+    nutricao: true,
+  });
   const [readAndAccept, setReadAndAccept] = useState(false);
   const [otpChannel] = useState<'email' | 'sms'>('email');
   const [declarationLegalResponsibility, setDeclarationLegalResponsibility] = useState(false);
@@ -314,18 +321,76 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               </h3>
               
               <div className="space-y-3">
-                {/* Campo 1: Atendimento de Saúde */}
-                <label className="flex items-start gap-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={authHealth}
-                    onChange={(e) => setAuthHealth(e.target.checked)}
-                    className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
-                  />
-                  <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                    <strong>SIM, AUTORIZO</strong> o atendimento de saúde do estudante (odontologia, oftalmologia, fonoaudiologia, psicologia e nutrição) nas unidades móveis durante o período escolar. <span className="text-red-500 font-bold">* (Obrigatório)</span>
-                  </span>
-                </label>
+                {/* Campo 1: Atendimento de Saúde com Granularidade (LGPD Art. 11 e 14) */}
+                <div className="space-y-2">
+                  <label className="flex items-start gap-3 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={authHealth}
+                      onChange={(e) => setAuthHealth(e.target.checked)}
+                      className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
+                    />
+                    <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
+                      <strong>SIM, AUTORIZO</strong> o atendimento preventivo de saúde do estudante nas unidades móveis durante o período escolar. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                    </span>
+                  </label>
+
+                  {/* Especialidades Clínicas Detalhadas */}
+                  {authHealth && (
+                    <div className="ml-7 pl-3 py-2 border-l-2 border-sesi-primary/40 bg-blue-50/50 rounded-r-lg space-y-1.5 text-xs text-slate-700">
+                      <span className="font-bold text-[11px] text-sesi-primary uppercase tracking-wide block">
+                        Especialidades Clínicas Integradas:
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={specialties.oftalmologia}
+                            onChange={(e) => setSpecialties({ ...specialties, oftalmologia: e.target.checked })}
+                            className="rounded text-sesi-primary focus:ring-sesi-primary w-3.5 h-3.5"
+                          />
+                          <span>Oftalmologia (Exame de vista)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={specialties.odontologia}
+                            onChange={(e) => setSpecialties({ ...specialties, odontologia: e.target.checked })}
+                            className="rounded text-sesi-primary focus:ring-sesi-primary w-3.5 h-3.5"
+                          />
+                          <span>Odontologia (Saúde bucal)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={specialties.audiometria}
+                            onChange={(e) => setSpecialties({ ...specialties, audiometria: e.target.checked })}
+                            className="rounded text-sesi-primary focus:ring-sesi-primary w-3.5 h-3.5"
+                          />
+                          <span>Fonoaudiologia / Audiometria</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={specialties.psicologia}
+                            onChange={(e) => setSpecialties({ ...specialties, psicologia: e.target.checked })}
+                            className="rounded text-sesi-primary focus:ring-sesi-primary w-3.5 h-3.5"
+                          />
+                          <span>Terapia Integrativa / Psicologia</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={specialties.nutricao}
+                            onChange={(e) => setSpecialties({ ...specialties, nutricao: e.target.checked })}
+                            className="rounded text-sesi-primary focus:ring-sesi-primary w-3.5 h-3.5"
+                          />
+                          <span>Nutrição e Alimentação Saudável</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Campo 2: Tratamento de Dados */}
                 <label className="flex items-start gap-3 cursor-pointer select-none">

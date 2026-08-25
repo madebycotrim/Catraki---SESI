@@ -119,4 +119,17 @@ export async function handleScheduled(
       console.error('[CRON] Erro no expurgo de mídias R2:', err);
     }
   }
+
+  // 5. Expurgo Seguro de Registros de Acesso com mais de 180 dias (Marco Civil da Internet Art. 15)
+  try {
+    const purgeLogsResult = await db.prepare(
+      `DELETE FROM application_access_logs WHERE retention_until < datetime('now')`
+    ).run();
+
+    if ((purgeLogsResult.meta?.changes || 0) > 0) {
+      console.log(`[CRON] Registros de acesso antigos expurgados (Marco Civil Art. 15): ${purgeLogsResult.meta?.changes}`);
+    }
+  } catch (err) {
+    // Tabela pode ainda estar em migração
+  }
 }

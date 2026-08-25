@@ -210,31 +210,66 @@ export const ManualReviewQueue: React.FC = () => {
 
             {/* Parecer do Auditor */}
             <div className="space-y-2 text-xs">
-              <label className="block font-semibold text-slate-300">Parecer / Observação do Auditor:</label>
+              <label className="block font-semibold text-slate-300">
+                Parecer Técnico do Auditor <span className="text-amber-400 font-normal">(Obrigatório — Mínimo 15 caracteres)</span>:
+              </label>
               <textarea
                 value={actionNotes}
                 onChange={(e) => setActionNotes(e.target.value)}
-                rows={2}
-                placeholder="Insira as observações da validação documental..."
+                rows={3}
+                placeholder="Descreva a fundamentação técnica da conferência documental (Ex: Documento de identidade conferido com foto nítida e filiação comprovada)..."
                 className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:border-blue-500"
               />
+              <div className="flex justify-between text-[11px] text-slate-400">
+                <span>Trilha forense imutável com registro de IP e identidade do auditor</span>
+                <span className={actionNotes.trim().length >= 15 ? 'text-emerald-400' : 'text-amber-400'}>
+                  {actionNotes.trim().length} / 15 caracteres mínimos
+                </span>
+              </div>
             </div>
 
-            {/* Botões de Decisão */}
+            {/* Botões de Decisão com Dupla Confirmação */}
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
               <button
-                onClick={() => handleAction(selectedReview.id, 'reject')}
-                disabled={processingId === selectedReview.id}
-                className="px-4 py-2.5 rounded-xl bg-red-950/60 hover:bg-red-900 text-red-200 border border-red-800 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                type="button"
+                onClick={() => {
+                  setSelectedReview(null);
+                  setActionNotes('');
+                }}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={() => {
+                  if (actionNotes.trim().length < 15) {
+                    alert('Para garantir a conformidade jurídica, insira uma justificativa técnica de no mínimo 15 caracteres antes de rejeitar.');
+                    return;
+                  }
+                  if (confirm(`Confirma a REJEIÇÃO formal do vínculo de ${selectedReview.signer_name} sobre o menor ${selectedReview.minor_name || 'paciente'}?\n\nEsta decisão será registrada em log imutável de auditoria.`)) {
+                    handleAction(selectedReview.id, 'reject');
+                  }
+                }}
+                disabled={processingId === selectedReview.id || actionNotes.trim().length < 15}
+                className="px-4 py-2.5 rounded-xl bg-red-950/60 hover:bg-red-900 text-red-200 border border-red-800 text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <XCircle className="w-4 h-4" />
                 <span>Rejeitar Vínculo</span>
               </button>
 
               <button
-                onClick={() => handleAction(selectedReview.id, 'approve')}
-                disabled={processingId === selectedReview.id}
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-600/20"
+                onClick={() => {
+                  if (actionNotes.trim().length < 15) {
+                    alert('Para garantir a conformidade jurídica, insira uma fundamentação técnica de no mínimo 15 caracteres antes de aprovar.');
+                    return;
+                  }
+                  if (confirm(`Confirma a APROVAÇÃO formal do vínculo legal e liberação da assinatura para ${selectedReview.signer_name}?\n\nEsta ação autoriza o atendimento de saúde do menor e é registrada em cadeia pericial.`)) {
+                    handleAction(selectedReview.id, 'approve');
+                  }
+                }}
+                disabled={processingId === selectedReview.id || actionNotes.trim().length < 15}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Aprovar e Liberar Assinatura</span>

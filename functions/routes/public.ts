@@ -204,3 +204,100 @@ publicRouter.get('/institutions/:slug', async (c) => {
 
   return c.json({ success: true, institution: inst });
 });
+
+/**
+ * GET /api/public/dossier/:query
+ * Dossiê Forense Completo do Titular em JSON Estruturado e Interoperável (Direito à Portabilidade - LGPD Art. 18, V)
+ */
+publicRouter.get('/dossier/:query', async (c) => {
+  const query = c.req.param('query');
+  const db = c.env.DB;
+
+  if (!query || query.trim().length === 0) {
+    return c.json({ success: false, error: 'Código de validação inválido.', code: 'INVALID_QUERY' }, 400);
+  }
+
+  const clean = query.trim().toLowerCase();
+  const searchHex = clean.replace(/^sesi-?/i, '').replace(/[^a-f0-9]/g, '');
+
+  let record: any = null;
+  if (clean.length === 64 && /^[0-9a-f]{64}$/.test(clean)) {
+    record = await db.prepare(
+      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
+              d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason,
+              t.title as template_title, t.procedure_description, t.content_markdown
+       FROM audit_logs a
+       LEFT JOIN documents d ON a.document_id = d.id
+       LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       WHERE a.manifest_sha256 = ? LIMIT 1`
+    ).bind(clean).first<any>();
+  } else if (searchHex.length === 8) {
+    record = await db.prepare(
+      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
+              d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason,
+              t.title as template_title, t.procedure_description, t.content_markdown
+       FROM audit_logs a
+       LEFT JOIN documents d ON a.document_id = d.id
+       LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       WHERE a.manifest_sha256 LIKE ? AND a.manifest_sha256 LIKE ? LIMIT 1`
+    ).bind(`${searchHex.substring(0, 4)}%`, `%${searchHex.substring(4, 8)}`).first<any>();
+  } else if (clean.startsWith('doc-')) {
+    record = await db.prepare(
+      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
+              d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason,
+              t.title as template_title, t.procedure_description, t.content_markdown
+       FROM audit_logs a
+       LEFT JOIN documents d ON a.document_id = d.id
+       LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       WHERE a.document_id = ? LIMIT 1`
+    ).bind(clean.toUpperCase()).first<any>();
+  }
+
+  if (!record) {
+    return c.json({ success: false, error: 'Documento não localizado para exportação do dossiê.', code: 'NOT_FOUND' }, 404);
+  }
+
+  const dossier = {
+    export_schema_version: '1.0',
+    lgpd_legal_basis: 'Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018) - Art. 18, V (Portabilidade de Dados)',
+    exported_at_utc: new Date().toISOString(),
+    controller: {
+      institution: 'SESI - Serviço Social da Indústria / Departamento Regional do Distrito Federal',
+      platform_operator: 'Catraki Tecnologia e Assinaturas Digitais',
+      project: 'Programa Escola Cidadã: Saúde em Movimento',
+      dpo_contact: 'dpo@catraki.com.br',
+    },
+    document: {
+      id: record.document_id,
+      title: record.template_title,
+      status: record.doc_status,
+      procedure_description: record.procedure_description,
+      content_sha256: record.content_sha256_at_signing,
+    },
+    titular_student: {
+      initials: getInitials(record.minor_name),
+      series: record.minor_series,
+      class: record.minor_class,
+      turn: record.minor_turn,
+    },
+    legal_guardian: {
+      name: record.signer_name,
+      cpf_masked: record.signer_cpf_masked,
+      relationship: record.signer_relationship,
+      identity_verification_method: record.identity_method,
+    },
+    custody_chain: {
+      manifest_sha256: record.manifest_sha256,
+      signature_png_sha256: record.signature_png_sha256,
+      signed_at: record.signed_at,
+      audit_log_row_hash: record.log_row_hash,
+      prev_log_hash: record.prev_log_hash,
+      tsa_timestamp_present: Boolean(record.tsa_timestamp_token),
+      ip_masked: maskIpAddress(record.ip_address),
+      geolocation: [record.geo_city, record.geo_region, record.geo_country].filter(Boolean).join(', '),
+      user_agent: record.user_agent,
+    },
+  };
+
+  return c.json({ success: true, dossier });
+});

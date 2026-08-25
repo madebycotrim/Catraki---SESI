@@ -30,11 +30,17 @@ export const LgpdManager: React.FC = () => {
 
     setSaving(true);
     try {
-      selectedReq.status = status;
-      selectedReq.response_notes = responseNotes;
-      setSuccessMessage('Parecer do DPO registrado com sucesso.');
-      setSelectedReq(null);
-      setResponseNotes('');
+      const resp = await apiClient.respondLgpdRequest(selectedReq.id, status, responseNotes.trim());
+      if (resp.success) {
+        setSuccessMessage(resp.message || 'Parecer do DPO registrado com sucesso no banco de custódia e trilha de auditoria.');
+        setSelectedReq(null);
+        setResponseNotes('');
+        await loadRequests();
+      } else {
+        alert(resp.error || 'Erro ao registrar parecer do DPO.');
+      }
+    } catch (err: any) {
+      alert(`Falha na comunicação: ${err.message}`);
     } finally {
       setSaving(false);
     }

@@ -102,6 +102,26 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
     ? validationResult.validation_code || `SESI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}`
     : '';
 
+  const handleDownloadDossierJson = async () => {
+    if (!validationCode) return;
+    try {
+      const res = await apiClient.getPublicDossier(validationCode);
+      if (res.success && res.dossier) {
+        const jsonBlob = new Blob([JSON.stringify(res.dossier, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(jsonBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `dossie_titular_lgpd_${validationCode}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        alert(res.error || 'Não foi possível obter o dossiê de portabilidade.');
+      }
+    } catch {
+      alert('Erro ao exportar dossiê em formato JSON.');
+    }
+  };
+
   return (
     <div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-1 sm:px-4 pb-10 pt-1">
       
@@ -116,13 +136,24 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
             <span>Consultar Outro Documento</span>
           </button>
           
-          <button
-            onClick={() => window.print()}
-            className="text-xs sm:text-sm font-bold bg-sesi-primary hover:bg-blue-900 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Imprimir Certificado / Salvar PDF</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadDossierJson}
+              title="Baixar todos os dados e trilha forense em JSON (Direito à Portabilidade - Art. 18, V da LGPD)"
+              className="text-xs sm:text-sm font-bold bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-800/40 px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+            >
+              <FileCheck2 className="w-4 h-4 text-purple-400" />
+              <span>Dossiê JSON (Portabilidade LGPD)</span>
+            </button>
+
+            <button
+              onClick={() => window.print()}
+              className="text-xs sm:text-sm font-bold bg-sesi-primary hover:bg-blue-900 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Imprimir Certificado / Salvar PDF</span>
+            </button>
+          </div>
         </div>
       )}
 

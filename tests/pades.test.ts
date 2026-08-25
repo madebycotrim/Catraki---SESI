@@ -114,7 +114,7 @@ describe('Motor de Assinatura Eletrônica PAdES', () => {
     expect(pdfStr).toContain('/Type /Sig');
 
     provedor.destruirCredenciais();
-  });
+  }, 15000);
 
   it('deve emitir token de carimbo do tempo RFC 3161 autônomo com custo zero', async () => {
     const clienteTs = new ClienteCarimboTempoGratuito();

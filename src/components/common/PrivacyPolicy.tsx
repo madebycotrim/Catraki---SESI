@@ -89,7 +89,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             <ul className="list-disc pl-5 space-y-1 text-slate-600">
               <li><strong>Criptografia em Repouso:</strong> Dados confidenciais (CPFs, contatos e assinaturas) são armazenados cifrados com algoritmo padrão <strong>AES-GCM de 256 bits</strong> com chaves derivadas por PBKDF2.</li>
               <li><strong>Criptografia em Trânsito:</strong> Toda a comunicação é protegida via protocolo seguro <strong>TLS 1.3</strong> com cabeçalhos HSTS rígidos.</li>
-              <li><strong>Imutabilidade e Não-Repúdio:</strong> Toda assinatura eletrônica gera um resumo criptográfico SHA-256 e trilha de auditoria digital com validade jurídica perante a <strong>MP 2.200-2/2001</strong> e <strong>Lei nº 14.063/2020</strong>.</li>
+              <li><strong>Imutabilidade e Não-Repúdio:</strong> Toda assinatura eletrônica gera um resumo criptográfico SHA-256 e trilha de auditoria digital com validade jurídica perante o <strong>Art. 4º, II da Lei nº 14.063/2020 (Assinatura Avançada)</strong>, a <strong>MP 2.200-2/2001</strong> e a jurisprudência do STJ.</li>
             </ul>
           </section>
 

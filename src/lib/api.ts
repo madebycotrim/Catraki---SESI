@@ -463,6 +463,7 @@ export const apiClient = {
     ip_address?: string;
     geolocation?: string;
     user_agent?: string;
+    identity_method?: 'matricula_sesi' | 'manual_review';
   }): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/signer/sign`, {
@@ -515,7 +516,7 @@ export const apiClient = {
 
     // Determina o método de identidade real — nunca hardcode
     const resolvedIdentityMethod: 'matricula_sesi' | 'manual_review' =
-      (doc as any).identity_method === 'manual_review' ? 'manual_review' : 'matricula_sesi';
+      payload.identity_method || ((doc as any).identity_method === 'manual_review' ? 'manual_review' : 'matricula_sesi');
 
     const logRowHash = await computeLogRowHash({
       id: auditId,

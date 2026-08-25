@@ -182,7 +182,7 @@ signerRouter.get('/doc/:token', async (c) => {
       revoked_reason: doc.revoked_reason,
       manual_review_status: manualReview?.status || null,
       manual_review_notes: manualReview?.review_notes || null,
-      legal_notice: 'Assinatura Eletrônica (MP nº 2.200-2/2001 e Lei nº 14.063/2020)',
+      legal_notice: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020 c/c Art. 10, §2º, MP nº 2.200-2/2001; LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP',
     },
   });
 });
@@ -756,7 +756,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       geo: `${geoCity}/${geoRegion}/${geoCountry}`,
       fingerprint: client_fingerprint || null,
     },
-    legal_basis: 'MP 2.200-2/2001 Art. 10, § 2º; Lei 14.063/2020 Art. 4º, II; LGPD (Lei 13.709/2018) Art. 11, I c/c Art. 14, § 1º; Art. 299 CP',
+    legal_basis: 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020 Art. 4º, II (Assinatura Eletrônica Avançada); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
     consent_text_version: doc.consent_text_version,
   };
 
@@ -1071,7 +1071,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         </table>
       </div>
       <div style="margin-top: 24px; border-top: 1px dashed #e2e8f0; padding-top: 12px; font-size: 10.5px; color: #64748b; text-align: center;">
-        O comprovante de assinatura oficial em formato PDF contendo toda a trilha de auditoria e a validade jurídica (MP 2.200-2/2001 e Lei 14.063/2020) está anexado a esta mensagem.
+        O comprovante de assinatura oficial em formato PDF contendo toda a trilha de auditoria e a validade jurídica (Art. 4º, II da Lei 14.063/2020, MP 2.200-2/2001 e LGPD) está anexado a esta mensagem.
       </div>
     </div>
   </div>

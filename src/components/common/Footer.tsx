@@ -16,10 +16,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <span>Conformidade Jurídica & Regulatória</span>
           </div>
           <p className="leading-relaxed text-slate-400">
-            Sistema desenvolvido em estrita conformidade com a <strong>MP 2.200-2/2001 (Art. 10, § 2º)</strong>, <strong>Lei Federal nº 14.063/2020</strong> (Assinatura Eletrônica), <strong>Marco Civil da Internet (Lei 12.965/2014)</strong> e <strong>Art. 299 do Código Penal</strong>.
+            Sistema desenvolvido em estrita conformidade com o <strong>Art. 4º, II da Lei Federal nº 14.063/2020</strong> (Assinatura Eletrônica Avançada), a <strong>MP 2.200-2/2001 (Art. 10, § 2º)</strong>, a <strong>LGPD (Lei 13.709/2018)</strong>, o <strong>ECA (Lei 8.069/1990)</strong>, o <strong>Marco Civil da Internet (Lei 12.965/2014)</strong> e o <strong>Art. 299 do Código Penal</strong>.
           </p>
           <div className="p-2.5 rounded-lg bg-blue-950/40 border border-blue-900/40 text-[11px] text-blue-300/90 leading-relaxed">
-            <strong>Aviso de Validade:</strong> As assinaturas geradas nesta plataforma constituem assinaturas eletrônicas válidas mediante envio de código de segurança por e-mail, declaração de responsabilidade e registro de integridade, nos termos do Art. 10, § 2º da MP 2.200-2/2001 e Lei 14.063/2020, sem necessidade de certificado ICP-Brasil.
+            <strong>Aviso de Validade:</strong> As assinaturas geradas nesta plataforma constituem assinaturas eletrônicas avançadas válidas mediante autenticação 2FA, manifestação de vontade expressa e registro de integridade em cadeia criptográfica, com plena eficácia probatória conforme o Art. 4º, II da Lei 14.063/2020, o Art. 10, § 2º da MP 2.200-2/2001 e a jurisprudência pacificada do STJ (REsp 2.205.708/PR).
           </div>
         </div>
 

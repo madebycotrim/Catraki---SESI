@@ -173,7 +173,7 @@ app.get('/health', (c) => {
   return c.json({
     status: 'healthy',
     service: 'Plataforma Catraki — Assinatura Eletrônica (Cloudflare Pages Functions)',
-    legal_standard: 'Assinatura Eletrônica (Art. 10, § 2º da MP 2.200-2/2001 e Lei nº 14.063/2020)',
+    legal_standard: 'Assinatura Eletrônica Avançada (Art. 4º, II da Lei nº 14.063/2020 e Art. 10, § 2º da MP 2.200-2/2001)',
     lgpd_compliance: 'Art. 11, I c/c Art. 14, § 1º (Menores de 18 Anos)',
     timestamp: new Date().toISOString(),
   });

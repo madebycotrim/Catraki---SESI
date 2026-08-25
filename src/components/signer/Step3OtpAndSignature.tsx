@@ -67,10 +67,10 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const [resendCooldown, setResendCooldown] = useState(0);
   const [signaturePngBase64, setSignaturePngBase64] = useState<string>('');
 
-  // Geolocalização e IP reais do cliente
+  // Geolocalização e IP reais do cliente (sem fallbacks hardcoded)
   const [clientGeo, setClientGeo] = useState<{ ip: string; location: string }>({
-    ip: '189.120.44.12',
-    location: 'Brasília, DF - Brasil',
+    ip: '',
+    location: '',
   });
 
   useEffect(() => {
@@ -89,9 +89,11 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
       .then((r) => r.json() as Promise<any>)
       .then((data: any) => {
         if (data && data.success) {
+          const locParts = [data.city, data.region_code].filter(Boolean).join(', ');
+          const fullLoc = locParts ? `${locParts} - ${data.country || 'Brasil'}` : (data.country || 'Brasil');
           setClientGeo((prev) => ({
             ip: data.ip || prev.ip,
-            location: `${data.city || 'Brasília'}, ${data.region_code || 'DF'} - ${data.country || 'Brasil'}`,
+            location: fullLoc,
           }));
         }
       })
@@ -223,9 +225,10 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         declaration_art299_penal: true,
         declaration_legal_responsibility: true,
         client_fingerprint: `${navigator.language}_${screen.width}x${screen.height}`,
-        ip_address: clientGeo.ip,
-        geolocation: clientGeo.location,
+        ip_address: clientGeo.ip || undefined,
+        geolocation: clientGeo.location || undefined,
         user_agent: navigator.userAgent,
+        identity_method: identityData.identityMethod,
       });
 
       if (resp.success) {
@@ -316,7 +319,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                   />
                   <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                    <strong>AUTORIZO</strong> a realização do atendimento de saúde (odontológico, oftalmológico, fonoaudiológico, terapia comunitária e oficinas) no estudante. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                    <strong>SIM, AUTORIZO</strong> o atendimento de saúde do estudante (odontologia, oftalmologia, fonoaudiologia, psicologia e nutrição) nas unidades móveis durante o período escolar. <span className="text-red-500 font-bold">* (Obrigatório)</span>
                   </span>
                 </label>
 
@@ -329,7 +332,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                   />
                   <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                    <strong>AUTORIZO</strong> a coleta e processamento seguro dos dados pessoais para fins de registro e comprovação legal de consentimento. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                    <strong>SIM, AUTORIZO</strong> o uso dos dados pessoais informados exclusivamente para registrar este termo com segurança, conforme a Lei Geral de Proteção de Dados (LGPD). <span className="text-red-500 font-bold">* (Obrigatório)</span>
                   </span>
                 </label>
 
@@ -342,7 +345,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                   />
                   <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                    <strong>AUTORIZO</strong> o uso gratuito da imagem e voz do estudante em relatórios institucionais e divulgação pedagógica. <span className="text-slate-500 font-normal">(Opcional)</span>
+                    <strong>SIM, AUTORIZO</strong> o uso gratuito de fotos e vídeos do estudante para relatórios e divulgação oficial do projeto. <span className="text-slate-500 font-normal">(Opcional)</span>
                   </span>
                 </label>
 
@@ -355,7 +358,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                   />
                   <span className="text-xs sm:text-sm text-slate-900 font-bold leading-relaxed">
-                    DECLARO QUE LI, compreendi e concordo com todas as disposições deste Termo. ACEITO E AUTORIZO o uso de meios eletrônicos (código OTP e desenho na tela) para a emissão da minha assinatura e concordo com o registro dos dados de auditoria do meu dispositivo. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                    DECLARO QUE LI e concordo com todas as informações deste termo e autorizo a assinatura eletrônica por código de segurança e desenho na tela. <span className="text-red-500 font-bold">* (Obrigatório)</span>
                   </span>
                 </label>
               </div>
@@ -544,17 +547,17 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               {/* Título da Folha A5 */}
               <div style={{ textAlign: 'center', marginBottom: '18px' }}>
                 <h1 style={{ fontSize: '11pt', fontWeight: 'bold', textTransform: 'uppercase', color: '#000', margin: '0 0 4px 0', letterSpacing: '0.02em' }}>
-                  CONFIRMAÇÃO DE IDENTIDADE DO SIGNATÁRIO
+                  CONFIRMAÇÃO DE SEGURANÇA DA ASSINATURA
                 </h1>
                 <h2 style={{ fontSize: '8.5pt', fontWeight: 'bold', color: '#475569', margin: 0 }}>
-                  Validação de Autoria por Código de Segurança Eletrônico
+                  Validação rápida por código enviado ao seu e-mail
                 </h2>
               </div>
 
               {/* Corpo do Documento A5 */}
               <div className="space-y-3.5">
                 <p style={{ textAlign: 'justify', fontSize: '9.5pt', color: '#334155', margin: 0, lineHeight: '1.5' }}>
-                  Para autenticar a assinatura do Termo de Consentimento referente ao(à) estudante <strong>{minorName}</strong>, enviamos um código de segurança de 6 dígitos para o e-mail:
+                  Para confirmar a assinatura da autorização do(a) estudante <strong>{minorName}</strong>, enviamos um código de segurança de 6 dígitos para o e-mail:
                 </p>
 
                 <div className="bg-blue-50/80 border border-blue-200 rounded-md p-2.5 text-center">
@@ -575,7 +578,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                       className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                     />
                     <span className="text-[10px] sm:text-[11px] font-bold text-slate-800 leading-normal text-justify">
-                      Declaro que sou o(a) responsável legal pelo(a) menor acima e aceito registrar este consentimento de forma eletrônica através da plataforma Catraki.
+                      Confirmo que sou o(a) responsável legal pelo(a) estudante e autorizo a emissão deste documento digital através da plataforma Catraki.
                     </span>
                   </label>
                 </div>

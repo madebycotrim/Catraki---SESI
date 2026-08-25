@@ -82,10 +82,14 @@ publicRouter.get('/validate/:query', async (c) => {
 
   const maskedIp = maskIpAddress(record.ip_address);
 
+  const geoStr = [record.geo_city, record.geo_region, record.geo_country]
+    .filter(Boolean)
+    .join(', ') || 'Registrada no sistema';
+
   const response: PublicValidationResponse = {
     valid: true,
-    legal_notice: 'Assinatura Eletrônica (MP nº 2.200-2/2001 e Lei nº 14.063/2020)',
-    signature_type: 'Assinatura Eletrônica (MP nº 2.200-2/2001 e Lei nº 14.063/2020)',
+    legal_notice: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020 c/c Art. 10, §2º, MP nº 2.200-2/2001; LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
+    signature_type: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020',
     document_id: record.document_id,
     manifest_sha256: record.manifest_sha256,
     content_sha256: record.content_sha256_at_signing,
@@ -95,7 +99,7 @@ publicRouter.get('/validate/:query', async (c) => {
     signer_cpf_masked: record.signer_cpf_masked,
     signer_relationship: record.signer_relationship,
     ip_address: `${maskedIp} (Protegido por Sigilo Legal LGPD)`,
-    geolocation: record.geo_city ? `${record.geo_city}, ${record.geo_region || 'DF'} - Brasil` : 'Brasília, DF - Brasil',
+    geolocation: geoStr,
     user_agent: record.user_agent || 'Navegador Web Padrão',
     identity_method: record.identity_method,
     procedure_title: record.template_title,
@@ -108,7 +112,7 @@ publicRouter.get('/validate/:query', async (c) => {
     chain_position: positionResult?.pos || 1,
     prev_log_hash: record.prev_log_hash,
     tsa_verified: Boolean(record.tsa_timestamp_token),
-    tsa_authority: 'Registro Cronológico Digital (Sincronizado com a Hora Legal de Brasília - NTP.br)',
+    tsa_authority: 'Catraki TSA Interno (Sincronizado NTP.br / RFC 3161-Like — Não-ICP)',
     revocation_info: record.doc_status === 'revoked' ? {
       revoked_at: record.revoked_at,
       revoked_reason: record.revoked_reason || 'Revogado a pedido do titular / responsável legal',

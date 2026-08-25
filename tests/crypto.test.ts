@@ -101,7 +101,7 @@ describe('Núcleo Criptográfico SESI Saúde (crypto.ts)', () => {
 
     expect(tsa.token).toBeDefined();
     expect(tsa.verified).toBe(true);
-    expect(tsa.tsaName).toContain('Autoridade de Carimbo do Tempo');
+    expect(tsa.tsaName).toContain('Catraki TSA Interno');
   });
 
   it('deve gerar Code Verifier e Code Challenge PKCE conforme RFC 7636 (Base64URL SHA-256 de 43 caracteres)', async () => {

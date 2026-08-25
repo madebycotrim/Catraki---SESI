@@ -260,7 +260,7 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 10;
-    page.drawText('O registro eletrônico deste consentimento foi realizado através da plataforma Catraki, conforme MP 2.200-2/2001 e Lei nº 14.063/2020.', {
+    page.drawText('O registro eletrônico deste consentimento foi realizado através da plataforma Catraki, conforme Art. 4º, II da Lei nº 14.063/2020, MP 2.200-2/2001 e LGPD.', {
       x: margemEsquerda,
       y,
       size: 7.5,
@@ -270,8 +270,8 @@ export class GeradorPdfTermoSesi {
 
     // Embed do QR Code de Validação Pública
     const urlValidacao = dados.hashManifesto
-      ? `https://catraki.sesi.org.br/validar/${dados.hashManifesto}`
-      : 'https://catraki.sesi.org.br/validar';
+      ? `https://www.catraki.com.br/validar/${dados.hashManifesto}`
+      : 'https://www.catraki.com.br/validar';
 
     try {
       const qrDataUrl = await QRCode.toDataURL(urlValidacao, {
@@ -335,7 +335,7 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 10;
-    page.drawText('Assinatura Eletrônica — Plataforma Catraki (MP 2.200-2/2001 e Lei nº 14.063/2020)', {
+    page.drawText('Assinatura Eletrônica Avançada — Plataforma Catraki (Art. 4º, II, Lei 14.063/2020 e MP 2.200-2/2001)', {
       x: margemEsquerda,
       y,
       size: 7.5,
@@ -354,7 +354,7 @@ export class GeradorPdfTermoSesi {
     });
 
     // Rodapé da Página 1
-    page.drawText('Autorização registrada eletronicamente via plataforma Catraki | MP 2.200-2/2001 e Lei 14.063/2020.', {
+    page.drawText('Autorização registrada eletronicamente via plataforma Catraki | Art. 4º, II, Lei 14.063/2020, MP 2.200-2/2001 e LGPD.', {
       x: margemEsquerda,
       y: 25,
       size: 6.5,
@@ -379,7 +379,7 @@ export class GeradorPdfTermoSesi {
       });
       
       y2 -= 14;
-      page2.drawText('Trilha de Evidências Digitais de Assinatura Eletrônica (MP 2.200-2/2001 e Lei 14.063/2020)', {
+      page2.drawText('Trilha de Evidências Digitais de Assinatura Eletrônica Avançada (Art. 4º, II, Lei 14.063/2020, MP 2.200-2/2001 e LGPD)', {
         x: margemEsquerda,
         y: y2,
         size: 8,

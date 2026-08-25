@@ -1,5 +1,4 @@
-import React from 'react';
-import { ChevronRight, Info, Eye, HelpCircle } from 'lucide-react';
+import { ChevronRight, Info, Eye, HelpCircle, AlertTriangle } from 'lucide-react';
 import type { Institution } from '../../lib/types.ts';
 
 interface Step1ReadingProps {
@@ -75,12 +74,13 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
 
 
           {/* Aviso Operacional Importante */}
-          <div className="bg-amber-50/70 border border-amber-200/60 rounded-xl p-3.5 mt-2 text-xs text-amber-950 leading-relaxed">
-            <strong className="text-amber-950 block mb-1">⚠️ Aviso Operacional Importante:</strong>
-            Este sistema digital serve exclusivamente para a autorização legal de atendimento. A autorização não garante a consulta imediata. O agendamento dos horários ocorre de forma presencial no estacionamento da escola, próximo às unidades móveis, e está estritamente sujeito à capacidade máxima diária de cada especialidade (vagas limitadas).
+          <div className="bg-amber-50/70 border border-amber-200 p-3.5 sm:p-4 rounded-xl flex gap-3 text-xs text-amber-950 mt-2 leading-relaxed">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+            <div>
+              <strong className="text-amber-950 block mb-0.5">Aviso Operacional Importante:</strong>
+              Este sistema digital serve exclusivamente para a autorização legal de atendimento. A autorização não garante a consulta imediata. O agendamento dos horários ocorre de forma presencial no estacionamento da escola, próximo às unidades móveis, e está estritamente sujeito à capacidade máxima diária de cada especialidade (vagas limitadas).
+            </div>
           </div>
-
-
 
           {/* O que você precisará autorizar? */}
           <div className="space-y-1.5 pt-1">
@@ -118,8 +118,8 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
           <div className="bg-blue-50/70 border border-blue-200 p-3.5 sm:p-4 rounded-xl flex gap-3 text-xs text-blue-900 mt-4 sm:mt-6 leading-relaxed">
             <HelpCircle className="w-4 h-4 shrink-0 text-blue-600 mt-0.5" />
             <div>
-              <strong className="text-blue-900 block mb-0.5">Precisa de suporte?</strong>
-              Caso o código de segurança demore a chegar, verifique também as pastas de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong> do seu e-mail. Se persistir a dificuldade ou para erros na validação de CPF, procure a coordenação da escola ou a equipe de apoio presencial do projeto.
+              <strong className="text-blue-900 block mb-0.5">Precisa de ajuda?</strong>
+              O código de segurança será enviado para o seu e-mail. Se demorar a chegar, confira também sua pasta de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong>. Caso precise de apoio, nossa equipe presencial na escola está pronta para te ajudar.
             </div>
           </div>
 
@@ -130,7 +130,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
               onClick={onProceed}
               className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-sesi-primary hover:bg-blue-900 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] cursor-pointer"
             >
-              <span>Acessar Formulário de Autorização</span>
+              <span>Preencher Autorização</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

@@ -98,7 +98,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
         age--;
       }
       if (age < 14) {
-        newErrors.minorBirthDate = 'O estudante deve possuir no mínimo 14 anos de idade para participar.';
+        newErrors.minorBirthDate = 'Este projeto é destinado a estudantes a partir de 14 anos completos.';
       }
     }
     if (!formData.minorCpf.trim()) {
@@ -403,11 +403,11 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
             </div>
           </div>
 
-          {/* Declaração de veracidade */}
+          {/* Declaração de veracidade e proteção */}
           <div className="bg-blue-50/70 border border-blue-200 p-3.5 sm:p-4 rounded-xl flex gap-3 text-xs text-blue-900 mt-4 sm:mt-6 leading-relaxed">
             <ShieldAlert className="w-4 h-4 shrink-0 text-blue-600 mt-0.5" />
             <div>
-              <strong className="text-blue-900 block mb-0.5">Declaração de Veracidade e Validação de Matrícula:</strong> Ao prosseguir, você confirma sob as penas da lei que todas as informações declaradas são verdadeiras (Art. 299 do Código Penal). Fica ciente também que o vínculo familiar e a matrícula do estudante serão validados de forma automatizada e silenciosa contra o banco de dados escolar do SESI no momento da assinatura.
+              <strong className="text-blue-900 block mb-0.5">Segurança e Proteção das Informações:</strong> Ao continuar, você declara que as informações preenchidas são verdadeiras e que é o responsável legal pelo estudante. Para garantir a segurança do processo, os dados serão confirmados junto à base escolar do SESI.
             </div>
           </div>
 
@@ -425,7 +425,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
               type="submit"
               className="w-full sm:w-auto px-6 py-3.5 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-[0.99] cursor-pointer"
             >
-              <span>Avançar para Autorizações</span>
+              <span>Continuar para Escolha das Autorizações</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

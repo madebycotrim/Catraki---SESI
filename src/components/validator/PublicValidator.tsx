@@ -168,10 +168,10 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                 <Search className="w-6 h-6" />
               </div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900 m-0">
-                Consulta Pública de Integridade e Autoria
+                Validador de Autenticidade Catraki
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto mt-1 leading-relaxed">
-                Digite abaixo o Código de Validação presente no comprovante ou o hash SHA-256 da assinatura para auditar a validade do documento.
+                Consulte a validade e a integridade de autorizações e documentos emitidos pela plataforma.
               </p>
             </div>
 
@@ -193,7 +193,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                     type="text"
                     value={hashInput}
                     onChange={(e) => setHashInput(e.target.value)}
-                    placeholder="Ex: SESI-94D4-E1A0 ou cole o Hash completo..."
+                    placeholder="Digite o código (ex: SESI-94D4-E1A0) ou cole o código de integridade..."
                     autoCapitalize="characters"
                     className="w-full px-3.5 sm:px-4 py-3 bg-white border border-slate-300 rounded-xl font-mono text-xs sm:text-base uppercase text-slate-900 tracking-wider focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20 transition-all shadow-xs"
                   />
@@ -319,7 +319,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                       </span>
                     )}
                     <span className="text-[9px] text-emerald-700 font-semibold block mt-0.5">
-                      Atendimento Autorizado ✓ (Iniciais protegidas pela LGPD)
+                      ✓ Autorização confirmada (nome abreviado para proteger a privacidade do estudante)
                     </span>
                   </div>
                 </div>

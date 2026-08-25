@@ -277,13 +277,13 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
             {/* HASH DO MANIFESTO (SHA-256) ABAIXO DE ENDEREÇO E QR CODE (LARGURA TOTAL) */}
             <div className="w-full bg-white p-3 border border-slate-200 rounded-lg">
               <span className="text-slate-400 block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" /> Assinatura Digital (Código Criptográfico Hash SHA-256):
+                <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" /> Código de Integridade Digital (Hash SHA-256):
               </span>
               <span className="font-mono text-[10px] sm:text-xs font-bold text-slate-700 break-all select-all block leading-relaxed">
                 {signResult.manifest_sha256}
               </span>
               <span className="text-[10px] text-slate-400 block mt-1 leading-snug">
-                * O resumo criptográfico é a identidade matemática única do documento, garantindo que as informações contidas não sofreram qualquer tipo de alteração (integridade digital).
+                * Código de Integridade Digital: funciona como um selo de segurança que comprova que este documento é autêntico e não foi modificado após a sua assinatura.
               </span>
             </div>
           </div>
@@ -298,13 +298,13 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               />
               <div className="space-y-1 text-xs sm:text-sm">
                 <div className="font-bold text-slate-900 leading-snug">
-                  Autorização registrada eletronicamente pela plataforma Catraki.
+                  Autorização registrada com sucesso pela plataforma Catraki.
                 </div>
                 <div className="text-slate-600 text-xs leading-relaxed">
-                  Para consultar ou imprimir este registro, acesse <span className="text-sesi-primary font-bold">https://www.catraki.com.br/validar</span> e utilize o código <strong className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">{validationCode}</strong>.
+                  Para consultar este comprovante a qualquer momento, acesse <span className="text-sesi-primary font-bold">https://www.catraki.com.br/validar</span> e informe o código <strong className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">{validationCode}</strong> ou aponte a câmera para o QR Code.
                 </div>
                 <div className="text-slate-500 text-[10px] sm:text-xs leading-normal">
-                  Assinatura Eletrônica Avançada emitida nos termos do <strong>Art. 4º, II, da Lei Federal nº 14.063/2020</strong>, do <strong>Art. 10, §2º, da Medida Provisória nº 2.200-2/2001</strong>, da <strong>LGPD (Lei nº 13.709/2018)</strong>, do <strong>ECA (Art. 17)</strong> e da jurisprudência consolidada do <strong>STJ (REsp 2.205.708/PR)</strong>.
+                  Documento digital com plena validade jurídica emitido nos termos da <strong>Lei Federal nº 14.063/2020 (Art. 4º, II)</strong>, da <strong>Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º)</strong>, da <strong>LGPD (Lei nº 13.709/2018)</strong> e da jurisprudência consolidada do <strong>STJ (REsp 2.205.708/PR)</strong>.
                 </div>
               </div>
             </div>

@@ -73,6 +73,7 @@ export class GeradorPdfTermoSesi {
     // Fontes Oficiais
     const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontMono = await pdfDoc.embedFont(StandardFonts.Courier);
 
     // Cores Formais ABNT (Textos em Preto)
     const corPreto = rgb(0.04, 0.04, 0.04);           // Texto formal ABNT
@@ -507,18 +508,18 @@ export class GeradorPdfTermoSesi {
 
       const xCabecalho2 = logoCatrakiImg ? margemEsquerda + 85 : margemEsquerda;
 
-      page2.drawText('PLATAFORMA CATRAKI — REGISTRO DE AUDITORIA', {
+      page2.drawText('CERTIFICADO DE CONCLUSÃO DE ASSINATURA ELETRÔNICA', {
         x: xCabecalho2,
         y: y2 - 5,
-        size: 11,
+        size: 10.5,
         font: fontBold,
         color: corAzulSesi,
       });
 
-      page2.drawText('Trilha de Evidências Digitais e Custódia de Assinatura Eletrônica Avançada', {
+      page2.drawText('As assinaturas eletrônicas realizadas neste documento possuem validade legal em conformidade com a Medida Provisória nº 2.200-2/2001 e a Lei nº 14.063/2020.', {
         x: xCabecalho2,
         y: y2 - 17,
-        size: 7.5,
+        size: 5.8,
         font: fontRegular,
         color: corCinzaEscuro,
       });
@@ -540,9 +541,27 @@ export class GeradorPdfTermoSesi {
         color: corAzulSesi,
       });
 
-      // 1. DADOS DO SIGNATÁRIO E STATUS
-      y2 -= 20;
-      page2.drawText('1. DADOS DO SIGNATÁRIO E STATUS', {
+      // HASH IDENTIFICADOR (SHA-256)
+      y2 -= 18;
+      page2.drawText(`HASH IDENTIFICADOR (SHA-256):`, {
+        x: margemEsquerda,
+        y: y2,
+        size: 8,
+        font: fontBold,
+        color: corPreto,
+      });
+      y2 -= 11;
+      page2.drawText(dados.hashManifesto || 'Pendente de assinatura', {
+        x: margemEsquerda,
+        y: y2,
+        size: 7.5,
+        font: fontMono,
+        color: corCinzaEscuro,
+      });
+
+      // BLOCOS DE IDENTIFICAÇÃO (Tabela de Signatários)
+      y2 -= 25;
+      page2.drawText('SIGNATÁRIO REGISTRADO', {
         x: margemEsquerda,
         y: y2,
         size: 9.5,
@@ -551,94 +570,83 @@ export class GeradorPdfTermoSesi {
       });
 
       y2 -= 14;
-      page2.drawText(`Nome do Responsável: ${dados.nomeResponsavel}`, {
+      const dataHoraExata = dados.otpVerifiedAt
+        ? dados.otpVerifiedAt.toLocaleString('pt-BR', {
+            timeZone: 'America/Sao_Paulo',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }) + ' UTC-3'
+        : (dados.dataAssinatura
+            ? dados.dataAssinatura.toLocaleString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+              }) + ' UTC-3'
+            : dataHoraStr);
+
+      const tableData = [
+        ['Nome', dados.nomeResponsavel],
+        ['CPF', dados.cpfResponsavelMascarado],
+        ['E-mail', dados.signerEmail || 'Não informado'],
+        ['IP', dados.ipAddress || 'Não coletado'],
+        ['Navegador', dados.userAgent || 'Navegador Web / Dispositivo Seguro'],
+        ['Data e Hora exata', dataHoraExata],
+      ];
+
+      // Desenha caixa da tabela
+      page2.drawRectangle({
         x: margemEsquerda,
-        y: y2,
-        size: 8.5,
-        font: fontRegular,
-        color: corPreto,
+        y: y2 - 95,
+        width: width - margemEsquerda - margemDireita,
+        height: 105,
+        color: rgb(0.97, 0.98, 0.99),
+        borderColor: corAzulSesi,
+        borderWidth: 0.5,
       });
 
-      y2 -= 12;
-      page2.drawText(`CPF Cadastrado: ${dados.cpfResponsavelMascarado} (Vínculo Declarado: ${dados.parentesco})`, {
-        x: margemEsquerda,
-        y: y2,
-        size: 8.5,
-        font: fontRegular,
-        color: corPreto,
-      });
-
-      y2 -= 12;
-      page2.drawText(`Estudante Vinculado: ${dados.nomeMenor} (Nascimento: ${dados.dataNascimentoMenor})`, {
-        x: margemEsquerda,
-        y: y2,
-        size: 8.5,
-        font: fontRegular,
-        color: corPreto,
-      });
-
-      y2 -= 12;
-      const statusAssinatura = dados.dataAssinatura ? 'CONFIRMADO E AUTORIZADO' : 'PENDENTE';
-      page2.drawText(`Status do Documento: ${statusAssinatura}`, {
-        x: margemEsquerda,
-        y: y2,
-        size: 8.5,
-        font: fontBold,
-        color: dados.dataAssinatura ? corVerde : corVermelho,
-      });
-
-      // 2. EVIDÊNCIAS DIGITAIS DE CONEXÃO
-      y2 -= 20;
-      page2.drawText('2. EVIDÊNCIAS DIGITAIS DE CONEXÃO', {
-        x: margemEsquerda,
-        y: y2,
-        size: 9.5,
-        font: fontBold,
-        color: corPreto,
-      });
-
-      y2 -= 14;
-      page2.drawText(`Endereço de IP: ${dados.ipAddress || 'Não coletado'}`, {
-        x: margemEsquerda,
-        y: y2,
-        size: 8.5,
-        font: fontRegular,
-        color: corPreto,
-      });
-
-      y2 -= 12;
-      const geo = dados.geoCidade ? `${dados.geoCidade}/${dados.geoEstado || 'N/A'}/${dados.geoPais || 'BR'}` : 'Localização segura registrada';
-      page2.drawText(`Geolocalização do Acesso: ${geo}`, {
-        x: margemEsquerda,
-        y: y2,
-        size: 8.5,
-        font: fontRegular,
-        color: corPreto,
-      });
-
-      y2 -= 12;
-      const uaQuebrado = this.quebrarTexto(dados.userAgent || 'Navegador Web / Dispositivo Seguro', 90);
-      page2.drawText('Dispositivo / Navegador (User-Agent):', {
-        x: margemEsquerda,
-        y: y2,
-        size: 8.5,
-        font: fontBold,
-        color: corPreto,
-      });
-      for (const uaLinha of uaQuebrado) {
-        y2 -= 10;
-        page2.drawText(uaLinha, {
+      let currentLineY = y2 - 12;
+      for (const [label, val] of tableData) {
+        page2.drawText(`${label}:`, {
           x: margemEsquerda + 10,
-          y: y2,
+          y: currentLineY,
           size: 7.5,
-          font: fontRegular,
+          font: fontBold,
           color: corCinzaEscuro,
         });
+
+        const valString = String(val);
+        if (valString.length > 85) {
+          page2.drawText(valString.substring(0, 82) + '...', {
+            x: margemEsquerda + 115,
+            y: currentLineY,
+            size: 7.5,
+            font: fontRegular,
+            color: corPreto,
+          });
+        } else {
+          page2.drawText(valString, {
+            x: margemEsquerda + 115,
+            y: currentLineY,
+            size: 7.5,
+            font: fontRegular,
+            color: corPreto,
+          });
+        }
+        currentLineY -= 15;
       }
+      y2 -= 115;
 
       // 3. REGISTROS DE AUTENTICAÇÃO (2FA OTP)
-      y2 -= 20;
-      page2.drawText('3. REGISTROS DE AUTENTICAÇÃO DE DOIS FATORES (2FA OTP)', {
+      y2 -= 10;
+      page2.drawText('HISTÓRICO E AUTENTICAÇÃO DE DOIS FATORES (2FA OTP)', {
         x: margemEsquerda,
         y: y2,
         size: 9.5,
@@ -657,8 +665,7 @@ export class GeradorPdfTermoSesi {
       });
 
       y2 -= 12;
-      const verDate = dados.otpVerifiedAt ? dados.otpVerifiedAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : dataHoraStr;
-      page2.drawText(`[Passo 2] Autenticação confirmada e assinatura eletrônica concluída em: ${verDate}`, {
+      page2.drawText(`[Passo 2] Autenticação confirmada e assinatura eletrônica concluída em: ${dataHoraExata}`, {
         x: margemEsquerda,
         y: y2,
         size: 8,
@@ -666,9 +673,9 @@ export class GeradorPdfTermoSesi {
         color: corPreto,
       });
 
-      // 4. INTEGRIDADE CRIPTOGRÁFICA E VALIDAÇÃO PÚBLICA
-      y2 -= 20;
-      page2.drawText('4. INTEGRIDADE CRIPTOGRÁFICA E CHAVE DE VALIDAÇÃO', {
+      // 4. VALIDAÇÃO PÚBLICA / QR CODE
+      y2 -= 25;
+      page2.drawText('VALIDAÇÃO DE AUTENTICIDADE', {
         x: margemEsquerda,
         y: y2,
         size: 9.5,
@@ -686,25 +693,52 @@ export class GeradorPdfTermoSesi {
       });
 
       y2 -= 12;
-      page2.drawText('Hash de Integridade do Manifesto (SHA-256):', {
+      const linkValidacao = `https://catraki.com.br/validar/${validationCode}`;
+      page2.drawText(`Para validar a autenticidade deste documento e confirmar que o arquivo é verdadeiro, acesse:`, {
         x: margemEsquerda,
         y: y2,
         size: 8,
-        font: fontBold,
+        font: fontRegular,
         color: corPreto,
       });
-
       y2 -= 11;
-      page2.drawText(dados.hashManifesto || 'Pendente de assinatura', {
-        x: margemEsquerda + 10,
+      page2.drawText(linkValidacao, {
+        x: margemEsquerda,
         y: y2,
-        size: 7.5,
-        font: fontRegular,
-        color: corCinzaEscuro,
+        size: 8,
+        font: fontMono,
+        color: corAzulSesi,
       });
 
-      // 5. NOTA JURÍDICA E DE CONFORMIDADE LGPD
-      y2 -= 22;
+      // QR Code ao lado
+      const QR_SIZE = 75;
+      const qrX = width - margemDireita - QR_SIZE;
+      const qrY = y2 - 10;
+
+      try {
+        const qrDataUrl = await QRCode.toDataURL(linkValidacao, {
+          errorCorrectionLevel: 'M',
+          width: 100,
+          margin: 1,
+        });
+        const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
+        const qrBytes = Uint8Array.from(atob(qrBase64), c => c.charCodeAt(0));
+        const qrImage = await pdfDoc.embedPng(qrBytes);
+
+        page2.drawRectangle({
+          x: qrX - 4,
+          y: qrY - 4,
+          width: QR_SIZE + 8,
+          height: QR_SIZE + 8,
+          color: rgb(0.97, 0.98, 0.99),
+          borderColor: corAzulSesi,
+          borderWidth: 0.5,
+        });
+        page2.drawImage(qrImage, { x: qrX, y: qrY, width: QR_SIZE, height: QR_SIZE });
+      } catch {}
+
+      // 5. AVISO DE INTEGRIDADE JURÍDICA E LGPD
+      y2 -= 35;
       page2.drawText('AVISO DE INTEGRIDADE E CONFORMIDADE LEGAL:', {
         x: margemEsquerda,
         y: y2,

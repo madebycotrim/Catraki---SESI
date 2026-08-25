@@ -18,6 +18,10 @@ import {
 import {
   getTransactionalCancellationEmailHtml,
   getTransactionalCancellationEmailText,
+  getCancellationEmailSubject,
+  getTransactionalCompletionEmailHtml,
+  getTransactionalCompletionEmailText,
+  getCompletionEmailSubject,
 } from '../../src/lib/email-templates.ts';
 import { verifyAuditChain, computeMerkleRoot } from '../../src/lib/audit-chain.ts';
 import { requireAuth, signJwt, JwtPayload } from '../middleware/auth.ts';
@@ -566,10 +570,13 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
 
   if (targetEmail && targetEmail.includes('@')) {
     const formattedDate = new Date(cancelledAtIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const docTitle = (doc as any).title || (doc as any).document_title || (doc.minor_name ? `Termo de Consentimento - ${doc.minor_name}` : 'Termo de Consentimento');
+    const emailSubject = getCancellationEmailSubject(docTitle);
     const emailHtml = getTransactionalCancellationEmailHtml({
       parentName: doc.parent_name || 'Responsável Legal',
       minorName: doc.minor_name || 'Estudante',
       documentId: doc.id,
+      documentTitle: docTitle,
       validationCode: manifestSha256 ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
       cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
       institutionName: doc.institution_name || 'Escola CEMEIT',
@@ -583,6 +590,7 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
       parentName: doc.parent_name || 'Responsável Legal',
       minorName: doc.minor_name || 'Estudante',
       documentId: doc.id,
+      documentTitle: docTitle,
       validationCode: manifestSha256 ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
       cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
       institutionName: doc.institution_name || 'Escola CEMEIT',
@@ -605,7 +613,7 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
           body: JSON.stringify({
             from: fromAddress,
             to: [targetEmail],
-            subject: `[SESI / Escola Cidadã] Notificação: Invalidação de Documento por Inconsistência Operacional`,
+            subject: emailSubject,
             html: emailHtml,
             text: emailText,
           }),
@@ -622,7 +630,7 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
             body: JSON.stringify({
               from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
               to: [targetEmail],
-              subject: `[SESI / Escola Cidadã] Notificação: Invalidação de Documento por Inconsistência Operacional`,
+              subject: emailSubject,
               html: emailHtml,
               text: emailText,
             }),
@@ -641,7 +649,7 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
           body: JSON.stringify({
             personalizations: [{ to: [{ email: targetEmail }] }],
             from: { email: 'autorizacoes@catraki.com.br', name: 'Escola Cidadã — SESI Saúde' },
-            subject: `[SESI / Escola Cidadã] Notificação: Invalidação de Documento por Inconsistência Operacional`,
+            subject: emailSubject,
             content: [
               { type: 'text/plain', value: emailText },
               { type: 'text/html', value: emailHtml },
@@ -769,6 +777,17 @@ adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'oper
     ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`
     : `DOC-${doc.id.substring(0, 8).toUpperCase()}`;
 
+  let parentEmail: string | null = null;
+  const masterKey = c.env.ENCRYPTION_KEY_V1;
+  if (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' && masterKey) {
+    try {
+      parentEmail = await decryptAesGcm(doc.parent_email_encrypted, masterKey);
+    } catch {}
+  }
+  if (!parentEmail && doc.parent_email) {
+    parentEmail = doc.parent_email;
+  }
+
   try {
     const pdfBytes = await GeradorCertificadoConclusao.gerarCertificado({
       documentId: doc.id,
@@ -791,6 +810,9 @@ adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'oper
       revokedAt: doc.revoked_at || doc.cancelled_at || null,
       revocationReason: doc.revoked_reason || doc.cancellation_reason || null,
       validationBaseUrl: 'https://catraki.com.br/validar',
+      signerEmail: parentEmail || undefined,
+      signerIp: auditLog?.ip_address || undefined,
+      signerUserAgent: auditLog?.user_agent || undefined,
     });
 
     return new Response(pdfBytes.buffer as ArrayBuffer, {
@@ -838,23 +860,30 @@ adminRouter.post('/documents/:id/notify-cancellation', requireAuth(['admin_maste
   const cancelledAtIso = doc.cancelled_at || doc.revoked_at || new Date().toISOString();
   const formattedDate = new Date(cancelledAtIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
+  const docTitle = (doc as any).title || (doc as any).document_title || (doc.minor_name ? `Termo de Consentimento - ${doc.minor_name}` : 'Termo de Consentimento');
+  const emailSubject = getCancellationEmailSubject(docTitle);
+
   const emailHtml = getTransactionalCancellationEmailHtml({
     parentName: doc.parent_name || 'Responsável Legal',
     minorName: doc.minor_name || 'Estudante',
     documentId: doc.id,
+    documentTitle: docTitle,
     validationCode: manifestSha256 ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
     cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
     institutionName: (doc as any).institution_name || 'Escola CEMEIT',
     reason,
+    documentHashSha256: manifestSha256 || undefined,
   });
   const emailText = getTransactionalCancellationEmailText({
     parentName: doc.parent_name || 'Responsável Legal',
     minorName: doc.minor_name || 'Estudante',
     documentId: doc.id,
+    documentTitle: docTitle,
     validationCode: manifestSha256 ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
     cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
     institutionName: (doc as any).institution_name || 'Escola CEMEIT',
     reason,
+    documentHashSha256: manifestSha256 || undefined,
   });
 
   let emailDispatched = false;
@@ -871,7 +900,7 @@ adminRouter.post('/documents/:id/notify-cancellation', requireAuth(['admin_maste
         body: JSON.stringify({
           from: fromAddress,
           to: [rawEmail],
-          subject: `[SESI / Escola Cidadã] Notificação: Invalidação de Documento por Inconsistência Operacional`,
+          subject: emailSubject,
           html: emailHtml,
           text: emailText,
         }),
@@ -887,7 +916,7 @@ adminRouter.post('/documents/:id/notify-cancellation', requireAuth(['admin_maste
           body: JSON.stringify({
             from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
             to: [rawEmail],
-            subject: `[SESI / Escola Cidadã] Notificação: Invalidação de Documento por Inconsistência Operacional`,
+            subject: emailSubject,
             html: emailHtml,
             text: emailText,
           }),
@@ -906,7 +935,7 @@ adminRouter.post('/documents/:id/notify-cancellation', requireAuth(['admin_maste
         body: JSON.stringify({
           personalizations: [{ to: [{ email: rawEmail }] }],
           from: { email: 'autorizacoes@catraki.com.br', name: 'Escola Cidadã — SESI Saúde' },
-          subject: `[SESI / Escola Cidadã] Notificação: Invalidação de Documento por Inconsistência Operacional`,
+          subject: emailSubject,
           content: [
             { type: 'text/plain', value: emailText },
             { type: 'text/html', value: emailHtml },
@@ -954,60 +983,24 @@ adminRouter.post('/documents/:id/resend-signed-email', requireAuth(['admin_maste
     ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`
     : `DOC-${doc.id.substring(0, 8).toUpperCase()}`;
 
-  const signedAtIso = auditLog?.signed_at || (doc as any).otp_verified_at || new Date().toISOString();
-  const dataFormatada = new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'full',
-    timeStyle: 'medium',
-    timeZone: 'America/Sao_Paulo',
-  }).format(new Date(signedAtIso));
-
   const signerName = auditLog?.signer_name || doc.parent_name || 'Responsável Legal';
-  const studentName = doc.minor_name || 'Estudante';
-  const cpfMasked = auditLog?.signer_cpf_masked || '***.***.***-**';
-  const signerRelationship = auditLog?.signer_relationship || 'Responsável';
 
-  const emailHtml = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: Arial, sans-serif;">
-  <div style="background-color: #f1f5f9; padding: 28px 10px; color: #1e293b; line-height: 1.6;">
-    <div style="max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 32px 28px;">
-      <div style="border-bottom: 2.5px solid #034b7f; padding-bottom: 16px; margin-bottom: 22px;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="vertical-align: middle;">
-              <h2 style="font-size: 14px; font-weight: 800; color: #034b7f; margin: 0; text-transform: uppercase;">ESCOLA CIDADÃ — SESI SAÚDE</h2>
-              <span style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">Comprovante de Assinatura Eletrônica</span>
-            </td>
-            <td style="vertical-align: middle; text-align: right;">
-              <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; padding: 2px 8px; font-size: 9.5px; font-weight: 700; color: #065f46; display: inline-block;">✓ ASSINADO</div>
-              <div style="font-size: 11px; font-weight: 700; color: #1e293b; font-family: monospace;">Nº ${validationCode}</div>
-            </td>
-          </tr>
-        </table>
-      </div>
-      <div style="text-align: center; margin-bottom: 20px;">
-        <h1 style="font-size: 13.5px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin: 0;">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO (TCLE)</h1>
-        <div style="font-size: 11px; color: #475569; margin-top: 4px;">Comprovante Oficial de Autorização em Saúde</div>
-      </div>
-      <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; text-align: justify;">
-        <p style="margin: 0 0 14px 0;">
-          Confirmamos o registro da assinatura eletrônica por <strong>${signerName}</strong> (${cpfMasked}, na qualidade de ${signerRelationship}), referente ao(à) estudante <strong>${studentName}</strong>, com autorização plena para o circuito de atendimentos em saúde do projeto Escola Cidadã.
-        </p>
-        <p style="margin: 0; font-size: 11px; color: #64748b;">
-          <strong>Data/Hora do Registro:</strong> ${dataFormatada} | <strong>Protocolo Forense:</strong> ${validationCode}
-        </p>
-      </div>
-      <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 10.5px; color: #94a3b8; text-align: center;">
-        Projeto Escola Cidadã: Saúde em Movimento • SESI-DF • Universidade de Brasília (UnB)
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
+  const docTitle = (doc as any).title || (doc.minor_name ? `Termo de Consentimento - ${doc.minor_name}` : 'Termo de Consentimento - Saúde em Movimento');
+  const emailSubject = getCompletionEmailSubject(docTitle);
+  const emailHtml = getTransactionalCompletionEmailHtml({
+    signerName,
+    documentTitle: docTitle,
+    downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
+    companyName: 'SESI Saúde / Escola Cidadã',
+    supportEmail: 'suporte@catraki.com.br',
+  });
+  const emailText = getTransactionalCompletionEmailText({
+    signerName,
+    documentTitle: docTitle,
+    downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
+    companyName: 'SESI Saúde / Escola Cidadã',
+    supportEmail: 'suporte@catraki.com.br',
+  });
 
   let emailDispatched = false;
   const resendApiKey = (c.env as any).RESEND_API_KEY;
@@ -1024,8 +1017,9 @@ adminRouter.post('/documents/:id/resend-signed-email', requireAuth(['admin_maste
         body: JSON.stringify({
           from: fromAddress,
           to: [rawEmail],
-          subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
+          subject: emailSubject,
           html: emailHtml,
+          text: emailText,
         }),
       });
 
@@ -1039,8 +1033,9 @@ adminRouter.post('/documents/:id/resend-signed-email', requireAuth(['admin_maste
           body: JSON.stringify({
             from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
             to: [rawEmail],
-            subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
+            subject: emailSubject,
             html: emailHtml,
+            text: emailText,
           }),
         });
       }
@@ -1057,8 +1052,9 @@ adminRouter.post('/documents/:id/resend-signed-email', requireAuth(['admin_maste
         body: JSON.stringify({
           personalizations: [{ to: [{ email: rawEmail }] }],
           from: { email: 'autorizacoes@catraki.com.br', name: 'Escola Cidadã — SESI Saúde' },
-          subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
+          subject: emailSubject,
           content: [
+            { type: 'text/plain', value: emailText },
             { type: 'text/html', value: emailHtml },
           ],
         }),

@@ -3,8 +3,9 @@ import { Step1Reading } from './Step1Reading.tsx';
 import { Step2FormData } from './Step2FormData.tsx';
 import { Step3OtpAndSignature } from './Step3OtpAndSignature.tsx';
 import { Step4Success } from './Step4Success.tsx';
+import { StatusAlertScreen } from '../common/StatusAlertScreen.tsx';
 import { apiClient } from '../../lib/api.ts';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 
 import type { Institution } from '../../lib/types.ts';
@@ -61,23 +62,48 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-sesi-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#004b8d]" />
         <span className="text-sm">Carregando autorização escolar segura...</span>
       </div>
     );
   }
 
-  if (errorMessage || !documentData) {
+  // Cenário 3: O documento já foi assinado
+  if (documentData && (documentData.status === 'signed' || documentData.status === 'concluido' || documentData.already_signed)) {
     return (
-      <div className="max-w-xl mx-auto py-12 px-4">
-        <div className="bg-white rounded-2xl p-8 text-center border border-red-200 shadow-xl space-y-4">
-          <div className="w-14 h-14 rounded-full bg-red-100 text-red-500 flex items-center justify-center mx-auto">
-            <AlertTriangle className="w-8 h-8" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-800">Não foi possível acessar a autorização</h2>
-          <p className="text-sm text-slate-500">{errorMessage}</p>
-        </div>
-      </div>
+      <StatusAlertScreen
+        scenario="already_signed"
+        documentTitle={documentData.procedure_title || documentData.title || 'Termo de Consentimento - Saúde em Movimento'}
+        downloadUrl={documentData.pdf_url || `/validar/${documentData.content_sha256 || documentData.id}`}
+        onPrimaryAction={() => {
+          if (documentData.content_sha256) {
+            onNavigateToValidator(documentData.content_sha256);
+          } else {
+            window.location.href = '/autorizar/cemeit';
+          }
+        }}
+        primaryActionLabel={documentData.content_sha256 ? 'Validar assinatura' : 'Fechar tela'}
+      />
+    );
+  }
+
+  // Cenário 2: Erro de segurança ou autenticidade/hash
+  if (errorMessage && (errorMessage.toLowerCase().includes('segurança') || errorMessage.toLowerCase().includes('hash') || errorMessage.toLowerCase().includes('adulterado'))) {
+    return (
+      <StatusAlertScreen
+        scenario="security_tampered"
+        customReason={errorMessage}
+      />
+    );
+  }
+
+  // Cenário 1: Documento cancelado, expirado ou link indisponível
+  if (errorMessage || !documentData || documentData.status === 'cancelado_por_erro' || documentData.status === 'revogado') {
+    return (
+      <StatusAlertScreen
+        scenario="cancelled_link"
+        customReason={documentData?.cancellation_reason || errorMessage}
+      />
     );
   }
 

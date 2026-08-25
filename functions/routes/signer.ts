@@ -26,6 +26,11 @@ import {
 import { getSyncedTimestamp } from '../../src/lib/ntp-sync.ts';
 import { GeradorPdfTermoSesi } from '../../src/lib/pades/GeradorPdfTermoSesi.ts';
 import { computeLogRowHash } from '../../src/lib/audit-chain.ts';
+import {
+  getTransactionalCompletionEmailHtml,
+  getTransactionalCompletionEmailText,
+  getCompletionEmailSubject,
+} from '../../src/lib/email-templates.ts';
 import { querySesiMatricula } from '../../src/lib/sesi-matricula.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
 import type { Env, AuditLogRowInput, DocumentRecord } from '../../src/lib/types.ts';
@@ -951,6 +956,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     otpRequestedAt: doc.otp_requested_at ? new Date(doc.otp_requested_at) : undefined,
     otpVerifiedAt: new Date(signedAtIso),
     assinaturaPngBase64: signature_png_base64,
+    signerEmail: parsed.data.signer_email,
   });
 
   if (bucket) {
@@ -1078,158 +1084,24 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const resendApiKey = (c.env as any).RESEND_API_KEY;
   const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
   const targetEmail = parsed.data.signer_email;
-  const studentName = parsed.data.minor_name || doc.minor_name || 'Estudante';
-  const studentCpf = parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : '';
-  const rawSeries = (parsed.data.minor_series || '').trim();
-  const rawClass = (parsed.data.minor_class || '').trim();
-  const rawTurn = (parsed.data.minor_turn || '').trim();
-
-  let studentSeriesText = '';
-  let formattedSeries = rawSeries;
-  if (/^\d+$/.test(formattedSeries)) {
-    formattedSeries = `${formattedSeries}º ano`;
-  } else if (/^\d+º$/.test(formattedSeries)) {
-    formattedSeries = `${formattedSeries} ano`;
-  }
-
-  let formattedClass = rawClass;
-  if (formattedClass.toLowerCase().startsWith('turma ')) {
-    formattedClass = formattedClass.substring(6).trim();
-  }
-
-  if (formattedSeries && formattedClass) {
-    studentSeriesText = `, Série/Turma: <strong>${formattedSeries} ${formattedClass}</strong>`;
-  } else if (formattedSeries) {
-    studentSeriesText = `, Série: <strong>${formattedSeries}</strong>`;
-  } else if (formattedClass) {
-    studentSeriesText = `, Turma: <strong>${formattedClass}</strong>`;
-  }
-
-  const studentTurnText = rawTurn ? `, Turno: <strong>${rawTurn}</strong>` : '';
-  const signerPhoneText = parsed.data.signer_phone ? `, telefone de contato <strong>${parsed.data.signer_phone}</strong>` : '';
   const institutionName = parsed.data.institution_name || 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)';
 
-  const dataFormatada = new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'full',
-    timeStyle: 'medium',
-    timeZone: 'America/Sao_Paulo',
-  }).format(new Date(signedAtIso));
-
-  const emailHtml = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    @media only screen and (max-width: 600px) {
-      .email-wrapper { padding: 12px 6px !important; }
-      .email-card { padding: 20px 14px !important; }
-      .mobile-stack { display: block !important; width: 100% !important; }
-      .mobile-qr-cell { display: block !important; width: 100% !important; border-left: none !important; border-top: 1px dashed #cbd5e1 !important; padding-left: 0 !important; padding-top: 16px !important; margin-top: 14px !important; text-align: center !important; }
-      .mobile-qr-img { margin: 0 auto !important; }
-    }
-  </style>
-</head>
-<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: Arial, sans-serif;">
-  <div class="email-wrapper" style="background-color: #f1f5f9; padding: 28px 10px; color: #1e293b; line-height: 1.6;">
-    <div class="email-card" style="max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 32px 28px;">
-      <div style="border-bottom: 2.5px solid #034b7f; padding-bottom: 16px; margin-bottom: 22px;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="width: 44px; vertical-align: middle; padding-right: 12px;">
-              <img src="https://www.catraki.com.br/catraki.png" style="width: 36px; height: 36px; display: block; border-radius: 6px;" alt="Catraki Logo" />
-            </td>
-            <td style="vertical-align: middle;">
-              <h2 style="font-size: 14px; font-weight: 800; color: #034b7f; margin: 0; text-transform: uppercase;">ESCOLA CIDADÃ</h2>
-              <span style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">Saúde em Movimento</span>
-            </td>
-            <td style="vertical-align: middle; text-align: right;">
-              <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; padding: 2px 8px; font-size: 9.5px; font-weight: 700; color: #065f46; display: inline-block;">✓ ASSINADO</div>
-              <div style="font-size: 11px; font-weight: 700; color: #1e293b; font-family: monospace;">Nº ${validationCode}</div>
-            </td>
-          </tr>
-        </table>
-      </div>
-      <div style="text-align: center; margin-bottom: 22px;">
-        <h1 style="font-size: 13.5px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin: 0;">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)</h1>
-        <div style="font-size: 11px; color: #475569; margin-top: 4px;">Comprovante de Autorização para Atendimento e Triagens em Saúde</div>
-      </div>
-      <div style="margin-bottom: 20px; font-size: 12.5px; line-height: 1.85; text-align: justify;">
-        <p style="text-indent: 28px; margin: 0 0 16px 0;">
-          Eu, <strong>${signer_name}</strong>, portador(a) do CPF <strong>${cpfMasked}</strong>, na qualidade de <strong>${signer_relationship}</strong> do(a) estudante <strong>${studentName}</strong>, nascido(a) em <strong>${studentBirth}</strong>${studentCpf ? `, portador(a) do CPF <strong>${studentCpf}</strong>` : ''}${signerPhoneText}, matriculado(a) na instituição <strong>${institutionName}</strong>${studentSeriesText}${studentTurnText}, declaro sob as penas da lei que <strong>AUTORIZO a realização das triagens e atendimentos de saúde do(a) estudante</strong> nas ações do projeto <strong>Escola Cidadã — Saúde em Movimento</strong>.
-        </p>
-      </div>
-      <div style="margin-bottom: 20px; font-size: 12px; line-height: 1.6; text-align: justify; border-top: 1px solid #cbd5e1; padding-top: 14px;">
-        <p style="margin: 0 0 10px 0; font-weight: bold; color: #475569;">
-          Adicionalmente, manifesto de forma expressa, livre e inequívoca meu consentimento em relação às seguintes condições:
-        </p>
-        <ul style="list-style-type: none; padding-left: 0; margin: 0;">
-          <li style="margin-bottom: 12px;">
-            <strong>a) Circuito de Saúde e Especialidades:</strong> 
-            <span style="font-weight: bold; color: ${parsed.data.auth_health === 'yes' ? '#107c41' : '#c80000'};">
-              [ ${parsed.data.auth_health === 'yes' ? '✓ AUTORIZO' : 'X NÃO AUTORIZO'} ]
-            </span>
-            <span style="color: #475569; font-size: 11px; display: block; margin-top: 2px;">
-              — Fica autorizada a realização de triagens preventivas e avaliações clínicas no circuito oficial do projeto (Oftalmologia, Audiometria, Odontologia, Psicologia e Nutrição).
-            </span>
-          </li>
-          <li style="margin-bottom: 12px;">
-            <strong>b) Tratamento de Dados Pessoais:</strong>
-            <span style="font-weight: bold; color: ${parsed.data.auth_data === 'yes' ? '#107c41' : '#c80000'};">
-              [ ${parsed.data.auth_data === 'yes' ? '✓ AUTORIZO' : 'X NÃO AUTORIZO'} ]
-            </span>
-            <span style="color: #475569; font-size: 11px; display: block; margin-top: 2px;">
-              — Fica expressamente autorizada a coleta e o processamento seguro dos dados pessoais para finalidade exclusiva de registro e comprovação legal do consentimento de participação do estudante no projeto.
-            </span>
-          </li>
-          <li style="margin-bottom: 12px;">
-            <strong>c) Captação e Uso de Imagem e Voz:</strong>
-            <span style="font-weight: bold; color: ${parsed.data.auth_image === 'yes' ? '#107c41' : '#c80000'};">
-              [ ${parsed.data.auth_image === 'yes' ? '✓ AUTORIZO' : 'X NÃO AUTORIZO'} ]
-            </span>
-            <span style="color: #475569; font-size: 11px; display: block; margin-top: 2px;">
-              — Fica autorizada de forma gratuita a captação e veiculação de fotos/vídeos do estudante para documentação institucional e relatórios de prestação de contas, respeitando a sua dignidade (ECA, Art. 17).
-            </span>
-          </li>
-        </ul>
-      </div>
-      <div style="margin: 16px 0; background-color: #fffbeb; border: 1.5px solid #fde68a; border-radius: 12px; padding: 14px 16px; font-size: 11.5px; color: #78350f;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="width: 28px; vertical-align: top; font-size: 18px; line-height: 1; padding-right: 8px;">
-              ⚠️
-            </td>
-            <td style="vertical-align: top; color: #451a03; font-size: 11.5px; line-height: 1.5;">
-              <strong style="color: #451a03; font-size: 12px; display: block; margin-bottom: 2px;">Aviso Operacional Importante</strong>
-              Este comprovante atesta a autorização registrada. Contudo, <strong>esta assinatura não garante atendimento presencial imediato</strong>, que fica condicionado à capacidade diária máxima de atendimentos no local.
-            </td>
-          </tr>
-        </table>
-      </div>
-      <div style="border-top: 1.5px solid #cbd5e1; padding-top: 16px; margin-top: 24px; font-size: 11px; color: #475569;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td class="mobile-stack" style="vertical-align: top; padding-right: 14px; font-size: 11.5px;">
-              <span style="color: #64748b; font-weight: 700;">Código de Validação:</span> <strong>${validationCode}</strong><br>
-              <span style="color: #64748b; font-weight: 700;">Hash do Manifesto:</span> <span style="font-family: monospace; font-size: 10px;">${manifestSha256}</span><br>
-              <span style="color: #64748b; font-weight: 700;">Data e Hora do Registro:</span> ${dataFormatada}<br>
-              <span style="color: #64748b; font-weight: 700;">IP do Dispositivo:</span> ${ipAddress}<br>
-              <span style="color: #64748b; font-weight: 700;">Impressão Digital do Termo + Pai:</span> <span style="font-family: monospace; font-size: 10px;">${docParentHash}</span>
-            </td>
-            <td class="mobile-qr-cell" style="width: 115px; vertical-align: middle; text-align: center; border-left: 1px solid #cbd5e1; padding-left: 12px;">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https%3A%2F%2Fwww.catraki.com.br%2Fvalidar%2F${validationCode}" style="width: 90px; height: 90px; display: block; margin: 0 auto; border: 1px solid #ccc; border-radius: 4px; padding: 2px;" />
-              <div style="font-size: 8px; font-weight: bold; margin-top: 4px;">VALIDAÇÃO ONLINE</div>
-            </td>
-          </tr>
-        </table>
-      </div>
-      <div style="margin-top: 24px; border-top: 1px dashed #e2e8f0; padding-top: 12px; font-size: 10.5px; color: #64748b; text-align: center;">
-        O comprovante de assinatura em formato PDF contendo toda a trilha de auditoria e a validade jurídica (Art. 4º, II da Lei 14.063/2020, MP 2.200-2/2001 e LGPD) está anexado a esta mensagem.
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
+  const docTitle = (doc as any).title || (doc.minor_name ? `Termo de Consentimento - ${doc.minor_name}` : 'Termo de Consentimento - Saúde em Movimento');
+  const emailHtml = getTransactionalCompletionEmailHtml({
+    signerName: signer_name,
+    documentTitle: docTitle,
+    downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
+    companyName: institutionName,
+    supportEmail: 'suporte@catraki.com.br',
+  });
+  const emailText = getTransactionalCompletionEmailText({
+    signerName: signer_name,
+    documentTitle: docTitle,
+    downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
+    companyName: institutionName,
+    supportEmail: 'suporte@catraki.com.br',
+  });
+  const emailSubject = getCompletionEmailSubject(docTitle);
 
   let comprovanteEnviado = false;
   const pdfBase64 = bytesToBase64(pdfBytes);
@@ -1246,8 +1118,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
           body: JSON.stringify({
             from: fromAddress,
             to: [targetEmail],
-            subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
+            subject: emailSubject,
             html: emailHtml,
+            text: emailText,
             attachments: [
               {
                 filename: `comprovante-assinatura-${doc.id}.pdf`,
@@ -1268,8 +1141,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
             body: JSON.stringify({
               from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
               to: [targetEmail],
-              subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
+              subject: emailSubject,
               html: emailHtml,
+              text: emailText,
               attachments: [
                 {
                   filename: `comprovante-assinatura-${doc.id}.pdf`,
@@ -1299,11 +1173,17 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
               email: 'autorizacoes@catraki.com.br',
               name: 'Escola Cidadã — Saúde em Movimento',
             },
-            subject: `Comprovante de Assinatura Eletrônica — ${studentName} (${validationCode})`,
-            content: [{
-              type: 'text/html',
-              value: emailHtml,
-            }],
+            subject: emailSubject,
+            content: [
+              {
+                type: 'text/plain',
+                value: emailText,
+              },
+              {
+                type: 'text/html',
+                value: emailHtml,
+              }
+            ],
             attachments: [
               {
                 content: pdfBase64,

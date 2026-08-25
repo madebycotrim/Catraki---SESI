@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Clock,
 } from 'lucide-react';
+import { StatusAlertScreen } from '../common/StatusAlertScreen.tsx';
 import { apiClient } from '../../lib/api.ts';
 import type { SignerRelationship } from '../../lib/types.ts';
 
@@ -658,12 +659,13 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   onClear={() => setSignaturePngBase64('')}
                 />
 
-                {/* Mensagem de Erro do OTP */}
+                {/* Mensagem de Erro do OTP com UX Copy Oficial */}
                 {otpError && (
-                  <div className="p-2.5 bg-red-50 border border-red-200 rounded text-red-700 text-xs flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
-                    <span className="font-semibold">{otpError}</span>
-                  </div>
+                  <StatusAlertScreen
+                    scenario="otp_auth_failed"
+                    primaryActionLabel="Reenviar código de segurança"
+                    onPrimaryAction={dispararEnvioOtpEmail}
+                  />
                 )}
 
                 {/* Campo do Código OTP */}

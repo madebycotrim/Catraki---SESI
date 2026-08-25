@@ -115,7 +115,11 @@ export const LgpdManager: React.FC = () => {
                       <button
                         onClick={() => {
                           setSelectedReq(req);
-                          setResponseNotes(req.response_notes || '');
+                          if (!req.response_notes && req.request_type === 'deletion') {
+                            setResponseNotes("Sua solicitação foi processada! Sua conta de acesso foi desativada e seus dados foram removidos de nossas listas de comunicação. Por exigência legal (Art. 16 da LGPD e cumprimento de normas de assinatura digital), os registros técnicos e de identificação vinculados a documentos que você já assinou no passado serão mantidos armazenados com segurança, exclusivamente para fins de auditoria e proteção legal de todas as partes envolvidas.");
+                          } else {
+                            setResponseNotes(req.response_notes || '');
+                          }
                         }}
                         className="px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-medium cursor-pointer"
                       >
@@ -160,11 +164,22 @@ export const LgpdManager: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Parecer Oficial do DPO:</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-slate-300">Parecer Oficial do DPO:</label>
+                  {selectedReq.request_type === 'deletion' && (
+                    <button
+                      type="button"
+                      onClick={() => setResponseNotes("Sua solicitação foi processada! Sua conta de acesso foi desativada e seus dados foram removidos de nossas listas de comunicação. Por exigência legal (Art. 16 da LGPD e cumprimento de normas de assinatura digital), os registros técnicos e de identificação vinculados a documentos que você já assinou no passado serão mantidos armazenados com segurança, exclusivamente para fins de auditoria e proteção legal de todas as partes envolvidas.")}
+                      className="text-[10px] text-purple-400 hover:text-purple-300 underline cursor-pointer"
+                    >
+                      Preencher com Resposta Padrão (Art. 16 LGPD)
+                    </button>
+                  )}
+                </div>
                 <textarea
                   value={responseNotes}
                   onChange={(e) => setResponseNotes(e.target.value)}
-                  rows={4}
+                  rows={6}
                   placeholder="Descreva a fundamentação legal e as providências adotadas..."
                   className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100"
                   required

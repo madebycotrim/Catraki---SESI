@@ -6,21 +6,33 @@
  */
 
 export interface CancellationEmailParams {
-  parentName: string;
-  minorName: string;
+  parentName?: string;
+  minorName?: string;
   documentId: string;
+  documentTitle?: string;         // [Nome do Documento]
   validationCode?: string;
   cancelledAtFormatted: string;
-  institutionName: string;
+  institutionName?: string;
   reason?: string;
   supportEmail?: string;
+  supportPhone?: string;
   dpoContact?: string;
+  companyName?: string;           // [Nome da sua Empresa]
+  companyWebsite?: string;        // [Site da Empresa]
   // Campos de transparência LGPD — Art. 18 e Marco Civil
-  documentHashSha256?: string;    // Hash SHA-256 do documento no momento do cancelamento
-  revokedByName?: string;         // Nome do operador/admin responsável pela ação
+  documentHashSha256?: string;    // Hash SHA-256 do documento ou código de autenticidade
+  revokedByName?: string;         // Nome do Usuário ou Empresa que cancelou
   revokedByEmail?: string;        // E-mail do operador responsável
   ntpTimestamp?: string;          // Timestamp certificado NTP (Observatório Nacional)
   ntpSource?: string;             // Fonte do timestamp NTP (on.br, cloudflare, system)
+}
+
+/**
+ * Retorna o assunto padronizado para o e-mail de notificação de cancelamento de documento.
+ */
+export function getCancellationEmailSubject(documentTitle?: string): string {
+  const docName = documentTitle || 'Termo de Consentimento';
+  return `Aviso: O documento "${docName}" foi cancelado`;
 }
 
 /**
@@ -43,29 +55,41 @@ export interface RevocationEmailParams {
 }
 
 /**
- * Gera o template HTML responsivo, acolhedor e profissional para notificação de cancelamento por inconsistência operacional.
+ * Gera o template HTML responsivo e profissional para notificação de cancelamento de documento.
  */
 export function getTransactionalCancellationEmailHtml(params: CancellationEmailParams): string {
   const {
     parentName,
     minorName,
     documentId,
+    documentTitle,
     validationCode,
     cancelledAtFormatted,
     institutionName,
     reason,
     supportEmail = 'suporte.escolacidada@catraki.com.br',
+    supportPhone = '(61) 3333-0000',
     dpoContact = 'privacidade@catraki.com.br',
+    companyName,
+    companyWebsite = 'www.sesidai.org.br',
+    documentHashSha256,
+    revokedByName,
+    revokedByEmail,
   } = params;
 
-  const docCode = validationCode || `DOC-${documentId.substring(0, 8).toUpperCase()}`;
+  const docTitle = documentTitle || (minorName ? `Termo de Consentimento - ${minorName}` : 'Termo de Consentimento');
+  const signerName = parentName || 'Signatário';
+  const authHash = documentHashSha256 || validationCode || `DOC-${documentId.substring(0, 8).toUpperCase()}`;
+  const company = companyName || institutionName || 'SESI Saúde / Escola Cidadã';
+  const cancelledBy = revokedByName || (revokedByEmail ? `${revokedByEmail}` : null) || company;
+  const reasonText = reason || 'Inconsistência cadastral ou operacional detectada no sistema';
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Notificação de Invalidação de Documento — SESI Saúde / Escola Cidadã</title>
+  <title>Aviso: O documento "${docTitle}" foi cancelado</title>
   <style>
     body {
       margin: 0;
@@ -147,7 +171,7 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
     .details-table .label {
       font-weight: 600;
       color: #475569;
-      width: 40%;
+      width: 42%;
     }
     .details-table .value {
       color: #0f172a;
@@ -165,6 +189,11 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
       font-size: 15px;
       color: #166534;
       font-weight: 700;
+    }
+    .steps-box p {
+      margin: 0 0 10px 0;
+      color: #15803d;
+      font-size: 14px;
     }
     .steps-box ul {
       margin: 0;
@@ -212,79 +241,83 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
   <div class="wrapper">
     <div class="container">
       <div class="header">
-        <h1>SESI Saúde &bull; Escola Cidadã</h1>
-        <p>Sistema Digital de Gestão de Autorizações e Consentimento</p>
+        <h1>${company}</h1>
+        <p>Sistema Digital de Gestão de Documentos e Consentimento</p>
       </div>
 
       <div class="content">
         <div class="greeting">
-          Prezado(a) ${parentName || 'Responsável Legal'},
+          Olá, ${signerName},
         </div>
 
         <p>
-          Esperamos que você esteja bem. Entramos em contato para comunicar com total transparência que a autorização de atendimento vinculada ao(à) estudante <strong>${minorName}</strong> foi <strong>invalidada administrativamente por motivo de inconsistência operacional</strong>.
+          Informamos que o processo de assinatura do documento "<strong>${docTitle}</strong>" foi cancelado e ele não possui mais validade.
         </p>
 
-        <div class="alert-box">
-          <strong>O que isso significa?</strong><br>
-          O formulário/documento anterior foi desativado e perdeu qualquer validade para a realização de atendimentos. Nenhum procedimento será executado com base no termo anterior.
-        </div>
+        <p>
+          Para garantir total transparência e a segurança das suas informações, compartilhamos abaixo os detalhes deste cancelamento:
+        </p>
 
         <table class="details-table">
           <tr>
-            <td class="label">Código do Documento</td>
-            <td class="value"><span style="font-family: monospace; font-weight: bold;">${docCode}</span></td>
+            <td class="label">Documento</td>
+            <td class="value"><strong>${docTitle}</strong></td>
           </tr>
+          ${minorName ? `
           <tr>
             <td class="label">Estudante / Aluno(a)</td>
             <td class="value">${minorName}</td>
+          </tr>` : ''}
+          <tr>
+            <td class="label">Código de Autenticidade (Hash)</td>
+            <td class="value"><span style="font-family: monospace; font-weight: bold;">${authHash}</span></td>
           </tr>
           <tr>
-            <td class="label">Escola / Instituição</td>
-            <td class="value">${institutionName}</td>
+            <td class="label">Cancelado por</td>
+            <td class="value">${cancelledBy}</td>
           </tr>
           <tr>
-            <td class="label">Data da Invalidação</td>
+            <td class="label">Data do Cancelamento</td>
             <td class="value">${cancelledAtFormatted}</td>
           </tr>
           <tr>
-            <td class="label">Situação Atual</td>
+            <td class="label">Situação</td>
             <td class="value"><span class="badge-status">CANCELADO POR ERRO</span></td>
           </tr>
-          ${reason ? `
           <tr>
-            <td class="label">Motivo Informado</td>
-            <td class="value" style="font-style: italic; color: #475569;">${reason}</td>
-          </tr>` : ''}
+            <td class="label">Motivo</td>
+            <td class="value" style="font-style: italic; color: #475569;">"${reasonText}"</td>
+          </tr>
         </table>
 
         <div class="steps-box">
-          <h3>📋 Próximos Passos</h3>
-          <ul>
-            <li><strong>Emissão de Nova Via:</strong> Caso o(a) estudante ainda deseje participar dos atendimentos de saúde do projeto, a equipe escolar ou o SESI emitirá um novo link oficial para preenchimento correto dos dados.</li>
-            <li><strong>Nenhuma Ação Imediata é Exigida:</strong> Você não precisa responder a este e-mail. Caso receba um novo link oficial enviado pela escola, basta realizar a leitura e assinar a nova via atualizada.</li>
-            <li><strong>Atendimentos Seguros:</strong> O SESI e a Universidade de Brasília reafirmam o compromisso de realizar atendimentos somente com consentimento plenamente válido e atualizado.</li>
-          </ul>
+          <h3>O que acontece agora?</h3>
+          <p>
+            Os links e acessos que você recebeu anteriormente para este documento foram desativados. Você não precisa realizar nenhuma ação neste momento.
+          </p>
+          <p>
+            Se o processo precisar continuar, a equipe responsável enviará um novo documento atualizado para sua revisão e assinatura. Fique tranquilo(a), seus dados continuam protegidos e este aviso automático faz parte do nosso compromisso legal com a transparência.
+          </p>
         </div>
 
         <div class="security-badge">
           🔒 <strong>Segurança e Privacidade Garantidas (LGPD):</strong><br>
-          Os dados do documento invalidado foram preservados em ambiente criptografado e seguro unicamente para fins de conformidade legal, registro de auditoria e prestação de contas (Art. 16 da Lei nº 13.709/2018 e Art. 15 da Lei nº 12.965/2014), sem qualquer uso comercial ou compartilhamento indevido.
+          Os dados deste cancelamento foram salvaguardados em ambiente criptografado e seguro unicamente para fins de auditoria e conformidade legal (Lei nº 13.709/2018 - LGPD), sem qualquer compartilhamento indevido.
         </div>
 
         <p style="margin-top: 24px; font-size: 14px; color: #64748b;">
-          Em caso de dúvidas sobre o projeto ou sobre o tratamento de seus dados pessoais, você pode contatar nosso Encarregado de Dados (DPO) através do e-mail <a href="mailto:${dpoContact}" style="color: #004b8d; font-weight: 600;">${dpoContact}</a> ou o suporte do projeto em <a href="mailto:${supportEmail}" style="color: #004b8d; font-weight: 600;">${supportEmail}</a>.
+          Se tiver alguma dúvida sobre este cancelamento, basta responder a este e-mail ou entrar em contato com a nossa equipe em <a href="mailto:${supportEmail}" style="color: #004b8d; font-weight: 600;">${supportEmail}</a> ou DPO em <a href="mailto:${dpoContact}" style="color: #004b8d; font-weight: 600;">${dpoContact}</a>.
         </p>
 
         <p style="margin-top: 28px; font-size: 14px; color: #334155;">
-          Atenciosamente,<br>
-          <strong>Equipe Escola Cidadã — Saúde em Movimento</strong><br>
-          <span style="font-size: 13px; color: #64748b;">SESI-DF &bull; Faculdade de Ciências da Saúde / UnB</span>
+          Atenciosamente,<br><br>
+          <strong>Equipe ${company}</strong><br>
+          <span style="font-size: 13px; color: #64748b;"><a href="${companyWebsite.startsWith('http') ? companyWebsite : 'https://' + companyWebsite}" style="color: #004b8d; text-decoration: none;">${companyWebsite}</a> | ${supportPhone ? `${supportPhone} | ` : ''}${supportEmail}</span>
         </p>
       </div>
 
       <div class="footer">
-        Este é um e-mail transacional de notificação automática emitido pela plataforma oficial Catraki / SESI Saúde em conformidade com o Marco Civil da Internet (Lei nº 12.965/2014) e a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).
+        Este é um e-mail transacional de notificação automática emitido em conformidade com o Marco Civil da Internet (Lei nº 12.965/2014) e a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).
       </div>
     </div>
   </div>
@@ -293,53 +326,63 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
 }
 
 /**
- * Gera a versão em texto puro do e-mail de notificação de cancelamento por inconsistência operacional.
+ * Gera a versão em texto puro do e-mail de notificação de cancelamento de documento.
  */
 export function getTransactionalCancellationEmailText(params: CancellationEmailParams): string {
   const {
     parentName,
     minorName,
     documentId,
+    documentTitle,
     validationCode,
     cancelledAtFormatted,
     institutionName,
     reason,
     supportEmail = 'suporte.escolacidada@catraki.com.br',
-    dpoContact = 'privacidade@catraki.com.br',
+    supportPhone = '(61) 3333-0000',
+    companyName,
+    companyWebsite = 'www.sesidai.org.br',
+    documentHashSha256,
+    revokedByName,
+    revokedByEmail,
   } = params;
 
-  const docCode = validationCode || `DOC-${documentId.substring(0, 8).toUpperCase()}`;
+  const docTitle = documentTitle || (minorName ? `Termo de Consentimento - ${minorName}` : 'Termo de Consentimento');
+  const signerName = parentName || 'Signatário';
+  const authHash = documentHashSha256 || validationCode || `DOC-${documentId.substring(0, 8).toUpperCase()}`;
+  const company = companyName || institutionName || 'SESI Saúde / Escola Cidadã';
+  const cancelledBy = revokedByName || (revokedByEmail ? `${revokedByEmail}` : null) || company;
+  const reasonText = reason || 'Inconsistência cadastral ou operacional detectada no sistema';
 
-  return `[SESI Saúde / Escola Cidadã] Notificação de Invalidação de Documento
+  return `Assunto: Aviso: O documento "${docTitle}" foi cancelado
 
-Prezado(a) ${parentName || 'Responsável Legal'},
+Olá, ${signerName},
 
-Comunicamos que a autorização de atendimento vinculada ao(à) estudante ${minorName} na instituição "${institutionName}" foi INVALIDADA ADMINISTRATIVAMENTE por motivo de inconsistência operacional na plataforma Catraki / SESI Saúde.
+Informamos que o processo de assinatura do documento "${docTitle}" foi cancelado e ele não possui mais validade.
 
-DADOS DA OCORRÊNCIA:
-- Código do Documento: ${docCode}
-- Estudante: ${minorName}
-- Escola / Unidade: ${institutionName}
-- Data da Invalidação: ${cancelledAtFormatted}
-- Situação: CANCELADO POR ERRO
-${reason ? `- Motivo Registrado: ${reason}\n` : ''}
-O QUE ISSO SIGNIFICA:
-O documento anterior perdeu qualquer validade jurídica e operacional para a realização de atendimentos no âmbito do projeto. Nenhum procedimento médico ou odontológico será realizado com base no formulário cancelado.
+Para garantir total transparência e a segurança das suas informações, compartilhamos abaixo os detalhes deste cancelamento:
 
-PRÓXIMOS PASSOS:
-1. Caso o(a) estudante ainda vá participar do projeto, a equipe escolar ou o SESI disponibilizará um novo link para emissão de uma via correta e atualizada.
-2. Nenhuma providência imediata é necessária de sua parte neste momento.
+Documento: ${docTitle}
 
-SEGURANÇA E PRIVACIDADE (LGPD):
-Em estrita conformidade com a LGPD (Lei nº 13.709/2018, Art. 16) e com o Marco Civil da Internet (Lei nº 12.965/2014, Art. 15), o histórico deste documento foi arquivado de forma criptografada e imutável exclusivamente para fins de auditoria forense e salvaguarda de direitos, com acesso bloqueado para novas alterações.
+Código de Autenticidade (Hash): ${authHash}
 
-Canais de Atendimento e DPO:
-- Encarregado de Dados (DPO): ${dpoContact}
-- Suporte do Projeto: ${supportEmail}
+Cancelado por: ${cancelledBy}
+
+Data do Cancelamento: ${cancelledAtFormatted}
+
+Motivo: "${reasonText}"
+
+O que acontece agora?
+Os links e acessos que você recebeu anteriormente para este documento foram desativados. Você não precisa realizar nenhuma ação neste momento.
+
+Se o processo precisar continuar, a equipe responsável enviará um novo documento atualizado para sua revisão e assinatura. Fique tranquilo(a), seus dados continuam protegidos e este aviso automático faz parte do nosso compromisso legal com a transparência.
+
+Se tiver alguma dúvida sobre este cancelamento, basta responder a este e-mail ou entrar em contato com a nossa equipe.
 
 Atenciosamente,
-Equipe Escola Cidadã — Saúde em Movimento
-SESI-DF / Faculdade de Ciências da Saúde (FS/UnB)`;
+
+Equipe ${company}
+${companyWebsite} | ${supportPhone ? `${supportPhone} | ` : ''}${supportEmail}`;
 }
 
 // ============================================================================
@@ -481,4 +524,213 @@ Canais de Atendimento:
 Atenciosamente,
 Equipe Escola Cidadã — Saúde em Movimento
 SESI-DF / Faculdade de Ciências da Saúde (FS/UnB)`;
+}
+
+export interface CompletionEmailParams {
+  signerName: string;
+  documentTitle: string;
+  downloadUrl: string;
+  companyName?: string;
+  companyWebsite?: string;
+  supportEmail?: string;
+  supportPhone?: string;
+}
+
+/**
+ * Retorna o assunto padronizado para o e-mail de conclusão de documento.
+ */
+export function getCompletionEmailSubject(documentTitle: string): string {
+  return `✅ Documento finalizado: "${documentTitle}"`;
+}
+
+/**
+ * Gera o template HTML responsivo e profissional para e-mail de conclusão de processo de assinatura.
+ */
+export function getTransactionalCompletionEmailHtml(params: CompletionEmailParams): string {
+  const {
+    signerName,
+    documentTitle,
+    downloadUrl,
+    companyName = 'SESI Saúde / Escola Cidadã',
+    companyWebsite = 'www.sesidai.org.br',
+    supportEmail = 'suporte.escolacidada@catraki.com.br',
+    supportPhone = '(61) 3333-0000',
+  } = params;
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✅ Documento finalizado: "${documentTitle}"</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrapper {
+      width: 100%;
+      background-color: #f8fafc;
+      padding: 32px 12px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    .header {
+      background: linear-gradient(135deg, #107c41 0%, #0b592e 100%);
+      padding: 28px 24px;
+      text-align: center;
+      color: #ffffff;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .header p {
+      margin: 6px 0 0 0;
+      font-size: 13px;
+      color: #a7f3d0;
+    }
+    .content {
+      padding: 32px 24px;
+      line-height: 1.6;
+      font-size: 15px;
+      color: #334155;
+    }
+    .greeting {
+      font-size: 16px;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 16px;
+    }
+    .btn-container {
+      text-align: center;
+      margin: 28px 0;
+    }
+    .btn-action {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #107c41;
+      color: #ffffff !important;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgba(16, 124, 65, 0.2);
+      transition: background-color 0.2s;
+    }
+    .btn-action:hover {
+      background-color: #0b592e;
+    }
+    .security-badge {
+      background-color: #f1f5f9;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #475569;
+      margin-top: 24px;
+      border: 1px solid #e2e8f0;
+      text-align: left;
+    }
+    .footer {
+      background-color: #f8fafc;
+      padding: 24px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+      border-top: 1px solid #e2e8f0;
+    }
+    .footer a {
+      color: #107c41;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <h1>${companyName}</h1>
+        <p>Processo de Assinatura Concluído com Sucesso</p>
+      </div>
+
+      <div class="content">
+        <div class="greeting">
+          Olá, ${signerName}!
+        </div>
+
+        <p>
+          O processo de assinatura foi concluído com sucesso.
+        </p>
+
+        <p>
+          Todas as partes já assinaram o documento "<strong>${documentTitle}</strong>". Em anexo, você encontra o arquivo original e o Certificado de Conclusão, contendo a trilha de auditoria que garante a validade jurídica do processo.
+        </p>
+
+        <div class="btn-container">
+          <a href="${downloadUrl}" target="_blank" class="btn-action">Baixar Documento Assinado</a>
+        </div>
+
+        <div class="security-badge">
+          🔒 <strong>Aviso de Segurança:</strong><br>
+          Este arquivo PDF anexado é o documento original e imutável. Recomendamos que você faça o download e guarde este e-mail para seus registros.
+        </div>
+
+        <p style="margin-top: 28px; font-size: 14px; color: #334155;">
+          Atenciosamente,<br><br>
+          <strong>Equipe ${companyName}</strong><br>
+          <span style="font-size: 13px; color: #64748b;"><a href="${companyWebsite.startsWith('http') ? companyWebsite : 'https://' + companyWebsite}" style="color: #107c41; text-decoration: none;">${companyWebsite}</a> | ${supportPhone ? `${supportPhone} | ` : ''}${supportEmail}</span>
+        </p>
+      </div>
+
+      <div class="footer">
+        Este é um e-mail transacional de notificação automática emitido em conformidade com a MP 2.200-2/2001, Lei 14.063/2020 e a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Gera a versão em texto puro do e-mail de conclusão de processo de assinatura.
+ */
+export function getTransactionalCompletionEmailText(params: CompletionEmailParams): string {
+  const {
+    signerName,
+    documentTitle,
+    downloadUrl,
+    companyName = 'SESI Saúde / Escola Cidadã',
+    companyWebsite = 'www.sesidai.org.br',
+    supportEmail = 'suporte.escolacidada@catraki.com.br',
+    supportPhone = '(61) 3333-0000',
+  } = params;
+
+  return `Assunto: ✅ Documento finalizado: "${documentTitle}"
+
+Olá, ${signerName}! O processo de assinatura foi concluído com sucesso.
+
+Todas as partes já assinaram o documento "${documentTitle}". Em anexo, você encontra o arquivo original e o Certificado de Conclusão, contendo a trilha de auditoria que garante a validade jurídica do processo.
+
+Você pode baixar o documento assinado através do link abaixo:
+${downloadUrl}
+
+Aviso de Segurança: "Este arquivo PDF anexado é o documento original e imutável. Recomendamos que você faça o download e guarde este e-mail para seus registros."
+
+Atenciosamente,
+
+Equipe ${companyName}
+${companyWebsite} | ${supportPhone ? `${supportPhone} | ` : ''}${supportEmail}`;
 }

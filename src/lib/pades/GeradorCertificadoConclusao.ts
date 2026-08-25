@@ -42,6 +42,9 @@ export interface IDadosCertificadoConclusao {
   signedAt?: string | null;
   revokedAt?: string | null;
   revocationReason?: string | null;
+  signerEmail?: string;
+  signerIp?: string;
+  signerUserAgent?: string;
   // URL de validação pública
   validationBaseUrl?: string;
 }
@@ -136,11 +139,11 @@ export class GeradorCertificadoConclusao {
     page.drawText('SESI SAÚDE · ESCOLA CIDADÃ', {
       x: MARGIN, y: PAGE_H - 28, size: 9, font: fontBold, color: rgb(1, 1, 1),
     });
-    page.drawText('CERTIFICADO DE CONCLUSÃO E RELATÓRIO FORENSE DE LINHA DO TEMPO', {
+    page.drawText('CERTIFICADO DE CONCLUSÃO DE ASSINATURA ELETRÔNICA', {
       x: MARGIN, y: PAGE_H - 44, size: 8, font: fontBold, color: rgb(0.85, 0.92, 1),
     });
-    page.drawText('Conformidade: Lei 14.063/2020 · LGPD (Lei 13.709/2018) · MP 2.200-2/2001 · Marco Civil da Internet', {
-      x: MARGIN, y: PAGE_H - 58, size: 6.5, font: fontRegular, color: rgb(0.75, 0.85, 1),
+    page.drawText('As assinaturas eletrônicas realizadas neste documento possuem validade legal em conformidade com a Medida Provisória nº 2.200-2/2001 e a Lei nº 14.063/2020.', {
+      x: MARGIN, y: PAGE_H - 58, size: 6, font: fontRegular, color: rgb(0.75, 0.85, 1),
     });
 
     // Código de validação no cabeçalho
@@ -156,37 +159,63 @@ export class GeradorCertificadoConclusao {
 
     y = PAGE_H - 80 - 16;
 
-    // ── STATUS DO DOCUMENTO ────────────────────────────────────────────────
+    // ── STATUS DO DOCUMENTO E HASH SHA-256 ──────────────────────────────────
     const statusLabel = dados.documentStatus === 'signed' ? 'ASSINADO ✓'
       : dados.documentStatus === 'revoked' ? 'REVOGADO'
       : dados.documentStatus === 'CANCELADO_POR_ERRO' ? 'CANCELADO POR ERRO'
       : dados.documentStatus.toUpperCase();
     const statusColor = dados.documentStatus === 'signed' ? COR_VERDE : COR_VERMELHO;
 
-    page.drawRectangle({ x: MARGIN, y: y - 18, width: CONTENT_W, height: 26, color: COR_FUNDO_CLARO, borderColor: COR_AZUL_SESI, borderWidth: 0.5 });
-    page.drawText('STATUS DO DOCUMENTO:', { x: MARGIN + 8, y: y - 10, size: 8, font: fontBold, color: COR_PRETO });
-    page.drawText(statusLabel, { x: MARGIN + 130, y: y - 10, size: 9, font: fontBold, color: statusColor });
-    page.drawText(`ID: ${dados.documentId}`, { x: MARGIN + 320, y: y - 10, size: 7, font: fontMono, color: COR_CINZA });
-    novaLinha(32);
+    page.drawRectangle({ x: MARGIN, y: y - 36, width: CONTENT_W, height: 44, color: COR_FUNDO_CLARO, borderColor: COR_AZUL_SESI, borderWidth: 0.5 });
+    page.drawText('STATUS DO DOCUMENTO:', { x: MARGIN + 8, y: y - 12, size: 7.5, font: fontBold, color: COR_PRETO });
+    page.drawText(statusLabel, { x: MARGIN + 130, y: y - 12, size: 8.5, font: fontBold, color: statusColor });
+    page.drawText(`ID: ${dados.documentId}`, { x: MARGIN + 320, y: y - 12, size: 7, font: fontMono, color: COR_CINZA });
+    
+    // Hash no topo da área do status
+    page.drawText('HASH IDENTIFICADOR (SHA-256):', { x: MARGIN + 8, y: y - 28, size: 7, font: fontBold, color: COR_CINZA });
+    page.drawText(dados.manifestSha256 || 'PENDENTE DE ASSINATURA', { x: MARGIN + 160, y: y - 28, size: 6.5, font: fontMono, color: COR_PRETO });
+    
+    novaLinha(52);
 
-    // ── DADOS DO DOCUMENTO ─────────────────────────────────────────────────
-    page.drawText('IDENTIFICAÇÃO DO DOCUMENTO', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
+    // ── DADOS DO DOCUMENTO E DO SIGNATÁRIO ─────────────────────────────────
+    page.drawText('IDENTIFICAÇÃO DO SIGNATÁRIO E DO PROCESSO', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
     novaLinha(12);
     drawLine(MARGIN, y, PAGE_W - MARGIN, y);
     novaLinha(10);
 
+    const formattedSignDate = dados.signedAt
+      ? new Date(dados.signedAt).toLocaleString('pt-BR', {
+          timeZone: 'America/Sao_Paulo',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }) + ' UTC-3'
+      : 'Pendente';
+
     const fields = [
-      ['Estudante', dados.minorName],
-      ['Responsável Legal', dados.signerName],
-      ['CPF do Responsável', dados.signerCpfMasked],
-      ['Vínculo', dados.signerRelationship],
+      ['Nome do Signatário', dados.signerName],
+      ['CPF do Signatário', dados.signerCpfMasked],
+      ['E-mail do Signatário', dados.signerEmail || 'Não informado'],
+      ['IP do Acesso', dados.signerIp || dados.eventos.find(e => e.ip)?.ip || 'Não coletado'],
+      ['Navegador / Dispositivo', dados.signerUserAgent || dados.eventos.find(e => e.user_agent)?.user_agent || 'Navegador Web / Dispositivo Seguro'],
+      ['Data e Hora Exata', formattedSignDate],
+      ['Estudante Vinculado', dados.minorName],
+      ['Vínculo Declarado', dados.signerRelationship],
       ['Escola / Instituição', dados.institutionName],
-      ['Assinado em', formatarDataBr(dados.signedAt)],
     ];
 
     for (const [label, value] of fields) {
       page.drawText(`${label}:`, { x: MARGIN, y, size: 7.5, font: fontBold, color: COR_CINZA });
-      page.drawText(String(value), { x: MARGIN + 120, y, size: 7.5, font: fontRegular, color: COR_PRETO });
+      
+      const valStr = String(value);
+      if (valStr.length > 80) {
+        page.drawText(valStr.substring(0, 77) + '...', { x: MARGIN + 130, y, size: 7.5, font: fontRegular, color: COR_PRETO });
+      } else {
+        page.drawText(valStr, { x: MARGIN + 130, y, size: 7.5, font: fontRegular, color: COR_PRETO });
+      }
       novaLinha(13);
     }
 

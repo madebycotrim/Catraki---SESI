@@ -338,10 +338,7 @@ export function getTransactionalCancellationEmailText(params: CancellationEmailP
     cancelledAtFormatted,
     institutionName,
     reason,
-    supportEmail = 'suporte.escolacidada@catraki.com.br',
-    supportPhone = '(61) 3333-0000',
     companyName,
-    companyWebsite = 'www.sesidai.org.br',
     documentHashSha256,
     revokedByName,
     revokedByEmail,
@@ -356,33 +353,7 @@ export function getTransactionalCancellationEmailText(params: CancellationEmailP
 
   return `Assunto: Aviso: O documento "${docTitle}" foi cancelado
 
-Olá, ${signerName},
-
-Informamos que o processo de assinatura do documento "${docTitle}" foi cancelado e ele não possui mais validade.
-
-Para garantir total transparência e a segurança das suas informações, compartilhamos abaixo os detalhes deste cancelamento:
-
-Documento: ${docTitle}
-
-Código de Autenticidade (Hash): ${authHash}
-
-Cancelado por: ${cancelledBy}
-
-Data do Cancelamento: ${cancelledAtFormatted}
-
-Motivo: "${reasonText}"
-
-O que acontece agora?
-Os links e acessos que você recebeu anteriormente para este documento foram desativados. Você não precisa realizar nenhuma ação neste momento.
-
-Se o processo precisar continuar, a equipe responsável enviará um novo documento atualizado para sua revisão e assinatura. Fique tranquilo(a), seus dados continuam protegidos e este aviso automático faz parte do nosso compromisso legal com a transparência.
-
-Se tiver alguma dúvida sobre este cancelamento, basta responder a este e-mail ou entrar em contato com a nossa equipe.
-
-Atenciosamente,
-
-Equipe ${company}
-${companyWebsite} | ${supportPhone ? `${supportPhone} | ` : ''}${supportEmail}`;
+Olá, ${signerName}. Informamos que o processo de assinatura do documento '${docTitle}' foi cancelado e ele não possui mais validade. Detalhes: Código de Autenticidade (Hash): ${authHash}; Cancelado por: ${cancelledBy}; Data: ${cancelledAtFormatted}; Motivo: '${reasonText}'. Os links anteriores foram desativados. Seus dados continuam protegidos.`;
 }
 
 // ============================================================================
@@ -720,14 +691,10 @@ export function getTransactionalCompletionEmailText(params: CompletionEmailParam
 
   return `Assunto: ✅ Documento finalizado: "${documentTitle}"
 
-Olá, ${signerName}! O processo de assinatura foi concluído com sucesso.
+Olá, ${signerName}! Todas as partes assinaram o documento. Em anexo, você encontra o arquivo original e o Certificado de Conclusão com a validade jurídica. Guarde este arquivo.
 
-Todas as partes já assinaram o documento "${documentTitle}". Em anexo, você encontra o arquivo original e o Certificado de Conclusão, contendo a trilha de auditoria que garante a validade jurídica do processo.
-
-Você pode baixar o documento assinado através do link abaixo:
+Link para download:
 ${downloadUrl}
-
-Aviso de Segurança: "Este arquivo PDF anexado é o documento original e imutável. Recomendamos que você faça o download e guarde este e-mail para seus registros."
 
 Atenciosamente,
 

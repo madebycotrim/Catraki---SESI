@@ -19,7 +19,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
       </button>
 
       {/* Cartão Principal de Conteúdo A4-Like */}
-      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 sm:p-10 space-y-6 relative overflow-hidden">
+      <div className="bg-white rounded-none shadow-xl border border-slate-200 p-6 sm:p-10 space-y-6 relative overflow-hidden">
         
         {/* Cabeçalho Oficial */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-slate-200">

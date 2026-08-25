@@ -55,6 +55,16 @@ export function maskEmail(emailRaw?: string): string {
   return `${maskedName}@${domain}`;
 }
 
+export function maskName(nameRaw?: string): string {
+  if (!nameRaw) return 'Responsável Legal';
+  const parts = nameRaw.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'Responsável Legal';
+  if (parts.length === 1) return `${parts[0].slice(0, 2)}***`;
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  return `${first} ${last.charAt(0)}***`;
+}
+
 /**
  * Formata o nome do menor exibindo o primeiro nome completo seguido das iniciais dos demais sobrenomes com ponto (ex: 'Lucas G. S.')
  * Atende às diretrizes de privacidade e minimização de dados da LGPD (Art. 14).
@@ -256,4 +266,17 @@ export const ManualReviewActionSchema = z.object({
   review_id: z.string().min(1),
   action: z.enum(['approve', 'reject']),
   notes: z.string().max(500).optional(),
+});
+
+export const CancelDocumentErrorSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(10, 'A justificativa operacional de cancelamento por erro deve conter no mínimo 10 caracteres')
+    .max(1000, 'A justificativa não pode exceder 1000 caracteres'),
+  confirmed: z.literal(true, {
+    errorMap: () => ({
+      message: 'É obrigatório confirmar expressamente a ciência do cancelamento administrativo imutável e notificação do responsável legal.',
+    }),
+  }),
 });

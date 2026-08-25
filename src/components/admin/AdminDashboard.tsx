@@ -10,7 +10,11 @@ import {
   Check,
   Building2,
   Plus,
-  Trash2,
+  ShieldAlert,
+  Lock,
+  Info,
+  X,
+  ShieldCheck,
   Link as LinkIcon,
   LogOut,
   FileSpreadsheet,
@@ -43,7 +47,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInstitution, setSelectedInstitution] = useState<string>('all');
   const [selectedImageOption, setSelectedImageOption] = useState<'all' | 'authorized' | 'not_authorized'>('all');
-  const [selectedStatus, setSelectedStatus] = useState<'all' | 'signed' | 'pending' | 'revoked'>('all');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'signed' | 'pending' | 'revoked' | 'CANCELADO_POR_ERRO'>('all');
   const [selectedDateRange, setSelectedDateRange] = useState<'all' | 'today' | '7days' | '30days'>('all');
   const [selectedSeries, setSelectedSeries] = useState<string>('all');
   const [isExportingZip, setIsExportingZip] = useState(false);
@@ -51,6 +55,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [authorizations, setAuthorizations] = useState<any[]>([]);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [showNewSchoolModal, setShowNewSchoolModal] = useState(false);
+
+  // Estados do Modal de Revogação / Cancelamento por Erro
+  const [showRevocationModal, setShowRevocationModal] = useState(false);
+  const [selectedAuthToRevoke, setSelectedAuthToRevoke] = useState<any | null>(null);
+  const [revocationReason, setRevocationReason] = useState('');
+  const [revocationConfirmed, setRevocationConfirmed] = useState(false);
+  const [isRevoking, setIsRevoking] = useState(false);
+  const [revocationError, setRevocationError] = useState('');
+  const [revocationSuccessToast, setRevocationSuccessToast] = useState<string | null>(null);
 
   // Formulário de nova escola
   const [newSchoolData, setNewSchoolData] = useState({
@@ -184,10 +197,62 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleDeleteSchool = async (id: string) => {
-    if (confirm('Deseja realmente remover esta instituição do catálogo de rotas?')) {
+  const handleDeactivateSchool = async (id: string) => {
+    if (confirm('Deseja desativar esta instituição do catálogo de rotas ativas?')) {
       await apiClient.deleteAdminInstitution(id);
       fetchInstitutions();
+    }
+  };
+
+  const handleOpenRevokeModal = (auth: any) => {
+    setSelectedAuthToRevoke(auth);
+    setRevocationReason('');
+    setRevocationConfirmed(false);
+    setRevocationError('');
+    setShowRevocationModal(true);
+  };
+
+  const handleConfirmRevoke = async () => {
+    if (!selectedAuthToRevoke) return;
+    if (revocationReason.trim().length < 10) {
+      setRevocationError('A justificativa deve conter no mínimo 10 caracteres detalhando a inconsistência.');
+      return;
+    }
+    if (!revocationConfirmed) {
+      setRevocationError('É obrigatório confirmar a declaração de ciência e consentimento.');
+      return;
+    }
+
+    setIsRevoking(true);
+    setRevocationError('');
+
+    try {
+      const res = await apiClient.cancelDocumentDueToError(selectedAuthToRevoke.id, revocationReason.trim());
+      setIsRevoking(false);
+
+      if (res && res.success) {
+        setAuthorizations((prev) =>
+          prev.map((a) =>
+            a.id === selectedAuthToRevoke.id
+              ? {
+                  ...a,
+                  status: 'CANCELADO_POR_ERRO',
+                  cancellationReason: revocationReason.trim(),
+                }
+              : a
+          )
+        );
+        setShowRevocationModal(false);
+        setRevocationSuccessToast(
+          `Autorização ${selectedAuthToRevoke.validationCode || selectedAuthToRevoke.id} revogada por inconsistência operacional. O responsável legal foi notificado.`
+        );
+        setTimeout(() => setRevocationSuccessToast(null), 7000);
+      } else {
+        setRevocationError(res?.error || 'Falha ao processar a revogação por erro. Verifique as permissões.');
+      }
+    } catch (err: any) {
+      setIsRevoking(false);
+      setRevocationError(err?.message || 'Erro inesperado de comunicação com o servidor.');
     }
   };
 
@@ -205,7 +270,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const matchesStatus =
       selectedStatus === 'all' ||
-      auth.status === selectedStatus;
+      auth.status === selectedStatus ||
+      (selectedStatus === 'CANCELADO_POR_ERRO' && (auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error'));
 
     const matchesImage =
       selectedImageOption === 'all' ||
@@ -280,7 +346,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       `"${a.parentName}"`,
       `"${a.parentCpfMasked}"`,
       `"${a.relationship}"`,
-      `"${a.status === 'signed' ? 'AUTORIZADO' : a.status === 'revoked' ? 'NEGADO (REVOGADO)' : 'PENDENTE'}"`,
+      `"${a.status === 'signed' ? 'AUTORIZADO' : (a.status === 'CANCELADO_POR_ERRO' || a.status === 'cancelled_error') ? 'CANCELADO POR ERRO (INVALIDADO)' : a.status === 'revoked' ? 'NEGADO (REVOGADO)' : 'PENDENTE'}"`,
       `"${a.optInOftalmo ? 'AUTORIZADO' : 'NÃO AUTORIZADO'}"`,
       `"${a.optInAudio ? 'AUTORIZADO' : 'NÃO AUTORIZADO'}"`,
       `"${a.optInOdonto ? 'AUTORIZADO' : 'NÃO AUTORIZADO'}"`,
@@ -487,7 +553,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <option value="all">Status: Todos</option>
                   <option value="signed">✅ Autorizadas (Assinadas)</option>
                   <option value="pending">⏳ Pendentes</option>
-                  <option value="revoked">🚫 Negadas (Revogadas)</option>
+                  <option value="revoked">🚫 Negadas pelo Responsável</option>
+                  <option value="CANCELADO_POR_ERRO">⚠️ Canceladas por Erro (Invalidadas)</option>
                 </select>
                 <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
               </div>
@@ -632,11 +699,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   {filteredAuths.length > 0 ? (
                     filteredAuths.map((auth) => {
                       const isSigned = auth.status === 'signed';
+                      const isCancelled = auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error';
+                      const isRevoked = auth.status === 'revoked';
+                      const isPending = !isSigned && !isCancelled && !isRevoked;
 
                       return (
                         <tr 
                           key={auth.id} 
-                          className="hover:bg-slate-50/70 transition-colors"
+                          className={`hover:bg-slate-50/70 transition-colors ${isCancelled ? 'bg-amber-50/30' : ''}`}
                         >
                           <td className="px-4 sm:px-6 py-3.5 sm:py-4 whitespace-nowrap">
                             <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 border border-slate-200 px-2 py-1 rounded-md">
@@ -662,21 +732,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </span>
                           </td>
                           <td className="px-4 sm:px-6 py-3.5 sm:py-4">
-                            {auth.status === 'signed' && (
+                            {isSigned && (
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
                                 <span>Autorizada</span>
                               </span>
                             )}
-                            {auth.status === 'revoked' && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 text-red-800 border border-red-200 text-[11px] font-bold">
-                                <AlertTriangle className="w-3 h-3 text-red-600 shrink-0" />
-                                <span>Negada (Revogada)</span>
+                            {isCancelled && (
+                              <span 
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-300 text-[11px] font-bold shadow-xs" 
+                                title="Autorização invalidada administrativamente por inconsistência cadastral (Soft Delete preservado para fins periciais)"
+                              >
+                                <ShieldAlert className="w-3 h-3 text-amber-700 shrink-0" />
+                                <span>Cancelada por Erro</span>
                               </span>
                             )}
-                            {auth.status !== 'signed' && auth.status !== 'revoked' && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-bold">
-                                <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                            {isRevoked && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 text-red-800 border border-red-200 text-[11px] font-bold">
+                                <AlertTriangle className="w-3 h-3 text-red-600 shrink-0" />
+                                <span>Negada (Responsável)</span>
+                              </span>
+                            )}
+                            {isPending && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold">
+                                <Clock className="w-3 h-3 text-slate-500 shrink-0" />
                                 <span>Pendente</span>
                               </span>
                             )}
@@ -687,22 +766,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </span>
                           </td>
                           <td className="px-4 sm:px-6 py-3.5 sm:py-4 text-right">
-                            {isSigned ? (
-                              <button
-                                onClick={() => onNavigateToValidatorHash(auth.hash!)}
-                                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-blue-50 hover:text-sesi-primary hover:border-blue-200 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
+                            {isCancelled ? (
+                              <span 
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold select-none" 
+                                title="Documento invalidado em modo somente-leitura imutável"
                               >
-                                <FileText className="w-3.5 h-3.5" /> 
-                                <span>Ver Detalhes</span>
-                              </button>
+                                <Lock className="w-3.5 h-3.5 text-slate-400" />
+                                <span>Somente Leitura</span>
+                              </span>
+                            ) : isSigned ? (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => onNavigateToValidatorHash(auth.hash!)}
+                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-blue-50 hover:text-sesi-primary hover:border-blue-200 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
+                                  title="Ver dados forenses e certificado de autenticidade"
+                                >
+                                  <FileText className="w-3.5 h-3.5" /> 
+                                  <span>Ver Detalhes</span>
+                                </button>
+                                <button
+                                  onClick={() => handleOpenRevokeModal(auth)}
+                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
+                                  title="Revogar autorização por inconsistência cadastral ou operacional"
+                                >
+                                  <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                                  <span>Revogar por Erro</span>
+                                </button>
+                              </div>
                             ) : (
-                              <button
-                                onClick={() => onNavigateToSignerToken(auth.accessToken || auth.id, auth.institutionId)}
-                                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-sesi-primary hover:bg-blue-900 text-white text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5" /> 
-                                <span>Abrir Termo</span>
-                              </button>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => handleCopySchoolLink(auth.institutionId || 'cemeit')}
+                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium shadow-xs transition-all cursor-pointer whitespace-nowrap"
+                                  title="Copiar link de assinatura para enviar aos pais"
+                                >
+                                  <Copy className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>Link</span>
+                                </button>
+                                <button
+                                  onClick={() => handleOpenRevokeModal(auth)}
+                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
+                                  title="Cancelar termo pendente por inconsistência de dados"
+                                >
+                                  <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                                  <span>Revogar por Erro</span>
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -760,11 +869,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                       {inst.id !== 'cemeit' && (
                         <button
-                          onClick={() => handleDeleteSchool(inst.id)}
-                          className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                          title="Desativar escola"
+                          onClick={() => handleDeactivateSchool(inst.id)}
+                          className="text-slate-400 hover:text-amber-700 transition-colors px-2 py-1 rounded text-[11px] font-semibold hover:bg-amber-50 cursor-pointer"
+                          title="Desativar rota desta escola"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <span>Desativar</span>
                         </button>
                       )}
                     </div>
@@ -929,6 +1038,176 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST DE FEEDBACK DE REVOGAÇÃO / SUCESSO */}
+      {revocationSuccessToast && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-md bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-slate-700 flex items-start gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="text-xs leading-relaxed">
+            <strong className="block font-bold text-white mb-0.5">Operação Concluída com Sucesso</strong>
+            <span className="text-slate-300">{revocationSuccessToast}</span>
+          </div>
+          <button
+            onClick={() => setRevocationSuccessToast(null)}
+            className="text-slate-400 hover:text-white ml-auto shrink-0 cursor-pointer p-1"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* MODAL DE DUPLA CONFIRMAÇÃO: REVOGAÇÃO / CANCELAMENTO POR ERRO OPERACIONAL */}
+      {showRevocationModal && selectedAuthToRevoke && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+          onClick={() => !isRevoking && setShowRevocationModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-200 text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header com Alerta de Segurança */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0 shadow-xs">
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+                    Revogar Autorização por Erro
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Cancelamento administrativo por inconsistência cadastral ou operacional
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => !isRevoking && setShowRevocationModal(false)}
+                disabled={isRevoking}
+                className="text-slate-400 hover:text-slate-600 rounded-lg p-1.5 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Resumo do Documento Alvo */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs space-y-2">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <span className="text-slate-500 font-semibold uppercase tracking-wider text-[10px]">Identificador Único:</span>
+                <span className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200">
+                  {selectedAuthToRevoke.validationCode || selectedAuthToRevoke.id}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Estudante / Aluno(a):</span>
+                  <span className="font-bold text-slate-800 truncate block">{selectedAuthToRevoke.studentName}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Responsável Legal:</span>
+                  <span className="font-bold text-slate-800 truncate block">{selectedAuthToRevoke.parentName}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Escola / Unidade:</span>
+                  <span className="font-medium text-slate-700 truncate block">{selectedAuthToRevoke.institutionName}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Situação Vigente:</span>
+                  <span className="font-bold text-amber-700 capitalize block">{selectedAuthToRevoke.status}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Aviso de Conformidade Legal (Soft Delete & LGPD) */}
+            <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-3.5 text-xs text-amber-900 leading-relaxed space-y-1.5">
+              <div className="flex items-center gap-1.5 font-bold text-amber-950">
+                <Info className="w-4 h-4 text-amber-700 shrink-0" />
+                <span>Preservação de Provas Digitais & Notificação LGPD:</span>
+              </div>
+              <p className="text-[11px] text-amber-800">
+                Esta ação aplica um <strong>soft delete normativo</strong> (status <code className="bg-amber-100 px-1 py-0.2 rounded font-mono font-bold">CANCELADO_POR_ERRO</code>), bloqueando novas alterações e preservando a custódia pericial (Art. 16 da LGPD e Art. 15 do Marco Civil). O titular/responsável será notificado automaticamente por e-mail transacional.
+              </p>
+            </div>
+
+            {/* Formulário: Justificativa Obrigatória */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="revocation-reason" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Justificativa Operacional <span className="text-red-500">*</span>
+                </label>
+                <span className={`text-[11px] font-mono font-semibold ${revocationReason.trim().length >= 10 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                  {revocationReason.trim().length}/10 caracteres mín.
+                </span>
+              </div>
+              <textarea
+                id="revocation-reason"
+                name="revocationReason"
+                rows={3}
+                required
+                disabled={isRevoking}
+                value={revocationReason}
+                onChange={(e) => setRevocationReason(e.target.value)}
+                placeholder="Descreva detalhadamente a inconsistência operacional ou divergência cadastral (Ex: 'Erro de digitação do CPF pelo responsável legal na matrícula')..."
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 placeholder:text-slate-400 leading-relaxed resize-none disabled:bg-slate-100"
+              />
+            </div>
+
+            {/* Checkbox de Dupla Confirmação */}
+            <label className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100/70 transition-colors">
+              <input
+                id="confirm-revocation-checkbox"
+                name="confirmRevocation"
+                type="checkbox"
+                disabled={isRevoking}
+                checked={revocationConfirmed}
+                onChange={(e) => setRevocationConfirmed(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-sesi-primary focus:ring-sesi-primary cursor-pointer shrink-0"
+              />
+              <span className="text-xs text-slate-700 leading-snug">
+                Declaro que analisei a autorização e confirmo a <strong>invalidação formal e definitiva</strong> deste documento, ciente de que meu usuário e IP de conexão serão registrados na trilha de auditoria forense.
+              </span>
+            </label>
+
+            {/* Alerta de Erro */}
+            {revocationError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-xl flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{revocationError}</span>
+              </div>
+            )}
+
+            {/* Botões de Ação */}
+            <div className="pt-2 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={isRevoking}
+                onClick={() => setShowRevocationModal(false)}
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer text-center disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isRevoking || revocationReason.trim().length < 10 || !revocationConfirmed}
+                onClick={handleConfirmRevoke}
+                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRevoking ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Processando Revogação...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldAlert className="w-4 h-4" />
+                    <span>Confirmar Revogação por Erro</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

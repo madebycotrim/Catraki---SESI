@@ -8,6 +8,7 @@ import {
   Printer,
   MailCheck,
   Download,
+  AlertTriangle,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 
@@ -141,7 +142,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
         </div>
 
         {/* Banner de Envio de Cópia por E-mail */}
-        <div className="mb-5 sm:mb-6 bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 sm:p-3.5 flex items-start gap-3 text-emerald-950">
+        <div className="mb-4 bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 sm:p-3.5 flex items-start gap-3 text-emerald-950">
           <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
             <MailCheck className="w-4 h-4" />
           </div>
@@ -152,6 +153,15 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
             <p className="text-xs text-emerald-800 m-0 leading-relaxed">
               Uma via completa deste termo assinado e o código de autenticidade foram enviados para: <span className="font-bold underline text-emerald-950 break-all">{signerEmail || 'seu e-mail informado'}</span>.
             </p>
+          </div>
+        </div>
+
+        {/* Aviso Operacional Importante */}
+        <div className="mb-5 sm:mb-6 bg-amber-50/70 border border-amber-200 p-3.5 sm:p-4 rounded-xl flex items-start gap-3 text-xs text-amber-950 leading-relaxed">
+          <AlertTriangle className="w-5 h-5 shrink-0 text-amber-500 mt-0.5" />
+          <div>
+            <strong className="text-amber-950 block mb-0.5 text-xs sm:text-sm font-bold">Aviso Operacional Importante</strong>
+            Este comprovante atesta a autorização registrada. Contudo, <strong>esta assinatura não garante atendimento presencial imediato</strong>, que fica condicionado à capacidade diária máxima de atendimentos no local.
           </div>
         </div>
 
@@ -309,7 +319,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               </div>
             </div>
             <div className="pt-2 border-t border-dashed border-slate-200 text-[10px] sm:text-[11px] text-slate-500 text-left leading-relaxed">
-              🔒 <strong>Comprovante oficial:</strong> Este registro confirma a autorização <strong className="text-slate-700">{validationCode}</strong> e pode ser consultado a qualquer momento no validador público da plataforma Catraki.
+              🔒 <strong>Comprovante de autorização:</strong> Este registro confirma a autorização <strong className="text-slate-700">{validationCode}</strong> e pode ser consultado a qualquer momento no validador público da plataforma Catraki.
             </div>
           </div>
 

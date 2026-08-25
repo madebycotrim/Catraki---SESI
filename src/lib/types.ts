@@ -2,7 +2,7 @@
 // TIPOS E CONTRATOS DO SISTEMA SESI SAÚDE
 // ============================================================================
 
-export type DocumentStatus = 'draft' | 'pending' | 'signed' | 'revoked' | 'expired';
+export type DocumentStatus = 'draft' | 'pending' | 'signed' | 'revoked' | 'expired' | 'CANCELADO_POR_ERRO' | 'cancelled_error';
 
 export type SignerRelationship = 
   | 'Pai' 
@@ -72,9 +72,28 @@ export interface DocumentRecord {
   created_by_admin?: string;
   revoked_at?: string;
   revoked_reason?: string;
+  cancelled_at?: string;
+  cancelled_by_admin_id?: string;
+  cancellation_reason?: string;
+  cancellation_ip?: string;
   retention_expires_at: string;
   expires_at: string;
   created_at: string;
+}
+
+export interface DocumentCancellationAudit {
+  id: string;
+  document_id: string;
+  cancelled_at: string;
+  ip_address: string;
+  user_agent: string;
+  cancelled_by_user_id: string;
+  cancelled_by_user_email: string;
+  cancelled_by_role: string;
+  justification: string;
+  document_manifest_sha256?: string;
+  log_row_hash: string;
+  created_at?: string;
 }
 
 export interface AuditLogRow {
@@ -205,6 +224,20 @@ export interface PublicValidationResponse {
     revoked_at: string;
     revoked_reason: string;
   } | null;
+  cancellation_info?: {
+    cancelled_at: string;
+    cancellation_reason: string;
+    cancelled_by_role?: string;
+  } | null;
+}
+
+export interface DuplicateStudentCheckResponse {
+  hasExistingSignature: boolean;
+  existingValidationCode?: string;
+  signedAt?: string;
+  signerNameMasked?: string;
+  minorName?: string;
+  documentId?: string;
 }
 
 export interface ChainVerificationResult {

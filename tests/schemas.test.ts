@@ -4,6 +4,7 @@ import {
   maskCPF,
   maskPhone,
   maskEmail,
+  maskName,
   getInitials,
   CreateDocumentSchema,
   SignDocumentSchema,
@@ -31,6 +32,8 @@ describe('Validações e Schemas Zod (schemas.ts)', () => {
     expect(maskPhone('11987654321')).toBe('(11) *****-4321');
     expect(getInitials('Lucas Cotrim Silva')).toBe('Lucas C. S.');
     expect(getInitials('Sofia')).toBe('Sofia');
+    expect(maskName('Mateus Cotrim')).toBe('Mateus C***');
+    expect(maskName('Maria Silva Santos')).toBe('Maria S***');
   });
 
   it('deve validar schema de emissão de documento', () => {

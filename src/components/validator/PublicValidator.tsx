@@ -75,7 +75,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
       if (resp.success && resp.validation) {
         setValidationResult(resp.validation);
       } else {
-        setErrorMessage(resp.error || 'Código ou hash não localizado na trilha de auditoria oficial.');
+        setErrorMessage(resp.error || 'Código ou hash não localizado na base de registros da plataforma.');
       }
     } catch {
       setErrorMessage('Erro ao consultar o validador de autenticidade.');

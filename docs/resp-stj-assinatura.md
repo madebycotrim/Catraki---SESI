@@ -43,3 +43,10 @@ A plataforma Catraki foi projetada em estrita aderência a esse entendimento jur
 *   **Integridade:** Assegurada pela geração de hash SHA-256 exclusivo do manifesto, assinatura do bloco na cadeia hash (`log_row_hash`) e âncora na Árvore de Merkle.
 *   **Temporalidade:** Carimbo do tempo sincronizado via Time Stamping Authority (TSA).
 *   **Validador Público:** Canal que permite a terceiros auditar a trilha e o certificado de autenticidade a qualquer momento.
+
+---
+
+## 6. Documento Complementar e Parecer Técnico-Jurídico Completo
+
+Para aprofundamento doutrinário e fundamentação detalhada conforme os padrões da ABNT, consulte o [Parecer Técnico-Jurídico sobre Assinaturas Eletrônicas e REsp 2.205.708-PR](file:///c:/Users/Cotrim/Projetos/Catraki---SESI/docs/parecer-juridico-assinaturas-eletronicas.md).
+

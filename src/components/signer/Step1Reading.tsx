@@ -74,10 +74,10 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
 
 
           {/* Aviso Operacional Importante */}
-          <div className="bg-amber-50/70 border border-amber-200 p-3.5 sm:p-4 rounded-xl flex gap-3 text-xs text-amber-950 mt-2 leading-relaxed">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+          <div className="bg-amber-50/70 border border-amber-200 p-3.5 sm:p-4 rounded-xl flex items-start gap-3 text-xs text-amber-950 mt-2 leading-relaxed">
+            <AlertTriangle className="w-5 h-5 shrink-0 text-amber-500 mt-0.5" />
             <div>
-              <strong className="text-amber-950 block mb-0.5">Aviso Operacional Importante:</strong>
+              <strong className="text-amber-950 block mb-0.5 text-xs sm:text-sm font-bold">Aviso Operacional Importante</strong>
               Este sistema digital serve exclusivamente para a autorização legal de atendimento. A autorização não garante a consulta imediata. O agendamento dos horários ocorre de forma presencial no estacionamento da escola, próximo às unidades móveis, e está estritamente sujeito à capacidade máxima diária de cada especialidade (vagas limitadas).
             </div>
           </div>
@@ -115,11 +115,11 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
             </p>
           </div>
 
-          <div className="bg-blue-50/70 border border-blue-200 p-3.5 sm:p-4 rounded-xl flex gap-3 text-xs text-blue-900 mt-4 sm:mt-6 leading-relaxed">
-            <HelpCircle className="w-4 h-4 shrink-0 text-blue-600 mt-0.5" />
+          <div className="bg-blue-50/70 border border-blue-200 p-3.5 sm:p-4 rounded-xl flex items-start gap-3 text-xs text-blue-900 mt-4 sm:mt-6 leading-relaxed">
+            <HelpCircle className="w-5 h-5 shrink-0 text-blue-600 mt-0.5" />
             <div>
-              <strong className="text-blue-900 block mb-0.5">Precisa de ajuda?</strong>
-              O código de segurança será enviado para o seu e-mail. Se demorar a chegar, confira também sua pasta de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong>. Caso precise de apoio, nossa equipe presencial na escola está pronta para te ajudar.
+              <strong className="text-blue-900 block mb-0.5 text-xs sm:text-sm font-bold">Precisa de ajuda?</strong>
+              O código de segurança de 6 dígitos será enviado para o seu e-mail. Se demorar a chegar, confira também sua pasta de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong>. Caso precise de apoio, procure a nossa equipe presencial na escola ou envie um e-mail para <a href="mailto:suporte@catraki.com.br" className="text-sesi-primary font-bold underline hover:text-blue-900">suporte@catraki.com.br</a>.
             </div>
           </div>
 

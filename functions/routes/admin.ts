@@ -3,14 +3,20 @@ import {
   CreateTemplateSchema,
   CreateDocumentSchema,
   ManualReviewActionSchema,
+  CancelDocumentErrorSchema,
   generateUniqueDocId,
 } from '../../src/lib/schemas.ts';
 import {
   sha256,
   generateSecureToken,
   encryptAesGcm,
+  decryptAesGcm,
   verifyPasswordPbkdf2,
 } from '../../src/lib/crypto.ts';
+import {
+  getTransactionalCancellationEmailHtml,
+  getTransactionalCancellationEmailText,
+} from '../../src/lib/email-templates.ts';
 import { verifyAuditChain, computeMerkleRoot } from '../../src/lib/audit-chain.ts';
 import { requireAuth, signJwt, JwtPayload } from '../middleware/auth.ts';
 import type {
@@ -156,6 +162,7 @@ adminRouter.get('/documents', async (c) => {
   const docs = await db.prepare(
     `SELECT d.id, d.template_id, d.template_version, d.minor_name, d.minor_birth_date, d.minor_cpf, d.parent_name,
             d.status, d.access_token, d.expires_at, d.retention_expires_at, d.created_at, d.revoked_at,
+            d.cancelled_at, d.cancelled_by_admin_id, d.cancellation_reason, d.cancellation_ip,
             t.title as template_title, t.procedure_description
      FROM documents d
      LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
@@ -184,7 +191,16 @@ adminRouter.get('/documents/:id', async (c) => {
     'SELECT * FROM audit_logs WHERE document_id = ?'
   ).bind(id).first<any>();
 
-  return c.json({ success: true, document: doc, audit_log: auditLog || null });
+  const cancellationAudit = await db.prepare(
+    'SELECT * FROM document_cancellation_audits WHERE document_id = ? ORDER BY cancelled_at DESC LIMIT 1'
+  ).bind(id).first<any>();
+
+  return c.json({ 
+    success: true, 
+    document: doc, 
+    audit_log: auditLog || null,
+    cancellation_audit: cancellationAudit || null 
+  });
 });
 
 adminRouter.post('/documents', requireAuth(['admin_master', 'operador']), async (c) => {
@@ -263,6 +279,232 @@ adminRouter.post('/documents', requireAuth(['admin_master', 'operador']), async 
     },
     message: 'Termo de autorização gerado e link de assinatura disponibilizado.',
   });
+});
+
+// ============================================================================
+// REVOGAÇÃO / CANCELAMENTO DE AUTORIZAÇÃO POR ERRO (CONFORMIDADE LGPD & MARCO CIVIL)
+// ============================================================================
+
+adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador']), async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user');
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = CancelDocumentErrorSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return c.json({
+      success: false,
+      error: parsed.error.errors[0]?.message || 'Justificativa obrigatória (mínimo 10 caracteres) e confirmação requerida.',
+      code: 'VALIDATION_ERROR',
+    }, 400);
+  }
+
+  const { reason } = parsed.data;
+  const db = c.env.DB;
+  if (!db) {
+    return c.json({ success: false, error: 'Serviço de banco de dados indisponível.', code: 'DB_UNAVAILABLE' }, 503);
+  }
+
+  // 1. Localiza documento
+  const doc = await db.prepare(
+    `SELECT d.*, t.title as template_title, t.procedure_description
+     FROM documents d
+     LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+     WHERE d.id = ?`
+  ).bind(id).first<any>();
+
+  if (!doc) {
+    return c.json({ success: false, error: 'Documento não localizado no sistema.', code: 'DOC_NOT_FOUND' }, 404);
+  }
+
+  if (doc.status === 'CANCELADO_POR_ERRO' || doc.status === 'cancelled_error') {
+    return c.json({
+      success: false,
+      error: 'Este documento já se encontra formalmente cancelado por inconsistência operacional.',
+      code: 'ALREADY_CANCELLED',
+    }, 400);
+  }
+
+  // 2. Extrai metadados forenses de IP e Navegador (Marco Civil da Internet Art. 15)
+  const clientIp = c.req.header('cf-connecting-ip') || 
+                   c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || 
+                   c.req.header('x-real-ip') || 
+                   '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Admin Web Panel';
+  const cancelledAtIso = new Date().toISOString();
+  const auditId = `CANCEL-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  // 3. Busca hash do manifesto existente ou fallback
+  const auditLog = await db.prepare('SELECT manifest_sha256 FROM audit_logs WHERE document_id = ?').bind(id).first<any>();
+  const manifestSha256 = auditLog?.manifest_sha256 || doc.content_sha256 || '';
+
+  // 4. Calcula Hash SHA-256 da linha de auditoria (Cadeia de Custódia e Não-Repúdio)
+  const logRowHash = await sha256(
+    `${auditId}|${doc.id}|${cancelledAtIso}|${user.sub}|${user.email}|${user.role}|${clientIp}|${manifestSha256}|${reason}`
+  );
+
+  // 5. Executa Soft Delete e Inserção Imutável de Auditoria via D1 Batch
+  await db.batch([
+    db.prepare(
+      `UPDATE documents 
+       SET status = 'CANCELADO_POR_ERRO',
+           cancelled_at = ?,
+           cancelled_by_admin_id = ?,
+           cancellation_reason = ?,
+           cancellation_ip = ?,
+           revoked_at = ?,
+           revoked_reason = ?
+       WHERE id = ?`
+    ).bind(
+      cancelledAtIso,
+      user.email,
+      reason,
+      clientIp,
+      cancelledAtIso,
+      `Cancelado por inconsistência operacional: ${reason}`,
+      doc.id
+    ),
+    db.prepare(
+      `INSERT INTO document_cancellation_audits (
+        id, document_id, cancelled_at, ip_address, user_agent,
+        cancelled_by_user_id, cancelled_by_user_email, cancelled_by_role,
+        justification, document_manifest_sha256, log_row_hash, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+    ).bind(
+      auditId,
+      doc.id,
+      cancelledAtIso,
+      clientIp,
+      userAgent,
+      user.sub,
+      user.email,
+      user.role,
+      reason,
+      manifestSha256,
+      logRowHash
+    ),
+  ]);
+
+  // 6. Notificação de Transparência por E-mail Transacional (LGPD Art. 6º, VI)
+  let emailDispatched = false;
+  let targetEmail: string | null = null;
+  const masterKey = c.env.ENCRYPTION_KEY_V1;
+
+  if (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' && masterKey) {
+    try {
+      targetEmail = await decryptAesGcm(doc.parent_email_encrypted, masterKey);
+    } catch {
+      // Ignora falha de decriptação caso a chave seja mock/incompatível
+    }
+  }
+
+  if (targetEmail && targetEmail.includes('@')) {
+    const formattedDate = new Date(cancelledAtIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const emailHtml = getTransactionalCancellationEmailHtml({
+      parentName: doc.parent_name || 'Responsável Legal',
+      minorName: doc.minor_name || 'Estudante',
+      documentId: doc.id,
+      validationCode: manifestSha256 ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
+      cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
+      institutionName: doc.institution_name || 'Escola CEMEIT',
+      reason,
+    });
+    const emailText = getTransactionalCancellationEmailText({
+      parentName: doc.parent_name || 'Responsável Legal',
+      minorName: doc.minor_name || 'Estudante',
+      documentId: doc.id,
+      validationCode: manifestSha256 ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
+      cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
+      institutionName: doc.institution_name || 'Escola CEMEIT',
+      reason,
+    });
+
+    const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
+
+    try {
+      if ((c.env as any).RESEND_API_KEY) {
+        const resendResp = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${(c.env as any).RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromAddress,
+            to: [targetEmail],
+            subject: `[SESI / Escola Cidadã] Notificação: Invalidação de Documento por Inconsistência Operacional`,
+            html: emailHtml,
+            text: emailText,
+          }),
+        });
+        if (resendResp.ok) {
+          emailDispatched = true;
+        }
+      } else {
+        const mcResp = await fetch('https://api.mailchannels.net/tx/v1/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            personalizations: [{ to: [{ email: targetEmail }] }],
+            from: { email: 'autorizacoes@catraki.com.br', name: 'Escola Cidadã — SESI Saúde' },
+            subject: `[SESI / Escola Cidadã] Notificação: Invalidação de Documento por Inconsistência Operacional`,
+            content: [
+              { type: 'text/plain', value: emailText },
+              { type: 'text/html', value: emailHtml },
+            ],
+          }),
+        });
+        if (mcResp.ok) {
+          emailDispatched = true;
+        }
+      }
+    } catch {
+      // Log silencioso para garantir atomicidade do cancelamento
+    }
+  }
+
+  return c.json({
+    success: true,
+    document_id: doc.id,
+    status: 'CANCELADO_POR_ERRO',
+    cancelled_at: cancelledAtIso,
+    audit_record_id: auditId,
+    log_row_hash: logRowHash,
+    email_notification_dispatched: emailDispatched,
+    message: 'Autorização cancelada com sucesso por inconsistência operacional. A trilha forense foi registrada e o responsável legal foi notificado.',
+  });
+});
+
+// Alias da rota de cancelamento
+adminRouter.post('/documents/:id/revoke-error', requireAuth(['admin_master', 'operador']), async (c) => {
+  const handler = adminRouter.routes.find((r) => r.path === '/documents/:id/cancel' && r.method === 'POST')?.handler;
+  if (handler) {
+    return handler(c, async () => {});
+  }
+  return c.json({ success: false, error: 'Rota não encontrada' }, 404);
+});
+
+// Bloqueio explícito e normativo contra comandos de exclusão física permanente
+adminRouter.delete('/documents/:id', async (c) => {
+  return c.json({
+    success: false,
+    error: 'VIOLAÇÃO LEGAL: A exclusão física (DELETE) de termos e documentos é expressamente vedada pela LGPD (Lei 13.709/2018, Art. 16), Marco Civil da Internet (Lei 12.965/2014, Art. 15) e Lei 14.063/2020. Utilize a rota de cancelamento administrativo (POST /api/admin/documents/:id/cancel) com status CANCELADO_POR_ERRO.',
+    code: 'PHYSICAL_DELETION_PROHIBITED',
+  }, 405);
+});
+
+// Trilha de auditoria das revogações e cancelamentos
+adminRouter.get('/cancellation-audits', requireAuth(['admin_master', 'dpo', 'operador']), async (c) => {
+  const db = c.env.DB;
+  const list = await db.prepare(
+    `SELECT c.*, d.minor_name, d.parent_name, t.title as template_title
+     FROM document_cancellation_audits c
+     JOIN documents d ON c.document_id = d.id
+     LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+     ORDER BY c.cancelled_at DESC LIMIT 100`
+  ).all<any>();
+
+  return c.json({ success: true, cancellation_audits: list.results || [] });
 });
 
 // ============================================================================

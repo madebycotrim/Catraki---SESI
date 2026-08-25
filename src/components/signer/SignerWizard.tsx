@@ -103,6 +103,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
             setStep(3);
           }}
           onBack={() => setStep(1)}
+          onNavigateToValidator={onNavigateToValidator}
         />
       )}
 

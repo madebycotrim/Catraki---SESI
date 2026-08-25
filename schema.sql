@@ -48,7 +48,7 @@
     parent_email_bindex_sha256 TEXT, -- Blind index SHA-256 para buscas seguras e sigilosas (LGPD)
     key_version INTEGER NOT NULL DEFAULT 1,
     access_token TEXT UNIQUE NOT NULL,
-    status TEXT CHECK(status IN ('draft','pending','signed','revoked','expired')) DEFAULT 'pending',
+    status TEXT CHECK(status IN ('draft','pending','signed','revoked','expired','CANCELADO_POR_ERRO','cancelled_error')) DEFAULT 'pending',
     otp_secret_hash TEXT,
     otp_attempts INTEGER DEFAULT 0 CHECK(otp_attempts >= 0 AND otp_attempts <= 5),
     otp_expires_at DATETIME,
@@ -57,6 +57,10 @@
     created_by_admin TEXT,
     revoked_at DATETIME,
     revoked_reason TEXT,
+    cancelled_at DATETIME,
+    cancelled_by_admin_id TEXT,
+    cancellation_reason TEXT,
+    cancellation_ip TEXT,
     otp_requested_at DATETIME,
     otp_verified_at DATETIME,
     otp_email_message_id TEXT,
@@ -157,6 +161,22 @@
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  -- 9. Trilha de Auditoria Imutável de Revogação e Cancelamento por Erro Operacional
+  CREATE TABLE IF NOT EXISTS document_cancellation_audits (
+    id TEXT PRIMARY KEY,                       -- Ex: 'CANCEL-20260825-103000-A1B2'
+    document_id TEXT NOT NULL REFERENCES documents(id),
+    cancelled_at DATETIME NOT NULL,            -- Data e hora exata UTC com fuso horário ISO-8601
+    ip_address TEXT NOT NULL,                  -- IP de origem do operador (Art. 15 da Lei 12.965/2014 - Marco Civil)
+    user_agent TEXT NOT NULL,                  -- User-Agent / Navegador de quem comandou
+    cancelled_by_user_id TEXT NOT NULL,        -- ID do usuário / funcionário no sistema
+    cancelled_by_user_email TEXT NOT NULL,     -- E-mail do operador autenticado
+    cancelled_by_role TEXT NOT NULL,           -- Perfil de permissão (RBAC: operador, admin_master, dpo)
+    justification TEXT NOT NULL,               -- Justificativa detalhada obrigatória
+    document_manifest_sha256 TEXT,             -- Hash SHA-256 do documento / manifesto no cancelamento
+    log_row_hash TEXT NOT NULL CHECK(LENGTH(log_row_hash) = 64), -- Hash SHA-256 para integridade e não repúdio
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   -- ============================================================================
   -- TRIGGERS DE SEGURANÇA FÍSICA E IMUTABILIDADE FORENSE
   -- ============================================================================
@@ -205,6 +225,35 @@
     SELECT RAISE(ABORT, 'VIOLAÇÃO DE INTEGRIDADE: Modelos de termos já publicados não podem ter seu conteúdo alterado in-place. Crie uma nova versão.');
   END;
 
+  -- E. Bloqueio Absoluto de Exclusão Física em Documentos (Soft Delete Obrigatório - LGPD/Marco Civil/Lei 14.063)
+  CREATE TRIGGER IF NOT EXISTS prevent_document_delete
+  BEFORE DELETE ON documents
+  BEGIN
+    SELECT RAISE(ABORT, 'VIOLAÇÃO LEGAL (LGPD/Marco Civil/Lei 14.063): É expressamente proibida a exclusão física (DELETE) de documentos ou autorizações. Utilize o cancelamento de estado com status CANCELADO_POR_ERRO para preservar a cadeia de custódia e evidências digitais.');
+  END;
+
+  -- F. Bloqueio Físico contra Alterações ou Exclusões na Trilha de Auditoria de Cancelamento
+  CREATE TRIGGER IF NOT EXISTS prevent_cancellation_audit_update
+  BEFORE UPDATE ON document_cancellation_audits
+  BEGIN
+    SELECT RAISE(ABORT, 'VIOLAÇÃO DE SEGURANÇA: Registros de auditoria de cancelamento por erro são imutáveis (append-only).');
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS prevent_cancellation_audit_delete
+  BEFORE DELETE ON document_cancellation_audits
+  BEGIN
+    SELECT RAISE(ABORT, 'VIOLAÇÃO DE SEGURANÇA: Registros de auditoria de cancelamento não podem ser apagados sob hipótese alguma.');
+  END;
+
+  -- G. Modo Somente-Leitura para Documentos com Status CANCELADO_POR_ERRO
+  CREATE TRIGGER IF NOT EXISTS prevent_cancelled_doc_modification
+  BEFORE UPDATE ON documents
+  FOR EACH ROW
+  WHEN OLD.status IN ('CANCELADO_POR_ERRO', 'cancelled_error') AND NEW.status != OLD.status
+  BEGIN
+    SELECT RAISE(ABORT, 'VIOLAÇÃO DE INTEGRIDADE: Documentos cancelados por inconsistência operacional entram em modo somente-leitura definitivo e não podem ser reativados.');
+  END;
+
   -- ============================================================================
   -- ÍNDICES DE ALTA PERFORMANCE E BUSCA SEGURA
   -- ============================================================================
@@ -218,6 +267,9 @@
   CREATE INDEX IF NOT EXISTS idx_admin_email ON admin_users(email);
   CREATE INDEX IF NOT EXISTS idx_lgpd_status ON lgpd_requests(status);
   CREATE INDEX IF NOT EXISTS idx_merkle_created ON merkle_roots_anchors(created_at);
+  CREATE INDEX IF NOT EXISTS idx_cancel_doc ON document_cancellation_audits(document_id);
+  CREATE INDEX IF NOT EXISTS idx_cancel_created ON document_cancellation_audits(created_at);
+  CREATE INDEX IF NOT EXISTS idx_cancel_user ON document_cancellation_audits(cancelled_by_user_id);
 
   -- ============================================================================
   -- CARGA INICIAL DE DADOS (SEED DATA)

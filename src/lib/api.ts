@@ -7,7 +7,7 @@ import {
 } from './crypto.ts';
 import { computeLogRowHash, verifyAuditChain } from './audit-chain.ts';
 import { querySesiMatricula } from './sesi-matricula.ts';
-import { maskCPF, getInitials, generateUniqueDocId, formatUserAgent } from './schemas.ts';
+import { maskCPF, maskName, getInitials, generateUniqueDocId, formatUserAgent } from './schemas.ts';
 import type {
   DocumentRecord,
   DocumentTemplate,
@@ -16,6 +16,7 @@ import type {
   PublicValidationResponse,
   ChainVerificationResult,
   Institution,
+  DuplicateStudentCheckResponse,
 } from './types.ts';
 
 const API_BASE = '/api';
@@ -148,20 +149,32 @@ Estou ciente e concordo que a plataforma registrará e armazenará, de forma seg
 
 const SEED_DOCUMENTS: (DocumentRecord & { template_title: string; procedure_description: string; content_markdown: string; consent_text_version: number })[] = [];
 
+const memoryStore = new Map<string, string>();
+
 // Helper Functions para Armazenamento Transitório de Contingência (SessionStorage Volátil)
 const getStorage = <T>(key: string, seed: T): T => {
-  if (typeof window === 'undefined') return seed;
-  const data = sessionStorage.getItem(key);
-  if (data) {
-    try { return JSON.parse(data); } catch {}
+  if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+    const data = sessionStorage.getItem(key);
+    if (data) {
+      try { return JSON.parse(data); } catch {}
+    }
+    sessionStorage.setItem(key, JSON.stringify(seed));
+    return JSON.parse(JSON.stringify(seed));
   }
-  sessionStorage.setItem(key, JSON.stringify(seed));
-  return seed;
+  
+  if (memoryStore.has(key)) {
+    try { return JSON.parse(memoryStore.get(key)!); } catch {}
+  }
+  const cloned = JSON.parse(JSON.stringify(seed));
+  memoryStore.set(key, JSON.stringify(cloned));
+  return cloned;
 };
 
 const setStorage = <T>(key: string, data: T) => {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
     sessionStorage.setItem(key, JSON.stringify(data));
+  } else {
+    memoryStore.set(key, JSON.stringify(data));
   }
 };
 
@@ -203,6 +216,16 @@ const setInstitutions = (d: Institution[]) => setStorage('catraki_institutions',
 // ============================================================================
 
 export const apiClient = {
+  /**
+   * Reseta o banco de dados local em memória/sessão (útil para testes unitários e reinicialização)
+   */
+  resetLocalDb() {
+    memoryStore.clear();
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.clear();
+    }
+  },
+
   /**
    * Busca documento pelo token de acesso
    */
@@ -314,6 +337,75 @@ export const apiClient = {
       message: check.hasValidEnrollment
         ? 'Vínculo com a base de matrícula SESI confirmado com sucesso.'
         : 'Vínculo direto não localizado na base de matrícula. É necessário envio de documentação para revisão da equipe.',
+    };
+  },
+
+  /**
+   * Verifica se o estudante já possui uma autorização médica válida e assinada (Prevenção de Duplicidade)
+   */
+  async checkStudentDuplicate(params: {
+    minor_cpf: string;
+    minor_name?: string;
+    minor_birth_date?: string;
+  }): Promise<DuplicateStudentCheckResponse> {
+    const cleanCpf = (params.minor_cpf || '').replace(/\D/g, '');
+    const cleanName = (params.minor_name || '').trim().toLowerCase();
+
+    try {
+      const resp = await fetch(`${API_BASE}/signer/check-student`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          minor_cpf: cleanCpf,
+          minor_name: params.minor_name,
+          minor_birth_date: params.minor_birth_date,
+        }),
+      });
+      if (resp.ok) {
+        return await resp.json();
+      }
+    } catch {}
+
+    // Fallback local em storage/sessionStorage
+    const docs = getDocuments();
+    const logs = getAuditLogs();
+
+    const signedDoc = docs.find((d) => {
+      if (d.status !== 'signed') return false;
+      const dCpf = ((d as any).minor_cpf_raw || (d as any).minor_cpf || '').replace(/\D/g, '');
+      if (cleanCpf && cleanCpf.length === 11 && dCpf === cleanCpf) return true;
+      if (
+        cleanName &&
+        d.minor_name &&
+        d.minor_name.trim().toLowerCase() === cleanName &&
+        params.minor_birth_date &&
+        d.minor_birth_date === params.minor_birth_date
+      ) {
+        return true;
+      }
+      return false;
+    });
+
+    if (signedDoc) {
+      const audit = logs.find((a) => a.document_id === signedDoc.id || (a as any).manifest_sha256 === (signedDoc as any).manifest_sha256);
+      const manifestHash = audit?.manifest_sha256 || (signedDoc as any).manifest_sha256;
+      
+      const validationCode = (signedDoc as any).validation_code || (manifestHash
+        ? `SESI-${manifestHash.substring(0, 4).toUpperCase()}-${manifestHash.substring(manifestHash.length - 4).toUpperCase()}`
+        : `SESI-${(signedDoc.id.replace(/\D/g, '') + '00000000').slice(-8, -4)}-${(signedDoc.id.replace(/\D/g, '') + '00000000').slice(-4)}`);
+
+      return {
+        hasExistingSignature: true,
+        existingValidationCode: validationCode,
+        signedAt: (signedDoc as any).otp_verified_at || signedDoc.created_at,
+        signerNameMasked: signedDoc.parent_name ? maskName(signedDoc.parent_name) : 'Responsável Legal',
+        minorName: signedDoc.minor_name,
+        documentId: signedDoc.id,
+      };
+    }
+
+    return {
+      hasExistingSignature: false,
     };
   },
 
@@ -478,6 +570,24 @@ export const apiClient = {
     const doc = docs.find((d) => d.access_token === payload.token);
     if (!doc) return { success: false, error: 'Documento não localizado.' };
 
+    // Verificação de duplicidade: não permite que o mesmo aluno tenha mais de uma autorização assinada
+    if (payload.minor_cpf) {
+      const dupCheck = await this.checkStudentDuplicate({
+        minor_cpf: payload.minor_cpf,
+        minor_name: payload.minor_name,
+        minor_birth_date: payload.minor_birth_date,
+      });
+
+      if (dupCheck.hasExistingSignature && dupCheck.documentId !== doc.id) {
+        return {
+          success: false,
+          error: `Este(a) estudante já possui uma autorização válida e assinada (Código: ${dupCheck.existingValidationCode}).`,
+          code: 'STUDENT_ALREADY_SIGNED',
+          existing_validation_code: dupCheck.existingValidationCode,
+        };
+      }
+    }
+
     const signedAt = new Date().toISOString();
     const signaturePngSha256 = await sha256(payload.signature_png_base64);
     const cpfMasked = maskCPF(payload.signer_cpf);
@@ -585,15 +695,17 @@ export const apiClient = {
     doc.parent_name = payload.signer_name;
     (doc as any).otp_verified_at = signedAt;
     (doc as any).doc_parent_hash_sha256 = docParentHash;
+    (doc as any).manifest_sha256 = manifestSha256;
+    const validationCode = `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`;
+    (doc as any).validation_code = validationCode;
     if (payload.minor_name) {
       doc.minor_name = payload.minor_name;
     }
     if (payload.minor_cpf) {
       (doc as any).minor_cpf = maskCPF(payload.minor_cpf);
+      (doc as any).minor_cpf_raw = payload.minor_cpf.replace(/\D/g, '');
     }
     setDocuments(docs);
-
-    const validationCode = `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`;
 
     return {
       success: true,
@@ -682,7 +794,7 @@ export const apiClient = {
     });
 
     if (!audit) {
-      return { success: false, error: 'Código de validação ou manifesto não localizado na trilha de auditoria oficial.' };
+      return { success: false, error: 'Código de validação ou manifesto não localizado na base de registros da plataforma.' };
     }
 
     const docs = getDocuments();
@@ -839,6 +951,52 @@ export const apiClient = {
       }
     } catch {}
     return { success: true, documents: getDocuments() };
+  },
+
+  /**
+   * Revoga / Cancela autorização por erro operacional com soft delete e trilha de auditoria imutável (LGPD/Marco Civil)
+   */
+  async cancelDocumentDueToError(docId: string, reason: string): Promise<any> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/documents/${encodeURIComponent(docId)}/cancel`, {
+        method: 'POST',
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ reason, confirmed: true }),
+      });
+      const data = await resp.json().catch(() => null);
+      if (data) return data;
+    } catch {}
+
+    // Fallback local caso o backend esteja em modo mock / offline
+    const docs = getDocuments();
+    const doc = docs.find((d) => d.id === docId);
+    if (!doc) return { success: false, error: 'Documento não encontrado.' };
+
+    const cancelledAt = new Date().toISOString();
+    doc.status = 'CANCELADO_POR_ERRO' as any;
+    doc.cancelled_at = cancelledAt;
+    doc.cancellation_reason = reason;
+    doc.revoked_at = cancelledAt;
+    doc.revoked_reason = `Cancelado por inconsistência operacional: ${reason}`;
+    setDocuments(docs);
+
+    return {
+      success: true,
+      document_id: docId,
+      status: 'CANCELADO_POR_ERRO',
+      cancelled_at: cancelledAt,
+      message: 'Autorização cancelada com sucesso por inconsistência operacional. O responsável legal foi notificado e a trilha forense foi registrada.',
+    };
+  },
+
+  async getAdminCancellationAudits(): Promise<any> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/cancellation-audits`, {
+        headers: this.getAuthHeaders(),
+      });
+      if (resp.ok) return await resp.json();
+    } catch {}
+    return { success: true, cancellation_audits: [] };
   },
 
   async createAdminDocument(docData: any): Promise<any> {

@@ -64,7 +64,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
             <div className="text-left sm:text-right">
               <div className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full mb-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                <span className="text-[10px] font-bold text-emerald-800 uppercase">Sistema Oficial</span>
+                <span className="text-[10px] font-bold text-emerald-800 uppercase">Ambiente Seguro</span>
               </div>
               <p className="text-[10px] text-slate-400 m-0">
                 {dataHoje}

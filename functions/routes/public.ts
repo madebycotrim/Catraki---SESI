@@ -31,7 +31,8 @@ publicRouter.get('/validate/:query', async (c) => {
   if (cleanLower.length === 64 && /^[0-9a-f]{64}$/.test(cleanLower)) {
     // 1. Busca por Hash SHA-256 exato de 64 caracteres
     record = await db.prepare(
-      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, d.revoked_at, d.revoked_reason,
+      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
+              d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason, d.cancelled_by_admin_id,
               t.title as template_title, t.procedure_description
        FROM audit_logs a
        LEFT JOIN documents d ON a.document_id = d.id
@@ -45,7 +46,8 @@ publicRouter.get('/validate/:query', async (c) => {
     const hexSuffix = searchHex.substring(4, 8);
 
     record = await db.prepare(
-      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, d.revoked_at, d.revoked_reason,
+      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
+              d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason, d.cancelled_by_admin_id,
               t.title as template_title, t.procedure_description
        FROM audit_logs a
        LEFT JOIN documents d ON a.document_id = d.id
@@ -56,7 +58,8 @@ publicRouter.get('/validate/:query', async (c) => {
   } else if (clean.startsWith('DOC-') && clean.length >= 12) {
     // 3. Busca por identificador exato de documento DOC-YYYYMMDD-HHMMSS
     record = await db.prepare(
-      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, d.revoked_at, d.revoked_reason,
+      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
+              d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason, d.cancelled_by_admin_id,
               t.title as template_title, t.procedure_description
        FROM audit_logs a
        LEFT JOIN documents d ON a.document_id = d.id
@@ -70,7 +73,7 @@ publicRouter.get('/validate/:query', async (c) => {
     return c.json({
       success: false,
       valid: false,
-      error: 'Código de autenticidade não localizado na cadeia de custódia oficial da plataforma Catraki. Verifique se digitou o código completo (Ex: SESI-XXXX-XXXX).',
+      error: 'Código de autenticidade não localizado na base de registros da plataforma Catraki. Verifique se digitou o código completo (Ex: SESI-XXXX-XXXX).',
       code: 'MANIFEST_NOT_FOUND',
     }, 404);
   }
@@ -86,8 +89,10 @@ publicRouter.get('/validate/:query', async (c) => {
     .filter(Boolean)
     .join(', ') || 'Registrada no sistema';
 
+  const isCancelledError = record.doc_status === 'CANCELADO_POR_ERRO' || record.doc_status === 'cancelled_error';
+
   const response: PublicValidationResponse = {
-    valid: true,
+    valid: !isCancelledError && record.doc_status !== 'revoked',
     legal_notice: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020 c/c Art. 10, §2º, MP nº 2.200-2/2001; LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
     signature_type: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020',
     document_id: record.document_id,
@@ -116,6 +121,11 @@ publicRouter.get('/validate/:query', async (c) => {
     revocation_info: record.doc_status === 'revoked' ? {
       revoked_at: record.revoked_at,
       revoked_reason: record.revoked_reason || 'Revogado a pedido do titular / responsável legal',
+    } : null,
+    cancellation_info: isCancelledError ? {
+      cancelled_at: record.cancelled_at || record.revoked_at || record.created_at,
+      cancellation_reason: record.cancellation_reason || record.revoked_reason || 'Invalidação administrativa por inconsistência operacional',
+      cancelled_by_role: 'Operador Administrativo SESI / Saúde',
     } : null,
   };
 

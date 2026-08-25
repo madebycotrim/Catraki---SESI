@@ -7,6 +7,7 @@ import {
   SignDocumentSchema,
   RevokeConsentSchema,
   maskCPF,
+  maskName,
   generateUniqueDocId,
   formatUserAgent,
 } from '../../src/lib/schemas.ts';
@@ -235,6 +236,56 @@ signerRouter.post('/verify-matricula', async (c) => {
       ? 'Vínculo com a base de matrícula SESI confirmado com sucesso.'
       : 'Vínculo direto não localizado na base de matrícula. É necessário envio de documentação para revisão da equipe.',
   });
+});
+
+/**
+ * POST /api/signer/check-student
+ * Verifica se o estudante já possui uma autorização ativa e assinada
+ */
+signerRouter.post('/check-student', async (c) => {
+  const body = await c.req.json();
+  const { minor_cpf, minor_name, minor_birth_date } = body;
+  const db = c.env.DB;
+
+  const cleanCpf = (minor_cpf || '').replace(/\D/g, '');
+  const cleanName = (minor_name || '').trim();
+
+  let query = "SELECT d.id, d.status, d.minor_name, d.parent_name, a.manifest_sha256, a.signed_at FROM documents d LEFT JOIN audit_logs a ON d.id = a.document_id WHERE d.status = 'signed' AND (";
+  const params: any[] = [];
+
+  if (cleanCpf && cleanCpf.length === 11) {
+    query += "d.minor_cpf = ? OR d.minor_cpf_raw = ?";
+    params.push(maskCPF(cleanCpf), cleanCpf);
+  } else if (cleanName && minor_birth_date) {
+    query += "LOWER(d.minor_name) = LOWER(?) AND d.minor_birth_date = ?";
+    params.push(cleanName, minor_birth_date);
+  } else {
+    return c.json({ hasExistingSignature: false });
+  }
+
+  query += ") ORDER BY a.signed_at DESC LIMIT 1";
+
+  try {
+    const existing = await db.prepare(query).bind(...params).first<any>();
+    if (existing) {
+      const validationCode = existing.manifest_sha256
+        ? `SESI-${existing.manifest_sha256.substring(0, 4).toUpperCase()}-${existing.manifest_sha256.substring(existing.manifest_sha256.length - 4).toUpperCase()}`
+        : `SESI-${existing.id.slice(-8).toUpperCase()}`;
+
+      return c.json({
+        hasExistingSignature: true,
+        existingValidationCode: validationCode,
+        signedAt: existing.signed_at,
+        signerNameMasked: existing.parent_name ? maskName(existing.parent_name) : 'Responsável Legal',
+        minorName: existing.minor_name,
+        documentId: existing.id,
+      });
+    }
+  } catch (e) {
+    console.error('Erro ao verificar duplicidade de estudante:', e);
+  }
+
+  return c.json({ hasExistingSignature: false });
 });
 
 /**
@@ -688,6 +739,27 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     return c.json({ success: false, error: `Documento em status inválido: ${doc.status}`, code: 'INVALID_STATUS' }, 400);
   }
 
+  // Prevenção de duplicidade: não permite que o mesmo estudante tenha mais de uma autorização assinada
+  const rawMinorCpf = parsed.data.minor_cpf ? parsed.data.minor_cpf.replace(/\D/g, '') : '';
+  if (rawMinorCpf && rawMinorCpf.length === 11) {
+    const existingSigned = await db.prepare(
+      "SELECT d.id, a.manifest_sha256 FROM documents d LEFT JOIN audit_logs a ON d.id = a.document_id WHERE d.status = 'signed' AND (d.minor_cpf = ? OR d.minor_cpf_raw = ?) AND d.id != ? LIMIT 1"
+    ).bind(maskCPF(rawMinorCpf), rawMinorCpf, doc.id).first<any>();
+
+    if (existingSigned) {
+      const vCode = existingSigned.manifest_sha256
+        ? `SESI-${existingSigned.manifest_sha256.substring(0, 4).toUpperCase()}-${existingSigned.manifest_sha256.substring(existingSigned.manifest_sha256.length - 4).toUpperCase()}`
+        : `SESI-${existingSigned.id.slice(-8).toUpperCase()}`;
+
+      return c.json({
+        success: false,
+        error: `Este(a) estudante já possui uma autorização médica ativa e assinada (Código: ${vCode}).`,
+        code: 'STUDENT_ALREADY_SIGNED',
+        existing_validation_code: vCode,
+      }, 409);
+    }
+  }
+
   const computedOtpHash = await hmacSha256(otp_code, pepper);
   if (!doc.otp_secret_hash || !constantTimeEqual(doc.otp_secret_hash, computedOtpHash)) {
     return c.json({ success: false, error: 'Código de autenticação 2FA inválido ou expirado.', code: 'OTP_INVALID' }, 400);
@@ -1050,8 +1122,18 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
           </li>
         </ul>
       </div>
-      <div style="margin: 16px 0; background-color: #fffbeb; border: 1.5px solid #fef3c7; border-radius: 8px; padding: 12px 16px; font-size: 11.5px; color: #78350f;">
-        <strong>⚠️ AVISO OPERACIONAL IMPORTANTE:</strong> Este comprovante oficial atesta a autorização legal. Contudo, <strong>esta assinatura não garante atendimento presencial imediato</strong>, que fica condicionado à capacidade diária máxima de atendimentos no local.
+      <div style="margin: 16px 0; background-color: #fffbeb; border: 1.5px solid #fde68a; border-radius: 12px; padding: 14px 16px; font-size: 11.5px; color: #78350f;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="width: 28px; vertical-align: top; font-size: 18px; line-height: 1; padding-right: 8px;">
+              ⚠️
+            </td>
+            <td style="vertical-align: top; color: #451a03; font-size: 11.5px; line-height: 1.5;">
+              <strong style="color: #451a03; font-size: 12px; display: block; margin-bottom: 2px;">Aviso Operacional Importante</strong>
+              Este comprovante atesta a autorização registrada. Contudo, <strong>esta assinatura não garante atendimento presencial imediato</strong>, que fica condicionado à capacidade diária máxima de atendimentos no local.
+            </td>
+          </tr>
+        </table>
       </div>
       <div style="border-top: 1.5px solid #cbd5e1; padding-top: 16px; margin-top: 24px; font-size: 11px; color: #475569;">
         <table style="width: 100%; border-collapse: collapse;">
@@ -1059,7 +1141,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
             <td class="mobile-stack" style="vertical-align: top; padding-right: 14px; font-size: 11.5px;">
               <span style="color: #64748b; font-weight: 700;">Código de Validação:</span> <strong>${validationCode}</strong><br>
               <span style="color: #64748b; font-weight: 700;">Hash do Manifesto:</span> <span style="font-family: monospace; font-size: 10px;">${manifestSha256}</span><br>
-              <span style="color: #64748b; font-weight: 700;">Data e Hora Oficial:</span> ${dataFormatada}<br>
+              <span style="color: #64748b; font-weight: 700;">Data e Hora do Registro:</span> ${dataFormatada}<br>
               <span style="color: #64748b; font-weight: 700;">IP do Dispositivo:</span> ${ipAddress}<br>
               <span style="color: #64748b; font-weight: 700;">Impressão Digital do Termo + Pai:</span> <span style="font-family: monospace; font-size: 10px;">${docParentHash}</span>
             </td>
@@ -1071,7 +1153,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         </table>
       </div>
       <div style="margin-top: 24px; border-top: 1px dashed #e2e8f0; padding-top: 12px; font-size: 10.5px; color: #64748b; text-align: center;">
-        O comprovante de assinatura oficial em formato PDF contendo toda a trilha de auditoria e a validade jurídica (Art. 4º, II da Lei 14.063/2020, MP 2.200-2/2001 e LGPD) está anexado a esta mensagem.
+        O comprovante de assinatura em formato PDF contendo toda a trilha de auditoria e a validade jurídica (Art. 4º, II da Lei 14.063/2020, MP 2.200-2/2001 e LGPD) está anexado a esta mensagem.
       </div>
     </div>
   </div>

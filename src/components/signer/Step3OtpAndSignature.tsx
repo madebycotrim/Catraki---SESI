@@ -147,17 +147,17 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
    */
   const handleInitiateSign = async () => {
     if (!authHealth) {
-      setErrorMessage('É obrigatório autorizar o atendimento de saúde para prosseguir.');
+      setErrorMessage('Para que o estudante participe do projeto, marque a opção autorizando os atendimentos de saúde.');
       return;
     }
 
     if (!authData) {
-      setErrorMessage('É obrigatório autorizar o tratamento de dados pessoais para prosseguir.');
+      setErrorMessage('Para prosseguir com segurança jurídica, confirme a autorização para o tratamento de dados pessoais (LGPD).');
       return;
     }
 
     if (!readAndAccept) {
-      setErrorMessage('É obrigatório declarar que leu e concorda com as disposições do Termo.');
+      setErrorMessage('Por favor, confirme que você leu e concorda com as condições do Termo de Consentimento.');
       return;
     }
 
@@ -175,17 +175,17 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const handleVerifyAndFinalizeSign = async () => {
     const cleanOtp = otpCode.trim();
     if (!cleanOtp || cleanOtp.length < 6) {
-      setOtpError('Por favor, digite o código de 6 dígitos recebido.');
+      setOtpError('Por favor, digite o código de segurança completo de 6 dígitos enviado ao seu e-mail.');
       return;
     }
 
     if (!declarationLegalResponsibility) {
-      setOtpError('Você precisa aceitar a declaração de responsabilidade legal.');
+      setOtpError('Confirme a declaração de veracidade e responsabilidade legal para prosseguir.');
       return;
     }
 
     if (!signaturePngBase64) {
-      setOtpError('Por favor, desenhe sua assinatura no quadro antes de concluir.');
+      setOtpError('Por favor, faça o desenho da sua assinatura na área indicada antes de concluir.');
       return;
     }
 
@@ -236,10 +236,14 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         setShowOtpModal(false);
         onSuccess({ ...resp, otp_channel: otpChannel });
       } else {
-        setOtpError(resp.error || 'Falha ao registrar a assinatura.');
+        const errMsg = resp.error || 'Falha ao registrar a assinatura.';
+        setOtpError(errMsg);
+        setErrorMessage(errMsg);
       }
     } catch (err: any) {
-      setOtpError(err.message || 'Erro inesperado ao registrar assinatura.');
+      const errMsg = err.message || 'Erro inesperado ao registrar assinatura.';
+      setOtpError(errMsg);
+      setErrorMessage(errMsg);
     } finally {
       setSubmittingSign(false);
     }
@@ -799,7 +803,13 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear }) => {
           </button>
         )}
       </div>
-      <div className="border-2 border-dashed border-slate-300 rounded-lg overflow-hidden bg-slate-50 relative group">
+      <div className="border-2 border-dashed border-slate-300 rounded-lg overflow-hidden bg-slate-50 relative group select-none">
+        {/* Marca d'água de proteção no fundo do quadro */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none opacity-25 text-[8.5px] sm:text-[9.5px] font-bold uppercase tracking-widest text-slate-400 rotate-[-6deg] space-y-1">
+          <span>CATRAKI DIGITAL • ASSINATURA ELETRÔNICA</span>
+          <span>USO EXCLUSIVO NESTE TERMO • NÃO COPIAR</span>
+        </div>
+
         <canvas
           ref={canvasRef}
           onMouseDown={startDrawing}
@@ -809,10 +819,11 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear }) => {
           onTouchStart={startDrawing}
           onTouchMove={draw}
           onTouchEnd={stopDrawing}
-          className="w-full h-[120px] block cursor-crosshair touch-none"
+          onContextMenu={(e) => e.preventDefault()}
+          className="w-full h-[120px] block cursor-crosshair touch-none relative z-10 select-none"
         />
         {!hasDrawn && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 text-[11px] font-medium font-sans">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-500 text-[11px] font-semibold font-sans z-20 bg-slate-50/40">
             Desenhe sua assinatura aqui
           </div>
         )}

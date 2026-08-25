@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ChevronRight, ChevronLeft, ShieldAlert } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ShieldAlert, AlertTriangle, AlertCircle, Loader2, FileSearch } from 'lucide-react';
 import { isValidCPF } from '../../lib/schemas.ts';
-import type { SignerRelationship, Institution } from '../../lib/types.ts';
+import { apiClient } from '../../lib/api.ts';
+import type { SignerRelationship, Institution, DuplicateStudentCheckResponse } from '../../lib/types.ts';
 
 interface FormData {
   minorName: string;
@@ -23,6 +24,7 @@ interface Step2FormDataProps {
   institution?: Institution | null;
   onProceed: (data: FormData) => void;
   onBack: () => void;
+  onNavigateToValidator?: (hash: string) => void;
 }
 
 export const Step2FormData: React.FC<Step2FormDataProps> = ({
@@ -30,6 +32,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
   institution,
   onProceed,
   onBack,
+  onNavigateToValidator,
 }) => {
   const [formData, setFormData] = useState<FormData>({
     minorName: initialData?.minorName || '',
@@ -46,6 +49,8 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [duplicateInfo, setDuplicateInfo] = useState<DuplicateStudentCheckResponse | null>(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
   const formatCpf = (value: string) => {
     return value
@@ -81,56 +86,130 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
     if (errors[name as keyof FormData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
+
+    if (name === 'minorCpf' || name === 'minorName') {
+      if (duplicateInfo) setDuplicateInfo(null);
+    }
+  };
+
+  const handleMinorCpfBlur = async () => {
+    if (formData.minorCpf && isValidCPF(formData.minorCpf)) {
+      setCheckingDuplicate(true);
+      try {
+        const dup = await apiClient.checkStudentDuplicate({
+          minor_cpf: formData.minorCpf,
+          minor_name: formData.minorName,
+          minor_birth_date: formData.minorBirthDate,
+        });
+        if (dup.hasExistingSignature) {
+          setDuplicateInfo(dup);
+        }
+      } catch (err) {
+        console.error('Erro na checagem de duplicidade:', err);
+      } finally {
+        setCheckingDuplicate(false);
+      }
+    }
   };
 
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof FormData, string>> = {};
     
-    if (!formData.minorName.trim()) newErrors.minorName = 'Nome completo do aluno é obrigatório';
+    // 1. Nome do Responsável
+    if (!formData.signerName.trim()) {
+      newErrors.signerName = 'Informe o seu nome completo conforme documento oficial.';
+    } else if (formData.signerName.trim().split(/\s+/).length < 2) {
+      newErrors.signerName = 'Digite o seu nome completo (nome e sobrenome).';
+    }
+
+    // 2. CPF do Responsável
+    if (!formData.signerCpf.trim()) {
+      newErrors.signerCpf = 'Informe o seu número de CPF.';
+    } else if (!isValidCPF(formData.signerCpf)) {
+      newErrors.signerCpf = 'CPF inválido. Confira os 11 dígitos digitados.';
+    }
+
+    // 3. Vínculo com o Menor
+    if (!formData.signerRelationship) {
+      newErrors.signerRelationship = 'Selecione o seu vínculo ou grau de parentesco com o estudante.';
+    }
+
+    // 4. Telefone (WhatsApp)
+    const cleanPhone = formData.signerPhone.replace(/\D/g, '');
+    if (!cleanPhone) {
+      newErrors.signerPhone = 'Informe um número de telefone com DDD para contato.';
+    } else if (cleanPhone.length < 10) {
+      newErrors.signerPhone = 'Telefone incompleto. Digite o DDD e o número (ex: 61 99999-9999).';
+    }
+
+    // 5. E-mail do Responsável
+    if (!formData.signerEmail.trim()) {
+      newErrors.signerEmail = 'Informe o e-mail onde você receberá o código de segurança de 6 dígitos.';
+    } else if (!/\S+@\S+\.\S+/.test(formData.signerEmail.trim())) {
+      newErrors.signerEmail = 'Digite um e-mail válido (exemplo: seu.nome@email.com).';
+    }
+
+    // 6. Nome do Aluno
+    if (!formData.minorName.trim()) {
+      newErrors.minorName = 'Informe o nome completo do estudante.';
+    } else if (formData.minorName.trim().split(/\s+/).length < 2) {
+      newErrors.minorName = 'Digite o nome e sobrenome do estudante.';
+    }
+
+    // 7. Data de Nascimento do Aluno
     if (!formData.minorBirthDate) {
-      newErrors.minorBirthDate = 'Data de nascimento é obrigatória';
+      newErrors.minorBirthDate = 'Informe a data de nascimento do estudante.';
     } else {
       const birthDate = new Date(formData.minorBirthDate);
       const today = new Date();
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-      }
-      if (age < 14) {
-        newErrors.minorBirthDate = 'Este projeto é destinado a estudantes a partir de 14 anos completos.';
+      if (isNaN(birthDate.getTime()) || birthDate > today) {
+        newErrors.minorBirthDate = 'Data de nascimento inválida.';
+      } else {
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        if (age < 14) {
+          newErrors.minorBirthDate = 'Este projeto é destinado a estudantes a partir de 14 anos completos.';
+        }
       }
     }
+
+    // 8. CPF do Aluno
     if (!formData.minorCpf.trim()) {
-      newErrors.minorCpf = 'O CPF do estudante é obrigatório.';
+      newErrors.minorCpf = 'Informe o número de CPF do estudante.';
     } else if (!isValidCPF(formData.minorCpf)) {
-      newErrors.minorCpf = 'CPF do estudante inválido. Por favor, confira os números digitados.';
-    }
-    if (!formData.signerName.trim()) newErrors.signerName = 'Seu nome completo é obrigatório';
-    if (!formData.signerCpf || !isValidCPF(formData.signerCpf)) {
-      newErrors.signerCpf = 'CPF do responsável inválido. Por favor, confira os números digitados.';
-    }
-    if (!formData.signerRelationship) {
-      newErrors.signerRelationship = 'Selecione o seu vínculo com o estudante';
-    }
-    if (formData.signerPhone.replace(/\D/g, '').length < 10) {
-      newErrors.signerPhone = 'Por favor, insira o telefone com DDD (ex: 61 99999-9999).';
-    }
-    if (!formData.signerEmail.trim()) {
-      newErrors.signerEmail = 'E-mail do responsável é obrigatório para envio do código de segurança';
-    } else if (!/\S+@\S+\.\S+/.test(formData.signerEmail.trim())) {
-      newErrors.signerEmail = 'Digite um e-mail válido (ex: nome@email.com)';
+      newErrors.minorCpf = 'CPF do estudante inválido. Confira os 11 dígitos digitados.';
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
-      onProceed(formData as any);
+    if (!validate()) return;
+
+    setCheckingDuplicate(true);
+    try {
+      const dup = await apiClient.checkStudentDuplicate({
+        minor_cpf: formData.minorCpf,
+        minor_name: formData.minorName,
+        minor_birth_date: formData.minorBirthDate,
+      });
+
+      if (dup.hasExistingSignature) {
+        setDuplicateInfo(dup);
+        return;
+      }
+    } catch (err) {
+      console.error('Erro ao verificar duplicidade de estudante:', err);
+    } finally {
+      setCheckingDuplicate(false);
     }
+
+    onProceed(formData as any);
   };
 
   const dataHoje = new Intl.DateTimeFormat('pt-BR', {
@@ -196,10 +275,15 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   value={formData.signerName}
                   onChange={handleChange}
                   autoComplete="name"
-                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary ${errors.signerName ? 'border-red-400 bg-red-50/30' : 'border-slate-300'}`}
+                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.signerName ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                   placeholder="Como no documento oficial"
                 />
-                {errors.signerName && <span className="text-[10px] font-semibold text-red-500">{errors.signerName}</span>}
+                {errors.signerName && (
+                  <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                    <span>{errors.signerName}</span>
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col gap-1">
@@ -215,10 +299,15 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   maxLength={14}
                   inputMode="numeric"
                   autoComplete="off"
-                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary ${errors.signerCpf ? 'border-red-400 bg-red-50/30' : 'border-slate-300'}`}
+                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.signerCpf ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                   placeholder="000.000.000-00"
                 />
-                {errors.signerCpf && <span className="text-[10px] font-semibold text-red-500">{errors.signerCpf}</span>}
+                {errors.signerCpf && (
+                  <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                    <span>{errors.signerCpf}</span>
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col gap-1">
@@ -230,7 +319,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   name="signerRelationship"
                   value={formData.signerRelationship}
                   onChange={handleChange}
-                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary bg-white cursor-pointer ${errors.signerRelationship ? 'border-red-400 bg-red-50/30' : 'border-slate-300'}`}
+                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none bg-white cursor-pointer transition-colors ${errors.signerRelationship ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                 >
                   <option value="">Selecione...</option>
                   <option value="Mãe">Mãe</option>
@@ -240,7 +329,12 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   <option value="Avô/Avó">Avô/Avó</option>
                   <option value="Tio/Tia">Tio/Tia</option>
                 </select>
-                {errors.signerRelationship && <span className="text-[10px] font-semibold text-red-500">{errors.signerRelationship}</span>}
+                {errors.signerRelationship && (
+                  <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                    <span>{errors.signerRelationship}</span>
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col gap-1">
@@ -256,10 +350,15 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   maxLength={15}
                   inputMode="tel"
                   autoComplete="tel"
-                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary ${errors.signerPhone ? 'border-red-400 bg-red-50/30' : 'border-slate-300'}`}
+                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.signerPhone ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                   placeholder="(61) 99999-9999"
                 />
-                {errors.signerPhone && <span className="text-[10px] font-semibold text-red-500">{errors.signerPhone}</span>}
+                {errors.signerPhone && (
+                  <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                    <span>{errors.signerPhone}</span>
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col gap-1 md:col-span-2">
@@ -279,10 +378,15 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   onChange={handleChange}
                   autoComplete="email"
                   inputMode="email"
-                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary ${errors.signerEmail ? 'border-red-400 bg-red-50/30' : 'border-slate-300'}`}
+                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.signerEmail ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                   placeholder="seu.email@exemplo.com"
                 />
-                {errors.signerEmail && <span className="text-[10px] font-semibold text-red-500">{errors.signerEmail}</span>}
+                {errors.signerEmail && (
+                  <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                    <span>{errors.signerEmail}</span>
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -304,10 +408,15 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   name="minorName"
                   value={formData.minorName}
                   onChange={handleChange}
-                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary ${errors.minorName ? 'border-red-400 bg-red-50/30' : 'border-slate-300'}`}
+                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.minorName ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                   placeholder="Nome do estudante"
                 />
-                {errors.minorName && <span className="text-[10px] font-semibold text-red-500">{errors.minorName}</span>}
+                {errors.minorName && (
+                  <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                    <span>{errors.minorName}</span>
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col gap-1">
@@ -320,9 +429,14 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   name="minorBirthDate"
                   value={formData.minorBirthDate}
                   onChange={handleChange}
-                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary ${errors.minorBirthDate ? 'border-red-400 bg-red-50/30' : 'border-slate-300'}`}
+                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.minorBirthDate ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                 />
-                {errors.minorBirthDate && <span className="text-[10px] font-semibold text-red-500">{errors.minorBirthDate}</span>}
+                {errors.minorBirthDate && (
+                  <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                    <span>{errors.minorBirthDate}</span>
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col gap-1">
@@ -335,12 +449,23 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   name="minorCpf"
                   value={formData.minorCpf}
                   onChange={handleChange}
+                  onBlur={handleMinorCpfBlur}
                   maxLength={14}
                   inputMode="numeric"
-                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary ${errors.minorCpf ? 'border-red-400 bg-red-50/30' : 'border-slate-300'}`}
+                  className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.minorCpf ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : duplicateInfo ? 'border-amber-400 bg-amber-50/20' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                   placeholder="000.000.000-00"
                 />
-                {errors.minorCpf && <span className="text-[10px] font-semibold text-red-500">{errors.minorCpf}</span>}
+                {checkingDuplicate && (
+                  <span className="text-[10px] text-sesi-primary flex items-center gap-1 mt-0.5">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Verificando autorizações existentes...
+                  </span>
+                )}
+                {errors.minorCpf && (
+                  <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                    <span>{errors.minorCpf}</span>
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col gap-1 md:col-span-2">
@@ -403,6 +528,64 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
             </div>
           </div>
 
+          {/* Card de Alerta de Autorização Já Existente (Prevenção de Duplicidade) */}
+          {duplicateInfo && duplicateInfo.hasExistingSignature && (
+            <div className="bg-amber-50/95 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 my-4 text-amber-950 shadow-sm animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-full bg-amber-100 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div className="space-y-2.5 flex-1 text-left">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-amber-200/80 pb-2">
+                    <h4 className="text-sm sm:text-base font-bold text-amber-950 m-0 flex items-center gap-1.5">
+                      Autorização Já Registrada para este(a) Estudante
+                    </h4>
+                    {duplicateInfo.existingValidationCode && (
+                      <span className="font-mono text-xs font-bold bg-amber-200 text-amber-900 px-2.5 py-0.5 rounded-full inline-block w-fit shadow-2xs">
+                        {duplicateInfo.existingValidationCode}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <p className="text-xs sm:text-sm text-amber-900 leading-relaxed m-0">
+                    O(A) estudante <strong>{duplicateInfo.minorName || formData.minorName}</strong> já possui uma autorização médica e termo de consentimento assinado e válido no sistema, emitido por <strong>{duplicateInfo.signerNameMasked || 'Responsável Legal'}</strong> em {new Date(duplicateInfo.signedAt || new Date()).toLocaleDateString('pt-BR')}.
+                  </p>
+                  
+                  <div className="p-2.5 bg-amber-100/70 rounded-xl border border-amber-200 text-[11px] sm:text-xs text-amber-900 leading-normal">
+                    ℹ️ <strong>Não é necessário assinar novamente:</strong> Cada estudante precisa de apenas uma autorização ativa para receber todos os atendimentos do projeto.
+                  </div>
+
+                  <div className="pt-1 flex flex-col sm:flex-row items-center gap-2.5">
+                    {duplicateInfo.existingValidationCode && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onNavigateToValidator && duplicateInfo.existingValidationCode) {
+                            onNavigateToValidator(duplicateInfo.existingValidationCode);
+                          } else {
+                            window.location.href = `/validar/${duplicateInfo.existingValidationCode}`;
+                          }
+                        }}
+                        className="w-full sm:w-auto px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
+                      >
+                        <FileSearch className="w-4 h-4" />
+                        <span>Ver Comprovante Existente</span>
+                      </button>
+                    )}
+                    
+                    <button
+                      type="button"
+                      onClick={() => setDuplicateInfo(null)}
+                      className="w-full sm:w-auto px-4 py-2.5 bg-white border border-amber-300 hover:bg-amber-100/50 text-amber-900 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                    >
+                      Corrigir CPF / Dados Digitados
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Declaração de veracidade e proteção */}
           <div className="bg-blue-50/70 border border-blue-200 p-3.5 sm:p-4 rounded-xl flex gap-3 text-xs text-blue-900 mt-4 sm:mt-6 leading-relaxed">
             <ShieldAlert className="w-4 h-4 shrink-0 text-blue-600 mt-0.5" />
@@ -423,10 +606,20 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
             </button>
             <button
               type="submit"
-              className="w-full sm:w-auto px-6 py-3.5 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-[0.99] cursor-pointer"
+              disabled={checkingDuplicate}
+              className="w-full sm:w-auto px-6 py-3.5 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 disabled:opacity-70 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-[0.99] cursor-pointer"
             >
-              <span>Continuar para Escolha das Autorizações</span>
-              <ChevronRight className="w-4 h-4" />
+              {checkingDuplicate ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Verificando...</span>
+                </>
+              ) : (
+                <>
+                  <span>Continuar para Escolha das Autorizações</span>
+                  <ChevronRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </div>
         </form>

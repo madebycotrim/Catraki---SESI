@@ -464,3 +464,91 @@ export function maskIpAddress(ip?: string): string {
 
   return '***.***.***.***';
 }
+
+// ============================================================================
+// UUID v4 CRIPTOGRAFICAMENTE SEGURO (RFC 4122 §4.4)
+// Vincula cada documento ao seu hash SHA-256 de forma única e não reutilizável
+// Conformidade: Lei 14.063/2020 — Identidade e Imutabilidade de Documentos Digitais
+// ============================================================================
+
+/**
+ * Gera UUID v4 criptograficamente seguro via CSPRNG (RFC 4122 §4.4).
+ * Usado para vincular documentos ao seu hash SHA-256 de forma única.
+ */
+export function generateUuidV4(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+
+  // Versão 4: bits 12-15 do byte 6 devem ser 0100 (0x40)
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  // Variante RFC 4122: bits 6-7 do byte 8 devem ser 10xxxxxx (0x80)
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+  const hex = bytesToHex(bytes);
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20, 32),
+  ].join('-');
+}
+
+// ============================================================================
+// VERIFICAÇÃO DE INTEGRIDADE DOCUMENTAL (Lei 14.063/2020 + LGPD Art. 46)
+// Detecta adulteração em nível de bit entre o hash armazenado e o conteúdo atual
+// ============================================================================
+
+export interface DocumentIntegrityResult {
+  intact: boolean;               // true = íntegro; false = adulteração detectada
+  storedHash: string;            // Hash SHA-256 original armazenado no momento da assinatura
+  recomputedHash: string;        // Hash SHA-256 recalculado do conteúdo atual
+  divergenceBits?: number;       // Quantidade de bits divergentes (0 se íntegro)
+  alertMessage?: string;         // Mensagem de alerta para o log de auditoria
+}
+
+/**
+ * Verifica a integridade criptográfica de um documento comparando seu hash SHA-256
+ * armazenado com o hash recalculado do conteúdo atual.
+ *
+ * Se um único bit divergir, o sistema alerta sobre adulteração e invalida a prova jurídica.
+ * Conformidade: Lei 14.063/2020 Art. 4º, II; LGPD Art. 46
+ */
+export async function verifyDocumentIntegrity(
+  storedHash: string,
+  currentContent: string | Uint8Array
+): Promise<DocumentIntegrityResult> {
+  const recomputedHash = await sha256(currentContent);
+
+  if (storedHash.toLowerCase() === recomputedHash.toLowerCase()) {
+    return {
+      intact: true,
+      storedHash,
+      recomputedHash,
+      divergenceBits: 0,
+    };
+  }
+
+  // Calcula quantos bits divergem (análise forense)
+  const storedBytes = hexToBytes(storedHash.toLowerCase());
+  const recomputedBytes = hexToBytes(recomputedHash.toLowerCase());
+  let divergenceBits = 0;
+
+  for (let i = 0; i < Math.min(storedBytes.length, recomputedBytes.length); i++) {
+    let xor = storedBytes[i] ^ recomputedBytes[i];
+    // Conta bits set no XOR (Hamming distance)
+    while (xor) {
+      divergenceBits += xor & 1;
+      xor >>= 1;
+    }
+  }
+
+  return {
+    intact: false,
+    storedHash,
+    recomputedHash,
+    divergenceBits,
+    alertMessage: `ADULTERAÇÃO DETECTADA: Hash SHA-256 armazenado (${storedHash.slice(0, 16)}...) diverge do hash recalculado (${recomputedHash.slice(0, 16)}...) em ${divergenceBits} bit(s). Prova jurídica INVALIDADA. Conformidade: Lei 14.063/2020.`,
+  };
+}
+

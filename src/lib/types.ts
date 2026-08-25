@@ -283,6 +283,60 @@ export interface ChainVerificationResult {
   merkleRoot: string;
 }
 
+// ============================================================================
+// PRONTIDÃO ICP-BRASIL E MFA AVANÇADO (Lei 14.063/2020 Art. 4º, II e III)
+// ============================================================================
+
+/**
+ * Certificado Digital ICP-Brasil para Assinatura Qualificada
+ * Conformidade: Lei 14.063/2020 Art. 4º, III; MP 2.200-2/2001
+ */
+export interface IcpBrasilCertificate {
+  id: string;
+  document_id: string;
+  serial_number: string;          // Número de série único do certificado
+  subject_dn: string;             // Distinguished Name do titular (CPF=...,CN=...)
+  issuer_cn: string;              // AC Emissora (ex: 'AC CERTISIGN-JUS G6')
+  valid_from: string;             // ISO 8601
+  valid_until: string;            // ISO 8601
+  certificate_pem_sha256: string; // Hash SHA-256 do certificado PEM (comprova integridade)
+  signature_level: 'advanced' | 'qualified'; // advanced=A1/A3; qualified=A3 ICP qualificada
+  ocsp_status?: 'good' | 'revoked' | 'unknown';
+  ocsp_checked_at?: string;
+  created_at: string;
+}
+
+/**
+ * Sessão MFA Ativa
+ * Conformidade: Lei 14.063/2020 (MFA para assinatura avançada)
+ */
+export interface MfaSession {
+  id: string;
+  document_id: string;
+  method: 'otp_email' | 'otp_sms' | 'icp_brasil' | 'totp';
+  device_fingerprint?: string | null;
+  verified_at?: string | null;
+  expires_at: string;
+  ip_address: string;
+  user_agent: string;
+  created_at: string;
+}
+
+/**
+ * Versão de Chave de Criptografia AES-256 (Key Rotation - Privacy by Design)
+ * Conformidade: LGPD Art. 46 (medidas de segurança técnicas)
+ */
+export interface EncryptionKeyVersion {
+  version: number;
+  key_sha256_fingerprint: string; // Fingerprint da chave (NUNCA a chave em si)
+  algorithm: string;              // 'AES-GCM-256'
+  status: 'active' | 'retired' | 'compromised';
+  activated_at: string;
+  retired_at?: string | null;
+  created_by: string;
+  notes?: string | null;
+}
+
 export interface Env {
   DB: D1Database;
   BUCKET_DOCS: R2Bucket;
@@ -302,4 +356,7 @@ export interface Env {
   TWILIO_AUTH_TOKEN?: string;
   TWILIO_FROM_PHONE?: string;
   TWILIO_WHATSAPP_FROM?: string;
+  RESEND_API_KEY?: string;        // Chave API Resend para e-mails transacionais
+  EMAIL_FROM?: string;            // Endereço de envio (ex: 'SESI Saúde <autorizacoes@catraki.com.br>')
+  ICP_BRASIL_ENABLED?: string;   // 'true' para habilitar rotas de certificados ICP-Brasil
 }

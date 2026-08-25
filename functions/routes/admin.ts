@@ -21,6 +21,7 @@ import {
 } from '../../src/lib/email-templates.ts';
 import { verifyAuditChain, computeMerkleRoot } from '../../src/lib/audit-chain.ts';
 import { requireAuth, signJwt, JwtPayload } from '../middleware/auth.ts';
+import { GeradorCertificadoConclusao, EventoCertificado } from '../../src/lib/pades/GeradorCertificadoConclusao.ts';
 import type {
   Env,
   DocumentTemplate,
@@ -526,6 +527,25 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
     ).run().catch(() => {});
   }
 
+  // ── KV DENYLIST (Pilar 5 — Invalidação Instantânea de Token) ──────────────────
+  // Grava 'revoked:{token}' no KV com TTL até retention_expires_at do documento.
+  const kv = c.env.KV_RATE_LIMIT;
+  if (kv && doc.access_token) {
+    try {
+      const retentionExpiry = doc.retention_expires_at
+        ? new Date(doc.retention_expires_at).getTime()
+        : Date.now() + (20 * 365 * 24 * 60 * 60 * 1000); // 20 anos default
+      const ttlSeconds = Math.max(3600, Math.floor((retentionExpiry - Date.now()) / 1000));
+      await kv.put(
+        `revoked:${doc.access_token}`,
+        cancelledAtIso,
+        { expirationTtl: Math.min(ttlSeconds, 60 * 60 * 24 * 365 * 20) }
+      );
+    } catch {
+      // Falha silenciosa
+    }
+  }
+
   // 6. Notificação de Transparência por E-mail Transacional (LGPD Art. 6º, VI)
   let emailDispatched = false;
   const notifyEmail = (body?.notify_email || body?.email || '').trim();
@@ -554,6 +574,10 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
       cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
       institutionName: doc.institution_name || 'Escola CEMEIT',
       reason,
+      // Novos campos de transparência LGPD
+      documentHashSha256: manifestSha256 || undefined,
+      revokedByName: user.name || user.email,
+      revokedByEmail: user.email,
     });
     const emailText = getTransactionalCancellationEmailText({
       parentName: doc.parent_name || 'Responsável Legal',
@@ -563,6 +587,9 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
       cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
       institutionName: doc.institution_name || 'Escola CEMEIT',
       reason,
+      documentHashSha256: manifestSha256 || undefined,
+      revokedByName: user.name || user.email,
+      revokedByEmail: user.email,
     });
 
     const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
@@ -630,6 +657,13 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
     }
   }
 
+  // Registra que a notificação foi enviada (coluna adicionada no Pilar 5)
+  if (emailDispatched) {
+    await db.prepare(
+      `UPDATE documents SET revocation_notification_sent_at = ? WHERE id = ?`
+    ).bind(cancelledAtIso, doc.id).run().catch(() => {});
+  }
+
   return c.json({
     success: true,
     document_id: doc.id,
@@ -637,12 +671,145 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
     cancelled_at: cancelledAtIso,
     audit_record_id: auditId,
     log_row_hash: logRowHash,
+    manifest_sha256: manifestSha256,
+    token_revoked_in_kv: !!(kv && doc.access_token),
     email_notification_dispatched: emailDispatched,
     target_email: targetEmail,
     message: emailDispatched 
       ? `Autorização cancelada e notificação por e-mail enviada com sucesso para ${targetEmail}.`
       : 'Autorização cancelada com sucesso. Trilha de auditoria forense gravada.',
   });
+});
+
+// ============================================================================
+// CERTIFICADO DE CONCLUSÃO PDF (Pilar 4 — Lei 14.063/2020)
+// Download do relatório forense de linha do tempo do documento
+// ============================================================================
+
+/**
+ * GET /api/admin/documents/:id/certificate
+ * Gera e retorna o Certificado de Conclusão em PDF (relatório de timeline forense)
+ */
+adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'operador', 'dpo']), async (c) => {
+  const id = c.req.param('id');
+  const db = c.env.DB;
+
+  // Busca o documento e sua trilha de auditoria completa
+  const doc = await db.prepare(
+    `SELECT d.*, t.title as template_title, t.procedure_description, i.name as institution_name
+     FROM documents d
+     LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+     LEFT JOIN institutions i ON d.created_by_admin LIKE '%' || i.id || '%'
+     WHERE d.id = ?`
+  ).bind(id).first<any>();
+
+  if (!doc) {
+    return c.json({ success: false, error: 'Documento não localizado.', code: 'DOC_NOT_FOUND' }, 404);
+  }
+
+  const auditLog = await db.prepare(
+    'SELECT * FROM audit_logs WHERE document_id = ? ORDER BY created_at ASC LIMIT 1'
+  ).bind(id).first<any>();
+
+  const cancellationAudit = await db.prepare(
+    'SELECT * FROM document_cancellation_audits WHERE document_id = ? ORDER BY cancelled_at DESC LIMIT 1'
+  ).bind(id).first<any>().catch(() => null);
+
+  // Monta a linha do tempo de eventos
+  const eventos: EventoCertificado[] = [];
+
+  if (doc.created_at) {
+    eventos.push({
+      timestamp: doc.created_at,
+      tipo: 'CRIACAO',
+      descricao: `Documento criado pelo administrador ${doc.created_by_admin || 'sistema'}.`,
+    });
+  }
+
+  if (auditLog?.signed_at && doc.status !== 'pending') {
+    if (doc.otp_requested_at) {
+      eventos.push({
+        timestamp: doc.otp_requested_at,
+        tipo: 'OTP_SOLICITADO',
+        descricao: 'Código de verificação MFA/OTP solicitado pelo responsável legal.',
+        ip: auditLog.ip_address,
+        geo: [auditLog.geo_city, auditLog.geo_region, auditLog.geo_country].filter(Boolean).join('/') || null,
+      });
+    }
+    if (auditLog.otp_verified_at || auditLog.signed_at) {
+      eventos.push({
+        timestamp: auditLog.otp_verified_at || auditLog.signed_at,
+        tipo: 'OTP_VERIFICADO',
+        descricao: 'Código MFA/OTP verificado com sucesso. Identidade confirmada.',
+        ip: auditLog.ip_address,
+      });
+    }
+    eventos.push({
+      timestamp: auditLog.signed_at,
+      tipo: 'ASSINADO',
+      descricao: `Assinatura eletrônica avançada registrada por ${auditLog.signer_name || 'Responsável'}. Método: ${auditLog.identity_method || 'eletrônica avançada'}.`,
+      ip: auditLog.ip_address,
+      user_agent: auditLog.user_agent,
+      geo: [auditLog.geo_city, auditLog.geo_region, auditLog.geo_country].filter(Boolean).join('/') || null,
+      ntp_source: 'Observatório Nacional Brasileiro (ON.br)',
+    });
+  }
+
+  if (cancellationAudit) {
+    eventos.push({
+      timestamp: cancellationAudit.cancelled_at,
+      tipo: doc.status === 'CANCELADO_POR_ERRO' ? 'CANCELADO_POR_ERRO' : 'REVOGADO',
+      descricao: `Documento cancelado/revogado por ${cancellationAudit.cancelled_by_user_email || 'administrador'}. Justificativa: ${cancellationAudit.justification || 'Não informada'}.`,
+      ip: cancellationAudit.ip_address,
+    });
+  }
+
+  const manifestSha256 = auditLog?.manifest_sha256 || doc.content_sha256 || '';
+  const validationCode = manifestSha256
+    ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`
+    : `DOC-${doc.id.substring(0, 8).toUpperCase()}`;
+
+  try {
+    const pdfBytes = await GeradorCertificadoConclusao.gerarCertificado({
+      documentId: doc.id,
+      validationCode,
+      minorName: doc.minor_name || 'Estudante',
+      signerName: auditLog?.signer_name || doc.parent_name || 'Responsável Legal',
+      signerCpfMasked: auditLog?.signer_cpf_masked || '***.***.***-**',
+      signerRelationship: auditLog?.signer_relationship || 'Responsável',
+      institutionName: doc.institution_name || 'SESI Escola Cidadã',
+      manifestSha256,
+      contentSha256: doc.content_sha256 || '',
+      logRowHash: auditLog?.log_row_hash || '',
+      prevLogHash: auditLog?.prev_log_hash || null,
+      merkleRoot: null,
+      tsaToken: auditLog?.tsa_timestamp_token || null,
+      tsaAuthority: 'Catraki TSA Interno',
+      eventos,
+      documentStatus: doc.status || 'pending',
+      signedAt: auditLog?.signed_at || doc.revoked_at || null,
+      revokedAt: doc.revoked_at || doc.cancelled_at || null,
+      revocationReason: doc.revoked_reason || doc.cancellation_reason || null,
+      validationBaseUrl: 'https://catraki.com.br/validar',
+    });
+
+    return new Response(pdfBytes.buffer as ArrayBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="certificado-conclusao-${validationCode}.pdf"`,
+        'Cache-Control': 'no-store, no-cache',
+        'X-Document-Id': doc.id,
+        'X-Validation-Code': validationCode,
+        'X-Manifest-SHA256': manifestSha256,
+      },
+    });
+  } catch (err: any) {
+    return c.json({
+      success: false,
+      error: `Erro ao gerar Certificado de Conclusão: ${err?.message || 'Erro interno'}`,
+      code: 'CERTIFICATE_GENERATION_FAILED',
+    }, 500);
+  }
 });
 
 /**

@@ -10,7 +10,7 @@ import {
   Check,
   Building2,
   Plus,
-  ShieldAlert,
+  Ban,
   Info,
   X,
   ShieldCheck,
@@ -990,16 +990,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             )}
                             {isCancelled && (
                               <span 
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-300 text-[11px] font-bold shadow-xs whitespace-nowrap" 
-                                title="Autorização invalidada administrativamente por inconsistência cadastral"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-[11px] font-bold shadow-2xs whitespace-nowrap" 
+                                title="Autorização invalidada administrativamente com preservação de custódia pericial (soft delete)"
                               >
-                                <ShieldAlert className="w-3 h-3 text-amber-700 shrink-0" />
-                                <span>Cancelada por Erro</span>
+                                <Ban className="w-3 h-3 text-rose-600 shrink-0" />
+                                <span>Cancelado</span>
                               </span>
                             )}
                             {isRevoked && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 text-red-800 border border-red-200 text-[11px] font-bold whitespace-nowrap">
-                                <AlertTriangle className="w-3 h-3 text-red-600 shrink-0" />
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-[11px] font-bold whitespace-nowrap">
+                                <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
                                 <span>Negada</span>
                               </span>
                             )}
@@ -1018,25 +1018,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </span>
                           </td>
 
-                          {/* Coluna 9: Ações */}
+                          {/* Coluna 9: Ações (Bloqueio Visual para Cancelados — Modo Somente Leitura) */}
                           <td className="px-3.5 sm:px-4 py-3.5 sm:py-4 text-right whitespace-nowrap">
                             {isCancelled ? (
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
                                   onClick={() => handleOpenDetailsModal(auth)}
-                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer"
-                                  title="Ver Ficha Completa do Aluno"
+                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-xs transition-all cursor-pointer"
+                                  title="Ver Detalhes do Cancelamento e Ficha do Estudante"
                                 >
                                   <FileText className="w-3.5 h-3.5 text-slate-500" /> 
-                                  <span>Ver Ficha</span>
+                                  <span>Ver Detalhes</span>
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    await apiClient.downloadDocumentCertificate(auth.id);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-900 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                                  title="Baixar Certificado de Conclusão / Timeline (PDF)"
+                                >
+                                  <FileCheck className="w-3.5 h-3.5 text-blue-700" />
+                                  <span>Certificado</span>
                                 </button>
                                 <button
                                   onClick={() => handleOpenResendEmailModal(auth)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                                  className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium transition-all cursor-pointer shadow-2xs"
                                   title="Reenviar Notificação de Cancelamento por E-mail ao Responsável"
                                 >
-                                  <Mail className="w-3.5 h-3.5 text-amber-700" />
-                                  <span>Reenviar E-mail</span>
+                                  <Mail className="w-3.5 h-3.5 text-slate-500" />
                                 </button>
                               </div>
                             ) : isSigned ? (
@@ -1058,11 +1067,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </button>
                                 <button
                                   onClick={() => handleOpenRevokeModal(auth)}
-                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer"
-                                  title="Revogar autorização por inconsistência cadastral ou erro de turma/nome"
+                                  className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 hover:border-rose-300 text-rose-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                                  title="Revogar autorização e desativar links de acesso por inconsistência ou solicitação"
                                 >
-                                  <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                                  <span>Revogar por Erro</span>
+                                  <Ban className="w-3.5 h-3.5 text-rose-600" />
+                                  <span>Revogar Documento</span>
                                 </button>
                               </div>
                             ) : (
@@ -1085,11 +1094,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </button>
                                 <button
                                   onClick={() => handleOpenRevokeModal(auth)}
-                                  className="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-white border border-amber-200 hover:bg-amber-50 hover:text-amber-900 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer"
-                                  title="Cancelar termo pendente por inconsistência de dados"
+                                  className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 hover:border-rose-300 text-rose-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                                  title="Revogar documento pendente e inutilizar link de acesso"
                                 >
-                                  <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                                  <span>Revogar</span>
+                                  <Ban className="w-3.5 h-3.5 text-rose-600" />
+                                  <span>Revogar Documento</span>
                                 </button>
                               </div>
                             )}
@@ -1339,7 +1348,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* MODAL DE DUPLA CONFIRMAÇÃO: REVOGAÇÃO / CANCELAMENTO POR ERRO OPERACIONAL */}
+      {/* MODAL DE CONFIRMAÇÃO DE SEGURANÇA: REVOGAÇÃO / ANULAÇÃO DE DOCUMENTO */}
       {showRevocationModal && selectedAuthToRevoke && (
         <div 
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
@@ -1349,18 +1358,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-200 text-left"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header com Alerta de Segurança */}
+            {/* Header com Título Claro e Alerta de Segurança */}
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0 shadow-xs">
-                  <ShieldAlert className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-700 shrink-0 shadow-xs">
+                  <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-                    Revogar Autorização por Erro
+                    Tem certeza de que deseja anular este documento?
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Cancelamento administrativo por inconsistência cadastral ou operacional
+                    Revogação administrativa de autorização por inconsistência cadastral ou operacional
                   </p>
                 </div>
               </div>
@@ -1373,15 +1382,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
             </div>
 
-            {/* Resumo do Documento Alvo */}
+            {/* Resumo do Item / Documento Alvo */}
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs space-y-2">
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <span className="text-slate-500 font-semibold uppercase tracking-wider text-[10px]">Identificador Único:</span>
+                <span className="text-slate-500 font-semibold uppercase tracking-wider text-[10px]">Documento & Protocolo:</span>
                 <span className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200">
                   {selectedAuthToRevoke.validationCode || selectedAuthToRevoke.id}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="col-span-2">
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Tipo de Documento:</span>
+                  <span className="font-bold text-slate-800 truncate block">Termo de Consentimento — SESI Saúde / Escola Cidadã</span>
+                </div>
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Estudante / Aluno(a):</span>
                   <span className="font-bold text-slate-800 truncate block">{selectedAuthToRevoke.studentName}</span>
@@ -1403,14 +1416,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* Aviso de Conformidade Legal (Soft Delete & LGPD) */}
-            <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-3.5 text-xs text-amber-900 leading-relaxed space-y-1.5">
-              <div className="flex items-center gap-1.5 font-bold text-amber-950">
-                <Info className="w-4 h-4 text-amber-700 shrink-0" />
-                <span>Preservação de Provas Digitais & Notificação LGPD:</span>
+            {/* Aviso de Impacto (Tom amigável e transparente) */}
+            <div className="bg-rose-50/80 border border-rose-200/90 rounded-2xl p-4 text-xs text-rose-950 leading-relaxed space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-rose-900">
+                <Info className="w-4 h-4 text-rose-700 shrink-0" />
+                <span>Aviso de Impacto do Cancelamento:</span>
               </div>
-              <p className="text-[11px] text-amber-800">
-                Esta ação aplica um <strong>soft delete normativo</strong> (status <code className="bg-amber-100 px-1 py-0.2 rounded font-mono font-bold">CANCELADO_POR_ERRO</code>), bloqueando novas alterações e preservando a custódia pericial (Art. 16 da LGPD e Art. 15 do Marco Civil). O titular/responsável será notificado automaticamente por e-mail transacional.
+              <p className="text-[12px] text-rose-900 font-medium leading-relaxed">
+                Esta ação é permanente. Os links de assinatura serão desativados agora mesmo e todos os envolvidos receberão um e-mail avisando sobre o cancelamento.
               </p>
             </div>
 
@@ -1418,7 +1431,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label htmlFor="revocation-reason" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Justificativa Operacional <span className="text-red-500">*</span>
+                  Por favor, explique o motivo do cancelamento <span className="text-slate-400 font-normal lowercase">(registro obrigatório para segurança e auditoria)</span> <span className="text-red-500">*</span>
                 </label>
                 <span className={`text-[11px] font-mono font-semibold ${revocationReason.trim().length >= 10 ? 'text-emerald-600' : 'text-slate-400'}`}>
                   {revocationReason.trim().length}/10 caracteres mín.
@@ -1432,8 +1445,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 disabled={isRevoking}
                 value={revocationReason}
                 onChange={(e) => setRevocationReason(e.target.value)}
-                placeholder="Descreva detalhadamente a inconsistência operacional ou divergência cadastral (Ex: 'Erro de digitação do CPF pelo responsável legal na matrícula')..."
-                className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 placeholder:text-slate-400 leading-relaxed resize-none disabled:bg-slate-100"
+                placeholder="Descreva o motivo da anulação/revogação (ex: erro de digitação do CPF na matrícula ou solicitação do responsável)..."
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 placeholder:text-slate-400 leading-relaxed resize-none disabled:bg-slate-100"
               />
             </div>
 
@@ -1451,7 +1464,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   disabled={isRevoking}
                   onChange={(e) => setNotifyEmail(e.target.value)}
                   placeholder="exemplo: pai.responsavel@gmail.com..."
-                  className="w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 placeholder:text-slate-400 disabled:bg-slate-100"
+                  className="w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 placeholder:text-slate-400 disabled:bg-slate-100"
                 />
               </div>
               <p className="text-[11px] text-slate-500">
@@ -1459,7 +1472,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </p>
             </div>
 
-            {/* Checkbox de Dupla Confirmação */}
+            {/* Checkbox de Confirmação */}
             <label className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100/70 transition-colors">
               <input
                 id="confirm-revocation-checkbox"
@@ -1468,10 +1481,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 disabled={isRevoking}
                 checked={revocationConfirmed}
                 onChange={(e) => setRevocationConfirmed(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-sesi-primary focus:ring-sesi-primary cursor-pointer shrink-0"
+                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer shrink-0"
               />
               <span className="text-xs text-slate-700 leading-snug">
-                Declaro que analisei a autorização e confirmo a <strong>invalidação formal e definitiva</strong> deste documento, ciente de que meu usuário e IP de conexão serão registrados na trilha de auditoria forense.
+                Estou ciente de que a anulação é <strong>permanente e irreversível</strong> (soft delete normativo), e que meu usuário e IP serão gravados na trilha de auditoria forense.
               </span>
             </label>
 
@@ -1483,7 +1496,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             )}
 
-            {/* Botões de Ação */}
+            {/* Botões de Decisão */}
             <div className="pt-2 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5">
               <button
                 type="button"
@@ -1491,23 +1504,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={() => setShowRevocationModal(false)}
                 className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer text-center disabled:opacity-50"
               >
-                Cancelar
+                Voltar
               </button>
               <button
                 type="button"
                 disabled={isRevoking || revocationReason.trim().length < 10 || !revocationConfirmed}
                 onClick={handleConfirmRevoke}
-                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isRevoking ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Processando Revogação...</span>
+                    <span>Anulando documento...</span>
                   </>
                 ) : (
                   <>
-                    <ShieldAlert className="w-4 h-4" />
-                    <span>Confirmar Revogação por Erro</span>
+                    <Ban className="w-4 h-4" />
+                    <span>Sim, anular documento</span>
                   </>
                 )}
               </button>
@@ -1577,11 +1590,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <UserCheck className="w-4 h-4 text-sesi-primary" />
                     <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">Identificação Escolar do Estudante</span>
                   </div>
-                  <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                  <span className={`inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-bold ${
+                    selectedAuthForDetails.status === 'CANCELADO_POR_ERRO' || selectedAuthForDetails.status === 'cancelled_error'
+                      ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                      : 'bg-emerald-100 text-emerald-900'
+                  }`}>
+                    {selectedAuthForDetails.status === 'CANCELADO_POR_ERRO' || selectedAuthForDetails.status === 'cancelled_error' ? (
+                      <Ban className="w-3.5 h-3.5 text-rose-600" />
+                    ) : (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                    )}
                     <span>{formatStatusInPortuguese(selectedAuthForDetails.status)}</span>
                   </span>
                 </div>
+
+                {/* ALERTA DE CANCELAMENTO / REVOGAÇÃO ADMINISTRATIVA */}
+                {(selectedAuthForDetails.status === 'CANCELADO_POR_ERRO' || selectedAuthForDetails.status === 'cancelled_error') && (
+                  <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 text-xs space-y-2 text-rose-950">
+                    <div className="flex items-center justify-between border-b border-rose-200/80 pb-1.5 font-bold text-rose-900">
+                      <div className="flex items-center gap-1.5">
+                        <Ban className="w-4 h-4 text-rose-600" />
+                        <span>Detalhes do Cancelamento (Soft Delete Pericial)</span>
+                      </div>
+                      <span className="font-mono text-[10px] text-rose-700 bg-rose-100 px-2 py-0.5 rounded">
+                        Art. 16 LGPD & Art. 15 Marco Civil
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-rose-700 block text-[10px] uppercase font-bold">Data da Anulação:</span>
+                        <span className="font-bold text-slate-800">{selectedAuthForDetails.cancelledAt || selectedAuthForDetails.revokedAt || selectedAuthForDetails.dateSent}</span>
+                      </div>
+                      <div>
+                        <span className="text-rose-700 block text-[10px] uppercase font-bold">Motivo Registrado:</span>
+                        <span className="font-semibold text-slate-900 block bg-white p-2 rounded-lg border border-rose-200 mt-0.5">
+                          {selectedAuthForDetails.cancellationReason || selectedAuthForDetails.revokedReason || 'Inconsistência cadastral ou erro operacional'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                   <div>

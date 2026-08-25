@@ -15,6 +15,31 @@ export interface CancellationEmailParams {
   reason?: string;
   supportEmail?: string;
   dpoContact?: string;
+  // Campos de transparência LGPD — Art. 18 e Marco Civil
+  documentHashSha256?: string;    // Hash SHA-256 do documento no momento do cancelamento
+  revokedByName?: string;         // Nome do operador/admin responsável pela ação
+  revokedByEmail?: string;        // E-mail do operador responsável
+  ntpTimestamp?: string;          // Timestamp certificado NTP (Observatório Nacional)
+  ntpSource?: string;             // Fonte do timestamp NTP (on.br, cloudflare, system)
+}
+
+/**
+ * Parâmetros para e-mail de revogação de consentimento (LGPD Art. 18 — iniciado pelo titular)
+ * Diferente do cancelamento administrativo por erro operacional
+ */
+export interface RevocationEmailParams {
+  parentName: string;
+  minorName: string;
+  documentId: string;
+  validationCode?: string;
+  revokedAtFormatted: string;
+  institutionName: string;
+  reason: string;                 // Motivo informado pelo titular
+  supportEmail?: string;
+  dpoContact?: string;
+  documentHashSha256?: string;
+  ntpTimestamp?: string;
+  ntpSource?: string;
 }
 
 /**
@@ -309,6 +334,147 @@ SEGURANÇA E PRIVACIDADE (LGPD):
 Em estrita conformidade com a LGPD (Lei nº 13.709/2018, Art. 16) e com o Marco Civil da Internet (Lei nº 12.965/2014, Art. 15), o histórico deste documento foi arquivado de forma criptografada e imutável exclusivamente para fins de auditoria forense e salvaguarda de direitos, com acesso bloqueado para novas alterações.
 
 Canais de Atendimento e DPO:
+- Encarregado de Dados (DPO): ${dpoContact}
+- Suporte do Projeto: ${supportEmail}
+
+Atenciosamente,
+Equipe Escola Cidadã — Saúde em Movimento
+SESI-DF / Faculdade de Ciências da Saúde (FS/UnB)`;
+}
+
+// ============================================================================
+// E-MAIL DE REVOGAÇÃO DE CONSENTIMENTO (LGPD Art. 18 — Iniciado pelo Titular)
+// Diferente do cancelamento administrativo — esta é a revogação voluntária
+// ============================================================================
+
+/**
+ * Gera o template HTML para notificação de revogação voluntária de consentimento pelo titular.
+ * LGPD Art. 18, VIII — Direito de revogação do consentimento a qualquer momento.
+ */
+export function getRevocationEmailHtml(params: RevocationEmailParams): string {
+  const {
+    parentName,
+    minorName,
+    documentId,
+    validationCode,
+    revokedAtFormatted,
+    institutionName,
+    reason,
+    supportEmail = 'suporte.escolacidada@catraki.com.br',
+    dpoContact = 'privacidade@catraki.com.br',
+    documentHashSha256,
+    ntpTimestamp,
+    ntpSource,
+  } = params;
+
+  const docCode = validationCode || `DOC-${documentId.substring(0, 8).toUpperCase()}`;
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirmação de Revogação de Consentimento — SESI Saúde / Escola Cidadã</title>
+  <style>
+    body { margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1e293b; }
+    .wrapper { width:100%;background:#f8fafc;padding:32px 12px; }
+    .container { max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 6px -1px rgba(0,0,0,.05); }
+    .header { background:linear-gradient(135deg,#1d4ed8 0%,#1e3a8a 100%);padding:28px 24px;text-align:center;color:#fff; }
+    .header h1 { margin:0;font-size:20px;font-weight:700; }
+    .header p { margin:6px 0 0;font-size:13px;color:#bfdbfe; }
+    .content { padding:32px 24px;line-height:1.6;font-size:15px;color:#334155; }
+    .info-box { background:#eff6ff;border-left:4px solid #3b82f6;padding:16px;border-radius:6px;margin:20px 0;color:#1e3a8a;font-size:14px; }
+    .details-table { width:100%;border-collapse:collapse;margin:24px 0;background:#f8fafc;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0; }
+    .details-table td { padding:12px 16px;font-size:14px;border-bottom:1px solid #e2e8f0; }
+    .details-table tr:last-child td { border-bottom:none; }
+    .details-table .label { font-weight:600;color:#475569;width:40%; }
+    .details-table .value { color:#0f172a;font-weight:500; }
+    .hash-box { background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-size:11px;font-family:monospace;color:#475569;margin:16px 0;word-break:break-all; }
+    .footer { background:#f8fafc;padding:24px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0; }
+    .footer a { color:#1d4ed8;text-decoration:none; }
+    .badge-revoked { display:inline-block;padding:4px 10px;background:#dbeafe;color:#1e3a8a;border-radius:9999px;font-weight:700;font-size:12px;letter-spacing:.05em; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <h1>SESI Saúde &bull; Escola Cidadã</h1>
+        <p>Confirmação de Revogação de Consentimento — LGPD Art. 18</p>
+      </div>
+      <div class="content">
+        <p style="font-size:16px;font-weight:600;color:#0f172a;">Prezado(a) ${parentName || 'Responsável Legal'},</p>
+        <p>Confirmamos que você exerceu seu <strong>direito de revogação do consentimento</strong> nos termos do <strong>Art. 18, VIII, da Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)</strong>.</p>
+        <p>A autorização de atendimento vinculada ao(à) estudante <strong>${minorName}</strong> na instituição <strong>${institutionName}</strong> foi <strong>revogada com sucesso</strong>.</p>
+        <div class="info-box">
+          <strong>O que acontece agora?</strong><br>
+          O documento foi invalidado imediatamente. Todos os links de acesso ao formulário foram desativados e nenhum atendimento poderá ser realizado com base nesta autorização. Os dados foram preservados em ambiente seguro conforme o Art. 16 da LGPD.
+        </div>
+        <table class="details-table">
+          <tr><td class="label">Código do Documento</td><td class="value" style="font-family:monospace;font-weight:bold;">${docCode}</td></tr>
+          <tr><td class="label">Estudante</td><td class="value">${minorName}</td></tr>
+          <tr><td class="label">Escola / Instituição</td><td class="value">${institutionName}</td></tr>
+          <tr><td class="label">Data da Revogação</td><td class="value">${revokedAtFormatted}</td></tr>
+          <tr><td class="label">Situação</td><td class="value"><span class="badge-revoked">CONSENTIMENTO REVOGADO</span></td></tr>
+          <tr><td class="label">Motivo Informado</td><td class="value" style="font-style:italic;color:#475569;">${reason}</td></tr>
+          ${ntpTimestamp ? `<tr><td class="label">Carimbo do Tempo (NTP)</td><td class="value" style="font-family:monospace;font-size:12px;">${ntpTimestamp}</td></tr>` : ''}
+          ${ntpSource ? `<tr><td class="label">Fonte Temporal</td><td class="value" style="font-size:12px;color:#64748b;">${ntpSource}</td></tr>` : ''}
+        </table>
+        ${documentHashSha256 ? `
+        <div class="hash-box">
+          <strong>🔐 Hash SHA-256 do Documento (Lei 14.063/2020):</strong><br>
+          ${documentHashSha256}<br>
+          <span style="font-size:10px;color:#64748b;">Este código é a impressão digital criptográfica única deste documento.</span>
+        </div>` : ''}
+        <p style="font-size:14px;color:#64748b;margin-top:24px;">
+          Para dúvidas, acesse nosso DPO: <a href="mailto:${dpoContact}">${dpoContact}</a><br>
+          Suporte do projeto: <a href="mailto:${supportEmail}">${supportEmail}</a>
+        </p>
+        <p style="font-size:14px;color:#334155;">Atenciosamente,<br>
+          <strong>Equipe Escola Cidadã — Saúde em Movimento</strong><br>
+          <span style="font-size:13px;color:#64748b;">SESI-DF &bull; Faculdade de Ciências da Saúde / UnB</span>
+        </p>
+      </div>
+      <div class="footer">
+        E-mail transacional imutável emitido pela Plataforma Catraki / SESI Saúde em conformidade com a LGPD (Lei nº 13.709/2018, Art. 18) e Marco Civil da Internet (Lei nº 12.965/2014).
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Gera a versão em texto puro do e-mail de revogação voluntária de consentimento.
+ */
+export function getRevocationEmailText(params: RevocationEmailParams): string {
+  const {
+    parentName, minorName, documentId, validationCode, revokedAtFormatted,
+    institutionName, reason, supportEmail = 'suporte.escolacidada@catraki.com.br',
+    dpoContact = 'privacidade@catraki.com.br', documentHashSha256, ntpTimestamp, ntpSource,
+  } = params;
+  const docCode = validationCode || `DOC-${documentId.substring(0, 8).toUpperCase()}`;
+
+  return `[SESI Saúde / Escola Cidadã] Confirmação de Revogação de Consentimento — LGPD Art. 18
+
+Prezado(a) ${parentName || 'Responsável Legal'},
+
+Confirmamos que você exerceu seu direito de revogação do consentimento (LGPD Art. 18, VIII).
+A autorização de atendimento vinculada ao(à) estudante ${minorName} na instituição "${institutionName}" foi REVOGADA COM SUCESSO.
+
+DADOS DA REVOGAÇÃO:
+- Código do Documento: ${docCode}
+- Estudante: ${minorName}
+- Escola / Unidade: ${institutionName}
+- Data da Revogação: ${revokedAtFormatted}
+- Situação: CONSENTIMENTO REVOGADO (LGPD Art. 18)
+- Motivo: ${reason}
+${ntpTimestamp ? `- Carimbo do Tempo (NTP): ${ntpTimestamp}\n` : ''}${ntpSource ? `- Fonte NTP: ${ntpSource}\n` : ''}${documentHashSha256 ? `\nHASH SHA-256 DO DOCUMENTO (Lei 14.063/2020):\n${documentHashSha256}\n` : ''}
+O QUE ACONTECE AGORA:
+Todos os links de acesso ao formulário foram desativados imediatamente. Os dados foram
+preservados em ambiente seguro conforme o Art. 16 da LGPD exclusivamente para fins de auditoria.
+
+Canais de Atendimento:
 - Encarregado de Dados (DPO): ${dpoContact}
 - Suporte do Projeto: ${supportEmail}
 

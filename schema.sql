@@ -38,7 +38,9 @@
     content_sha256 TEXT NOT NULL CHECK(LENGTH(content_sha256) = 64),
     minor_name TEXT NOT NULL,
     minor_birth_date TEXT NOT NULL,
-    minor_cpf TEXT,
+    minor_cpf TEXT,                                    -- CPF legado (plain) — não usar em novos registros
+    minor_cpf_encrypted TEXT,                          -- CPF do menor criptografado AES-GCM-256 (Privacy by Design - LGPD Art. 46)
+    minor_cpf_bindex_sha256 TEXT,                      -- Blind Index SHA-256 para buscas seguras sem expor o CPF (LGPD)
     minor_series TEXT,
     minor_class TEXT,
     minor_turn TEXT,
@@ -61,6 +63,9 @@
     cancelled_by_admin_id TEXT,
     cancellation_reason TEXT,
     cancellation_ip TEXT,
+    revocation_notification_sent_at DATETIME,          -- Timestamp de envio do e-mail transacional de revogação (LGPD Art. 18)
+    integrity_alert_at DATETIME,                       -- Timestamp do alerta de adulteração detectado pelo cron (Lei 14.063/2020)
+    integrity_alert_reason TEXT,                       -- Descrição técnica da divergência de hash detectada
     otp_requested_at DATETIME,
     otp_verified_at DATETIME,
     otp_email_message_id TEXT,
@@ -134,6 +139,9 @@
     password_hash TEXT NOT NULL,
     role TEXT CHECK(role IN ('operador','dpo','admin_master')) NOT NULL,
     is_active BOOLEAN DEFAULT 1,
+    last_login_at DATETIME,                            -- Último login bem-sucedido (segurança RBAC e auditoria)
+    failed_login_count INTEGER DEFAULT 0,              -- Contador de tentativas falhas consecutivas (bloqueio por força bruta)
+    mfa_enabled BOOLEAN DEFAULT 0,                    -- Flag de MFA habilitado para este administrador
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -337,6 +345,66 @@
   CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit_logs(created_at);
   CREATE INDEX IF NOT EXISTS idx_access_logs_retention ON application_access_logs(retention_until);
   CREATE INDEX IF NOT EXISTS idx_access_logs_ip ON application_access_logs(ip_address);
+  CREATE INDEX IF NOT EXISTS idx_docs_minor_cpf_bindex ON documents(minor_cpf_bindex_sha256);
+  CREATE INDEX IF NOT EXISTS idx_docs_integrity_alert ON documents(integrity_alert_at);
+  CREATE INDEX IF NOT EXISTS idx_admin_last_login ON admin_users(last_login_at);
+
+  -- ============================================================================
+  -- TABELAS DE PRONTIDÃO ICP-BRASIL, MFA E GESTÃO DE CHAVES (Privacy by Design)
+  -- Lei 14.063/2020 Art. 4º, II e III; LGPD Art. 46; MP 2.200-2/2001
+  -- ============================================================================
+
+  -- 12. Gestão de Versões de Chaves de Criptografia (AES-256 Key Rotation)
+  CREATE TABLE IF NOT EXISTS encryption_key_versions (
+    version INTEGER PRIMARY KEY,                       -- Versão sequencial da chave (compatível com key_version nos documentos)
+    key_sha256_fingerprint TEXT NOT NULL,              -- Hash SHA-256 da chave pública/fingerprint (nunca a chave em si)
+    algorithm TEXT NOT NULL DEFAULT 'AES-GCM-256',    -- Algoritmo de criptografia
+    status TEXT CHECK(status IN ('active','retired','compromised')) NOT NULL DEFAULT 'active',
+    activated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    retired_at DATETIME,
+    created_by TEXT NOT NULL,                          -- ID do admin_master que ativou a chave
+    notes TEXT
+  );
+
+  -- 13. Certificados ICP-Brasil (Prontidão para Assinatura Qualificada - Lei 14.063/2020 Art. 4º, III)
+  CREATE TABLE IF NOT EXISTS icp_brasil_certificates (
+    id TEXT PRIMARY KEY,
+    document_id TEXT NOT NULL REFERENCES documents(id),
+    serial_number TEXT NOT NULL,                       -- Número de série do certificado ICP-Brasil
+    subject_dn TEXT NOT NULL,                          -- Distinguished Name do titular (CPF ou CNPJ)
+    issuer_cn TEXT NOT NULL,                           -- Common Name da AC Emissora (ex: AC CERTISIGN-JUS G6)
+    valid_from DATETIME NOT NULL,
+    valid_until DATETIME NOT NULL,
+    certificate_pem_sha256 TEXT NOT NULL CHECK(LENGTH(certificate_pem_sha256) = 64), -- Hash SHA-256 do certificado PEM
+    signature_level TEXT CHECK(signature_level IN ('advanced','qualified')) NOT NULL, -- advanced = A3/A1, qualified = A3 ICP
+    ocsp_status TEXT CHECK(ocsp_status IN ('good','revoked','unknown')) DEFAULT 'unknown',
+    ocsp_checked_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- 14. Sessões MFA Ativas (Prontidão para MFA Avançado - Lei 14.063/2020)
+  CREATE TABLE IF NOT EXISTS mfa_sessions (
+    id TEXT PRIMARY KEY,
+    document_id TEXT NOT NULL REFERENCES documents(id),
+    method TEXT CHECK(method IN ('otp_email','otp_sms','icp_brasil','totp')) NOT NULL,
+    device_fingerprint TEXT,                           -- Hash do fingerprint do dispositivo
+    verified_at DATETIME,
+    expires_at DATETIME NOT NULL,
+    ip_address TEXT NOT NULL,
+    user_agent TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- Índices para novas tabelas de conformidade
+  CREATE INDEX IF NOT EXISTS idx_enc_key_status ON encryption_key_versions(status);
+  CREATE INDEX IF NOT EXISTS idx_icp_doc ON icp_brasil_certificates(document_id);
+  CREATE INDEX IF NOT EXISTS idx_icp_valid ON icp_brasil_certificates(valid_until);
+  CREATE INDEX IF NOT EXISTS idx_mfa_session_doc ON mfa_sessions(document_id);
+  CREATE INDEX IF NOT EXISTS idx_mfa_expires ON mfa_sessions(expires_at);
+
+  -- Seed: Registro da versão 1 da chave de criptografia AES-256
+  INSERT OR IGNORE INTO encryption_key_versions (version, key_sha256_fingerprint, algorithm, status, activated_at, created_by, notes)
+  VALUES (1, 'v1-fingerprint-configurar-via-env-ENCRYPTION_KEY_V1', 'AES-GCM-256', 'active', datetime('now'), 'USR-ADMIN-MASTER', 'Chave mestra inicial — fingerprint deve ser atualizado com o SHA-256 da chave real configurada em ENCRYPTION_KEY_V1');
 
   -- ============================================================================
   -- CARGA INICIAL DE DADOS (SEED DATA)

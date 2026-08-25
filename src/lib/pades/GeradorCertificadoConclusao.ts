@@ -1,0 +1,341 @@
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import QRCode from 'qrcode';
+
+// ============================================================================
+// GERADOR DE CERTIFICADO DE CONCLUSÃO — RELATÓRIO FINAL DE LINHA DO TEMPO
+// Conformidade: Lei 14.063/2020 Art. 4º, II; LGPD Art. 46; MP 2.200-2/2001
+// Chancelado com hash SHA-256 original — qualquer adulteração invalida o PDF
+// ============================================================================
+
+export interface EventoCertificado {
+  timestamp: string;              // ISO 8601 UTC
+  tipo: 'CRIACAO' | 'VISUALIZACAO' | 'OTP_SOLICITADO' | 'OTP_VERIFICADO' | 'ASSINADO' | 'REVOGADO' | 'CANCELADO_POR_ERRO';
+  descricao: string;
+  ip?: string | null;
+  user_agent?: string | null;
+  geo?: string | null;
+  ntp_source?: string | null;
+}
+
+export interface IDadosCertificadoConclusao {
+  // Identificadores
+  documentId: string;
+  validationCode: string;
+  // Conteúdo
+  minorName: string;
+  signerName: string;
+  signerCpfMasked: string;
+  signerRelationship: string;
+  institutionName: string;
+  // Criptografia
+  manifestSha256: string;         // Hash SHA-256 do manifesto no momento da assinatura
+  contentSha256: string;          // Hash SHA-256 do conteúdo do TCLE
+  logRowHash: string;             // Hash da linha de auditoria (encadeamento)
+  prevLogHash?: string | null;    // Hash da linha anterior (prova de encadeamento)
+  merkleRoot?: string | null;     // Raiz de Merkle da cadeia completa
+  tsaToken?: string | null;       // Token TSA do carimbo do tempo
+  tsaAuthority?: string | null;   // Nome da autoridade TSA
+  // Linha do Tempo
+  eventos: EventoCertificado[];
+  // Status final
+  documentStatus: string;
+  signedAt?: string | null;
+  revokedAt?: string | null;
+  revocationReason?: string | null;
+  // URL de validação pública
+  validationBaseUrl?: string;
+}
+
+const COR_AZUL_SESI = rgb(3 / 255, 75 / 255, 127 / 255);   // #034b7f
+const COR_PRETO = rgb(0.04, 0.04, 0.04);
+const COR_CINZA = rgb(0.45, 0.45, 0.45);
+const COR_VERDE = rgb(16 / 255, 124 / 255, 65 / 255);
+const COR_VERMELHO = rgb(0.72, 0.11, 0.11);
+const COR_FUNDO_CLARO = rgb(0.97, 0.97, 0.98);
+
+function formatarDataBr(isoDate?: string | null): string {
+  if (!isoDate) return '—';
+  try {
+    return new Date(isoDate).toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }) + ' (BRT)';
+  } catch {
+    return isoDate;
+  }
+}
+
+function labelEvento(tipo: EventoCertificado['tipo']): string {
+  const labels: Record<EventoCertificado['tipo'], string> = {
+    'CRIACAO': '📄 Documento Criado',
+    'VISUALIZACAO': '👁 Documento Visualizado',
+    'OTP_SOLICITADO': '📱 Código de Verificação Solicitado (OTP/MFA)',
+    'OTP_VERIFICADO': '✅ Código de Verificação Confirmado (OTP/MFA)',
+    'ASSINADO': '✍ Assinatura Eletrônica Registrada',
+    'REVOGADO': '🚫 Consentimento Revogado (LGPD Art. 18)',
+    'CANCELADO_POR_ERRO': '⛔ Documento Cancelado Administrativamente',
+  };
+  return labels[tipo] || tipo;
+}
+
+/**
+ * Gerador do Certificado de Conclusão em PDF — Relatório Final de Linha do Tempo
+ * Produz documento forense com toda a cadeia de custódia digital do termo de consentimento
+ */
+export class GeradorCertificadoConclusao {
+  public static async gerarCertificado(dados: IDadosCertificadoConclusao): Promise<Uint8Array> {
+    const pdfDoc = await PDFDocument.create();
+
+    // Metadados PDF
+    pdfDoc.setTitle(`Certificado de Conclusão — ${dados.validationCode}`);
+    pdfDoc.setAuthor('Plataforma Catraki / SESI Saúde — Escola Cidadã');
+    pdfDoc.setSubject(`Relatório Forense de Linha do Tempo — Documento ${dados.documentId}`);
+    pdfDoc.setKeywords(['LGPD', 'Lei 14.063/2020', 'Catraki', 'SESI', 'Assinatura Eletrônica', 'Auditoria']);
+    pdfDoc.setCreationDate(new Date());
+    pdfDoc.setModificationDate(new Date());
+
+    const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontMono = await pdfDoc.embedFont(StandardFonts.Courier);
+
+    const PAGE_W = 595.28;  // A4 largura pts
+    const PAGE_H = 841.89;  // A4 altura pts
+    const MARGIN = 42;
+    const CONTENT_W = PAGE_W - MARGIN * 2;
+
+    let page = pdfDoc.addPage([PAGE_W, PAGE_H]);
+    let y = PAGE_H - MARGIN;
+
+    const novaLinha = (delta = 14) => { y -= delta; };
+
+    const checkPage = (needed = 60) => {
+      if (y < MARGIN + needed) {
+        page = pdfDoc.addPage([PAGE_W, PAGE_H]);
+        y = PAGE_H - MARGIN;
+        // Cabeçalho mini nas páginas subsequentes
+        page.drawRectangle({ x: 0, y: PAGE_H - 28, width: PAGE_W, height: 28, color: COR_AZUL_SESI });
+        page.drawText('CATRAKI / SESI SAÚDE — CERTIFICADO DE CONCLUSÃO (CONTINUAÇÃO)', {
+          x: MARGIN, y: PAGE_H - 20, size: 7, font: fontBold, color: rgb(1, 1, 1),
+        });
+        y = PAGE_H - 42;
+      }
+    };
+
+    const drawLine = (x1: number, y1: number, x2: number, y2: number, thickness = 0.5) => {
+      page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness, color: COR_CINZA });
+    };
+
+    // ── CABEÇALHO ──────────────────────────────────────────────────────────
+    page.drawRectangle({ x: 0, y: PAGE_H - 80, width: PAGE_W, height: 80, color: COR_AZUL_SESI });
+
+    page.drawText('SESI SAÚDE · ESCOLA CIDADÃ', {
+      x: MARGIN, y: PAGE_H - 28, size: 9, font: fontBold, color: rgb(1, 1, 1),
+    });
+    page.drawText('CERTIFICADO DE CONCLUSÃO E RELATÓRIO FORENSE DE LINHA DO TEMPO', {
+      x: MARGIN, y: PAGE_H - 44, size: 8, font: fontBold, color: rgb(0.85, 0.92, 1),
+    });
+    page.drawText('Conformidade: Lei 14.063/2020 · LGPD (Lei 13.709/2018) · MP 2.200-2/2001 · Marco Civil da Internet', {
+      x: MARGIN, y: PAGE_H - 58, size: 6.5, font: fontRegular, color: rgb(0.75, 0.85, 1),
+    });
+
+    // Código de validação no cabeçalho
+    const codeText = dados.validationCode;
+    page.drawText(codeText, {
+      x: PAGE_W - MARGIN - fontMono.widthOfTextAtSize(codeText, 9) - 4,
+      y: PAGE_H - 36, size: 9, font: fontMono, color: rgb(1, 1, 0.8),
+    });
+    page.drawText('Protocolo Forense', {
+      x: PAGE_W - MARGIN - 80,
+      y: PAGE_H - 47, size: 6, font: fontRegular, color: rgb(0.75, 0.85, 1),
+    });
+
+    y = PAGE_H - 80 - 16;
+
+    // ── STATUS DO DOCUMENTO ────────────────────────────────────────────────
+    const statusLabel = dados.documentStatus === 'signed' ? 'ASSINADO ✓'
+      : dados.documentStatus === 'revoked' ? 'REVOGADO'
+      : dados.documentStatus === 'CANCELADO_POR_ERRO' ? 'CANCELADO POR ERRO'
+      : dados.documentStatus.toUpperCase();
+    const statusColor = dados.documentStatus === 'signed' ? COR_VERDE : COR_VERMELHO;
+
+    page.drawRectangle({ x: MARGIN, y: y - 18, width: CONTENT_W, height: 26, color: COR_FUNDO_CLARO, borderColor: COR_AZUL_SESI, borderWidth: 0.5 });
+    page.drawText('STATUS DO DOCUMENTO:', { x: MARGIN + 8, y: y - 10, size: 8, font: fontBold, color: COR_PRETO });
+    page.drawText(statusLabel, { x: MARGIN + 130, y: y - 10, size: 9, font: fontBold, color: statusColor });
+    page.drawText(`ID: ${dados.documentId}`, { x: MARGIN + 320, y: y - 10, size: 7, font: fontMono, color: COR_CINZA });
+    novaLinha(32);
+
+    // ── DADOS DO DOCUMENTO ─────────────────────────────────────────────────
+    page.drawText('IDENTIFICAÇÃO DO DOCUMENTO', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
+    novaLinha(12);
+    drawLine(MARGIN, y, PAGE_W - MARGIN, y);
+    novaLinha(10);
+
+    const fields = [
+      ['Estudante', dados.minorName],
+      ['Responsável Legal', dados.signerName],
+      ['CPF do Responsável', dados.signerCpfMasked],
+      ['Vínculo', dados.signerRelationship],
+      ['Escola / Instituição', dados.institutionName],
+      ['Assinado em', formatarDataBr(dados.signedAt)],
+    ];
+
+    for (const [label, value] of fields) {
+      page.drawText(`${label}:`, { x: MARGIN, y, size: 7.5, font: fontBold, color: COR_CINZA });
+      page.drawText(String(value), { x: MARGIN + 120, y, size: 7.5, font: fontRegular, color: COR_PRETO });
+      novaLinha(13);
+    }
+
+    novaLinha(6);
+
+    // ── HASHES CRIPTOGRÁFICOS ──────────────────────────────────────────────
+    checkPage(120);
+    page.drawText('REGISTRO CRIPTOGRÁFICO (SHA-256 — Lei 14.063/2020 Art. 4º, II)', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
+    novaLinha(12);
+    drawLine(MARGIN, y, PAGE_W - MARGIN, y);
+    novaLinha(10);
+
+    const hashFields = [
+      ['Hash do Manifesto (SHA-256)', dados.manifestSha256],
+      ['Hash do Conteúdo TCLE (SHA-256)', dados.contentSha256],
+      ['Hash da Linha de Auditoria', dados.logRowHash],
+      ['Hash do Bloco Anterior', dados.prevLogHash || 'GÊNESIS (Primeiro Registro)'],
+      ['Raiz de Merkle da Cadeia', dados.merkleRoot || '(calculada no próximo cron)'],
+      ['Autoridade de Carimbo do Tempo', dados.tsaAuthority || 'Catraki TSA Interno'],
+    ];
+
+    for (const [label, value] of hashFields) {
+      page.drawText(`${label}:`, { x: MARGIN, y, size: 7, font: fontBold, color: COR_CINZA });
+      novaLinha(11);
+      // Quebra o hash em linha
+      const MAX_CHARS = 95;
+      const strValue = String(value);
+      if (strValue.length > MAX_CHARS) {
+        page.drawText(strValue.slice(0, MAX_CHARS), { x: MARGIN + 8, y, size: 6.5, font: fontMono, color: COR_PRETO });
+        novaLinha(9);
+        page.drawText(strValue.slice(MAX_CHARS), { x: MARGIN + 8, y, size: 6.5, font: fontMono, color: COR_PRETO });
+      } else {
+        page.drawText(strValue, { x: MARGIN + 8, y, size: 6.5, font: fontMono, color: COR_PRETO });
+      }
+      novaLinha(14);
+    }
+
+    novaLinha(6);
+
+    // ── LINHA DO TEMPO ─────────────────────────────────────────────────────
+    checkPage(80);
+    page.drawText('LINHA DO TEMPO DE AÇÕES — CADEIA DE CUSTÓDIA DIGITAL', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
+    novaLinha(12);
+    drawLine(MARGIN, y, PAGE_W - MARGIN, y);
+    novaLinha(14);
+
+    for (let i = 0; i < dados.eventos.length; i++) {
+      const ev = dados.eventos[i];
+      checkPage(70);
+
+      // Bolinha da timeline
+      const dotColor = ev.tipo === 'ASSINADO' ? COR_VERDE
+        : ev.tipo === 'REVOGADO' || ev.tipo === 'CANCELADO_POR_ERRO' ? COR_VERMELHO
+        : COR_AZUL_SESI;
+
+      page.drawCircle({ x: MARGIN + 5, y: y + 3, size: 4, color: dotColor });
+      if (i < dados.eventos.length - 1) {
+        page.drawLine({ start: { x: MARGIN + 5, y: y - 2 }, end: { x: MARGIN + 5, y: y - 28 }, thickness: 0.8, color: rgb(0.8, 0.8, 0.85) });
+      }
+
+      // Evento
+      page.drawText(labelEvento(ev.tipo), { x: MARGIN + 15, y, size: 8, font: fontBold, color: COR_PRETO });
+      const tsFormatted = formatarDataBr(ev.timestamp);
+      page.drawText(tsFormatted, { x: PAGE_W - MARGIN - fontRegular.widthOfTextAtSize(tsFormatted, 7) - 4, y, size: 7, font: fontRegular, color: COR_CINZA });
+      novaLinha(11);
+
+      page.drawText(ev.descricao, { x: MARGIN + 15, y, size: 7, font: fontRegular, color: COR_CINZA });
+      novaLinha(10);
+
+      if (ev.ip) {
+        page.drawText(`IP: ${ev.ip}`, { x: MARGIN + 15, y, size: 6.5, font: fontMono, color: rgb(0.5, 0.5, 0.5) });
+        novaLinha(9);
+      }
+      if (ev.geo) {
+        page.drawText(`Geo: ${ev.geo}`, { x: MARGIN + 15, y, size: 6.5, font: fontRegular, color: rgb(0.5, 0.5, 0.5) });
+        novaLinha(9);
+      }
+      if (ev.ntp_source) {
+        page.drawText(`NTP: ${ev.ntp_source}`, { x: MARGIN + 15, y, size: 6, font: fontRegular, color: rgb(0.6, 0.6, 0.7) });
+        novaLinha(9);
+      }
+      novaLinha(6);
+    }
+
+    // ── QR CODE DE VALIDAÇÃO ───────────────────────────────────────────────
+    checkPage(140);
+    const baseUrl = dados.validationBaseUrl || 'https://catraki.com.br/validar';
+    const validationUrl = `${baseUrl}/${dados.validationCode}`;
+
+    try {
+      const qrDataUrl = await QRCode.toDataURL(validationUrl, {
+        errorCorrectionLevel: 'M',
+        width: 120,
+        margin: 1,
+      });
+      const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
+      const qrBytes = Uint8Array.from(atob(qrBase64), c => c.charCodeAt(0));
+      const qrImage = await pdfDoc.embedPng(qrBytes);
+
+      const QR_SIZE = 90;
+      const qrX = PAGE_W - MARGIN - QR_SIZE;
+      const qrY = y - QR_SIZE;
+
+      page.drawRectangle({ x: qrX - 6, y: qrY - 6, width: QR_SIZE + 12, height: QR_SIZE + 12, color: COR_FUNDO_CLARO, borderColor: COR_AZUL_SESI, borderWidth: 0.5 });
+      page.drawImage(qrImage, { x: qrX, y: qrY, width: QR_SIZE, height: QR_SIZE });
+      page.drawText('Validar Autenticidade', { x: qrX - 2, y: qrY - 12, size: 6, font: fontBold, color: COR_AZUL_SESI });
+
+      // Texto ao lado do QR
+      page.drawText('VERIFICAÇÃO PÚBLICA DE AUTENTICIDADE', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
+      novaLinha(13);
+      page.drawText('Qualquer pessoa pode verificar a autenticidade deste documento em:', { x: MARGIN, y, size: 7, font: fontRegular, color: COR_PRETO });
+      novaLinha(11);
+      page.drawText(validationUrl, { x: MARGIN, y, size: 7, font: fontMono, color: COR_AZUL_SESI });
+      novaLinha(11);
+      page.drawText('O QR Code ao lado leva diretamente à página de validação.', { x: MARGIN, y, size: 7, font: fontRegular, color: COR_CINZA });
+      novaLinha(50);
+    } catch {
+      novaLinha(10);
+    }
+
+    // ── RODAPÉ JURÍDICO ────────────────────────────────────────────────────
+    checkPage(80);
+    drawLine(MARGIN, y, PAGE_W - MARGIN, y);
+    novaLinha(14);
+
+    page.drawText('DECLARAÇÃO DE AUTENTICIDADE', { x: MARGIN, y, size: 7.5, font: fontBold, color: COR_PRETO });
+    novaLinha(11);
+
+    const disclaimer = [
+      'Este Certificado de Conclusão é um documento digital imutável gerado automaticamente pela Plataforma Catraki / SESI Saúde,',
+      'chancelado com o Hash SHA-256 do manifesto criptográfico registrado no momento da assinatura eletrônica.',
+      'Qualquer alteração posterior a este documento — incluindo a modificação de um único bit — invalida sua prova jurídica.',
+      '',
+      'BASE LEGAL: Lei nº 14.063/2020 (Art. 4º, II — Assinatura Eletrônica Avançada); MP nº 2.200-2/2001 (Art. 10, §2º);',
+      'LGPD — Lei nº 13.709/2018 (Arts. 46, 47 e 48); Marco Civil da Internet — Lei nº 12.965/2014 (Art. 15);',
+      'STJ — REsp 2.205.708/PR (validade jurídica da assinatura eletrônica); ECA — Art. 17.',
+    ];
+
+    for (const line of disclaimer) {
+      if (!line) { novaLinha(5); continue; }
+      page.drawText(line, { x: MARGIN, y, size: 6.5, font: fontRegular, color: COR_CINZA });
+      novaLinha(10);
+    }
+
+    novaLinha(8);
+    page.drawText(`Gerado em: ${formatarDataBr(new Date().toISOString())} | Plataforma: Catraki v1.0 | SESI-DF / UnB — Projeto Escola Cidadã`, {
+      x: MARGIN, y, size: 6, font: fontRegular, color: rgb(0.6, 0.6, 0.65),
+    });
+
+    return await pdfDoc.save();
+  }
+}

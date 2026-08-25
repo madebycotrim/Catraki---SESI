@@ -990,6 +990,33 @@ export const apiClient = {
   },
 
   /**
+   * Baixa o Certificado de Conclusão / Relatório de Linha do Tempo em PDF (Lei 14.063/2020)
+   */
+  async downloadDocumentCertificate(docId: string): Promise<boolean> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/documents/${encodeURIComponent(docId)}/certificate`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!resp.ok) return false;
+
+      const blob = await resp.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `certificado-conclusao-${docId.slice(-8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  /**
    * Dispara ou reenvia notificação formal de cancelamento para o e-mail informado
    */
   async resendCancellationNotification(docId: string, email: string, reason?: string): Promise<any> {

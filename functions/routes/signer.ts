@@ -23,6 +23,7 @@ import {
   stripExifFromBase64Image,
   canonicalJson,
 } from '../../src/lib/crypto.ts';
+import { getSyncedTimestamp } from '../../src/lib/ntp-sync.ts';
 import { GeradorPdfTermoSesi } from '../../src/lib/pades/GeradorPdfTermoSesi.ts';
 import { computeLogRowHash } from '../../src/lib/audit-chain.ts';
 import { querySesiMatricula } from '../../src/lib/sesi-matricula.ts';
@@ -115,6 +116,26 @@ signerRouter.get('/doc/:token', async (c) => {
 
   if (!token || token.trim().length === 0) {
     return c.json({ success: false, error: 'Token de acesso inválido.', code: 'INVALID_TOKEN' }, 400);
+  }
+
+  // ── KV DENYLIST CHECK (Pilar 5 — Revogação Instantânea de Tokens) ─────────
+  // Verifica a denylist ANTES de qualquer hit no D1 para invalidação instantânea.
+  // A entry é gravada pelo admin no cancelamento/revogação com a key 'revoked:{token}'.
+  const kv = c.env.KV_RATE_LIMIT;
+  if (kv) {
+    try {
+      const isRevoked = await kv.get(`revoked:${token}`);
+      if (isRevoked !== null) {
+        return c.json({
+          success: false,
+          error: 'Este link foi revogado e não é mais válido. Todos os tokens de acesso foram inutilizados.',
+          code: 'TOKEN_REVOKED',
+          revoked_at: isRevoked,
+        }, 410); // 410 Gone — semanticamente correto para recursos revogados
+      }
+    } catch {
+      // Falha silenciosa — não bloqueia o fluxo se o KV estiver indisponível
+    }
   }
 
   let doc = await db.prepare(
@@ -254,8 +275,10 @@ signerRouter.post('/check-student', async (c) => {
   const params: any[] = [];
 
   if (cleanCpf && cleanCpf.length === 11) {
-    query += "d.minor_cpf = ? OR d.minor_cpf_raw = ?";
-    params.push(maskCPF(cleanCpf), cleanCpf);
+    const pepper = c.env.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD_98765';
+    const minorCpfBindex = await hmacSha256(cleanCpf, pepper);
+    query += "d.minor_cpf = ? OR d.minor_cpf_bindex_sha256 = ?";
+    params.push(maskCPF(cleanCpf), minorCpfBindex);
   } else if (cleanName && minor_birth_date) {
     query += "LOWER(d.minor_name) = LOWER(?) AND d.minor_birth_date = ?";
     params.push(cleanName, minor_birth_date);
@@ -749,9 +772,11 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   // Prevenção de duplicidade: não permite que o mesmo estudante tenha mais de uma autorização assinada
   const rawMinorCpf = parsed.data.minor_cpf ? parsed.data.minor_cpf.replace(/\D/g, '') : '';
   if (rawMinorCpf && rawMinorCpf.length === 11) {
+    const pepper = c.env.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD_98765';
+    const minorCpfBindex = await hmacSha256(rawMinorCpf, pepper);
     const existingSigned = await db.prepare(
-      "SELECT d.id, a.manifest_sha256 FROM documents d LEFT JOIN audit_logs a ON d.id = a.document_id WHERE d.status = 'signed' AND (d.minor_cpf = ? OR d.minor_cpf_raw = ?) AND d.id != ? LIMIT 1"
-    ).bind(maskCPF(rawMinorCpf), rawMinorCpf, doc.id).first<any>();
+      "SELECT d.id, a.manifest_sha256 FROM documents d LEFT JOIN audit_logs a ON d.id = a.document_id WHERE d.status = 'signed' AND (d.minor_cpf = ? OR d.minor_cpf_bindex_sha256 = ?) AND d.id != ? LIMIT 1"
+    ).bind(maskCPF(rawMinorCpf), minorCpfBindex, doc.id).first<any>();
 
     if (existingSigned) {
       const vCode = existingSigned.manifest_sha256
@@ -791,7 +816,13 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const geoCity = c.req.header('cf-ipcity') || 'Local';
   const geoRegion = c.req.header('cf-region') || 'BR-SP';
   const geoCountry = c.req.header('cf-ipcountry') || 'BR';
-  const signedAtIso = new Date().toISOString();
+
+  // ── NTP SYNC (Pilar 3 — Observatório Nacional Brasileiro) ────────────────────────
+  // Usa timestamp certificado NTP para impossibilitar fraude com datas retroativas.
+  const ntpTs = await getSyncedTimestamp(c.env.KV_RATE_LIMIT).catch(() => ({
+    iso: new Date().toISOString(), source: 'system' as const, synced: false, offset_ms: 0, queried_at_local: new Date().toISOString()
+  }));
+  const signedAtIso = ntpTs.iso;
 
   const signaturePngSha256 = await sha256(signature_png_base64);
   const contentSha256AtSigning = doc.content_sha256 || doc.template_content_sha256;
@@ -837,6 +868,11 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     },
     legal_basis: 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020 Art. 4º, II (Assinatura Eletrônica Avançada); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
     consent_text_version: doc.consent_text_version,
+    // Pilar 3: Carimbo do Tempo NTP certificado pelo Observatório Nacional Brasileiro
+    ntp_synced_at: ntpTs.iso,
+    ntp_source: ntpTs.source,
+    ntp_synced: ntpTs.synced,
+    ntp_offset_ms: ntpTs.offset_ms,
   };
 
   const manifestSha256 = await sha256(canonicalJson(manifestData));
@@ -937,6 +973,16 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       ? await hmacSha256(cleanEmail, c.env.OTP_PEPPER || 'bindex_secret')
       : null;
 
+    // Pilar 1 — Privacy by Design: CPF do menor criptografado com AES-GCM-256
+    const rawMinorCpfForEncrypt = rawMinorCpf || (parsed.data.minor_cpf || '').replace(/\D/g, '');
+    const minorCpfEncrypted = rawMinorCpfForEncrypt
+      ? await encryptAesGcm(rawMinorCpfForEncrypt, masterKey, 1)
+      : null;
+    // Blind Index HMAC-SHA256 para buscas seguras sem expor o CPF (LGPD)
+    const minorCpfBindex = rawMinorCpfForEncrypt
+      ? await hmacSha256(rawMinorCpfForEncrypt, c.env.OTP_PEPPER || 'bindex_minor_cpf')
+      : null;
+
     const batch = await db.batch([
       db.prepare(
         `INSERT INTO audit_logs (
@@ -986,6 +1032,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
              minor_name = COALESCE(?, minor_name), 
              minor_birth_date = COALESCE(?, minor_birth_date),
              minor_cpf = ?,
+             minor_cpf_encrypted = COALESCE(?, minor_cpf_encrypted),
+             minor_cpf_bindex_sha256 = COALESCE(?, minor_cpf_bindex_sha256),
              minor_series = ?,
              minor_class = ?,
              minor_turn = ?,
@@ -1001,6 +1049,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         parsed.data.minor_name || doc.minor_name || null,
         parsed.data.minor_birth_date || doc.minor_birth_date || null,
         parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : null,
+        minorCpfEncrypted,
+        minorCpfBindex,
         parsed.data.minor_series || null,
         parsed.data.minor_class || null,
         parsed.data.minor_turn || null,

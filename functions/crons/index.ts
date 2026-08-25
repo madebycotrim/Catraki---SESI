@@ -1,4 +1,5 @@
 import { computeMerkleRoot } from '../../src/lib/audit-chain.ts';
+import { verifyDocumentIntegrity } from '../../src/lib/crypto.ts';
 import type { Env } from '../../src/lib/types.ts';
 
 /**
@@ -131,5 +132,62 @@ export async function handleScheduled(
     }
   } catch (err) {
     // Tabela pode ainda estar em migração
+  }
+
+  // 6. Verificação de Integridade Documental (Lei 14.063/2020 + LGPD Art. 46)
+  // Compara o content_sha256 armazenado com o hash do template atual.
+  // Se divergir, gera INTEGRITY_ALERT_TAMPERING na trilha de auditoria.
+  try {
+    const signedDocs = await db.prepare(
+      `SELECT d.id, d.content_sha256, d.access_token, t.content_markdown, t.content_sha256 as template_sha256
+       FROM documents d
+       LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       WHERE d.status = 'signed'
+         AND d.content_sha256 IS NOT NULL
+         AND d.integrity_alert_at IS NULL
+       LIMIT 100`
+    ).all<any>();
+
+    let alertCount = 0;
+    for (const doc of (signedDocs.results || [])) {
+      const storedHash = doc.content_sha256;
+      const currentContent = doc.content_markdown || doc.template_sha256 || '';
+      if (!storedHash || !currentContent) continue;
+
+      const integrityResult = await verifyDocumentIntegrity(storedHash, currentContent);
+
+      if (!integrityResult.intact) {
+        alertCount++;
+        const alertId = `INTEGRITY-${Date.now()}-${doc.id.substring(0, 8)}`;
+
+        // Registra alerta no documento
+        await db.prepare(
+          `UPDATE documents
+           SET integrity_alert_at = datetime('now'),
+               integrity_alert_reason = ?
+           WHERE id = ?`
+        ).bind(integrityResult.alertMessage, doc.id).run().catch(() => {});
+
+        // Registra na trilha de auditoria administrativa
+        await db.prepare(
+          `INSERT OR IGNORE INTO admin_audit_logs (id, event_type, document_id, description, created_at)
+           VALUES (?, 'INTEGRITY_ALERT_TAMPERING', ?, ?, datetime('now'))`
+        ).bind(
+          alertId,
+          doc.id,
+          integrityResult.alertMessage || 'Adulteração detectada na verificação periódica de integridade'
+        ).run().catch(() => {});
+
+        console.error(`[CRON_INTEGRITY] ADULTERAÇÃO DETECTADA no documento ${doc.id}: ${integrityResult.alertMessage}`);
+      }
+    }
+
+    if (alertCount > 0) {
+      console.error(`[CRON_INTEGRITY] ${alertCount} documentos com suspeita de adulteração detectada. Verifique admin_audit_logs.`);
+    } else {
+      console.log(`[CRON_INTEGRITY] Verificação de integridade concluída: ${signedDocs.results?.length || 0} documentos íntegros.`);
+    }
+  } catch (err) {
+    console.error('[CRON] Erro na verificação de integridade documental:', err);
   }
 }

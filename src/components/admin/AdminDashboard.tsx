@@ -864,8 +864,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Tabela de Autorizações com Rolagem Horizontal Suave */}
           <div className="bg-white rounded-2xl shadow-xs border border-slate-200/90 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[960px]">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left border-collapse min-w-[1280px]">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
                     <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Código</th>
@@ -1052,11 +1052,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
                                   onClick={() => handleOpenDetailsModal(auth)}
-                                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-sesi-primary hover:bg-blue-800 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-sesi-primary hover:bg-blue-800 text-white text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
                                   title="Abrir Ficha Completa de Triagem do Estudante (SESI Saúde)"
                                 >
                                   <FileText className="w-3.5 h-3.5 text-white" /> 
-                                  <span>Ver Ficha Completa</span>
+                                  <span>Ver Ficha</span>
                                 </button>
                                 <button
                                   onClick={() => handleOpenResendEmailModal(auth)}
@@ -1067,11 +1067,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </button>
                                 <button
                                   onClick={() => handleOpenRevokeModal(auth)}
-                                  className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 hover:border-rose-300 text-rose-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                                  className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 hover:border-rose-300 text-rose-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer whitespace-nowrap"
                                   title="Revogar autorização e desativar links de acesso por inconsistência ou solicitação"
                                 >
                                   <Ban className="w-3.5 h-3.5 text-rose-600" />
-                                  <span>Revogar Documento</span>
+                                  <span>Revogar</span>
                                 </button>
                               </div>
                             ) : (

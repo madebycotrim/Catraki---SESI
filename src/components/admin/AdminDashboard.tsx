@@ -621,6 +621,123 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const totalImageAuthorized = filteredAuths.filter((a) => a.authImage && a.status === 'signed').length;
   const signedPercentage = authorizations.length > 0 ? ((totalSigned / authorizations.length) * 100).toFixed(1) : '0';
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ENGINE DE ALERTAS INTELIGENTES
+  // Detecta anomalias em TODOS os registros (não apenas na página atual)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const anomalyFlags = useMemo(() => {
+    const flags = new Map<string, string[]>(); // authId → lista de alertas
+    const now = new Date();
+
+    // — Índices para detecção —
+    // 1. CPF do aluno → lista de auths (ignora 'Pendente' e 'CPF não informado')
+    const cpfMap = new Map<string, string[]>();
+    // 2. Nome normalizado do aluno + escola → lista de auths (para pendentes sem CPF)
+    const nameSchoolMap = new Map<string, string[]>();
+    // 3. CPF do responsável + nome do aluno → para detectar mesmo responsável,
+    //    mesmo filho, registros duplicados (pai com 2 filhos é OK; mesmo filho 2x não)
+    const parentChildMap = new Map<string, string[]>();
+
+    authorizations.forEach((auth) => {
+      const cpf = auth.studentCpfMasked;
+      const hasCpf = cpf && cpf !== 'Pendente' && cpf !== 'CPF não informado';
+
+      if (hasCpf) {
+        const list = cpfMap.get(cpf) || [];
+        list.push(auth.id);
+        cpfMap.set(cpf, list);
+      }
+
+      // Chave nome normalizado + escola (para registros sem CPF)
+      const nameKey = `${auth.studentName.trim().toLowerCase()}|${auth.institutionId}`;
+      const nameList = nameSchoolMap.get(nameKey) || [];
+      nameList.push(auth.id);
+      nameSchoolMap.set(nameKey, nameList);
+
+      // Mesmo responsável + mesmo aluno
+      const parentCpf = auth.parentCpfMasked;
+      const hasParentCpf = parentCpf && parentCpf !== 'Pendente' && parentCpf !== '***.***.***-**';
+      if (hasParentCpf && hasCpf) {
+        const pKey = `${parentCpf}|${cpf}`;
+        const pList = parentChildMap.get(pKey) || [];
+        pList.push(auth.id);
+        parentChildMap.set(pKey, pList);
+      }
+    });
+
+    authorizations.forEach((auth) => {
+      const alerts: string[] = [];
+      const cpf = auth.studentCpfMasked;
+      const hasCpf = cpf && cpf !== 'Pendente' && cpf !== 'CPF não informado';
+
+      // ① Duplicata por CPF do aluno
+      if (hasCpf && (cpfMap.get(cpf)?.length ?? 0) > 1) {
+        const others = (cpfMap.get(cpf) || []).filter(id => id !== auth.id);
+        alerts.push(`DUPLICATE_CPF:${others.length}`);
+      }
+
+      // ② Duplicata por nome+escola (para pendentes sem CPF)
+      const nameKey = `${auth.studentName.trim().toLowerCase()}|${auth.institutionId}`;
+      if ((nameSchoolMap.get(nameKey)?.length ?? 0) > 1 && !hasCpf) {
+        alerts.push('DUPLICATE_NAME');
+      }
+
+      // ③ Mesmo responsável assinou 2x para o mesmo filho
+      const parentCpf = auth.parentCpfMasked;
+      const hasParentCpf = parentCpf && parentCpf !== 'Pendente' && parentCpf !== '***.***.***-**';
+      if (hasParentCpf && hasCpf) {
+        const pKey = `${parentCpf}|${cpf}`;
+        if ((parentChildMap.get(pKey)?.length ?? 0) > 1) {
+          alerts.push('DUPLICATE_PARENT_CHILD');
+        }
+      }
+
+      // ④ Pendente antigo (> 7 dias sem assinar)
+      if (auth.status === 'pending' || auth.status === 'draft') {
+        const signedAt = new Date(auth.signedAtDate);
+        if (!isNaN(signedAt.getTime())) {
+          const diffDays = (now.getTime() - signedAt.getTime()) / (1000 * 60 * 60 * 24);
+          if (diffDays > 7) alerts.push(`STALE_PENDING:${Math.floor(diffDays)}`);
+        }
+      }
+
+      // ⑤ Dados incompletos: turma/série ausentes em registro assinado
+      if (auth.status === 'signed' && !auth.minorSeries && !auth.minorClass) {
+        alerts.push('INCOMPLETE_CLASS');
+      }
+
+      // ⑥ Email ausente em pendente (não vai conseguir receber OTP)
+      if ((auth.status === 'pending' || auth.status === 'draft') && !auth.parentEmail) {
+        alerts.push('MISSING_EMAIL');
+      }
+
+      if (alerts.length > 0) flags.set(auth.id, alerts);
+    });
+
+    return flags;
+  }, [authorizations]);
+
+  // Totais de anomalias para o banner
+  const totalDuplicates = useMemo(() => {
+    let count = 0;
+    anomalyFlags.forEach((flags) => {
+      if (flags.some(f => f.startsWith('DUPLICATE_CPF') || f === 'DUPLICATE_NAME' || f === 'DUPLICATE_PARENT_CHILD')) count++;
+    });
+    return count;
+  }, [anomalyFlags]);
+
+  const totalStale = useMemo(() => {
+    let count = 0;
+    anomalyFlags.forEach((flags) => { if (flags.some(f => f.startsWith('STALE_PENDING'))) count++; });
+    return count;
+  }, [anomalyFlags]);
+
+  const totalIncomplete = useMemo(() => {
+    let count = 0;
+    anomalyFlags.forEach((flags) => { if (flags.includes('INCOMPLETE_CLASS') || flags.includes('MISSING_EMAIL')) count++; });
+    return count;
+  }, [anomalyFlags]);
+
   // Paginação
   const totalPages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(filteredAuths.length / pageSize));
   const paginatedAuths = useMemo(() => {
@@ -913,6 +1030,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* ━━ PAINEL DE ALERTAS INTELIGENTES ━━ */}
+      {(totalDuplicates > 0 || totalStale > 0 || totalIncomplete > 0) && (
+        <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-4 space-y-2 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <AlertTriangle className="w-4 h-4 text-orange-600 shrink-0" />
+            <span className="text-xs font-black text-orange-900 uppercase tracking-wide">Alertas do Sistema — {totalDuplicates + totalStale + totalIncomplete} ocorrências detectadas</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {totalDuplicates > 0 && (
+              <button
+                type="button"
+                onClick={() => { setSearchTerm(''); setSubTab('all'); setSelectedStatus('all'); }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-100 hover:bg-orange-200 border border-orange-300 text-orange-900 text-xs font-bold transition-colors cursor-pointer"
+                title="Registros com o mesmo CPF de aluno cadastrados mais de uma vez"
+              >
+                <span className="w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-black flex items-center justify-center shrink-0">{totalDuplicates}</span>
+                ⚠️ Alunos com registro duplicado
+              </button>
+            )}
+            {totalStale > 0 && (
+              <button
+                type="button"
+                onClick={() => { setSubTab('pending'); setSelectedStatus('all'); }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 text-xs font-bold transition-colors cursor-pointer"
+                title="Documentos que estão pendentes há mais de 7 dias sem assinatura"
+              >
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-black flex items-center justify-center shrink-0">{totalStale}</span>
+                🕐 Pendentes antigos (&gt;7 dias)
+              </button>
+            )}
+            {totalIncomplete > 0 && (
+              <button
+                type="button"
+                onClick={() => { setSubTab('all'); setSelectedStatus('all'); }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
+                title="Registros com turma, série ou e-mail do responsável ausentes"
+              >
+                <span className="w-5 h-5 rounded-full bg-slate-500 text-white text-[10px] font-black flex items-center justify-center shrink-0">{totalIncomplete}</span>
+                📋 Dados incompletos
+              </button>
+            )}
+          </div>
+          <p className="text-[10px] text-orange-700 m-0 leading-relaxed">
+            Os registros afetados estão destacados com borda colorida e badges na coluna “Paciente / Aluno”. Passe o mouse sobre o badge para ver o detalhe.
+          </p>
+        </div>
+      )}
 
       {/* ━━ 3. TABS PRINCIPAIS E AÇÕES ━━ */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
@@ -1229,10 +1394,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       const gradient = getAvatarGradient(auth.studentName);
                       const isCopied = copiedCode === (auth.validationCode || auth.id);
 
+                      const authAlerts = anomalyFlags.get(auth.id) || [];
+                      const hasDuplicate = authAlerts.some(f => f.startsWith('DUPLICATE_CPF') || f === 'DUPLICATE_NAME' || f === 'DUPLICATE_PARENT_CHILD');
+                      const isStale = authAlerts.some(f => f.startsWith('STALE_PENDING'));
+                      const staleDays = isStale ? parseInt(authAlerts.find(f => f.startsWith('STALE_PENDING'))?.split(':')[1] || '0') : 0;
+                      const hasIncomplete = authAlerts.includes('INCOMPLETE_CLASS') || authAlerts.includes('MISSING_EMAIL');
+                      const hasAnyAlert = authAlerts.length > 0;
+                      const dupCount = authAlerts.find(f => f.startsWith('DUPLICATE_CPF'))?.split(':')[1] || '1';
+
                       return (
                         <tr 
                           key={auth.id} 
                           className={`table-row-ultra group ${
+                            hasDuplicate ? 'bg-orange-50/40 hover:bg-orange-50/70 border-l-2 border-l-orange-400' :
+                            isStale ? 'bg-amber-50/30 hover:bg-amber-50/60 border-l-2 border-l-amber-400' :
                             isCancelled ? 'bg-rose-50/20 hover:bg-rose-50/40' : ''
                           }`}
                         >
@@ -1267,6 +1442,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="font-bold text-slate-900 text-sm leading-snug break-words">
                                   {auth.studentName}
                                 </div>
+                                {/* ━━ BADGES DE ALERTA INTELIGENTE ━━ */}
+                                {hasAnyAlert && (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {hasDuplicate && (
+                                      <span
+                                        title={`Este aluno possui ${dupCount} outro(s) registro(s) com o mesmo CPF ou nome na plataforma.`}
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-orange-100 text-orange-800 border border-orange-300 text-[9px] font-black uppercase cursor-help"
+                                      >
+                                        ⚠️ Duplicado
+                                      </span>
+                                    )}
+                                    {isStale && (
+                                      <span
+                                        title={`Pendente há ${staleDays} dias sem assinatura.`}
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300 text-[9px] font-black uppercase cursor-help"
+                                      >
+                                        🕐 {staleDays}d sem assinar
+                                      </span>
+                                    )}
+                                    {hasIncomplete && (
+                                      <span
+                                        title="Dados de turma/série ou e-mail do responsável ausentes."
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-300 text-[9px] font-black uppercase cursor-help"
+                                      >
+                                        📋 Dados incompletos
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/80">
                                     {auth.studentCpfMasked}

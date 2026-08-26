@@ -370,9 +370,8 @@ export class GeradorCertificadoConclusao {
       'LGPD — Lei nº 13.709/2018 (Arts. 46, 47 e 48); Marco Civil da Internet — Lei nº 12.965/2014 (Art. 15);',
       'STJ — REsp 2.205.708/PR (validade jurídica da assinatura eletrônica).',
       '',
-      'A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log, emissão de hash (SHA-256)',
-      'e captura de evidências eletrônicas, não possuindo CNPJ, acesso, responsabilidade ou ingerência sobre os dados de saúde,',
-      'autorizações ou o conteúdo do projeto firmado entre as partes.',
+      'A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash,',
+      'não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.',
     ];
 
     for (const line of disclaimer) {

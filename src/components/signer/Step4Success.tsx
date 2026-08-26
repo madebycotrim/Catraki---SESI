@@ -325,6 +325,9 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                 <div className="text-slate-500 text-[10px] sm:text-xs leading-normal">
                   Documento digital com plena validade jurídica emitido nos termos da <strong>Lei Federal nº 14.063/2020 (Art. 4º, II)</strong>, da <strong>Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º)</strong>, da <strong>LGPD (Lei nº 13.709/2018)</strong> e da jurisprudência consolidada do <strong>STJ (REsp 2.205.708/PR)</strong>.
                 </div>
+                <div className="text-slate-400 text-[9.5px] sm:text-[10px] leading-relaxed pt-1">
+                  A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.
+                </div>
               </div>
             </div>
             <div className="pt-2 border-t border-dashed border-slate-200 text-[10px] sm:text-[11px] text-slate-500 text-left leading-relaxed">

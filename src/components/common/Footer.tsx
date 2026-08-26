@@ -61,28 +61,34 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500">
-        <div>
-          © {new Date().getFullYear()} Catraki. Todos os direitos reservados. Plataforma tecnológica proprietária desenvolvida e operada por Catraki.
-        </div>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => onNavigate('privacy')}
-            className="hover:text-slate-300 transition-colors underline cursor-pointer"
-          >
-            Política de Privacidade
-          </button>
-          <span>•</span>
-          <button
-            onClick={() => onNavigate('terms')}
-            className="hover:text-slate-300 transition-colors underline cursor-pointer"
-          >
-            Termos de Uso
-          </button>
-          <span>•</span>
-          <span className="flex items-center gap-1 text-emerald-400">
-            <ShieldCheck className="w-3.5 h-3.5" /> Trilha Forense Ativa
-          </span>
+      {/* Disclaimer Obrigatório de Isenção de Responsabilidade (Regra de Ouro) */}
+      <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-900 text-[11px] text-slate-500 leading-relaxed text-center sm:text-left space-y-3">
+        <p className="m-0 bg-slate-900/60 p-3 rounded-lg border border-slate-800/80 text-slate-400">
+          <strong>Isenção de Responsabilidade & Governança:</strong> Os dados de saúde e autorizações são controlados exclusivamente pelas instituições realizadoras do projeto (SESI-DF e Faculdade de Ciências da Saúde da UnB). A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+          <div>
+            © {new Date().getFullYear()} Catraki. Todos os direitos reservados. Infraestrutura tecnológica para assinaturas eletrônicas.
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => onNavigate('privacy')}
+              className="hover:text-slate-300 transition-colors underline cursor-pointer"
+            >
+              Política de Privacidade
+            </button>
+            <span>•</span>
+            <button
+              onClick={() => onNavigate('terms')}
+              className="hover:text-slate-300 transition-colors underline cursor-pointer"
+            >
+              Termos de Uso
+            </button>
+            <span>•</span>
+            <span className="flex items-center gap-1 text-emerald-400">
+              <ShieldCheck className="w-3.5 h-3.5" /> Trilha Forense Ativa
+            </span>
+          </div>
         </div>
       </div>
     </footer>

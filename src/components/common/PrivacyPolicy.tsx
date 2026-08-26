@@ -119,11 +119,23 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             </div>
           </section>
 
+          <section className="space-y-1.5">
+            <h2 className="text-xs sm:text-sm font-bold uppercase text-slate-900">
+              6. Agentes de Tratamento e Isenção de Responsabilidade
+            </h2>
+            <p>
+              As decisões referentes ao tratamento dos dados pessoais e de saúde competem exclusivamente aos <strong>Controladores</strong> do projeto: o <strong>Serviço Social da Indústria (SESI-DF)</strong> e a <strong>Universidade de Brasília (FS/UnB)</strong>.
+            </p>
+            <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-200/80 text-blue-950 text-xs sm:text-sm leading-relaxed">
+              <strong>Cláusula de Operação Tecnológica:</strong> A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.
+            </div>
+          </section>
+
         </div>
 
         {/* Rodapé e Barra Institucional */}
         <div className="pt-6 border-t border-slate-200 text-center text-xs text-slate-500">
-          <p className="m-0">Atualizado e homologado em 21 de agosto de 2026 • Plataforma Catraki</p>
+          <p className="m-0">Atualizado e homologado em 2026 • Plataforma Catraki</p>
         </div>
 
         {/* Barra institucional azul sólida no final da folha A5 (Padronizada) */}

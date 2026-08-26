@@ -16,7 +16,8 @@ export type SignerRelationship =
   | 'Tio/Tia'
   | 'Tio / Tia'
   | 'Outro'
-  | 'Outro Responsável Legal';
+  | 'Outro Responsável Legal'
+  | 'Próprio Estudante (Maior de Idade)'; // CC/2002 Art. 5º — plena capacidade civil aos 18 anos
 
 export type IdentityMethod = 'matricula_sesi' | 'manual_review';
 

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { StatusAlertScreen } from '../common/StatusAlertScreen.tsx';
 import { apiClient } from '../../lib/api.ts';
+import { calcularIdade, maskCPF } from '../../lib/schemas.ts';
 import type { SignerRelationship } from '../../lib/types.ts';
 
 interface Step3OtpAndSignatureProps {
@@ -48,6 +49,9 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   onSuccess,
   onBack,
 }) => {
+  // Calcula maioridade do estudante de forma dinâmica e precisa
+  const isMaiorDeIdade: boolean = !!minorBirthDate && calcularIdade(minorBirthDate, new Date()) >= 18;
+
   const [authHealth, setAuthHealth] = useState(false);
   const [authData, setAuthData] = useState(false);
   const [authImage, setAuthImage] = useState(false);
@@ -296,13 +300,16 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               </h2>
               <div className="space-y-4 text-justify text-slate-700 leading-relaxed text-xs sm:text-sm pt-2">
                 <p>
-                  Para que o(a) estudante participe das atividades do projeto itinerante “Escola Cidadã — Saúde em Movimento” (parceria UnB e SESI-DF), pedimos o seu consentimento. Os dados informados são usados exclusivamente para o registro desta autorização e são protegidos nos termos da Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).
+                  Para que o(a) estudante participe das atividades do projeto itinerante “Escola Cidadã — Saúde em Movimento” (parceria UnB e SESI-DF), {isMaiorDeIdade ? 'pedimos o seu consentimento direto como titular dos dados.' : 'pedimos o consentimento do responsável legal. Os dados informados são usados exclusivamente para o registro desta autorização e são protegidos nos termos da Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).'}
                 </p>
                 <p>
                   Você pode solicitar o acesso, a correção ou o cancelamento desta autorização a qualquer momento, procurando a coordenação da escola ou a equipe de apoio presencial.
                 </p>
                 <p>
-                  Ao assinar, você confirma que é o(a) responsável legal pelo(a) menor e que as informações prestadas são verdadeiras. O registro é feito de forma eletrônica através da plataforma Catraki, constituindo <strong>Assinatura Eletrônica Avançada</strong> nos termos do <strong>Art. 4º, II, da Lei nº 14.063/2020</strong>, do <strong>Art. 10, §2º, da MP 2.200-2/2001</strong>, da <strong>LGPD (Lei nº 13.709/2018)</strong> e do <strong>ECA (Art. 17)</strong>, com respaldo da jurisprudência do STJ (REsp 2.205.708/PR).
+                  {isMaiorDeIdade
+                    ? <>Ao assinar, você declara, como titular e estudante maior de idade, que as informações prestadas são verdadeiras. O registro é feito de forma eletrônica pela plataforma Catraki, constituindo <strong>Assinatura Eletrônica Avançada</strong> nos termos do <strong>Art. 4º, II, da Lei nº 14.063/2020</strong>, do <strong>Art. 10, §2º, da MP 2.200-2/2001</strong> e da <strong>LGPD (Lei nº 13.709/2018)</strong>, com respaldo da jurisprudência do STJ (REsp 2.205.708/PR).</>
+                    : <>Ao assinar, você confirma que é o(a) responsável legal pelo(a) menor e que as informações prestadas são verdadeiras. O registro é feito de forma eletrônica pela plataforma Catraki, constituindo <strong>Assinatura Eletrônica Avançada</strong> nos termos do <strong>Art. 4º, II, da Lei nº 14.063/2020</strong>, do <strong>Art. 10, §2º, da MP 2.200-2/2001</strong>, da <strong>LGPD (Lei nº 13.709/2018)</strong> e do <strong>ECA (Art. 17 — Lei nº 8.069/1990)</strong>, com respaldo da jurisprudência do STJ (REsp 2.205.708/PR).</>
+                  }
                 </p>
               </div>
             </div>
@@ -389,7 +396,9 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               {/* Grid de Informações com layout profissional */}
               <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white">
                 <div className="space-y-1 p-3 rounded-xl bg-slate-50/50 border border-slate-100">
-                  <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Assinante / Responsável Legal</span>
+                  <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                    {isMaiorDeIdade ? 'Estudante / Signatário(a)' : 'Assinante / Responsável Legal'}
+                  </span>
                   <div className="flex items-center gap-1.5 mt-1">
                     <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <strong className="text-slate-900 font-bold text-xs sm:text-sm leading-tight">{identityData.signerName}</strong>
@@ -400,17 +409,30 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Documento de Identificação (CPF)</span>
                   <div className="flex items-center gap-1.5 mt-1">
                     <Fingerprint className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <strong className="text-slate-800 font-mono text-xs sm:text-sm leading-tight">{identityData.signerCpf}</strong>
+                    {/* CPF mascarado na tela (LGPD Art. 46) — dado completo apenas no PDF forense */}
+                    <strong className="text-slate-800 font-mono text-xs sm:text-sm leading-tight">{maskCPF(identityData.signerCpf)}</strong>
                   </div>
                 </div>
 
-                <div className="space-y-1 p-3 rounded-xl bg-slate-50/50 border border-slate-100">
-                  <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Vínculo com o Estudante</span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <strong className="text-slate-800 text-xs sm:text-sm leading-tight">{identityData.signerRelationship}</strong>
+                {!isMaiorDeIdade && (
+                  <div className="space-y-1 p-3 rounded-xl bg-slate-50/50 border border-slate-100">
+                    <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Vínculo com o Estudante</span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <strong className="text-slate-800 text-xs sm:text-sm leading-tight">{identityData.signerRelationship}</strong>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {isMaiorDeIdade && (
+                  <div className="space-y-1 p-3 rounded-xl bg-emerald-50/50 border border-emerald-100 sm:col-span-1">
+                    <span className="block text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider">Capacidade Civil</span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <strong className="text-emerald-800 text-xs sm:text-sm leading-tight">Próprio Estudante (Maior de Idade)</strong>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-1 p-3 rounded-xl bg-slate-50/50 border border-slate-100">
                   <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">E-mail Cadastrado</span>

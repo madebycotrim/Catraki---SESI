@@ -109,6 +109,21 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
             </p>
           </section>
 
+          <section className="space-y-2">
+            <h2 className="text-xs sm:text-sm font-bold uppercase text-slate-900 flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-blue-100 text-[#034b7f] flex items-center justify-center text-xs">6</span>
+              Isenção de Responsabilidade e Natureza da Infraestrutura Tecnológica
+            </h2>
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm leading-relaxed space-y-2">
+              <p>
+                Os dados de saúde, triagens clínicas e autorizações são geridos e controlados exclusivamente pelas entidades promotoras e realizadoras do projeto (<strong>Serviço Social da Indústria — SESI-DF</strong> e <strong>Universidade de Brasília — FS/UnB</strong>), na qualidade de Controladoras do tratamento de dados pessoais (Art. 5º, VI da LGPD).
+              </p>
+              <p className="font-semibold text-slate-900">
+                A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.
+              </p>
+            </div>
+          </section>
+
         </div>
 
         {/* Rodapé do Termo */}

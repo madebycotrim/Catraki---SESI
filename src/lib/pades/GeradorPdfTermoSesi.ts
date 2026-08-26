@@ -158,9 +158,10 @@ export class GeradorPdfTermoSesi {
 
     // 2. Parágrafo de Apresentação e Qualificação (com Controladores CNPJ e Lógica de Maioridade ECA)
     y -= 16;
+    const cpfIntro = dados.cpfResponsavelCompleto || dados.minorCpfCompleto || dados.cpfResponsavelMascarado || dados.minorCpfMascarado || '***.***.***-**';
     const textoIntro = isMaior
-      ? `Eu, ${dados.nomeMenor}, portador(a) do CPF ${dados.cpfResponsavelMascarado || dados.minorCpfMascarado || '***.***.***-**'}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante promovido pela Universidade de Brasília (UnB — CNPJ 00.038.174/0001-43) e Serviço Social da Indústria (SESI-DF — CNPJ 03.777.341/0001-08) e, de acordo com o Art. 14 da LGPD (Lei nº 13.709/2018), manifesto meu consentimento livre, informado e inequívoco para os itens a seguir:`
-      : `Eu, ${dados.nomeResponsavel}, portador(a) do CPF ${dados.cpfResponsavelMascarado}, na qualidade de ${dados.parentesco ? dados.parentesco.toLowerCase() : 'responsável legal'} do(a) estudante ${dados.nomeMenor}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante promovido pela Universidade de Brasília (UnB — CNPJ 00.038.174/0001-43) e Serviço Social da Indústria (SESI-DF — CNPJ 03.777.341/0001-08) e, de acordo com o Art. 14 da LGPD (Lei nº 13.709/2018) e o Art. 17 do ECA (Lei nº 8.069/1990), manifesto meu consentimento livre, informado e inequívoco para os itens a seguir:`;
+      ? `Eu, ${dados.nomeMenor}, portador(a) do CPF ${cpfIntro}, nascido(a) em ${dados.dataNascimentoMenor}, na qualidade de titular e estudante maior de idade, declaro que recebi as orientações sobre o projeto itinerante promovido pela Universidade de Brasília (UnB — CNPJ 00.038.174/0001-43) e Serviço Social da Indústria (SESI-DF — CNPJ 03.777.341/0001-08) e, de acordo com o Art. 14 da LGPD (Lei nº 13.709/2018), manifesto meu consentimento livre, informado e inequívoco para os itens a seguir:`
+      : `Eu, ${dados.nomeResponsavel}, portador(a) do CPF ${cpfIntro}, na qualidade de ${dados.parentesco ? dados.parentesco.toLowerCase() : 'responsável legal'} do(a) estudante ${dados.nomeMenor}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante promovido pela Universidade de Brasília (UnB — CNPJ 00.038.174/0001-43) e Serviço Social da Indústria (SESI-DF — CNPJ 03.777.341/0001-08) e, de acordo com o Art. 14 da LGPD (Lei nº 13.709/2018) e o Art. 17 do ECA (Lei nº 8.069/1990), manifesto meu consentimento livre, informado e inequívoco para os itens a seguir:`;
 
     const linhasIntro = this.quebrarTexto(textoIntro, 92);
     for (let i = 0; i < linhasIntro.length; i++) {
@@ -767,7 +768,7 @@ export class GeradorPdfTermoSesi {
 
       // 6. DISCLAIMER OBRIGATÓRIO DA PLATAFORMA CATRAKI (MÓDULO 4)
       y2 -= 16;
-      const disclaimerTexto = 'A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log, emissão de hash (SHA-256) e captura de evidências eletrônicas, não possuindo CNPJ, acesso, responsabilidade ou ingerência sobre os dados de saúde, autorizações ou o conteúdo do projeto firmado entre as partes.';
+      const disclaimerTexto = 'A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.';
       const linhasDisclaimer = this.quebrarTexto(disclaimerTexto, 98);
       for (const l of linhasDisclaimer) {
         page2.drawText(l, {

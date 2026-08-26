@@ -278,7 +278,10 @@ function buildEmailShell(
       <!-- Rodapé -->
       <div class="sheet-footer">
         ${footer}Assinatura Eletrônica Avançada &bull; Lei Federal nº&nbsp;14.063/2020 &bull; Plataforma Catraki<br>
-        Para mais informações sobre como protegemos seus dados, consulte nossa
+        <span style="font-size: 9.5px; color: #64748b; display: block; margin: 6px 0;">
+          A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.
+        </span>
+        Para mais informações sobre governança de dados, consulte nossa
         <a href="https://www.catraki.com.br/privacidade">Política de Privacidade e Termos de Uso</a>.
       </div>
       <!-- Barra institucional azul (Padronizada) -->

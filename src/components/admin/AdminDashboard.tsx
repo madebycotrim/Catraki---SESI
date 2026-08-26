@@ -62,7 +62,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedDateRange, setSelectedDateRange] = useState<'all' | 'today' | '7days' | '30days'>('all');
   const [selectedSeries, setSelectedSeries] = useState<string>('all');
   const [selectedTurn, setSelectedTurn] = useState<string>('all');
-  const [subTab, setSubTab] = useState<'active' | 'cancelled' | 'all'>('active');
+  const [subTab, setSubTab] = useState<'active' | 'pending' | 'cancelled' | 'all'>('active');
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -75,17 +75,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleStatusFilterChange = (status: 'all' | 'signed' | 'pending' | 'revoked' | 'CANCELADO_POR_ERRO') => {
     setSelectedStatus(status);
     setCurrentPage(1);
-    if (status === 'signed' || status === 'pending') {
+    if (status === 'signed') {
       setSubTab('active');
+    } else if (status === 'pending') {
+      setSubTab('pending');
     } else if (status === 'revoked' || status === 'CANCELADO_POR_ERRO') {
       setSubTab('cancelled');
     }
   };
 
-  const handleSubTabChange = (tab: 'active' | 'cancelled' | 'all') => {
+  const handleSubTabChange = (tab: 'active' | 'pending' | 'cancelled' | 'all') => {
     setSubTab(tab);
     setCurrentPage(1);
-    if (tab === 'active' && (selectedStatus === 'revoked' || selectedStatus === 'CANCELADO_POR_ERRO')) {
+    if (tab === 'active' && (selectedStatus === 'revoked' || selectedStatus === 'CANCELADO_POR_ERRO' || selectedStatus === 'pending')) {
+      setSelectedStatus('all');
+    } else if (tab === 'pending') {
       setSelectedStatus('all');
     } else if (tab === 'cancelled' && (selectedStatus === 'signed' || selectedStatus === 'pending')) {
       setSelectedStatus('all');
@@ -535,14 +539,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       return matchesSearch && matchesInstitution && matchesImage && matchesDate && matchesSeries && matchesTurn;
     });
 
-    const activeCount = baseFiltered.filter(a => a.status === 'signed' || a.status === 'pending' || a.status === 'draft').length;
+    const activeCount = baseFiltered.filter(a => a.status === 'signed').length;
+    const pendingCount = baseFiltered.filter(a => a.status === 'pending' || a.status === 'draft').length;
     const cancelledCount = baseFiltered.filter(a => a.status === 'CANCELADO_POR_ERRO' || a.status === 'cancelled_error' || a.status === 'revoked').length;
     const totalCount = baseFiltered.length;
 
-    return { activeCount, cancelledCount, totalCount };
+    return { activeCount, pendingCount, cancelledCount, totalCount };
   };
 
-  const { activeCount, cancelledCount, totalCount } = getSubTabCounts();
+  const { activeCount, pendingCount, cancelledCount, totalCount } = getSubTabCounts();
 
   const filteredAuths = useMemo(() => {
     return authorizations.filter((auth) => {
@@ -562,8 +567,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       const matchesStatus = (() => {
         if (subTab === 'active') {
-          const isActive = auth.status === 'signed' || auth.status === 'pending' || auth.status === 'draft';
+          const isActive = auth.status === 'signed';
           if (!isActive) return false;
+        } else if (subTab === 'pending') {
+          const isPending = auth.status === 'pending' || auth.status === 'draft';
+          if (!isPending) return false;
         } else if (subTab === 'cancelled') {
           const isCancelOrRevoke = auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error' || auth.status === 'revoked';
           if (!isCancelOrRevoke) return false;
@@ -1109,11 +1117,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   }`}
                 >
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Ativas</span>
+                  <span>Autorizadas</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                     subTab === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
                   }`}>
                     {activeCount}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSubTabChange('pending')}
+                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    subTab === 'pending'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  <span>Pendentes</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                    subTab === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-600'
+                  }`}>
+                    {pendingCount}
                   </span>
                 </button>
 

@@ -48,7 +48,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate }) => {
               }`}
             >
               <LayoutDashboard className="w-4 h-4" />
-              <span>Painel Gestor</span>
+              <span>Painel do Gestor</span>
             </button>
             
             <button
@@ -60,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate }) => {
               }`}
             >
               <FileCheck className="w-4 h-4" />
-              <span>Assinatura Eletrônica</span>
+              <span>Assinar Autorização</span>
             </button>
 
             <button
@@ -72,7 +72,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate }) => {
               }`}
             >
               <FileText className="w-4 h-4" />
-              <span>Validador Público</span>
+              <span>Verificar Autenticidade</span>
             </button>
           </nav>
 
@@ -103,7 +103,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate }) => {
             }`}
           >
             <LayoutDashboard className="w-4 h-4 text-sesi-primary" />
-            <span>Painel Gestor</span>
+            <span>Painel do Gestor</span>
           </button>
 
           <button
@@ -115,7 +115,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate }) => {
             }`}
           >
             <FileCheck className="w-4 h-4 text-sesi-primary" />
-            <span>Assinatura Eletrônica</span>
+            <span>Assinar Autorização</span>
           </button>
 
           <button
@@ -127,7 +127,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate }) => {
             }`}
           >
             <FileText className="w-4 h-4 text-sesi-primary" />
-            <span>Validador Público</span>
+            <span>Verificar Autenticidade</span>
           </button>
         </div>
       )}

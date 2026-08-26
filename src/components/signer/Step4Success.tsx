@@ -152,7 +152,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               Cópia do Comprovante Enviada por E-mail
             </strong>
             <p className="text-xs text-emerald-800 m-0 leading-relaxed">
-              Uma via completa deste termo assinado e o código de autenticidade foram enviados para o endereço:
+              Uma cópia completa deste comprovante e o código de autenticidade foram enviados para o e-mail:
               <span className="inline-block px-2 py-0.5 bg-emerald-100/60 border border-emerald-200/80 text-emerald-900 font-mono font-bold rounded-md mx-1 select-all break-all">
                 {signerEmail || 'seu e-mail informado'}
               </span>
@@ -302,7 +302,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                 {signResult.manifest_sha256}
               </span>
               <span className="text-[10px] text-slate-400 block mt-1 leading-snug">
-                * Código de Integridade Digital: funciona como um selo de segurança que comprova que este documento é autêntico e não foi modificado após a sua assinatura.
+                🔒 <strong>Código de Integridade Digital:</strong> funciona como um selo de segurança que comprova que este comprovante é autêntico e não foi alterado após a sua assinatura.
               </span>
             </div>
           </div>
@@ -326,7 +326,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                   Documento digital com plena validade jurídica emitido nos termos da <strong>Lei Federal nº 14.063/2020 (Art. 4º, II)</strong>, da <strong>Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º)</strong>, da <strong>LGPD (Lei nº 13.709/2018)</strong> e da jurisprudência consolidada do <strong>STJ (REsp 2.205.708/PR)</strong>.
                 </div>
                 <div className="text-slate-400 text-[9.5px] sm:text-[10px] leading-relaxed pt-1">
-                  A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.
+                  A Plataforma Catraki atua como <strong>testemunha tecnológica</strong> deste ato: registra e autentica a assinatura, mas não acessa dados de saúde e não possui CNPJ. A responsabilidade pelo conteúdo e pelos dados do projeto é do <strong>SESI-DF</strong> e da <strong>FS/UnB</strong>.
                 </div>
               </div>
             </div>
@@ -342,7 +342,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               onClick={() => onNavigateToValidator(validationCode)}
               className="w-full sm:w-auto px-6 py-3 bg-sesi-primary hover:bg-blue-900 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] cursor-pointer"
             >
-              <span>Verificar Autenticidade no Portal</span>
+              <span>Verificar Autenticidade do Comprovante</span>
               <ExternalLink className="w-4 h-4" />
             </button>
 

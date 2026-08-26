@@ -279,7 +279,7 @@ function buildEmailShell(
       <div class="sheet-footer">
         ${footer}Assinatura Eletrônica Avançada &bull; Lei Federal nº&nbsp;14.063/2020 &bull; Plataforma Catraki<br>
         <span style="font-size: 9.5px; color: #64748b; display: block; margin: 6px 0;">
-          A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.
+          A Plataforma Catraki atua como testemunha tecnológica: registra e autentica as assinaturas, mas não possui CNPJ, não acessa dados de saúde e não tem ingerência sobre o conteúdo dos documentos. A responsabilidade pelos dados do projeto é do SESI-DF e da FS/UnB.
         </span>
         Para mais informações sobre governança de dados, consulte nossa
         <a href="https://www.catraki.com.br/privacidade">Política de Privacidade e Termos de Uso</a>.
@@ -397,7 +397,7 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
     <p>Olá, ${signerName},</p>
 
     <p style="font-size:14px;color:#991b1b;font-weight:bold;background:#fee2e2;padding:10px 14px;border-radius:6px;border:1px solid #fca5a5;">
-      Aviso: O documento '${docTitle}' foi cancelado por ${cancelledBy} com a seguinte justificativa: '${reasonText}'. Os links de acesso foram desativados. Hash invalidado: ${authHash}.
+      Informamos que o documento <strong>«${docTitle}»</strong> foi cancelado por <strong>${cancelledBy}</strong>. Motivo: <em>${reasonText}</em>. O acesso a este documento foi encerrado e o registro de autenticidade foi atualizado no sistema. Código de autenticidade afetado: <span style="font-family:monospace;">${authHash}</span>.
     </p>
 
     <p>
@@ -445,7 +445,7 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
 
     <div class="highlight-box">
       <strong>O que acontece agora?</strong><br>
-      Os links e acessos que você recebeu anteriormente para este documento foram desativados. Você não precisa realizar nenhuma ação. Se o processo precisar continuar, a equipe responsável enviará um novo documento atualizado. Seus dados continuam protegidos e registrados em ambiente criptografado para fins de auditoria (LGPD Art. 16).
+      Os links de acesso que você recebeu para este documento foram desativados. <strong>Nenhuma ação é necessária da sua parte.</strong> Se o processo precisar continuar, a equipe responsável enviará um novo documento. Seus dados continuam protegidos conforme a Lei Geral de Proteção de Dados (LGPD).
     </div>
 
     <p style="font-size:13px;color:#64748b;">
@@ -589,10 +589,7 @@ export function getRevocationEmailHtml(params: RevocationEmailParams): string {
 
     <div class="highlight-box">
       <strong>O que acontece agora?</strong><br>
-      O documento foi invalidado imediatamente. Todos os links de acesso ao formulário foram
-      desativados e nenhum atendimento poderá ser realizado com base nesta autorização. Os
-      dados foram preservados em ambiente seguro conforme o Art. 16 da LGPD exclusivamente
-      para fins de auditoria.
+      A autorização foi revogada com sucesso. Os links de acesso ao formulário foram desativados e nenhum novo atendimento poderá ser realizado com base nesta autorização. Seus dados foram preservados de forma segura, conforme exigido por lei, para fins de registro histórico e auditoria.
     </div>
 
     <p style="font-size:13px;color:#64748b;">
@@ -675,7 +672,7 @@ export function getTransactionalCompletionEmailHtml(params: CompletionEmailParam
     <p>Olá, <strong>${signerName}</strong>!</p>
 
     <p style="font-size:14px;color:#166534;font-weight:bold;background:#dcfce7;padding:10px 14px;border-radius:6px;border:1px solid #86efac;">
-      Olá! O processo foi finalizado. Em anexo, você encontra a via original do documento e o Certificado de Conclusão contendo a trilha de auditoria.
+      Tudo pronto! Sua autorização eletrônica foi registrada com sucesso. Em anexo, você encontra a cópia do comprovante assinado e o certificado de autenticidade com o histórico completo da operação.
     </p>
 
     <p>
@@ -748,8 +745,8 @@ export function getTransactionalOtpEmailHtml(params: { studentName: string; otpC
   const body = `
     <p>Olá,</p>
     <p>
-      Para autenticar e concluir a assinatura do Termo de Consentimento referente ao(à)
-      estudante <strong>${studentName}</strong>, utilize o código de segurança abaixo:
+      Para confirmar e concluir a assinatura do Termo de Consentimento do(a)
+      estudante <strong>${studentName}</strong>, use o código de segurança abaixo:
     </p>
 
     <div class="otp-box">
@@ -757,8 +754,8 @@ export function getTransactionalOtpEmailHtml(params: { studentName: string; otpC
     </div>
 
     <p style="color:#64748b;font-size:11.5px;line-height:1.5;margin:20px 0 0 0;">
-      ⏱️ <strong>Validade:</strong> Este código expira em 5 minutos.
-      Se você não solicitou este procedimento, por favor desconsidere este e-mail.
+      ⏱️ <strong>Este código expira em 5 minutos.</strong> Não o compartilhe com ninguém.
+      Se você não solicitou este código, ignore este e-mail — nenhuma outra ação é necessária.
     </p>
   `;
 
@@ -776,7 +773,7 @@ export function getTransactionalOtpEmailText(params: { studentName: string; otpC
   const { studentName, otpCode } = params;
   return `Assunto: Código de Confirmação: ${otpCode}
 
-Olá, para autenticar e concluir a assinatura do Termo de Consentimento do(a) estudante ${studentName}, utilize o código de segurança abaixo:
+Olá, para confirmar e concluir a assinatura do Termo de Consentimento do(a) estudante ${studentName}, use o código de segurança abaixo:
 
 ${otpCode}
 

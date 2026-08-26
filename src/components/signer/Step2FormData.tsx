@@ -116,7 +116,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
     if (!formData.signerName.trim()) {
       newErrors.signerName = 'Informe o seu nome completo conforme documento oficial.';
     } else if (!isValidFullName(formData.signerName)) {
-      newErrors.signerName = 'Digite um nome e sobrenome válidos (sem repetições, caracteres fictícios ou apelidos).';
+      newErrors.signerName = 'Por favor, digite seu nome completo como consta no documento oficial (ex: João da Silva Santos). Apelidos ou nomes incompletos não são aceitos.';
     }
 
     // 2. CPF do Responsável
@@ -136,7 +136,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
     if (!cleanPhone) {
       newErrors.signerPhone = 'Informe um número de telefone com DDD para contato.';
     } else if (cleanPhone.length < 10) {
-      newErrors.signerPhone = 'Telefone incompleto. Digite o DDD e o número (ex: 61 99999-9999).';
+      newErrors.signerPhone = 'Telefone incompleto. Digite o DDD seguido do número com 9 dígitos (ex: (61) 99999-9999).';
     }
 
     // 5. E-mail do Responsável
@@ -246,7 +246,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
           {/* Texto explicativo dinâmico de acordo com a maioridade */}
           {isMaiorDeIdade ? (
             <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-3 leading-relaxed">
-              ✅ <strong>Estudante Maior de Idade:</strong> O próprio estudante pode preencher e assinar diretamente este termo, sem necessidade de representação legal (Art. 5º, CC/2002).
+              ✅ <strong>Estudante maior de idade:</strong> O(a) próprio(a) estudante pode preencher e assinar este documento diretamente, sem necessidade de um responsável legal. Preencha os seus dados nos campos abaixo.
             </div>
           ) : (
             <div className="text-xs text-slate-500 mt-1.5 space-y-1 leading-relaxed">
@@ -254,8 +254,8 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                 <strong>Quem deve preencher:</strong> Este formulário deve ser preenchido pelo <strong>responsável legal</strong> (mãe, pai, tutor ou guardião judicial) que irá assinar eletronicamente o termo.
               </p>
               <p className="m-0">
-                <strong>Como funciona a validação:</strong> Os dados informados serão cruzados automaticamente com o cadastro escolar e a base de matrículas do <strong>SESI-DF</strong> para verificar o vínculo familiar. Caso esse vínculo não seja localizado de forma automática, a plataforma solicitará o envio de uma foto do documento de identidade e certidão de nascimento do menor na etapa seguinte para <strong>revisão manual da equipe</strong>.
-              </p>
+                 <strong>Como funciona a verificação:</strong> As informações fornecidas serão conferidas automaticamente com o cadastro escolar do <strong>SESI-DF</strong> para confirmar o seu vínculo com o(a) estudante. Se a confirmação automática não for possível, a plataforma pedirá que você envie uma foto do seu documento de identidade e da certidão de nascimento do(a) estudante na próxima etapa. Essa verificação é feita de forma manual pela equipe responsável, com segurança e sigilo.
+               </p>
               <p className="m-0 text-sesi-primary font-medium">
                 🔒 <strong>Privacidade Garantida:</strong> Todo o tratamento de dados pessoais é criptografado e segue estritamente as diretrizes da LGPD (Lei nº 13.709/2018).
               </p>
@@ -384,7 +384,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                     E-mail do Responsável <span className="text-red-500">*</span>
                   </label>
                   <span className="text-[10px] text-sesi-primary font-medium">
-                    O código de 6 dígitos para assinar será enviado para este e-mail
+                    O código de segurança de 6 dígitos para concluir a assinatura será enviado para este e-mail
                   </span>
                 </div>
                 <input

@@ -62,7 +62,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
   const handleValidate = async (targetHash: string) => {
     const cleanHash = targetHash.trim();
     if (!cleanHash) {
-      setErrorMessage('Por favor, digite o código de validação (ex: CATRAKI-XXXX-XXXX) ou o hash SHA-256.');
+       setErrorMessage('Por favor, digite ou cole o código de autenticidade (ex: CATRAKI-XXXX-XXXX) ou o hash SHA-256.');
       return;
     }
 
@@ -75,10 +75,10 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
       if (resp.success && resp.validation) {
         setValidationResult(resp.validation);
       } else {
-        setErrorMessage(resp.error || 'Código ou hash não localizado na base de registros da plataforma.');
+         setErrorMessage(resp.error || 'Nenhum documento foi encontrado com este código. Verifique se o código foi digitado corretamente ou tente com o código SHA-256 completo presente no comprovante.');
       }
     } catch {
-      setErrorMessage('Erro ao consultar o validador de autenticidade.');
+       setErrorMessage('Não foi possível verificar o documento no momento. Verifique sua conexão com a internet e tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -143,7 +143,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
               className="text-xs sm:text-sm font-bold bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-800/40 px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
             >
               <FileCheck2 className="w-4 h-4 text-purple-400" />
-              <span>Dossiê JSON (Portabilidade LGPD)</span>
+              <span>Exportar Meus Dados (Direito à Portabilidade)</span>
             </button>
 
             <button
@@ -202,7 +202,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                 Validador de Autenticidade Catraki
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto mt-1 leading-relaxed">
-                Consulte a validade e a integridade de autorizações e documentos emitidos pela plataforma.
+                Verifique se um documento assinado pela plataforma é autêntico, está íntegro e foi realmente emitido pelo Catraki.
               </p>
             </div>
 
@@ -224,14 +224,14 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                     type="text"
                     value={hashInput}
                     onChange={(e) => setHashInput(e.target.value)}
-                    placeholder="Digite o código (ex: CATRAKI-94D4-E1A0) ou cole o código de integridade..."
+                    placeholder="Digite ou cole o código de autenticidade (ex: CATRAKI-94D4-E1A0) ou o código SHA-256..."
                     autoCapitalize="characters"
                     className="w-full px-3.5 sm:px-4 py-3 bg-white border border-slate-300 rounded-xl font-mono text-xs sm:text-base uppercase text-slate-900 tracking-wider focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20 transition-all shadow-xs"
                   />
                 </div>
-                <p className="text-[11px] sm:text-xs text-slate-500 m-0 leading-relaxed">
-                  O código de autenticidade pode ser localizado no rodapé do comprovante de assinatura ou na URL escaneada via QR Code.
-                </p>
+                 <p className="text-[11px] sm:text-xs text-slate-500 m-0 leading-relaxed">
+                   O código de autenticidade está impresso no rodapé do comprovante de assinatura. Você também pode obtê-lo escaneando o QR Code do documento com a câmera do celular.
+                 </p>
               </div>
 
               {errorMessage && (
@@ -249,12 +249,12 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Consultando Registro Criptográfico...</span>
+                    <span>Verificando autenticidade...</span>
                   </>
                 ) : (
                   <>
                     <Search className="w-4 h-4" />
-                    <span>Consultar e Validar Documento</span>
+                    <span>Verificar Autenticidade do Documento</span>
                   </>
                 )}
               </button>

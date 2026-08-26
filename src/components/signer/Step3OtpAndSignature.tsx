@@ -132,15 +132,15 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
       );
       if (resp.success) {
         if (resp.email_sent === false && resp.email_error) {
-          setOtpError(`Erro no envio da mensagem: ${resp.email_error}`);
+          setOtpError(`Falha no envio do código: ${resp.email_error}`);
         } else {
           setResendCooldown(60);
         }
       } else {
-        setOtpError(resp.error || 'Falha ao enviar código de verificação.');
+        setOtpError(resp.error || 'Não foi possível enviar o código de segurança. Tente novamente.');
       }
     } catch {
-      setOtpError('Erro ao comunicar com o servidor de envio de código.');
+      setOtpError('Não foi possível enviar o código de segurança no momento. Por favor, aguarde alguns instantes e tente novamente. Se o problema persistir, verifique sua conexão com a internet.');
     } finally {
       setOtpSending(false);
     }
@@ -151,12 +151,12 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
    */
   const handleInitiateSign = async () => {
     if (!authHealth) {
-      setErrorMessage('Para que o estudante participe do projeto, marque a opção autorizando os atendimentos de saúde.');
+      setErrorMessage('Para autorizar a participação do(a) estudante, marque a opção de autorização dos atendimentos de saúde.');
       return;
     }
 
     if (!authData) {
-      setErrorMessage('Para prosseguir com segurança jurídica, confirme a autorização para o tratamento de dados pessoais (LGPD).');
+      setErrorMessage('Para que possamos registrar a assinatura com validade legal, é necessário confirmar a autorização de tratamento dos dados pessoais.');
       return;
     }
 
@@ -184,7 +184,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
     }
 
     if (!declarationLegalResponsibility) {
-      setOtpError('Confirme a declaração de veracidade e responsabilidade legal para prosseguir.');
+      setOtpError('Para finalizar, confirme que você é o responsável legal e que todas as informações fornecidas são verdadeiras.');
       return;
     }
 
@@ -200,7 +200,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
       // 1. Valida o código OTP informado
       const otpVerifyResp = await apiClient.verifyOtp(token, cleanOtp);
       if (!otpVerifyResp.success) {
-        setOtpError(otpVerifyResp.error || 'Código incorreto ou expirado. Verifique sua caixa de entrada.');
+        setOtpError(otpVerifyResp.error || 'O código informado está incorreto ou expirou. Verifique sua caixa de entrada e, se necessário, solicite um novo código.');
         setSubmittingSign(false);
         return;
       }
@@ -240,12 +240,12 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         setShowOtpModal(false);
         onSuccess({ ...resp, otp_channel: otpChannel });
       } else {
-        const errMsg = resp.error || 'Falha ao registrar a assinatura.';
+        const errMsg = resp.error || 'Não foi possível registrar a assinatura neste momento. Por favor, tente novamente. Se o problema persistir, entre em contato com a equipe em suporte@catraki.com.br.';
         setOtpError(errMsg);
         setErrorMessage(errMsg);
       }
     } catch (err: any) {
-      const errMsg = err.message || 'Erro inesperado ao registrar assinatura.';
+      const errMsg = err.message || 'Não foi possível registrar a assinatura neste momento. Por favor, tente novamente.';
       setOtpError(errMsg);
       setErrorMessage(errMsg);
     } finally {
@@ -331,7 +331,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                       className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                     />
                     <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                      <strong>SIM, AUTORIZO</strong> o atendimento preventivo de saúde do estudante nas unidades móveis do projeto, englobando as especialidades clínicas de <strong>Oftalmologia (Exame de Vista)</strong>, <strong>Odontologia (Saúde Bucal)</strong>, <strong>Fonoaudiologia (Audiometria)</strong>, <strong>Terapia Integrativa (Psicologia)</strong> e <strong>Nutrição (Alimentação Saudável)</strong> durante o período escolar. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                       <strong>SIM, AUTORIZO</strong> o atendimento preventivo de saúde do(a) estudante nas unidades móveis do projeto, incluindo as especialidades de <strong>Oftalmologia (exame de vista)</strong>, <strong>Odontologia (saúde bucal)</strong>, <strong>Fonoaudiologia (audiometria)</strong>, <strong>Terapia Comunitária Integrativa</strong> e <strong>Nutrição (alimentação saudável)</strong>, durante o período escolar. <span className="text-red-500 font-bold">* (Obrigatório)</span>
                     </span>
                   </label>
                 </div>
@@ -358,7 +358,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                   />
                   <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                    <strong>SIM, AUTORIZO</strong> o uso gratuito de fotos e vídeos do estudante para relatórios e divulgação oficial do projeto. <span className="text-slate-500 font-normal">(Opcional)</span>
+                    <strong>SIM, AUTORIZO</strong> o registro fotográfico e/ou audiovisual do(a) estudante para fins institucionais e de divulgação oficial do projeto Escola Cidadã — Saúde em Movimento, em materiais produzidos pelo SESI-DF e pela UnB. <span className="text-slate-500 font-normal">(Opcional — a recusa não impede a participação.)</span>
                   </span>
                 </label>
 
@@ -370,9 +370,9 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     onChange={(e) => setReadAndAccept(e.target.checked)}
                     className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                   />
-                  <span className="text-xs sm:text-sm text-slate-900 font-bold leading-relaxed">
-                    DECLARO QUE LI e concordo com todas as informações deste termo e autorizo a assinatura eletrônica por código de segurança e desenho na tela. <span className="text-red-500 font-bold">* (Obrigatório)</span>
-                  </span>
+                   <span className="text-xs sm:text-sm text-slate-900 font-bold leading-relaxed">
+                     <strong>Declaro que li e compreendi</strong> todas as informações deste Termo de Consentimento e concordo em assinar eletronicamente, confirmando a veracidade de todas as declarações prestadas. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                   </span>
                 </label>
               </div>
             </div>

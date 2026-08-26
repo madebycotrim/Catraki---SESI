@@ -59,7 +59,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               <span>1. Compromisso com a Privacidade e o Sigilo</span>
             </h2>
             <p>
-              A presente Política de Privacidade regula o tratamento de dados pessoais e de saúde de crianças, adolescentes e seus respectivos responsáveis legais no âmbito das ações clínicas e preventivas do projeto de extensão e promoção da saúde <strong>Escola Cidadã — Saúde em Movimento</strong>. O projeto é executado em regime de co-controladoria conjunta pela <strong>Universidade de Brasília (Faculdade de Ciências da Saúde - FS/UnB)</strong> e pelo <strong>SESI-DF</strong>, viabilizado por recursos de emenda parlamentar da Senadora Leila Barros e operacionalizado através da plataforma <strong>Catraki</strong>.
+              A presente Política de Privacidade regula o tratamento de dados pessoais e de saúde de crianças, adolescentes e seus respectivos responsáveis legais no âmbito das ações clínicas e preventivas do projeto de extensão e promoção da saúde <strong>Escola Cidadã — Saúde em Movimento</strong>. O projeto é executado em regime de <strong>controladoria conjunta</strong> pela <strong>Universidade de Brasília (Faculdade de Ciências da Saúde — FS/UnB)</strong> e pelo <strong>SESI-DF</strong>, com recursos de emenda parlamentar, e operado por meio da plataforma <strong>Catraki</strong>.
             </p>
           </section>
  
@@ -89,7 +89,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             <ul className="list-disc pl-5 space-y-1 text-slate-600">
               <li><strong>Criptografia em Repouso:</strong> Dados confidenciais (CPFs, contatos e assinaturas) são armazenados cifrados com algoritmo padrão <strong>AES-GCM de 256 bits</strong> com chaves derivadas por PBKDF2.</li>
               <li><strong>Criptografia em Trânsito:</strong> Toda a comunicação é protegida via protocolo seguro <strong>TLS 1.3</strong> com cabeçalhos HSTS rígidos.</li>
-              <li><strong>Imutabilidade e Não-Repúdio:</strong> Toda assinatura eletrônica gera um resumo criptográfico SHA-256 e trilha de auditoria digital com validade jurídica perante o <strong>Art. 4º, II da Lei nº 14.063/2020 (Assinatura Avançada)</strong>, a <strong>MP 2.200-2/2001</strong> e a jurisprudência do STJ.</li>
+              <li><strong>Autenticidade e Rastreabilidade:</strong> Cada assinatura gera um código de integridade único (SHA-256) e uma trilha de auditoria digital imutável, com plena validade jurídica nos termos do <strong>Art. 4º, II da Lei nº 14.063/2020</strong>, da <strong>MP 2.200-2/2001</strong> e da jurisprudência consolidada do STJ.</li>
             </ul>
           </section>
 
@@ -98,7 +98,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               4. Prazo de Retenção e Descarte Seguro de Dados
             </h2>
             <p>
-              Os dados de autorização coletados são mantidos pelo período estritamente necessário para comprovação legal do consentimento dado (prazo padrão de <strong>20 anos</strong> para resguardo de responsabilidade civil e controle de auditoria), sendo posteriormente submetidos ao processo de anonimização ou expurgo seguro, em conformidade com a legislação aplicável.
+              Os dados coletados são mantidos pelo período mínimo necessário para garantir a validade legal do consentimento — normalmente <strong>20 anos</strong>, em conformidade com os prazos de responsabilidade civil. Após esse período, os dados são anonimizados ou excluídos de forma definitiva e segura, conforme a legislação vigente.
             </p>
           </section>
 
@@ -113,7 +113,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               <p className="font-bold text-slate-900 m-0">Canais de Atendimento para Exercício de Direitos:</p>
               <ul className="space-y-1 text-xs text-slate-600 m-0 list-disc list-inside">
                 <li><strong>E-mail de Contato para Privacidade:</strong> <a href="mailto:dpo@catraki.com.br" className="text-sesi-primary font-bold underline">dpo@catraki.com.br</a></li>
-                <li><strong>Portal de Autoatendimento do Titular:</strong> Disponível no validador público e canal Art. 18 LGPD desta plataforma</li>
+                <li><strong>Portal de Autoatendimento do Titular:</strong> Acesse a seção de privacidade disponível no validador público da plataforma para consultar, corrigir ou solicitar a exclusão dos seus dados.</li>
                 <li><strong>Prazos de Atendimento:</strong> Conforme os prazos regulamentares da Autoridade Nacional de Proteção de Dados (ANPD)</li>
               </ul>
             </div>
@@ -127,7 +127,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               As decisões referentes ao tratamento dos dados pessoais e de saúde competem exclusivamente aos <strong>Controladores</strong> do projeto: o <strong>Serviço Social da Indústria (SESI-DF)</strong> e a <strong>Universidade de Brasília (FS/UnB)</strong>.
             </p>
             <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-200/80 text-blue-950 text-xs sm:text-sm leading-relaxed">
-              <strong>Cláusula de Operação Tecnológica:</strong> A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.
+              <strong>Testemunha Tecnológica (Isenção de Responsabilidade):</strong> A Plataforma Catraki <strong>não possui CNPJ</strong>, não acessa os dados de saúde e não decide nada sobre o conteúdo dos documentos. Sua função é exclusivamente registrar a autoria, o momento e a integridade das assinaturas — como uma “testemunha digital” imparcial. Todas as decisões sobre os dados de saúde são de responsabilidade exclusiva dos <strong>Controladores do projeto</strong>: o <strong>SESI-DF</strong> e a <strong>FS/UnB</strong>.
             </div>
           </section>
 

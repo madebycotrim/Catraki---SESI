@@ -37,7 +37,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#034b7f] text-[11px] font-semibold">
             <Scale className="w-3.5 h-3.5" />
-            <span>Vigência 2026</span>
+            <span>Em vigor desde 01/01/2026</span>
           </div>
         </div>
 
@@ -50,7 +50,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
               Objeto e Finalidade da Plataforma
             </h2>
             <p>
-              A plataforma digital <strong>Catraki</strong> é um sistema tecnológico especializado na coleta, validação e custódia pericial de consentimentos e assinaturas eletrônicas avançadas, operando a serviço de instituições educacionais e entidades parceiras, com destaque para as ações do programa <strong>Escola Cidadã: Saúde em Movimento</strong> (cooperação técnica entre o SESI-DF e a Universidade de Brasília — UnB).
+              A <strong>Plataforma Catraki</strong> é um sistema tecnológico especializado em registrar, validar e guardar de forma segura as autorizações e assinaturas eletrônicas avançadas realizadas pelos responsáveis legais dos estudantes. Ela opera a serviço de instituições educacionais e entidades parceiras, com destaque para as ações do programa <strong>Escola Cidadã — Saúde em Movimento</strong> (cooperação técnica entre o SESI-DF e a Universidade de Brasília — UnB).
             </p>
           </section>
 
@@ -66,9 +66,9 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
               As assinaturas emitidas nesta plataforma são dotadas de plena eficácia probatória e presunção de veracidade, respaldadas pela jurisprudência pacificada do Superior Tribunal de Justiça (<strong>STJ — REsp nº 2.205.708/PR</strong>), sendo vinculadas ao signatário através de:
             </p>
             <ul className="space-y-1 text-xs text-slate-600 list-disc list-inside bg-slate-50 p-3 rounded-xl border border-slate-200">
-              <li>Autenticação de duplo fator por código numérico de uso único (OTP 6 Dígitos);</li>
+              <li>Verificação em dois passos por código numérico de uso único enviado ao seu e-mail (OTP de 6 dígitos);</li>
               <li>Registro de carimbo de tempo (Timestamp NTP.br) e geolocalização IP;</li>
-              <li>Assinatura grafoscópica digitalizada em canvas de alta resolução;</li>
+              <li>Assinatura grafativa digitalizada em tela de alta resolução;</li>
               <li>Cadeia criptográfica encadeada (Hash Chain SHA-256) e imutabilidade de banco de dados.</li>
             </ul>
           </section>
@@ -76,7 +76,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
           <section className="space-y-2">
             <h2 className="text-xs sm:text-sm font-bold uppercase text-slate-900 flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-blue-100 text-[#034b7f] flex items-center justify-center text-xs">3</span>
-              Declaração de Responsabilidade e Advertência Penal (Art. 299 CP)
+              Declaração de Responsabilidade Legal
             </h2>
             <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-xs sm:text-sm leading-relaxed space-y-1.5">
               <p className="font-bold text-amber-900 flex items-center gap-1.5">
@@ -84,7 +84,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
                 Advertência Legal Expressa — Tipificação de Falsidade Ideológica:
               </p>
               <p>
-                O signatário declara, sob as penas da lei, ser o legítimo pai, mãe, tutor ou detentor de guarda legal do menor indicado no termo. Inserir declaração falsa ou diversa da que devia ser escrita com o fim de prejudicar direito ou criar obrigação constitui o crime tipificado no <strong>Artigo 299 do Código Penal Brasileiro</strong>, sujeito a pena de reclusão de 1 a 5 anos e multa.
+                Ao assinar este documento, você declara, sob as penas da lei, ser o pai, a mãe, o(a) tutor(a) ou o(a) responsável por guarda judicial do(a) estudante indicado(a). <strong>Fornecer informações falsas neste ato, com o objetivo de obter vantagem indevida ou prejudicar terceiros, configura crime de Falsidade Ideológica (Art. 299 do Código Penal), com pena de reclusão de 1 a 5 anos, acrescida de multa.</strong>
               </p>
             </div>
           </section>
@@ -105,7 +105,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
               Disponibilidade e Validação Pública de Autenticidade
             </h2>
             <p>
-              A qualquer momento, o signatário, a coordenação escolar ou autoridades públicas podem verificar a autenticidade e a integridade de qualquer termo assinado através do <strong>Portal de Validação Pública Catraki</strong>, utilizando o código alfanumérico impresso no documento ou a leitura do QR Code.
+              A qualquer momento, o responsável signatário, a coordenação escolar ou autoridades públicas podem verificar a autenticidade e a integridade de qualquer termo assinado por meio do <strong>Portal de Validação Pública Catraki</strong>, utilizando o código alfanumérico impresso no comprovante ou escaneando o QR Code.
             </p>
           </section>
 
@@ -115,12 +115,12 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
               Isenção de Responsabilidade e Natureza da Infraestrutura Tecnológica
             </h2>
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm leading-relaxed space-y-2">
-              <p>
-                Os dados de saúde, triagens clínicas e autorizações são geridos e controlados exclusivamente pelas entidades promotoras e realizadoras do projeto (<strong>Serviço Social da Indústria — SESI-DF</strong> e <strong>Universidade de Brasília — FS/UnB</strong>), na qualidade de Controladoras do tratamento de dados pessoais (Art. 5º, VI da LGPD).
-              </p>
-              <p className="font-semibold text-slate-900">
-                A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.
-              </p>
+               <p>
+                 Os dados de saúde, triagens clínicas e autorizações são geridos e controlados exclusivamente pelas entidades promotoras e realizadoras do projeto (<strong>Serviço Social da Indústria — SESI-DF</strong> e <strong>Universidade de Brasília — FS/UnB</strong>), na qualidade de Controladoras do tratamento de dados pessoais (Art. 5º, VI da LGPD).
+               </p>
+               <p className="font-semibold text-slate-900">
+                 A Plataforma Catraki atua como <strong>testemunha tecnológica</strong>: registra o momento exato da assinatura, gera selos de autenticidade digitais e garante que o documento não foi alterado. A Catraki <strong>não possui CNPJ</strong>, não acessa os dados de saúde dos estudantes e não interfere no conteúdo acordado entre as partes — essa responsabilidade é dos Controladores do projeto: o <strong>SESI-DF</strong> e a <strong>FS/UnB</strong>.
+               </p>
             </div>
           </section>
 
@@ -128,7 +128,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
 
         {/* Rodapé do Termo */}
         <div className="pt-6 border-t border-slate-200 text-center text-xs text-slate-500">
-          <p className="m-0">Plataforma Tecnológica Catraki • Conformidade Integral com as Leis Brasileiras</p>
+         <p className="m-0">Plataforma Tecnológica Catraki • Conformidade com as Leis Brasileiras</p>
         </div>
 
         {/* Barra institucional azul sólida no final da folha A5 (Padronizada) */}

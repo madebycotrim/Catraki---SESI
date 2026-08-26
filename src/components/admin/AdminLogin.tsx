@@ -35,11 +35,11 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
       if (res.success && res.authUrl) {
         window.location.href = res.authUrl;
       } else {
-        setError(res.error || 'Não foi possível conectar ao serviço de autenticação Microsoft.');
+        setError(res.error || 'Não foi possível iniciar o acesso. Por favor, tente novamente.');
         setLoading(false);
       }
     } catch (err: any) {
-      setError('Erro ao iniciar login corporativo. Tente novamente.');
+      setError('Não foi possível iniciar o acesso. Por favor, tente novamente. Se o problema persistir, entre em contato com o suporte de TI.');
       setLoading(false);
     }
   };
@@ -96,7 +96,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
               AUTENTICAÇÃO CORPORATIVA EXCLUSIVA
             </p>
             <p className="m-0 text-slate-600">
-              O acesso a este ambiente é restrito aos gestores credenciados para emissão, validação e auditoria dos termos de autorização para procedimentos em estudantes.
+              O acesso a este painel é restrito aos gestores credenciados responsáveis pela emissão, validação e auditoria dos termos de autorização do projeto Escola Cidadã — Saúde em Movimento.
             </p>
           </div>
 
@@ -157,7 +157,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
             </div>
             <div className="flex items-center gap-2 p-1.5 rounded-lg bg-slate-50/70 border border-slate-100">
               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span className="text-[11px] leading-tight"><strong>LGPD Art. 18</strong><br />Sigilo de Dados</span>
+              <span className="text-[11px] leading-tight"><strong>LGPD</strong><br />Proteção de Dados</span>
             </div>
             <div className="flex items-center gap-2 p-1.5 rounded-lg bg-slate-50/70 border border-slate-100">
               <Building2 className="w-4 h-4 text-sky-600 shrink-0" />

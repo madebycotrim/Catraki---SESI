@@ -50,10 +50,10 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
       if (resp.success && resp.document) {
         setDocumentData(resp.document);
       } else {
-        setErrorMessage(resp.error || 'Documento não localizado ou link expirado.');
+        setErrorMessage(resp.error || 'Este documento não foi encontrado ou o link expirou. Por favor, verifique se você está usando o link mais recente enviado pela escola.');
       }
     } catch {
-      setErrorMessage('Falha ao carregar o termo de autorização médica.');
+      setErrorMessage('Não foi possível carregar o documento de autorização. Por favor, verifique sua conexão e tente novamente.');
     } finally {
       setLoading(false);
     }

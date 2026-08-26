@@ -56,7 +56,7 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
               Link indisponível ou documento cancelado
             </h2>
             <p className="text-sm sm:text-base font-medium text-amber-800 leading-relaxed bg-amber-50/80 p-3.5 rounded-xl border border-amber-200/60">
-              Opa! Este link não é mais válido. O documento foi cancelado ou substituído.
+              Este link não está mais disponível. O documento foi cancelado, substituído ou expirou. Por favor, entre em contato com a escola ou com a equipe responsável para solicitar um novo acesso.
             </p>
           </div>
 
@@ -102,7 +102,7 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
           </div>
 
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-justify sm:text-center px-1">
-            Isso significa que as travas de proteção estão funcionando perfeitamente! Como os dados originais não puderam ser 100% validados, será necessário gerar um novo documento. Por favor, solicite o reenvio à equipe responsável.
+            Isso indica que os mecanismos de segurança da plataforma estão funcionando corretamente. Como não foi possível confirmar a integridade original deste documento, o acesso foi bloqueado por precaução. Não é necessária nenhuma ação da sua parte. Por favor, solicite um novo documento à equipe responsável.
           </p>
 
           <div className="pt-2">
@@ -111,7 +111,7 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
               className="w-full sm:w-auto px-6 py-3 bg-red-700 hover:bg-red-800 text-white font-semibold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 mx-auto active:scale-98 cursor-pointer"
             >
               <XCircle className="w-4 h-4" />
-              {primaryActionLabel || 'Fechar tela de assinatura'}
+              {primaryActionLabel || 'Fechar e Contatar a Equipe'}
             </button>
           </div>
         </div>
@@ -135,13 +135,13 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               Tudo certo por aqui!
             </h2>
-            <p className="text-sm sm:text-base font-semibold text-emerald-900 leading-relaxed bg-emerald-50/80 p-3.5 rounded-xl border border-emerald-200/60">
-              Você já assinou este documento.
+            <p className="text-xs sm:text-sm font-semibold text-emerald-900 leading-relaxed bg-emerald-50/80 p-3.5 rounded-xl border border-emerald-200/60">
+              Sua assinatura eletrônica foi registrada com sucesso e possui plena validade jurídica.
             </p>
           </div>
 
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-justify sm:text-center px-1">
-            A sua assinatura eletrônica já foi registrada com sucesso e validade jurídica. Assim que todas as outras partes finalizarem o processo, você receberá a via original e o certificado de conclusão no seu e-mail.
+            Uma cópia completa do comprovante já foi enviada para o seu e-mail. Você pode baixar a sua via agora ou acessar o validador público a qualquer momento usando o código de autenticidade.
           </p>
 
           {documentTitle && (
@@ -160,7 +160,7 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
                 className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
               >
                 <Download className="w-4 h-4" />
-                {secondaryActionLabel || 'Baixar minha via atual'}
+                {secondaryActionLabel || 'Baixar Meu Comprovante'}
               </a>
             )}
             <button
@@ -194,7 +194,7 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
       </div>
 
       <p className="text-xs text-slate-600 leading-normal bg-white/60 p-2.5 rounded-lg border border-red-100/50">
-        Para mantermos a validade jurídica da sua assinatura, precisamos ter certeza de que é você. Por favor, solicite um novo código e tente novamente em alguns instantes.
+        A confirmação de identidade é necessária para garantir a segurança jurídica da sua assinatura. Por favor, solicite um novo código — ele chegará ao seu e-mail em instantes. Se necessário, verifique também sua pasta de Spam.
       </p>
 
       {onPrimaryAction && (
@@ -205,7 +205,7 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
             className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg shadow-2xs transition-all flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            {primaryActionLabel || 'Reenviar código de segurança'}
+            {primaryActionLabel || 'Solicitar Novo Código de Segurança'}
           </button>
         </div>
       )}

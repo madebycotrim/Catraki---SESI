@@ -33,9 +33,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             O tratamento de dados sensíveis de saúde de crianças e adolescentes é fundamentado no <strong>Art. 11, I c/c Art. 14, §1º da LGPD (Lei 13.709/2018)</strong>, com consentimento específico, individualizado por procedimento e assinado exclusivamente pelo representante legal.
           </p>
           <ul className="space-y-1 text-[11px] text-slate-400">
-            <li>• Conexão segura e armazenamento protegido</li>
-            <li>• Registro cronológico de auditoria</li>
-            <li>• Política de retenção para fins clínicos</li>
+           <li>• Comunicação protegida por criptografia TLS 1.3</li>
+            <li>• Trilha de auditoria registrada a cada assinatura</li>
+            <li>• Dados mantidos pelo prazo legal e descartados com segurança</li>
           </ul>
         </div>
 
@@ -53,7 +53,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             className="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs flex items-center justify-center gap-2 border border-slate-700 transition-colors cursor-pointer"
           >
             <FileText className="w-3.5 h-3.5 text-purple-400" />
-            <span>Acessar Portal do Titular (Art. 18 LGPD)</span>
+            <span>Ver meus dados e exercer direitos de privacidade</span>
           </button>
           <p className="text-[11px] text-slate-500 text-center">
             Catraki • Tecnologia em Assinaturas Digitais e Governança de Dados
@@ -63,9 +63,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
       {/* Disclaimer Obrigatório de Isenção de Responsabilidade (Regra de Ouro) */}
       <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-900 text-[11px] text-slate-500 leading-relaxed text-center sm:text-left space-y-3">
-        <p className="m-0 bg-slate-900/60 p-3 rounded-lg border border-slate-800/80 text-slate-400">
-          <strong>Isenção de Responsabilidade & Governança:</strong> Os dados de saúde e autorizações são controlados exclusivamente pelas instituições realizadoras do projeto (SESI-DF e Faculdade de Ciências da Saúde da UnB). A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.
-        </p>
+         <p className="m-0 bg-slate-900/60 p-3 rounded-lg border border-slate-800/80 text-slate-400">
+           <strong>Isenção de Responsabilidade e Governança de Dados:</strong> Os dados de saúde e as autorizações são de responsabilidade exclusiva das instituições realizadoras do projeto: o <strong>SESI-DF</strong> e a <strong>Faculdade de Ciências da Saúde da UnB</strong>. A Plataforma Catraki atua exclusivamente como <strong>testemunha tecnológica imparcial</strong> — registra e autentica o ato da assinatura, sem possuir CNPJ, sem acessar os dados de saúde e sem qualquer ingerência sobre o conteúdo dos documentos firmados.
+         </p>
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
           <div>
             © {new Date().getFullYear()} Catraki. Todos os direitos reservados. Infraestrutura tecnológica para assinaturas eletrônicas.

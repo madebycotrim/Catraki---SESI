@@ -57,7 +57,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
         {/* Título Principal */}
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="text-sm sm:text-base md:text-[12pt] font-bold text-slate-900 uppercase leading-snug tracking-tight m-0">
-            BEM-VINDO(A) AO PROJETO ESCOLA CIDADÃ — SAÚDE EM MOVIMENTO
+           CARTA DE BOAS-VINDAS — PROJETO ESCOLA CIDADÃ — SAÚDe EM MOVIMENTO
           </h1>
         </div>
 
@@ -67,7 +67,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
             Prezado(a) Responsável,
           </p>
           <p className="m-0 leading-relaxed">
-            Sabemos que a saúde e a segurança do(a) seu filho(a) são as suas maiores prioridades. É com esse mesmo cuidado que a <strong>Universidade de Brasília (UnB)</strong> e o <strong>SESI-DF</strong> trazem até a comunidade escolar esta iniciativa de cuidado preventivo e cidadania. O projeto leva atendimento clínico gratuito nas especialidades de <strong>Oftalmologia, Odontologia, Fonoaudiologia (Audiometria), Terapia Comunitária Integrativa (Psicologia) e Oficinas de Alimentação Saudável (Nutrição)</strong> em unidades móveis para estudantes com idade <strong>a partir de 14 anos</strong>.
+             Sabemos que a saúde e a segurança do(a) estudante são a sua prioridade — e é com esse mesmo cuidado que a <strong>Universidade de Brasília (UnB)</strong> e o <strong>SESI-DF</strong> trazem até a comunidade escolar esta iniciativa de promoção da saúde. O projeto leva atendimento clínico gratuito nas especialidades de <strong>Oftalmologia, Odontologia, Fonoaudiologia (Audiometria), Terapia Comunitária Integrativa e Oficinas de Alimentação Saudável (Nutrição)</strong> em unidades móveis para estudantes com idade <strong>a partir de 14 anos</strong>.
           </p>
 
           <p className="m-0 leading-relaxed">
@@ -78,7 +78,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
           <div className="bg-slate-50/50 border border-slate-200 p-3 sm:p-3.5 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-700 mt-2 shadow-3xs">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 animate-pulse" />
-              <span className="text-xs sm:text-sm text-slate-600 font-medium">Já assinou e deseja validar a autenticidade do seu comprovante?</span>
+              <span className="text-sm">Já assinou e deseja verificar a autenticidade do seu comprovante?</span>
             </div>
             <button
               type="button"
@@ -88,7 +88,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
               }}
               className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-[#004b8d] hover:text-[#003666] font-bold text-xs rounded-lg transition-colors shadow-2xs whitespace-nowrap cursor-pointer text-center"
             >
-              Validar Assinatura Realizada
+              Verificar Autenticidade do Comprovante
             </button>
           </div>
 
@@ -97,7 +97,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
             <AlertTriangle className="w-5 h-5 shrink-0 text-amber-500 mt-0.5" />
             <div>
               <strong className="text-amber-950 block mb-0.5 text-xs sm:text-sm font-bold">Aviso Operacional Importante</strong>
-              Este sistema digital serve exclusivamente para a autorização legal de atendimento. A autorização não garante a consulta imediata. O agendamento dos horários ocorre de forma presencial no estacionamento da escola, próximo às unidades móveis, e está estritamente sujeito à capacidade máxima diária de cada especialidade (vagas limitadas).
+               Esta autorização digital é o primeiro passo — mas não garante atendimento imediato. O agendamento das consultas é feito <strong>presencialmente na escola</strong>, junto às unidades móveis do projeto, e está sujeito à capacidade diária de cada especialidade. <strong>Vagas são limitadas.</strong>
             </div>
           </div>
 
@@ -115,7 +115,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
                 <strong className="text-slate-950">Atendimento e Participação (Obrigatório):</strong> Autorização para que o(a) aluno(a) participe das ações do projeto e passe pelas triagens clínicas nas unidades móveis.
               </li>
               <li>
-                <strong className="text-slate-950">Tratamento de Dados (Obrigatório):</strong> Permissão legal para o registro e proteção dos dados pessoais do responsável e do estudante na plataforma, necessários para a validação jurídica da assinatura e controle de consentimento.
+                <strong className="text-slate-950">Tratamento de Dados (Obrigatório):</strong> Autorização para que seus dados pessoais e os do(a) estudante sejam registrados e protegidos na plataforma. Esses dados são usados exclusivamente para garantir a validade jurídica desta assinatura e para que você possa revogar a autorização a qualquer momento, se necessário.
               </li>
               <li>
                 <strong className="text-slate-950">Uso de Imagem (Opcional):</strong> Autorização para o registro de fotos institucionais do evento. A recusa desta opção não impede a participação do(a) estudante.
@@ -152,14 +152,14 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
                 onChange={(e) => setAcceptedTerms(e.target.checked)}
                 className="mt-0.5 w-4.5 h-4.5 text-[#004b8d] border-slate-300 rounded focus:ring-[#004b8d] cursor-pointer"
               />
-              <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                Li e concordo com os <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-bold" onClick={(e) => e.stopPropagation()}>Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-bold" onClick={(e) => e.stopPropagation()}>Política de Privacidade</a> da Plataforma Catraki. <span className="text-red-500 font-bold">* (Obrigatório)</span>
-              </span>
+               <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
+                 Declaro que li e aceito os <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-bold" onClick={(e) => e.stopPropagation()}>Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-bold" onClick={(e) => e.stopPropagation()}>Política de Privacidade</a> da Plataforma Catraki. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+               </span>
             </label>
 
-            <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed italic m-0 text-justify">
-              Você também autoriza o tratamento dos seus dados de identificação (IP, nome, e-mail e dispositivo) exclusivamente para fins de autenticidade, integridade e validade jurídica desta assinatura eletrônica, em plena conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).
-            </p>
+             <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed italic m-0 text-justify">
+               Ao prosseguir, você também autoriza o registro dos dados técnicos desta sessão (endereço IP, e-mail e dispositivo) exclusivamente para fins de autenticação e validade jurídica desta assinatura eletrônica, em conformidade com a LGPD (Lei nº 13.709/2018).
+             </p>
           </div>
 
           {/* Botão de ação integrado na folha A4 */}
@@ -170,7 +170,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
               disabled={!acceptedTerms}
               className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-[#004b8d] hover:bg-[#003666] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed disabled:shadow-none text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer active:scale-[0.99]"
             >
-              <span>Continuar para Assinatura</span>
+               <span>Continuar para Preencher o Formulário</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

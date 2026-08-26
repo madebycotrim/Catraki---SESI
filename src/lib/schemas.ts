@@ -36,6 +36,13 @@ export function maskCPF(cpfRaw: string): string {
   return `${digits.slice(0, 3)}.***.***-${digits.slice(9, 11)}`;
 }
 
+export function formatCPF(cpfRaw?: string): string {
+  if (!cpfRaw) return '';
+  const digits = cpfRaw.replace(/\D/g, '');
+  if (digits.length !== 11) return cpfRaw;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
+}
+
 export function maskPhone(phoneRaw?: string): string {
   if (!phoneRaw) return '';
   const digits = phoneRaw.replace(/\D/g, '');

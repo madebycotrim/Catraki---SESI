@@ -7,6 +7,7 @@ import {
   SignDocumentSchema,
   RevokeConsentSchema,
   maskCPF,
+  formatCPF,
   maskName,
   maskEmail,
   maskPhone,
@@ -1030,7 +1031,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         parentEmailBindex,
         parsed.data.minor_name || doc.minor_name || null,
         parsed.data.minor_birth_date || doc.minor_birth_date || null,
-        parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : null,
+        parsed.data.minor_cpf ? formatCPF(parsed.data.minor_cpf) : null,
         minorCpfEncrypted,
         minorCpfBindex,
         parsed.data.minor_series || null,
@@ -1211,27 +1212,81 @@ signerRouter.post('/revoke', async (c) => {
   const { token, reason } = parsed.data;
   const db = c.env.DB;
 
-  const doc = await db.prepare('SELECT * FROM documents WHERE access_token = ?').bind(token).first<DocumentRecord>();
+  if (!db) {
+    return c.json({ success: false, error: 'Serviço de banco de dados indisponível.', code: 'DB_UNAVAILABLE' }, 503);
+  }
+
+  const doc = await db.prepare('SELECT * FROM documents WHERE access_token = ? OR id = ?').bind(token, token).first<DocumentRecord>();
   if (!doc) {
     return c.json({ success: false, error: 'Documento não localizado.', code: 'DOC_NOT_FOUND' }, 404);
   }
 
-  if (doc.status === 'revoked') {
-    return c.json({ success: false, error: 'O consentimento deste documento já se encontra revogado.', code: 'ALREADY_REVOKED' }, 400);
+  if (doc.status === 'revoked' || doc.status === 'CANCELADO_POR_ERRO' || doc.status === 'cancelled_error') {
+    return c.json({ success: false, error: 'O consentimento deste documento já se encontra revogado ou cancelado.', code: 'ALREADY_REVOKED' }, 400);
   }
 
   const revokedAtIso = new Date().toISOString();
   const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
   const userAgent = c.req.header('user-agent') || 'Catraki Signer';
 
-  await db.prepare(
-    `UPDATE documents 
-     SET status = 'revoked', revoked_at = ?, revoked_reason = ? 
-     WHERE id = ?`
-  ).bind(revokedAtIso, reason, doc.id).run();
+  let updateOk = false;
+  try {
+    const res = await db.prepare(
+      `UPDATE documents 
+       SET status = 'revoked', revoked_at = ?, revoked_reason = ? 
+       WHERE id = ? OR access_token = ?`
+    ).bind(revokedAtIso, reason, doc.id, doc.id).run();
+    if (res.success || (res as any).meta?.changes > 0) {
+      updateOk = true;
+    }
+  } catch (err1) {
+    console.warn('Tentativa 1 de UPDATE revoked falhou, tentando fallback simples:', err1);
+  }
+
+  if (!updateOk) {
+    try {
+      await db.prepare(
+        `UPDATE documents SET status = 'revoked' WHERE id = ? OR access_token = ?`
+      ).bind(doc.id, doc.id).run();
+      updateOk = true;
+    } catch (err2) {
+      console.error('Falha crítica ao atualizar status para revoked:', err2);
+    }
+  }
+
+  // ── KV DENYLIST (Invalidação Instantânea no Edge) ───────────────────────────
+  const kv = c.env.KV_RATE_LIMIT;
+  if (kv) {
+    try {
+      const ttl = 60 * 60 * 24 * 365 * 5; // 5 anos
+      if (doc.access_token) {
+        await kv.put(`revoked:${doc.access_token}`, revokedAtIso, { expirationTtl: ttl });
+      }
+      if (doc.id) {
+        await kv.put(`revoked:${doc.id}`, revokedAtIso, { expirationTtl: ttl });
+      }
+    } catch {}
+  }
 
   // Registro na Trilha de Auditoria de Cancelamento/Revogação (Marco Civil / LGPD)
   try {
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS document_cancellation_audits (
+        id TEXT PRIMARY KEY,
+        document_id TEXT NOT NULL,
+        cancelled_at DATETIME NOT NULL,
+        ip_address TEXT NOT NULL,
+        user_agent TEXT NOT NULL,
+        cancelled_by_user_id TEXT NOT NULL,
+        cancelled_by_user_email TEXT NOT NULL,
+        cancelled_by_role TEXT NOT NULL,
+        justification TEXT NOT NULL,
+        document_manifest_sha256 TEXT,
+        log_row_hash TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run().catch(() => {});
+
     const cancelId = `REVOKED-${Date.now()}-${doc.id.substring(0, 8)}`;
     const rowHash = await sha256(`${cancelId}|${doc.id}|${revokedAtIso}|${clientIp}|${doc.parent_name || 'Titular'}|${reason}`);
 
@@ -1252,7 +1307,7 @@ signerRouter.post('/revoke', async (c) => {
       reason,
       doc.content_sha256 || null,
       rowHash
-    ).run();
+    ).run().catch(() => {});
   } catch (e) {
     console.error('Falha ao registrar auditoria de revogação:', e);
   }

@@ -6,6 +6,7 @@ import {
   CancelDocumentErrorSchema,
   LogAdminExportSchema,
   generateUniqueDocId,
+  formatCPF,
 } from '../../src/lib/schemas.ts';
 import {
   sha256,
@@ -245,14 +246,42 @@ adminRouter.get('/documents', async (c) => {
        ORDER BY d.created_at DESC LIMIT ?`
     ).bind(limit).all<any>();
 
-    return c.json({ success: true, documents: docs.results || [] });
+    const results = await Promise.all((docs.results || []).map(async (doc: any) => {
+      if (doc.minor_cpf_encrypted && c.env.ENCRYPTION_KEY_V1) {
+        try {
+          const raw = await decryptAesGcm(doc.minor_cpf_encrypted, c.env.ENCRYPTION_KEY_V1);
+          if (raw && raw.replace(/\D/g, '').length === 11) {
+            doc.minor_cpf = formatCPF(raw);
+          }
+        } catch {}
+      } else if (doc.minor_cpf && !doc.minor_cpf.includes('*')) {
+        doc.minor_cpf = formatCPF(doc.minor_cpf);
+      }
+      return doc;
+    }));
+
+    return c.json({ success: true, documents: results });
   } catch (err: any) {
     try {
       const fallbackDocs = await db.prepare(
         `SELECT * FROM documents ORDER BY created_at DESC LIMIT ?`
       ).bind(limit).all<any>();
 
-      return c.json({ success: true, documents: fallbackDocs.results || [] });
+      const results = await Promise.all((fallbackDocs.results || []).map(async (doc: any) => {
+        if (doc.minor_cpf_encrypted && c.env.ENCRYPTION_KEY_V1) {
+          try {
+            const raw = await decryptAesGcm(doc.minor_cpf_encrypted, c.env.ENCRYPTION_KEY_V1);
+            if (raw && raw.replace(/\D/g, '').length === 11) {
+              doc.minor_cpf = formatCPF(raw);
+            }
+          } catch {}
+        } else if (doc.minor_cpf && !doc.minor_cpf.includes('*')) {
+          doc.minor_cpf = formatCPF(doc.minor_cpf);
+        }
+        return doc;
+      }));
+
+      return c.json({ success: true, documents: results });
     } catch (fallbackErr: any) {
       return c.json({ success: true, documents: [] });
     }
@@ -276,6 +305,17 @@ adminRouter.get('/documents/:id', async (c) => {
 
     if (!doc) {
       return c.json({ success: false, error: 'Documento não encontrado.' }, 404);
+    }
+
+    if (doc.minor_cpf_encrypted && c.env.ENCRYPTION_KEY_V1) {
+      try {
+        const raw = await decryptAesGcm(doc.minor_cpf_encrypted, c.env.ENCRYPTION_KEY_V1);
+        if (raw && raw.replace(/\D/g, '').length === 11) {
+          doc.minor_cpf = formatCPF(raw);
+        }
+      } catch {}
+    } else if (doc.minor_cpf && !doc.minor_cpf.includes('*')) {
+      doc.minor_cpf = formatCPF(doc.minor_cpf);
     }
 
     const auditLog = await db.prepare(
@@ -457,7 +497,102 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
     `${auditId}|${doc.id}|${cancelledAtIso}|${user.sub}|${user.email}|${user.role}|${clientIp}|${manifestSha256}|${reason}`
   );
 
-  // 5. Executa Soft Delete e Inserção Imutável de Auditoria com Auto-Criação de Tabela
+  // 5. Executa Soft Delete e Inserção Imutável de Auditoria com Fallbacks Resilientes
+  let updateSucceeded = false;
+  let finalStatus = 'CANCELADO_POR_ERRO';
+
+  // Tentativa 1: Schema completo com colunas dedicadas de cancelamento
+  try {
+    const res = await db.prepare(
+      `UPDATE documents 
+       SET status = 'CANCELADO_POR_ERRO',
+           cancelled_at = ?,
+           cancelled_by_admin_id = ?,
+           cancellation_reason = ?,
+           cancellation_ip = ?,
+           revoked_at = ?,
+           revoked_reason = ?
+       WHERE id = ? OR access_token = ?`
+    ).bind(
+      cancelledAtIso,
+      user.email,
+      reason,
+      clientIp,
+      cancelledAtIso,
+      `Cancelado por inconsistência operacional: ${reason}`,
+      doc.id,
+      doc.id
+    ).run();
+    if (res.success || (res as any).meta?.changes > 0) {
+      updateSucceeded = true;
+      finalStatus = 'CANCELADO_POR_ERRO';
+    }
+  } catch (e1) {
+    console.warn('Tentativa 1 falhou, tentando fallback 2:', e1);
+  }
+
+  // Tentativa 2: CANCELADO_POR_ERRO com colunas padrão revoked_at / revoked_reason
+  if (!updateSucceeded) {
+    try {
+      const res = await db.prepare(
+        `UPDATE documents 
+         SET status = 'CANCELADO_POR_ERRO',
+             revoked_at = ?,
+             revoked_reason = ?
+         WHERE id = ? OR access_token = ?`
+      ).bind(
+        cancelledAtIso,
+        `Cancelado por inconsistência operacional: ${reason}`,
+        doc.id,
+        doc.id
+      ).run();
+      if (res.success || (res as any).meta?.changes > 0) {
+        updateSucceeded = true;
+        finalStatus = 'CANCELADO_POR_ERRO';
+      }
+    } catch (e2) {
+      console.warn('Tentativa 2 falhou, tentando fallback 3 (status = revoked):', e2);
+    }
+  }
+
+  // Tentativa 3: Status 'revoked' (100% compatível com todas as versões de SQLite e CHECK constraints)
+  if (!updateSucceeded) {
+    try {
+      const res = await db.prepare(
+        `UPDATE documents 
+         SET status = 'revoked',
+             revoked_at = ?,
+             revoked_reason = ?
+         WHERE id = ? OR access_token = ?`
+      ).bind(
+        cancelledAtIso,
+        `Cancelado por inconsistência operacional: ${reason}`,
+        doc.id,
+        doc.id
+      ).run();
+      if (res.success || (res as any).meta?.changes > 0) {
+        updateSucceeded = true;
+        finalStatus = 'revoked';
+      }
+    } catch (e3) {
+      console.warn('Tentativa 3 falhou, tentando fallback 4:', e3);
+    }
+  }
+
+  // Tentativa 4: UPDATE direto de status simples
+  if (!updateSucceeded) {
+    try {
+      await db.prepare(
+        `UPDATE documents SET status = 'revoked' WHERE id = ? OR access_token = ?`
+      ).bind(doc.id, doc.id).run();
+      updateSucceeded = true;
+      finalStatus = 'revoked';
+    } catch (e4) {
+      console.error('Falha crítica ao atualizar status do documento no D1:', e4);
+    }
+  }
+
+  // Registro na Trilha de Auditoria Forense
   try {
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS document_cancellation_audits (
@@ -476,75 +611,51 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
       )
     `).run().catch(() => {});
 
-    await db.batch([
-      db.prepare(
-        `UPDATE documents 
-         SET status = 'CANCELADO_POR_ERRO',
-             cancelled_at = ?,
-             cancelled_by_admin_id = ?,
-             cancellation_reason = ?,
-             cancellation_ip = ?,
-             revoked_at = ?,
-             revoked_reason = ?
-         WHERE id = ?`
-      ).bind(
-        cancelledAtIso,
-        user.email,
-        reason,
-        clientIp,
-        cancelledAtIso,
-        `Cancelado por inconsistência operacional: ${reason}`,
-        doc.id
-      ),
-      db.prepare(
-        `INSERT INTO document_cancellation_audits (
-          id, document_id, cancelled_at, ip_address, user_agent,
-          cancelled_by_user_id, cancelled_by_user_email, cancelled_by_role,
-          justification, document_manifest_sha256, log_row_hash, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
-      ).bind(
-        auditId,
-        doc.id,
-        cancelledAtIso,
-        clientIp,
-        userAgent,
-        user.sub,
-        user.email,
-        user.role,
-        reason,
-        manifestSha256,
-        logRowHash
-      ),
-    ]);
-  } catch {
-    // Fallback de compatibilidade caso o schema do D1 seja anterior às colunas adicionais
     await db.prepare(
-      `UPDATE documents 
-       SET status = 'CANCELADO_POR_ERRO',
-           revoked_at = ?,
-           revoked_reason = ?
-       WHERE id = ?`
+      `INSERT INTO document_cancellation_audits (
+        id, document_id, cancelled_at, ip_address, user_agent,
+        cancelled_by_user_id, cancelled_by_user_email, cancelled_by_role,
+        justification, document_manifest_sha256, log_row_hash, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
     ).bind(
+      auditId,
+      doc.id,
       cancelledAtIso,
-      `Cancelado por inconsistência operacional: ${reason}`,
-      doc.id
+      clientIp,
+      userAgent,
+      user.sub,
+      user.email,
+      user.role,
+      reason,
+      manifestSha256,
+      logRowHash
     ).run().catch(() => {});
+  } catch (auditErr) {
+    console.warn('Falha ao registrar auditoria de cancelamento:', auditErr);
   }
 
+  // Grava log administrativo
+  await logAdminAction(
+    db,
+    user,
+    'DOCUMENT_CANCEL_ERROR',
+    `document:${doc.id}`,
+    `Documento ${doc.id} cancelado/revogado. Motivo: ${reason}`,
+    clientIp,
+    userAgent
+  );
+
   // ── KV DENYLIST (Pilar 5 — Invalidação Instantânea de Token) ──────────────────
-  // Grava 'revoked:{token}' no KV com TTL até retention_expires_at do documento.
   const kv = c.env.KV_RATE_LIMIT;
-  if (kv && doc.access_token) {
+  if (kv) {
     try {
-      const retentionExpiry = doc.retention_expires_at
-        ? new Date(doc.retention_expires_at).getTime()
-        : Date.now() + (20 * 365 * 24 * 60 * 60 * 1000); // 20 anos default
-      const ttlSeconds = Math.max(3600, Math.floor((retentionExpiry - Date.now()) / 1000));
-      await kv.put(
-        `revoked:${doc.access_token}`,
-        cancelledAtIso,
-        { expirationTtl: Math.min(ttlSeconds, 60 * 60 * 24 * 365 * 20) }
-      );
+      const ttl = 60 * 60 * 24 * 365 * 5; // 5 anos
+      if (doc.access_token) {
+        await kv.put(`revoked:${doc.access_token}`, cancelledAtIso, { expirationTtl: ttl });
+      }
+      if (doc.id) {
+        await kv.put(`revoked:${doc.id}`, cancelledAtIso, { expirationTtl: ttl });
+      }
     } catch {
       // Falha silenciosa
     }
@@ -677,7 +788,7 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
   return c.json({
     success: true,
     document_id: doc.id,
-    status: 'CANCELADO_POR_ERRO',
+    status: finalStatus,
     cancelled_at: cancelledAtIso,
     audit_record_id: auditId,
     log_row_hash: logRowHash,

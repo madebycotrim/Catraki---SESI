@@ -128,4 +128,70 @@ describe('Funcionalidade: Revogação e Cancelamento por Erro Operacional (LGPD 
       expect(text).toContain('Os links anteriores foram desativados. Seus dados continuam protegidos.');
     });
   });
+
+  describe('Transição de Status de Documentos Assinados no Cliente e Armazenamento', () => {
+    it('deve alterar o status de um documento assinado para CANCELADO_POR_ERRO no cancelamento administrativo', async () => {
+      const { apiClient } = await import('../src/lib/api.ts');
+      
+      const mockDocId = `DOC-TEST-${Date.now()}`;
+      const doc = {
+        id: mockDocId,
+        template_id: 'termo-saude-v1',
+        template_version: 1,
+        access_token: `token-${mockDocId}`,
+        status: 'signed' as const,
+        minor_name: 'Estudante Teste',
+        minor_birth_date: '2010-05-10',
+        parent_name: 'Responsavel Teste',
+        created_at: new Date().toISOString(),
+      };
+
+      apiClient.seedDocument(doc);
+
+      const cancelRes = await apiClient.cancelDocumentDueToError(
+        mockDocId,
+        'Inconsistência cadastral comprovada na triagem'
+      );
+
+      expect(cancelRes.success).toBe(true);
+      expect(cancelRes.status).toBe('CANCELADO_POR_ERRO');
+
+      const updatedDoc = apiClient.getLocalDocument(mockDocId);
+      expect(updatedDoc).toBeDefined();
+      expect(updatedDoc?.status).toBe('CANCELADO_POR_ERRO');
+      expect(updatedDoc?.cancelled_at).toBeDefined();
+    });
+
+    it('deve alterar o status de um documento assinado para revoked na revogação do titular', async () => {
+      const { apiClient } = await import('../src/lib/api.ts');
+      
+      const mockDocId = `DOC-REVOKE-${Date.now()}`;
+      const token = `token-${mockDocId}`;
+      const doc = {
+        id: mockDocId,
+        template_id: 'termo-saude-v1',
+        template_version: 1,
+        access_token: token,
+        status: 'signed' as const,
+        minor_name: 'Estudante Revogacao',
+        minor_birth_date: '2010-05-10',
+        parent_name: 'Responsavel Revogacao',
+        created_at: new Date().toISOString(),
+      };
+
+      apiClient.seedDocument(doc);
+
+      const revokeRes = await apiClient.revokeConsent(
+        token,
+        'Solicitação do titular para cancelamento da autorização'
+      );
+
+      expect(revokeRes.success).toBe(true);
+
+      const updatedDoc = apiClient.getLocalDocument(token);
+      expect(updatedDoc).toBeDefined();
+      expect(updatedDoc?.status).toBe('revoked');
+      expect(updatedDoc?.revoked_at).toBeDefined();
+    });
+  });
 });

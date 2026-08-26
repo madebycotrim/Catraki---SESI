@@ -38,7 +38,7 @@ import {
 import JSZip from 'jszip';
 import { GeradorPdfTermoSesi } from '../../lib/pades/GeradorPdfTermoSesi.ts';
 import { apiClient } from '../../lib/api.ts';
-import { parseUtcDate, formatBrasiliaDateTime } from '../../lib/schemas.ts';
+import { parseUtcDate, formatBrasiliaDateTime, formatCPF } from '../../lib/schemas.ts';
 import type { Institution } from '../../lib/types.ts';
 
 interface AdminDashboardProps {
@@ -180,13 +180,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             ? doc.minor_name
             : (doc.minor_name || (isSigned ? 'Estudante Cadastrado' : 'Aguardando preenchimento'));
 
-          const studentCpfMasked = doc.minor_cpf || (isSigned ? 'CPF não informado' : 'Pendente');
+          const rawMinorCpf = doc.minor_cpf_raw || (doc.minor_cpf && !doc.minor_cpf.includes('*') ? doc.minor_cpf : '');
+          const formattedMinorCpf = rawMinorCpf ? formatCPF(rawMinorCpf) : (doc.minor_cpf ? (doc.minor_cpf.includes('*') ? doc.minor_cpf : formatCPF(doc.minor_cpf)) : '');
+          const studentCpf = formattedMinorCpf || (isSigned ? 'CPF não informado' : 'Pendente');
 
           return {
             id: doc.id,
             accessToken: doc.access_token,
             studentName: realStudentName,
-            studentCpfMasked,
+            studentCpf,
+            studentCpfMasked: studentCpf,
             birthDate: doc.minor_birth_date || '',
             parentName: realParentName,
             parentCpfMasked: log?.signer_cpf_masked || (isSigned ? '***.***.***-**' : 'Pendente'),
@@ -411,13 +414,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setIsRevoking(false);
 
       if (res && res.success) {
+        const newStatus = res.status || 'CANCELADO_POR_ERRO';
         setAuthorizations((prev) =>
           prev.map((a) =>
             a.id === selectedAuthToRevoke.id
               ? {
                   ...a,
-                  status: 'CANCELADO_POR_ERRO',
+                  status: newStatus,
                   cancellationReason: revocationReason.trim(),
+                  revokedAt: res.cancelled_at || new Date().toISOString(),
                 }
               : a
           )
@@ -701,12 +706,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
       }
 
-      // ⑤ Dados incompletos: turma/série ausentes em registro assinado
-      if (auth.status === 'signed' && !auth.minorSeries && !auth.minorClass) {
-        alerts.push('INCOMPLETE_CLASS');
-      }
+      // ⑤ Turma, série e turno são opcionais no fluxo de cadastro, logo não constam como incompletos
 
-      // ⑥ Email ausente em pendente (não vai conseguir receber OTP)
+      // ⑥ Email ausente em pendente (não vai conseguir receber OTP se não informado no momento)
       if ((auth.status === 'pending' || auth.status === 'draft') && !auth.parentEmail) {
         alerts.push('MISSING_EMAIL');
       }
@@ -734,7 +736,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const totalIncomplete = useMemo(() => {
     let count = 0;
-    anomalyFlags.forEach((flags) => { if (flags.includes('INCOMPLETE_CLASS') || flags.includes('MISSING_EMAIL')) count++; });
+    anomalyFlags.forEach((flags) => { if (flags.includes('MISSING_EMAIL')) count++; });
     return count;
   }, [anomalyFlags]);
 
@@ -1064,12 +1066,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {totalIncomplete > 0 && (
               <button
                 type="button"
-                onClick={() => { setSubTab('all'); setSelectedStatus('all'); }}
+                onClick={() => { setSubTab('pending'); setSelectedStatus('pending'); }}
                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
-                title="Registros com turma, série ou e-mail do responsável ausentes"
+                title="Registros pendentes sem e-mail do responsável cadastrado"
               >
                 <span className="w-5 h-5 rounded-full bg-slate-500 text-white text-[10px] font-black flex items-center justify-center shrink-0">{totalIncomplete}</span>
-                📋 Dados incompletos
+                📋 Sem e-mail cadastrado
               </button>
             )}
           </div>
@@ -1398,7 +1400,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       const hasDuplicate = authAlerts.some(f => f.startsWith('DUPLICATE_CPF') || f === 'DUPLICATE_NAME' || f === 'DUPLICATE_PARENT_CHILD');
                       const isStale = authAlerts.some(f => f.startsWith('STALE_PENDING'));
                       const staleDays = isStale ? parseInt(authAlerts.find(f => f.startsWith('STALE_PENDING'))?.split(':')[1] || '0') : 0;
-                      const hasIncomplete = authAlerts.includes('INCOMPLETE_CLASS') || authAlerts.includes('MISSING_EMAIL');
+                      const hasIncomplete = authAlerts.includes('MISSING_EMAIL');
                       const hasAnyAlert = authAlerts.length > 0;
                       const dupCount = authAlerts.find(f => f.startsWith('DUPLICATE_CPF'))?.split(':')[1] || '1';
 
@@ -1421,9 +1423,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               >
                                 <span>{auth.validationCode || auth.id}</span>
                                 {isCopied ? (
-                                  <Check className="w-3 h-3 text-emerald-600" />
+                                   <Check className="w-3 h-3 text-emerald-600" />
                                 ) : (
-                                  <Copy className="w-3 h-3 text-slate-400 group-hover:text-slate-700" />
+                                   <Copy className="w-3 h-3 text-slate-400 group-hover:text-slate-700" />
                                 )}
                               </button>
                               <div className="text-[10px] text-slate-400 font-mono">
@@ -1463,10 +1465,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     )}
                                     {hasIncomplete && (
                                       <span
-                                        title="Dados de turma/série ou e-mail do responsável ausentes."
+                                        title="E-mail do responsável não informado no cadastro pendente."
                                         className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-300 text-[9px] font-black uppercase cursor-help"
                                       >
-                                        📋 Dados incompletos
+                                        📋 Sem e-mail
                                       </span>
                                     )}
                                   </div>
@@ -1613,7 +1615,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </button>
 
                               {/* Botão Revogar / Cancelar por Erro */}
-                              {!isCancelled && (
+                              {!isCancelled && !isRevoked && (
                                 <button
                                   onClick={() => handleOpenRevokeModal(auth)}
                                   className="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 text-xs font-bold transition-all cursor-pointer active:scale-95"
@@ -1943,11 +1945,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* MODAL DE REVOGAÇÃO / ANULAÇÃO DE DOCUMENTO */}
       {showRevocationModal && selectedAuthToRevoke && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-2 sm:p-4 animate-in fade-in duration-200 overflow-y-auto"
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-2 sm:p-4 animate-in fade-in duration-200 overflow-y-auto"
           onClick={() => !isRevoking && setShowRevocationModal(false)}
         >
           <div 
-            className="document-sheet-a4 max-w-2xl w-full animate-in zoom-in-95 duration-200 text-left my-6 space-y-5 relative"
+            className="document-sheet-a4 max-w-2xl w-full animate-in zoom-in-95 duration-200 text-left my-6 space-y-5 relative rounded-3xl shadow-2xl bg-white border border-slate-200/80"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header Timbrado Oficial */}
@@ -2136,11 +2138,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* MODAL: FICHA CADASTRAL E DE COMPROVANTE DO ESTUDANTE — FOLHA A4 (PADRÃO TIMBRADO CATRAKI / SESI) */}
       {showDetailsModal && selectedAuthForDetails && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-2 sm:p-4 animate-in fade-in duration-200 overflow-y-auto"
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-2 sm:p-4 animate-in fade-in duration-200 overflow-y-auto"
           onClick={() => setShowDetailsModal(false)}
         >
           <div 
-            className="document-sheet-a4 max-w-3xl w-full animate-in zoom-in-95 duration-200 text-left my-6 space-y-5 relative"
+            className="document-sheet-a4 max-w-3xl w-full animate-in zoom-in-95 duration-200 text-left my-6 space-y-5 relative rounded-3xl shadow-2xl bg-white border border-slate-200/80"
             onClick={(e) => e.stopPropagation()}
           >
             {/* ━━ CABEÇALHO TIMBRADO OFICIAL PLATAFORMA CATRAKI (PADRÃO COMPROVANTE) ━━ */}
@@ -2261,7 +2263,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                   <div>
                     <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">CPF do Aluno(a):</span>
-                    <span className="font-mono font-bold text-slate-800 text-sm mt-0.5 block">{selectedAuthForDetails.studentCpfMasked}</span>
+                    <span className="font-mono font-bold text-slate-800 text-sm mt-0.5 block">{selectedAuthForDetails.studentCpf || selectedAuthForDetails.studentCpfMasked}</span>
                   </div>
 
                   {/* DESTAQUE: ANO / SÉRIE, TURMA E TURNO */}
@@ -2405,7 +2407,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* Barra institucional azul sólida no final da folha */}
-            <div className="absolute bottom-0 left-0 right-0 h-2.5 sm:h-3.5 bg-[#034b7f] pointer-events-none z-10" />
+            <div className="absolute bottom-0 left-0 right-0 h-2.5 sm:h-3.5 bg-[#034b7f] pointer-events-none z-10 rounded-b-3xl" />
 
           </div>
         </div>
@@ -2414,7 +2416,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* MODAL: REENVIAR E-MAIL */}
       {showResendEmailModal && selectedAuthForResendEmail && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-3 sm:p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-3 sm:p-4 animate-in fade-in duration-200"
           onClick={() => setShowResendEmailModal(false)}
         >
           <div 

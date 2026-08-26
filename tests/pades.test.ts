@@ -125,5 +125,5 @@ describe('Motor de Assinatura Eletrônica PAdES', () => {
     expect(carimbo.tokenDer.length).toBeGreaterThan(20);
     expect(carimbo.autoridade).toMatch(/FreeTSA|RFC 3161|ACT/i);
     expect(carimbo.dataHora).toBeInstanceOf(Date);
-  });
+  }, 15000);
 });

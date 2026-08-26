@@ -7,7 +7,7 @@ import {
 } from './crypto.ts';
 import { computeLogRowHash, verifyAuditChain } from './audit-chain.ts';
 import { querySesiMatricula } from './sesi-matricula.ts';
-import { maskCPF, maskName, getInitials, generateUniqueDocId, formatUserAgent } from './schemas.ts';
+import { maskCPF, formatCPF, maskName, getInitials, generateUniqueDocId, formatUserAgent } from './schemas.ts';
 import type {
   DocumentRecord,
   DocumentTemplate,
@@ -232,6 +232,23 @@ export const apiClient = {
       localStorage.removeItem('catraki_lgpd');
       localStorage.removeItem('catraki_institutions');
     }
+  },
+
+  /**
+   * Registra documento mock para testes unitários / contingência
+   */
+  seedDocument(doc: any) {
+    const docs = getDocuments();
+    docs.push(doc);
+    setDocuments(docs);
+  },
+
+  /**
+   * Obtém documento mock do storage local por ID ou access_token
+   */
+  getLocalDocument(idOrToken: string) {
+    const docs = getDocuments();
+    return docs.find((d) => d.id === idOrToken || d.access_token === idOrToken) || null;
   },
 
   /**
@@ -711,7 +728,7 @@ export const apiClient = {
       doc.minor_name = payload.minor_name;
     }
     if (payload.minor_cpf) {
-      (doc as any).minor_cpf = maskCPF(payload.minor_cpf);
+      (doc as any).minor_cpf = formatCPF(payload.minor_cpf);
       (doc as any).minor_cpf_raw = payload.minor_cpf.replace(/\D/g, '');
     }
     setDocuments(docs);
@@ -739,11 +756,22 @@ export const apiClient = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, reason, confirm_legal_consequence: true }),
       });
-      if (resp.ok) return await resp.json();
+      if (resp.ok) {
+        const data = (await resp.json()) as any;
+        const docs = getDocuments();
+        const doc = docs.find((d) => d.access_token === token || d.id === token);
+        if (doc) {
+          doc.status = 'revoked';
+          doc.revoked_at = data?.revoked_at || new Date().toISOString();
+          doc.revoked_reason = reason;
+          setDocuments(docs);
+        }
+        return data;
+      }
     } catch {}
 
     const docs = getDocuments();
-    const doc = docs.find((d) => d.access_token === token);
+    const doc = docs.find((d) => d.access_token === token || d.id === token);
     if (!doc) return { success: false, error: 'Documento não encontrado.' };
 
     doc.status = 'revoked';
@@ -999,13 +1027,28 @@ export const apiClient = {
         headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ reason, confirmed: true, notify_email: notifyEmail }),
       });
-      const data = await resp.json().catch(() => null);
-      if (data) return data;
+      const data = (await resp.json().catch(() => null)) as any;
+      if (data && data.success) {
+        const docs = getDocuments();
+        const doc = docs.find((d) => d.id === docId || d.access_token === docId);
+        if (doc) {
+          doc.status = (data.status || 'CANCELADO_POR_ERRO') as any;
+          doc.cancelled_at = data.cancelled_at || new Date().toISOString();
+          doc.cancellation_reason = reason;
+          doc.revoked_at = data.cancelled_at || new Date().toISOString();
+          doc.revoked_reason = `Cancelado por inconsistência operacional: ${reason}`;
+          setDocuments(docs);
+        }
+        return data;
+      }
+      if (data && !data.success) {
+        return data;
+      }
     } catch {}
 
     // Fallback local caso o backend esteja em modo mock / offline
     const docs = getDocuments();
-    const doc = docs.find((d) => d.id === docId);
+    const doc = docs.find((d) => d.id === docId || d.access_token === docId);
     if (!doc) return { success: false, error: 'Documento não encontrado.' };
 
     const cancelledAt = new Date().toISOString();

@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
 import QRCode from 'qrcode';
 import { LOGO_BASE64 } from './LogoBase64.ts';
+import { calcularIdade } from '../schemas.ts';
 
 export interface IDadosTermoPdf {
   tituloProcedimento: string;
@@ -9,6 +10,7 @@ export interface IDadosTermoPdf {
   dataNascimentoMenor: string;
   nomeResponsavel: string;
   cpfResponsavelMascarado: string;
+  cpfResponsavelCompleto?: string;
   parentesco: string;
   autorizacaoSaude: boolean;
   autorizacaoDados: boolean;
@@ -27,19 +29,27 @@ export interface IDadosTermoPdf {
   signerEmail?: string;
   signerPhone?: string;
   minorCpfMascarado?: string;
+  minorCpfCompleto?: string;
   nomeEscola?: string;
+  isMaiorDeIdade?: boolean;
 }
 
-
-
 /**
- * Gerador de PDF A4 Oficial para Termos de Consentimento (TCLE) SESI Saúde
- * Formatado rigorosamente de acordo com as normas ABNT e os preceitos da LGPD (Lei nº 13.709/2018).
- * Contém QR Code de validação pública, logos institucionais, barra oficial e trilha forense de auditoria.
+ * Gerador de PDF A4 Oficial para Termos de Consentimento (TCLE) SESI Saúde / Catraki
+ * Formatado rigorosamente de acordo com as normas ABNT e os preceitos da LGPD (Lei nº 13.709/2018),
+ * Lei nº 14.063/2020 e ECA (Lei nº 8.069/1990).
  */
 export class GeradorPdfTermoSesi {
   public static async gerarPdfOriginal(dados: IDadosTermoPdf): Promise<Uint8Array> {
     const pdfDoc = await PDFDocument.create();
+
+    // Metadados do PDF
+    pdfDoc.setTitle(`Termo de Consentimento — ${dados.nomeMenor}`);
+    pdfDoc.setAuthor('Plataforma Catraki');
+    pdfDoc.setSubject('Termo de Consentimento Livre e Esclarecido (TCLE) — Escola Cidadã');
+    pdfDoc.setKeywords(['LGPD', 'Lei 14.063/2020', 'Catraki', 'SESI-DF', 'UnB', 'Assinatura Eletrônica']);
+    pdfDoc.setCreationDate(dados.dataAssinatura || new Date());
+    pdfDoc.setModificationDate(dados.dataAssinatura || new Date());
 
     // Fontes Oficiais
     const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -47,7 +57,7 @@ export class GeradorPdfTermoSesi {
     const fontMono = await pdfDoc.embedFont(StandardFonts.Courier);
 
     // Cores Formais ABNT (Textos em Preto)
-    const corPreto = rgb(0.04, 0.04, 0.04);           // Texto formal ABNT
+    const corPreto = rgb(0.04, 0.04, 0.04);
     const corAzulSesi = rgb(3 / 255, 75 / 255, 127 / 255); // #034b7f
     const corVerde = rgb(16 / 255, 124 / 255, 65 / 255);
     const corVermelho = rgb(185 / 255, 28 / 255, 28 / 255);
@@ -56,14 +66,30 @@ export class GeradorPdfTermoSesi {
     const corMarcaDaguaFundo = rgb(0.88, 0.90, 0.93);
     const corMarcaDaguaSobreposta = rgb(0.70, 0.74, 0.80);
 
-    // Carregamento de Ativos Gráficos (Logo e Barra)
-    let logoCatrakiImg: any = null;
+    // Determina a maioridade do estudante (>= 18 anos)
+    let isMaior = !!dados.isMaiorDeIdade;
+    if (!isMaior && dados.dataNascimentoMenor) {
+      let birthDateObj: Date | null = null;
+      if (dados.dataNascimentoMenor.includes('/')) {
+        const [d, m, y] = dados.dataNascimentoMenor.split('/');
+        birthDateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+      } else if (dados.dataNascimentoMenor.includes('-')) {
+        birthDateObj = new Date(dados.dataNascimentoMenor);
+      }
+      if (birthDateObj && !isNaN(birthDateObj.getTime())) {
+        const age = calcularIdade(birthDateObj, dados.dataAssinatura || new Date());
+        if (age >= 18) {
+          isMaior = true;
+        }
+      }
+    }
 
+    // Carregamento do Logo Catraki
+    let logoCatrakiImg: any = null;
     try {
       const logoBytes = Uint8Array.from(atob(LOGO_BASE64), (c) => c.charCodeAt(0));
       logoCatrakiImg = await pdfDoc.embedPng(logoBytes);
     } catch {}
-
 
     // Formatação de data da assinatura
     const dataHoraStr = (dados.dataAssinatura || new Date()).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -130,9 +156,11 @@ export class GeradorPdfTermoSesi {
       color: corAzulSesi,
     });
 
-    // 2. Parágrafo de Apresentação e Qualificação (ABNT NBR 6024 com recuo de parágrafo)
+    // 2. Parágrafo de Apresentação e Qualificação (com Controladores CNPJ e Lógica de Maioridade ECA)
     y -= 16;
-    const textoIntro = `Eu, ${dados.nomeResponsavel}, portador(a) do CPF ${dados.cpfResponsavelMascarado}, na qualidade de ${dados.parentesco.toLowerCase()} do(a) estudante ${dados.nomeMenor}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante e, de acordo com o Art. 14 da LGPD (Lei nº 13.709/2018) e o Art. 17 do ECA (Lei nº 8.069/1990), manifesto meu consentimento livre, informado e inequívoco para os itens a seguir:`;
+    const textoIntro = isMaior
+      ? `Eu, ${dados.nomeMenor}, portador(a) do CPF ${dados.cpfResponsavelMascarado || dados.minorCpfMascarado || '***.***.***-**'}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante promovido pela Universidade de Brasília (UnB — CNPJ 00.038.174/0001-43) e Serviço Social da Indústria (SESI-DF — CNPJ 03.777.341/0001-08) e, de acordo com o Art. 14 da LGPD (Lei nº 13.709/2018), manifesto meu consentimento livre, informado e inequívoco para os itens a seguir:`
+      : `Eu, ${dados.nomeResponsavel}, portador(a) do CPF ${dados.cpfResponsavelMascarado}, na qualidade de ${dados.parentesco ? dados.parentesco.toLowerCase() : 'responsável legal'} do(a) estudante ${dados.nomeMenor}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante promovido pela Universidade de Brasília (UnB — CNPJ 00.038.174/0001-43) e Serviço Social da Indústria (SESI-DF — CNPJ 03.777.341/0001-08) e, de acordo com o Art. 14 da LGPD (Lei nº 13.709/2018) e o Art. 17 do ECA (Lei nº 8.069/1990), manifesto meu consentimento livre, informado e inequívoco para os itens a seguir:`;
 
     const linhasIntro = this.quebrarTexto(textoIntro, 92);
     for (let i = 0; i < linhasIntro.length; i++) {
@@ -169,9 +197,13 @@ export class GeradorPdfTermoSesi {
       y -= 10.5;
     }
 
-    // 4. Seção 2: AUTORIZAÇÕES E CONSENTIMENTO GRANULAR (LGPD & ECA)
+    // 4. Seção 2: AUTORIZAÇÕES E CONSENTIMENTO GRANULAR
     y -= 8;
-    page1.drawText('2. AUTORIZAÇÕES E CONSENTIMENTO (LEI Nº 13.709/2018 E LEI Nº 8.069/1990)', {
+    const tituloSecao2 = isMaior
+      ? '2. AUTORIZAÇÕES E CONSENTIMENTO (LEI Nº 13.709/2018)'
+      : '2. AUTORIZAÇÕES E CONSENTIMENTO (LEI Nº 13.709/2018 E LEI Nº 8.069/1990)';
+
+    page1.drawText(tituloSecao2, {
       x: margemEsquerda,
       y,
       size: 9.5,
@@ -249,9 +281,13 @@ export class GeradorPdfTermoSesi {
       y -= 9.5;
     }
 
-    // Item C: Imagem e Voz (ECA Art. 17)
+    // Item C: Imagem e Voz
     y -= 5;
-    page1.drawText('c) Captação e Uso de Imagem e Voz (ECA, Art. 17): ', {
+    const labelImg = isMaior
+      ? 'c) Captação e Uso de Imagem e Voz: '
+      : 'c) Captação e Uso de Imagem e Voz (ECA, Art. 17): ';
+
+    page1.drawText(labelImg, {
       x: margemEsquerda,
       y,
       size: 8.5,
@@ -263,7 +299,7 @@ export class GeradorPdfTermoSesi {
     const statusImgColor = dados.autorizacaoImagem ? corVerde : corVermelho;
 
     page1.drawText(statusImgText, {
-      x: margemEsquerda + 225,
+      x: margemEsquerda + (isMaior ? 175 : 225),
       y,
       size: 8.5,
       font: fontBold,
@@ -295,7 +331,11 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 12;
-    page1.drawText('Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras e que sou o(a) responsável legal.', {
+    const textoDeclaracao = isMaior
+      ? 'Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras.'
+      : 'Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras e que sou o(a) responsável legal.';
+
+    page1.drawText(textoDeclaracao, {
       x: margemEsquerda,
       y,
       size: 7.5,
@@ -397,8 +437,10 @@ export class GeradorPdfTermoSesi {
       color: corCinzaLinha,
     });
 
+    const nomeSignatarioFolha1 = isMaior ? dados.nomeMenor : dados.nomeResponsavel;
+
     y -= 11;
-    page1.drawText(`${dados.nomeResponsavel}`, {
+    page1.drawText(`${nomeSignatarioFolha1}`, {
       x: margemEsquerda,
       y,
       size: 8.5,
@@ -416,13 +458,25 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 9.5;
-    page1.drawText(`Data/Hora: ${dataHoraStr} | Hash de Integridade: ${dados.hashManifesto ? dados.hashManifesto.substring(0, 24) + '...' : 'Pendente'}`, {
+    // Quebra o hash sem truncar na folha 1
+    const rawHashFolha1 = dados.hashManifesto || 'Pendente de assinatura';
+    page1.drawText(`Data/Hora: ${dataHoraStr} | Hash SHA-256: ${rawHashFolha1.slice(0, 36)}`, {
       x: margemEsquerda,
       y,
-      size: 7,
-      font: fontRegular,
+      size: 6.8,
+      font: fontMono,
       color: corCinzaEscuro,
     });
+    if (rawHashFolha1.length > 36) {
+      y -= 8;
+      page1.drawText(`                ${rawHashFolha1.slice(36)}`, {
+        x: margemEsquerda,
+        y,
+        size: 6.8,
+        font: fontMono,
+        color: corCinzaEscuro,
+      });
+    }
 
     // Rodapé da Página 1
     page1.drawText('Autorização registrada eletronicamente via plataforma Catraki | Art. 4º, II, Lei 14.063/2020, MP 2.200-2/2001 e LGPD.', {
@@ -493,9 +547,9 @@ export class GeradorPdfTermoSesi {
         color: corAzulSesi,
       });
 
-      // HASH IDENTIFICADOR (SHA-256)
-      y2 -= 18;
-      page2.drawText(`HASH IDENTIFICADOR (SHA-256):`, {
+      // HASH IDENTIFICADOR (SHA-256) SEM TRUNCAMENTO
+      y2 -= 16;
+      page2.drawText('HASH IDENTIFICADOR DO MANIFESTO (SHA-256):', {
         x: margemEsquerda,
         y: y2,
         size: 8,
@@ -503,16 +557,17 @@ export class GeradorPdfTermoSesi {
         color: corPreto,
       });
       y2 -= 11;
-      page2.drawText(dados.hashManifesto || 'Pendente de assinatura', {
+      const fullManifestHash = dados.hashManifesto || 'Pendente de assinatura';
+      page2.drawText(fullManifestHash, {
         x: margemEsquerda,
         y: y2,
-        size: 7.5,
+        size: 7,
         font: fontMono,
         color: corCinzaEscuro,
       });
 
       // BLOCOS DE IDENTIFICAÇÃO (Tabela de Signatários)
-      y2 -= 25;
+      y2 -= 20;
       page2.drawText('SIGNATÁRIO REGISTRADO', {
         x: margemEsquerda,
         y: y2,
@@ -544,29 +599,47 @@ export class GeradorPdfTermoSesi {
               }) + ' UTC-3'
             : dataHoraStr);
 
-      const tableData = [
-        ['Nome', dados.nomeResponsavel],
-        ['CPF', dados.cpfResponsavelMascarado],
-        ['E-mail', dados.signerEmail || 'Não informado'],
-        ['IP', dados.ipAddress || 'Não coletado'],
-        ['Navegador', dados.userAgent || 'Navegador Web / Dispositivo Seguro'],
-        ['Data e Hora exata', dataHoraExata],
+      // CPF Completo na Folha 2 para validade pericial material em juízo
+      const cpfCompletoSignatario = isMaior
+        ? (dados.minorCpfCompleto || dados.cpfResponsavelCompleto || dados.minorCpfMascarado || dados.cpfResponsavelMascarado || 'Não informado')
+        : (dados.cpfResponsavelCompleto || dados.cpfResponsavelMascarado || 'Não informado');
+
+      const nomeSignatarioFolha2 = isMaior ? dados.nomeMenor : dados.nomeResponsavel;
+
+      // Quebra de linha do User-Agent para impressão completa sem reticências
+      const rawUserAgent = dados.userAgent || 'Navegador Web / Dispositivo Seguro';
+      const linhasUserAgent = this.quebrarTexto(rawUserAgent, 65);
+
+      const tableItems: Array<{ label: string; values: string[] }> = [
+        { label: 'Nome', values: [nomeSignatarioFolha2] },
+        { label: 'CPF (Completo)', values: [cpfCompletoSignatario] },
+        { label: 'E-mail', values: [dados.signerEmail || 'Não informado'] },
+        { label: 'IP de Acesso', values: [dados.ipAddress || 'Não coletado'] },
+        { label: 'Navegador / User-Agent', values: linhasUserAgent },
+        { label: 'Data e Hora Exata', values: [dataHoraExata] },
       ];
+
+      // Calcula a altura dinâmica da tabela
+      let totalLinhasTabela = 0;
+      for (const item of tableItems) {
+        totalLinhasTabela += Math.max(item.values.length, 1);
+      }
+      const alturaTabela = Math.max(totalLinhasTabela * 14 + 14, 110);
 
       // Desenha caixa da tabela
       page2.drawRectangle({
         x: margemEsquerda,
-        y: y2 - 95,
+        y: y2 - alturaTabela + 10,
         width: width - margemEsquerda - margemDireita,
-        height: 105,
+        height: alturaTabela,
         color: rgb(0.97, 0.98, 0.99),
         borderColor: corAzulSesi,
         borderWidth: 0.5,
       });
 
-      let currentLineY = y2 - 12;
-      for (const [label, val] of tableData) {
-        page2.drawText(`${label}:`, {
+      let currentLineY = y2 - 4;
+      for (const item of tableItems) {
+        page2.drawText(`${item.label}:`, {
           x: margemEsquerda + 10,
           y: currentLineY,
           size: 7.5,
@@ -574,30 +647,21 @@ export class GeradorPdfTermoSesi {
           color: corCinzaEscuro,
         });
 
-        const valString = String(val);
-        if (valString.length > 85) {
-          page2.drawText(valString.substring(0, 82) + '...', {
-            x: margemEsquerda + 115,
-            y: currentLineY,
-            size: 7.5,
-            font: fontRegular,
-            color: corPreto,
-          });
-        } else {
-          page2.drawText(valString, {
-            x: margemEsquerda + 115,
-            y: currentLineY,
-            size: 7.5,
+        for (let idx = 0; idx < item.values.length; idx++) {
+          page2.drawText(item.values[idx], {
+            x: margemEsquerda + 125,
+            y: currentLineY - (idx * 11),
+            size: 7.2,
             font: fontRegular,
             color: corPreto,
           });
         }
-        currentLineY -= 15;
+        currentLineY -= Math.max(item.values.length * 11 + 4, 15);
       }
-      y2 -= 115;
+
+      y2 -= (alturaTabela + 12);
 
       // 3. REGISTROS DE AUTENTICAÇÃO (2FA OTP)
-      y2 -= 10;
       page2.drawText('HISTÓRICO E AUTENTICAÇÃO DE DOIS FATORES (2FA OTP)', {
         x: margemEsquerda,
         y: y2,
@@ -626,7 +690,7 @@ export class GeradorPdfTermoSesi {
       });
 
       // 4. VALIDAÇÃO PÚBLICA / QR CODE
-      y2 -= 25;
+      y2 -= 22;
       page2.drawText('VALIDAÇÃO DE AUTENTICIDADE', {
         x: margemEsquerda,
         y: y2,
@@ -646,7 +710,7 @@ export class GeradorPdfTermoSesi {
 
       y2 -= 12;
       const linkValidacao = `https://catraki.com.br/validar/${validationCode}`;
-      page2.drawText(`Para validar a autenticidade deste documento e confirmar que o arquivo é verdadeiro, acesse:`, {
+      page2.drawText('Para validar a autenticidade deste documento e confirmar que o arquivo é verdadeiro, acesse:', {
         x: margemEsquerda,
         y: y2,
         size: 8,
@@ -690,7 +754,7 @@ export class GeradorPdfTermoSesi {
       } catch {}
 
       // 5. AVISO DE INTEGRIDADE JURÍDICA E LGPD
-      y2 -= 35;
+      y2 -= 32;
       page2.drawText('AVISO DE INTEGRIDADE E CONFORMIDADE LEGAL:', {
         x: margemEsquerda,
         y: y2,
@@ -717,6 +781,21 @@ export class GeradorPdfTermoSesi {
         color: corCinzaEscuro,
       });
 
+      // 6. DISCLAIMER OBRIGATÓRIO DA PLATAFORMA CATRAKI (MÓDULO 4)
+      y2 -= 16;
+      const disclaimerTexto = 'A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log, emissão de hash (SHA-256) e captura de evidências eletrônicas, não possuindo CNPJ, acesso, responsabilidade ou ingerência sobre os dados de saúde, autorizações ou o conteúdo do projeto firmado entre as partes.';
+      const linhasDisclaimer = this.quebrarTexto(disclaimerTexto, 98);
+      for (const l of linhasDisclaimer) {
+        page2.drawText(l, {
+          x: margemEsquerda,
+          y: y2,
+          size: 6.2,
+          font: fontRegular,
+          color: corCinzaEscuro,
+        });
+        y2 -= 8.5;
+      }
+
       // Rodapé da página 2
       page2.drawText('PLATAFORMA CATRAKI — SISTEMA DE GESTÃO DE ASSINATURAS ELETRÔNICAS.', {
         x: margemEsquerda,
@@ -739,6 +818,7 @@ export class GeradorPdfTermoSesi {
   }
 
   private static quebrarTexto(texto: string, maxCaracteres: number): string[] {
+    if (!texto) return [];
     const palavras = texto.split(' ');
     const linhas: string[] = [];
     let linhaAtual = '';
@@ -755,4 +835,3 @@ export class GeradorPdfTermoSesi {
     return linhas;
   }
 }
-

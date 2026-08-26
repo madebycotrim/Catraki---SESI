@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronRight, ChevronLeft, AlertTriangle, AlertCircle, Loader2, FileSearch } from 'lucide-react';
-import { isValidCPF } from '../../lib/schemas.ts';
+import { isValidCPF, isValidFullName, calcularIdade } from '../../lib/schemas.ts';
 import { apiClient } from '../../lib/api.ts';
 import type { SignerRelationship, Institution, DuplicateStudentCheckResponse } from '../../lib/types.ts';
 
@@ -99,8 +99,8 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
     // 1. Nome do Responsável
     if (!formData.signerName.trim()) {
       newErrors.signerName = 'Informe o seu nome completo conforme documento oficial.';
-    } else if (formData.signerName.trim().split(/\s+/).length < 2) {
-      newErrors.signerName = 'Digite o seu nome completo (nome e sobrenome).';
+    } else if (!isValidFullName(formData.signerName)) {
+      newErrors.signerName = 'Digite um nome e sobrenome válidos (sem repetições, caracteres fictícios ou apelidos).';
     }
 
     // 2. CPF do Responsável
@@ -133,8 +133,8 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
     // 6. Nome do Aluno
     if (!formData.minorName.trim()) {
       newErrors.minorName = 'Informe o nome completo do estudante.';
-    } else if (formData.minorName.trim().split(/\s+/).length < 2) {
-      newErrors.minorName = 'Digite o nome e sobrenome do estudante.';
+    } else if (!isValidFullName(formData.minorName)) {
+      newErrors.minorName = 'Digite o nome e sobrenome válidos do estudante (sem repetições ou apelidos).';
     }
 
     // 7. Data de Nascimento do Aluno
@@ -146,11 +146,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
       if (isNaN(birthDate.getTime()) || birthDate > today) {
         newErrors.minorBirthDate = 'Data de nascimento inválida.';
       } else {
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-          age--;
-        }
+        const age = calcularIdade(formData.minorBirthDate, today);
         if (age < 14) {
           newErrors.minorBirthDate = 'Este projeto é destinado a estudantes a partir de 14 anos completos.';
         }

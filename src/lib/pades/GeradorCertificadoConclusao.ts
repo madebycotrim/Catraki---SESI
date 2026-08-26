@@ -25,6 +25,7 @@ export interface IDadosCertificadoConclusao {
   minorName: string;
   signerName: string;
   signerCpfMasked: string;
+  signerCpfFull?: string;
   signerRelationship: string;
   institutionName: string;
   // Criptografia
@@ -75,15 +76,33 @@ function formatarDataBr(isoDate?: string | null): string {
 
 function labelEvento(tipo: EventoCertificado['tipo']): string {
   const labels: Record<EventoCertificado['tipo'], string> = {
-    'CRIACAO': '📄 Documento Criado',
-    'VISUALIZACAO': '👁 Documento Visualizado',
-    'OTP_SOLICITADO': '📱 Código de Verificação Solicitado (OTP/MFA)',
-    'OTP_VERIFICADO': '✅ Código de Verificação Confirmado (OTP/MFA)',
-    'ASSINADO': '✍ Assinatura Eletrônica Registrada',
-    'REVOGADO': '🚫 Consentimento Revogado (LGPD Art. 18)',
-    'CANCELADO_POR_ERRO': '⛔ Documento Cancelado Administrativamente',
+    'CRIACAO': '[CRIACAO] Documento Criado',
+    'VISUALIZACAO': '[VISUALIZACAO] Documento Visualizado',
+    'OTP_SOLICITADO': '[OTP 2FA] Codigo de Verificacao Solicitado',
+    'OTP_VERIFICADO': '[OTP 2FA] Codigo de Verificacao Confirmado',
+    'ASSINADO': '[ASSINATURA] Assinatura Eletronica Registrada',
+    'REVOGADO': '[REVOGACAO] Consentimento Revogado (LGPD Art. 18)',
+    'CANCELADO_POR_ERRO': '[CANCELADO] Documento Cancelado por Erro Operacional',
   };
   return labels[tipo] || tipo;
+}
+
+function quebrarTexto(texto: string, maxCaracteres: number): string[] {
+  if (!texto) return [];
+  const palavras = texto.split(' ');
+  const linhas: string[] = [];
+  let linhaAtual = '';
+
+  for (const palavra of palavras) {
+    if ((linhaAtual + ' ' + palavra).trim().length <= maxCaracteres) {
+      linhaAtual = (linhaAtual + ' ' + palavra).trim();
+    } else {
+      if (linhaAtual) linhas.push(linhaAtual);
+      linhaAtual = palavra;
+    }
+  }
+  if (linhaAtual) linhas.push(linhaAtual);
+  return linhas;
 }
 
 /**
@@ -160,7 +179,7 @@ export class GeradorCertificadoConclusao {
     y = PAGE_H - 80 - 16;
 
     // ── STATUS DO DOCUMENTO E HASH SHA-256 ──────────────────────────────────
-    const statusLabel = dados.documentStatus === 'signed' ? 'ASSINADO ✓'
+    const statusLabel = dados.documentStatus === 'signed' ? 'ASSINADO (CONCLUIDO)'
       : dados.documentStatus === 'revoked' ? 'REVOGADO'
       : dados.documentStatus === 'CANCELADO_POR_ERRO' ? 'CANCELADO POR ERRO'
       : dados.documentStatus.toUpperCase();
@@ -171,7 +190,7 @@ export class GeradorCertificadoConclusao {
     page.drawText(statusLabel, { x: MARGIN + 130, y: y - 12, size: 8.5, font: fontBold, color: statusColor });
     page.drawText(`ID: ${dados.documentId}`, { x: MARGIN + 320, y: y - 12, size: 7, font: fontMono, color: COR_CINZA });
     
-    // Hash no topo da área do status
+    // Hash no topo da área do status sem truncar
     page.drawText('HASH IDENTIFICADOR (SHA-256):', { x: MARGIN + 8, y: y - 28, size: 7, font: fontBold, color: COR_CINZA });
     page.drawText(dados.manifestSha256 || 'PENDENTE DE ASSINATURA', { x: MARGIN + 160, y: y - 28, size: 6.5, font: fontMono, color: COR_PRETO });
     
@@ -195,12 +214,16 @@ export class GeradorCertificadoConclusao {
         }) + ' UTC-3'
       : 'Pendente';
 
-    const fields = [
+    // CPF completo na página de certificado para prova jurídica irrefutável
+    const cpfDisplay = dados.signerCpfFull || dados.signerCpfMasked;
+    const userAgentVal = dados.signerUserAgent || dados.eventos.find(e => e.user_agent)?.user_agent || 'Navegador Web / Dispositivo Seguro';
+
+    const fields: Array<[string, string | string[]]> = [
       ['Nome do Signatário', dados.signerName],
-      ['CPF do Signatário', dados.signerCpfMasked],
+      ['CPF do Signatário (Completo)', cpfDisplay],
       ['E-mail do Signatário', dados.signerEmail || 'Não informado'],
       ['IP do Acesso', dados.signerIp || dados.eventos.find(e => e.ip)?.ip || 'Não coletado'],
-      ['Navegador / Dispositivo', dados.signerUserAgent || dados.eventos.find(e => e.user_agent)?.user_agent || 'Navegador Web / Dispositivo Seguro'],
+      ['Navegador / Dispositivo', quebrarTexto(userAgentVal, 60)],
       ['Data e Hora Exata', formattedSignDate],
       ['Estudante Vinculado', dados.minorName],
       ['Vínculo Declarado', dados.signerRelationship],
@@ -209,13 +232,16 @@ export class GeradorCertificadoConclusao {
     for (const [label, value] of fields) {
       page.drawText(`${label}:`, { x: MARGIN, y, size: 7.5, font: fontBold, color: COR_CINZA });
       
-      const valStr = String(value);
-      if (valStr.length > 80) {
-        page.drawText(valStr.substring(0, 77) + '...', { x: MARGIN + 130, y, size: 7.5, font: fontRegular, color: COR_PRETO });
+      if (Array.isArray(value)) {
+        for (let i = 0; i < value.length; i++) {
+          page.drawText(value[i], { x: MARGIN + 140, y: y - (i * 10), size: 7.2, font: fontRegular, color: COR_PRETO });
+        }
+        novaLinha(Math.max(value.length * 10 + 3, 13));
       } else {
-        page.drawText(valStr, { x: MARGIN + 130, y, size: 7.5, font: fontRegular, color: COR_PRETO });
+        const valStr = String(value);
+        page.drawText(valStr, { x: MARGIN + 140, y, size: 7.5, font: fontRegular, color: COR_PRETO });
+        novaLinha(13);
       }
-      novaLinha(13);
     }
 
     novaLinha(6);
@@ -288,6 +314,13 @@ export class GeradorCertificadoConclusao {
         page.drawText(`IP: ${ev.ip}`, { x: MARGIN + 15, y, size: 6.5, font: fontMono, color: rgb(0.5, 0.5, 0.5) });
         novaLinha(9);
       }
+      if (ev.user_agent) {
+        const uaLines = quebrarTexto(ev.user_agent, 75);
+        for (const uaL of uaLines) {
+          page.drawText(`Navegador: ${uaL}`, { x: MARGIN + 15, y, size: 6.2, font: fontRegular, color: rgb(0.5, 0.5, 0.5) });
+          novaLinha(8);
+        }
+      }
       if (ev.geo) {
         page.drawText(`Geo: ${ev.geo}`, { x: MARGIN + 15, y, size: 6.5, font: fontRegular, color: rgb(0.5, 0.5, 0.5) });
         novaLinha(9);
@@ -335,12 +368,12 @@ export class GeradorCertificadoConclusao {
       novaLinha(10);
     }
 
-    // ── RODAPÉ JURÍDICO ────────────────────────────────────────────────────
-    checkPage(80);
+    // ── RODAPÉ JURÍDICO & DISCLAIMER OBRIGATÓRIO (MÓDULO 4) ────────────────
+    checkPage(100);
     drawLine(MARGIN, y, PAGE_W - MARGIN, y);
     novaLinha(14);
 
-    page.drawText('DECLARAÇÃO DE AUTENTICIDADE', { x: MARGIN, y, size: 7.5, font: fontBold, color: COR_PRETO });
+    page.drawText('DECLARAÇÃO DE AUTENTICIDADE E RESPONSABILIDADE', { x: MARGIN, y, size: 7.5, font: fontBold, color: COR_PRETO });
     novaLinha(11);
 
     const disclaimer = [
@@ -350,17 +383,21 @@ export class GeradorCertificadoConclusao {
       '',
       'BASE LEGAL: Lei nº 14.063/2020 (Art. 4º, II — Assinatura Eletrônica Avançada); MP nº 2.200-2/2001 (Art. 10, §2º);',
       'LGPD — Lei nº 13.709/2018 (Arts. 46, 47 e 48); Marco Civil da Internet — Lei nº 12.965/2014 (Art. 15);',
-      'STJ — REsp 2.205.708/PR (validade jurídica da assinatura eletrônica); ECA — Art. 17.',
+      'STJ — REsp 2.205.708/PR (validade jurídica da assinatura eletrônica).',
+      '',
+      'A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log, emissão de hash (SHA-256)',
+      'e captura de evidências eletrônicas, não possuindo CNPJ, acesso, responsabilidade ou ingerência sobre os dados de saúde,',
+      'autorizações ou o conteúdo do projeto firmado entre as partes.',
     ];
 
     for (const line of disclaimer) {
-      if (!line) { novaLinha(5); continue; }
-      page.drawText(line, { x: MARGIN, y, size: 6.5, font: fontRegular, color: COR_CINZA });
-      novaLinha(10);
+      if (!line) { novaLinha(4); continue; }
+      page.drawText(line, { x: MARGIN, y, size: 6.2, font: fontRegular, color: COR_CINZA });
+      novaLinha(9.5);
     }
 
-    novaLinha(8);
-    page.drawText(`Gerado em: ${formatarDataBr(new Date().toISOString())} | Plataforma: Catraki v1.0`, {
+    novaLinha(6);
+    page.drawText(`Gerado em: ${formatarDataBr(new Date().toISOString())} | Plataforma Catraki — Infraestrutura Tecnológica`, {
       x: MARGIN, y, size: 6, font: fontRegular, color: rgb(0.6, 0.6, 0.65),
     });
 

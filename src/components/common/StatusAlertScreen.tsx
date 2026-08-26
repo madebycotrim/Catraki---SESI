@@ -56,7 +56,7 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
               Link indisponível ou documento cancelado
             </h2>
             <p className="text-sm sm:text-base font-medium text-amber-800 leading-relaxed bg-amber-50/80 p-3.5 rounded-xl border border-amber-200/60">
-              Opa! Este link não é mais válido. O documento foi cancelado, expirou ou foi substituído. Para sua segurança, o acesso foi bloqueado.
+              Opa! Este link não é mais válido. O documento foi cancelado ou substituído.
             </p>
           </div>
 

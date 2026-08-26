@@ -393,10 +393,8 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
   const body = `
     <p>Olá, ${signerName},</p>
 
-    <p>
-      Informamos que o processo de assinatura do documento
-      "<strong>${docTitle}</strong>" foi <strong>cancelado</strong>
-      e ele não possui mais validade jurídica.
+    <p style="font-size:14px;color:#991b1b;font-weight:bold;background:#fee2e2;padding:10px 14px;border-radius:6px;border:1px solid #fca5a5;">
+      Aviso: O documento '${docTitle}' foi cancelado por ${cancelledBy} com a seguinte justificativa: '${reasonText}'. Os links de acesso foram desativados. Hash invalidado: ${authHash}.
     </p>
 
     <p>
@@ -437,7 +435,7 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
         <td class="value"><span class="badge badge-red">CANCELADO POR ERRO</span></td>
       </tr>
       <tr>
-        <td class="label">Motivo</td>
+        <td class="label">Justificativa</td>
         <td class="value" style="font-style:italic;color:#475569;">"${reasonText}"</td>
       </tr>
     </table>
@@ -496,7 +494,9 @@ export function getTransactionalCancellationEmailText(params: CancellationEmailP
 
   return `Assunto: Aviso: O documento "${docTitle}" foi cancelado
 
-Olá, ${signerName}. Informamos que o processo de assinatura do documento '${docTitle}' foi cancelado e ele não possui mais validade. Detalhes: Código de Autenticidade (Hash): ${authHash}; Cancelado por: ${cancelledBy}; Data: ${cancelledAtFormatted}; Motivo: '${reasonText}'. Os links anteriores foram desativados. Seus dados continuam protegidos.`;
+Olá, ${signerName}. Informamos que o processo de assinatura do documento '${docTitle}' foi cancelado e ele não possui mais validade. Detalhes: Código de Autenticidade (Hash): ${authHash}; Cancelado por: ${cancelledBy}; Data: ${cancelledAtFormatted}; Motivo: '${reasonText}'. Os links anteriores foram desativados. Seus dados continuam protegidos.
+
+Aviso: O documento '${docTitle}' foi cancelado por ${cancelledBy} com a seguinte justificativa: '${reasonText}'. Os links de acesso foram desativados. Hash invalidado: ${authHash}.`;
 }
 
 // ============================================================================
@@ -671,14 +671,12 @@ export function getTransactionalCompletionEmailHtml(params: CompletionEmailParam
   const body = `
     <p>Olá, <strong>${signerName}</strong>!</p>
 
-    <p>
-      O processo de assinatura foi <strong>concluído com sucesso</strong> ✅
+    <p style="font-size:14px;color:#166534;font-weight:bold;background:#dcfce7;padding:10px 14px;border-radius:6px;border:1px solid #86efac;">
+      Olá! O processo foi finalizado. Em anexo, você encontra a via original do documento e o Certificado de Conclusão contendo a trilha de auditoria.
     </p>
 
     <p>
-      Todas as partes já assinaram o documento "<strong>${documentTitle}</strong>".
-      Em anexo, você encontra o arquivo original e o Certificado de Conclusão,
-      contendo a trilha de auditoria que garante a validade jurídica do processo.
+      O documento "<strong>${documentTitle}</strong>" foi assinado com plena eficácia probatória em conformidade com a Lei nº 14.063/2020 e a LGPD.
     </p>
 
     <div class="btn-container">
@@ -687,7 +685,7 @@ export function getTransactionalCompletionEmailHtml(params: CompletionEmailParam
 
     <div class="highlight-box">
       🔒 <strong>Aviso de Segurança:</strong><br>
-      Este arquivo PDF anexado é o documento original e imutável. Recomendamos que você
+      Este arquivo PDF anexado é o documento original e imutável chancelado com resumo criptográfico SHA-256. Recomendamos que você
       faça o download e guarde este e-mail para seus registros.
     </div>
 
@@ -724,9 +722,9 @@ export function getTransactionalCompletionEmailText(params: CompletionEmailParam
 
   return `Assunto: ✅ Documento finalizado: "${documentTitle}"
 
-Olá, ${signerName}! Todas as partes assinaram o documento. Em anexo, você encontra o arquivo original e o Certificado de Conclusão com a validade jurídica. Guarde este arquivo.
+Olá, ${signerName}! Olá! O processo foi finalizado. Em anexo, você encontra a via original do documento e o Certificado de Conclusão contendo a trilha de auditoria.
 
-Link para download:
+Link para download e validação pública:
 ${downloadUrl}
 
 Atenciosamente,

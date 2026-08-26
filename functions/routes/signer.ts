@@ -8,6 +8,9 @@ import {
   RevokeConsentSchema,
   maskCPF,
   maskName,
+  maskEmail,
+  maskPhone,
+  calcularIdade,
   generateUniqueDocId,
   formatUserAgent,
 } from '../../src/lib/schemas.ts';
@@ -562,14 +565,21 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     }
   }
 
-  let messageId = 'development-mock';
+  const targetEmailForMask = providedEmail || (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' ? await decryptAesGcm(doc.parent_email_encrypted, masterKey).catch(() => '') : '');
+  const targetPhoneForMask = providedPhone || (doc.parent_phone_encrypted && doc.parent_phone_encrypted !== 'ENC_INITIAL' ? await decryptAesGcm(doc.parent_phone_encrypted, masterKey).catch(() => '') : '');
+
+  const maskedDestination = channel === 'email'
+    ? maskEmail(targetEmailForMask)
+    : maskPhone(targetPhoneForMask);
+
+  let messageId = `Enviado para ${maskedDestination || 'contato do responsável'} (simulated)`;
   let deliveryStatus = 'simulated';
 
   if (channel === 'email' && emailSent) {
-    messageId = resendMessageId || 'mailchannels-sent';
+    messageId = `Enviado para ${maskedDestination} (ID: ${resendMessageId || 'mailchannels-sent'})`;
     deliveryStatus = 'sent';
   } else if (channel === 'sms' && smsSent) {
-    messageId = smsMessageId;
+    messageId = `Enviado para ${maskedDestination} (ID: ${smsMessageId})`;
     deliveryStatus = 'sent';
   }
 
@@ -711,20 +721,18 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   }
 
   const birthDateStr = parsed.data.minor_birth_date || doc.minor_birth_date;
+  let isMaiorDeIdade = false;
   if (birthDateStr) {
-    const birthDate = new Date(birthDateStr);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
+    const age = calcularIdade(birthDateStr, new Date());
     if (age < 14) {
       return c.json({
         success: false,
         error: 'O estudante deve possuir no mínimo 14 anos de idade para participar do projeto.',
         code: 'UNDERAGE_STUDENT',
       }, 400);
+    }
+    if (age >= 18) {
+      isMaiorDeIdade = true;
     }
   }
 
@@ -833,7 +841,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       geo: `${geoCity}/${geoRegion}/${geoCountry}`,
       fingerprint: client_fingerprint || null,
     },
-    legal_basis: 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020 Art. 4º, II (Assinatura Eletrônica Avançada); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
+    legal_basis: isMaiorDeIdade
+      ? 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020 Art. 4º, II (Assinatura Eletrônica Avançada); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; Art. 299 CP; REsp 2.205.708/PR (STJ)'
+      : 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020 Art. 4º, II (Assinatura Eletrônica Avançada); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
     consent_text_version: doc.consent_text_version,
     // Pilar 3: Carimbo do Tempo NTP certificado pelo Observatório Nacional Brasileiro
     ntp_synced_at: ntpTs.iso,
@@ -903,7 +913,11 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     dataNascimentoMenor: studentBirth,
     nomeResponsavel: signer_name,
     cpfResponsavelMascarado: cpfMasked,
+    cpfResponsavelCompleto: signer_cpf,
+    minorCpfMascarado: parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : undefined,
+    minorCpfCompleto: parsed.data.minor_cpf,
     parentesco: signer_relationship,
+    isMaiorDeIdade,
     autorizacaoSaude: parsed.data.auth_health === 'yes',
     autorizacaoDados: parsed.data.auth_data === 'yes',
     autorizacaoImagem: parsed.data.auth_image === 'yes',

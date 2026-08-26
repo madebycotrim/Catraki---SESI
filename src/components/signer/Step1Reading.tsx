@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronRight, Info, Eye, HelpCircle, AlertTriangle } from 'lucide-react';
 import type { Institution } from '../../lib/types.ts';
 
@@ -19,6 +19,7 @@ interface Step1ReadingProps {
 }
 
 export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed }) => {
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const dataHoje = new Intl.DateTimeFormat('pt-BR', {
     day:   '2-digit',
@@ -91,8 +92,6 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
             </button>
           </div>
 
-
-
           {/* Aviso Operacional Importante */}
           <div className="bg-amber-50/70 border border-amber-200 p-3.5 sm:p-4 rounded-xl flex items-start gap-3 text-xs text-amber-950 mt-2 leading-relaxed">
             <AlertTriangle className="w-5 h-5 shrink-0 text-amber-500 mt-0.5" />
@@ -143,11 +142,21 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
             </div>
           </div>
 
-          {/* Seção de Consentimento Inicial (Adequação LGPD) */}
-          <div className="pt-4 sm:pt-5 border-t border-slate-200 space-y-2.5">
-            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed m-0 text-justify">
-              Ao clicar em <strong className="text-slate-900">"Continuar para Assinatura"</strong>, você declara estar ciente, ter lido e concordar expressamente com os <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Política de Privacidade</a>.
-            </p>
+          {/* Seção de Termos de Uso Independentes (Módulo 1 - LGPD) */}
+          <div className="pt-4 sm:pt-5 border-t border-slate-200 space-y-3">
+            <label className="flex items-start gap-3 p-3.5 bg-blue-50/50 hover:bg-blue-50/80 border border-blue-200/80 rounded-xl cursor-pointer select-none transition-colors">
+              <input
+                type="checkbox"
+                id="terms-checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 w-4.5 h-4.5 text-[#004b8d] border-slate-300 rounded focus:ring-[#004b8d] cursor-pointer"
+              />
+              <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
+                Li e concordo com os <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-bold" onClick={(e) => e.stopPropagation()}>Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-bold" onClick={(e) => e.stopPropagation()}>Política de Privacidade</a> da Plataforma Catraki. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+              </span>
+            </label>
+
             <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed italic m-0 text-justify">
               Você também autoriza o tratamento dos seus dados de identificação (IP, nome, e-mail e dispositivo) exclusivamente para fins de autenticidade, integridade e validade jurídica desta assinatura eletrônica, em plena conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).
             </p>
@@ -158,7 +167,8 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
             <button
               id="btn-avancar-leitura"
               onClick={onProceed}
-              className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-[#004b8d] hover:bg-[#003666] text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer active:scale-[0.99]"
+              disabled={!acceptedTerms}
+              className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-[#004b8d] hover:bg-[#003666] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed disabled:shadow-none text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer active:scale-[0.99]"
             >
               <span>Continuar para Assinatura</span>
               <ChevronRight className="w-4 h-4" />

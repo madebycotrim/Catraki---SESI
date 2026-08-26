@@ -134,9 +134,125 @@ export function generateUniqueDocId(prefix = 'DOC'): string {
   return `${prefix}-${datePart}-${timePart}`;
 }
 
+/**
+ * Validação detalhada de Nomes Próprios / Civis
+ * Impede nomes fictícios, zombarias ou repetições de caracteres (ex: "Gaga gaga", "aaaa aaaa", "asdf asdf", "teste teste").
+ */
+export function validateFullName(name?: string): { valid: boolean; error?: string } {
+  if (!name || typeof name !== 'string') {
+    return { valid: false, error: 'O nome completo é obrigatório.' };
+  }
+  const clean = name.trim();
+  if (clean.length < 5) {
+    return { valid: false, error: 'O nome deve conter no mínimo 5 caracteres.' };
+  }
+  if (clean.length > 150) {
+    return { valid: false, error: 'O nome não pode exceder 150 caracteres.' };
+  }
+
+  // Não pode conter números ou símbolos impróprios para nomes civis (permite acentos, apóstrofo e hífen)
+  if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(clean)) {
+    return { valid: false, error: 'O nome deve conter apenas letras e espaços.' };
+  }
+
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length < 2) {
+    return { valid: false, error: 'Digite o seu nome completo (nome e sobrenome).' };
+  }
+
+  for (const part of parts) {
+    if (part.length < 2 && !['e', 'd', 'o', 'a', 'y', 'da', 'de', 'do', 'das', 'dos'].includes(part.toLowerCase())) {
+      return { valid: false, error: 'Cada parte do nome deve conter pelo menos 2 letras.' };
+    }
+    // Bloqueia repetições sequenciais de 3 ou mais caracteres idênticos (ex: "Gaaaa", "xxxxx", "Jooaaao")
+    if (/(.)\1{2,}/i.test(part)) {
+      return { valid: false, error: 'O nome contém repetições excessivas de caracteres inválidas.' };
+    }
+  }
+
+  // Bloqueia nomes repetitivos / fictícios como "Gaga gaga", "teste teste", "fulano fulano", "bla bla"
+  const normalizedWords = parts.map((p) => p.toLowerCase());
+  const uniqueWords = new Set(normalizedWords);
+  if (uniqueWords.size === 1) {
+    return { valid: false, error: 'Por favor, informe um nome e sobrenome válidos (nomes repetitivos não são permitidos).' };
+  }
+
+  // Bloqueia termos fictícios conhecidos
+  const dummyList = [
+    'teste teste', 'asdf qwerty', 'anonimo anonimo', 'nao informado', 'não informado',
+    'sem nome', 'fulano de tal', 'fulano da silva', 'beltrano de tal', 'sicrano de tal'
+  ];
+  const fullLower = clean.toLowerCase();
+  if (dummyList.some(d => fullLower === d || fullLower.includes('teste teste') || fullLower.includes('asdf qwerty'))) {
+    return { valid: false, error: 'Nome fictício ou de teste não permitido.' };
+  }
+
+  const dummyTerms = ['gaga', 'teste', 'asdf', 'qwerty', 'fake', 'anonimo', 'nenhum', 'xpto', 'null', 'undefined'];
+  if (normalizedWords.every((w) => dummyTerms.includes(w))) {
+    return { valid: false, error: 'Nome inválido ou fictício detectado.' };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Retorna true se o nome completo for civilmente válido e passar nas regras anti-fraude.
+ */
+export function isValidFullName(name?: string): boolean {
+  return validateFullName(name).valid;
+}
+
+/**
+ * Calcula a idade completa em anos a partir de uma data de nascimento (suporta YYYY-MM-DD e DD/MM/YYYY).
+ */
+export function calcularIdade(dataNascimento: string | Date, dataReferencia: Date = new Date()): number {
+  if (!dataNascimento) return 0;
+  let birth: Date;
+
+  if (typeof dataNascimento === 'string') {
+    const cleanStr = dataNascimento.trim();
+    if (cleanStr.includes('/')) {
+      const parts = cleanStr.split('/');
+      if (parts.length === 3) {
+        birth = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+      } else {
+        birth = new Date(cleanStr);
+      }
+    } else if (cleanStr.includes('-')) {
+      const parts = cleanStr.split('-');
+      if (parts.length === 3 && parts[0].length === 4) {
+        birth = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      } else {
+        birth = new Date(cleanStr);
+      }
+    } else {
+      birth = new Date(cleanStr);
+    }
+  } else {
+    birth = dataNascimento;
+  }
+
+  if (!birth || isNaN(birth.getTime())) return 0;
+  if (birth > dataReferencia) return 0;
+
+  let age = dataReferencia.getFullYear() - birth.getFullYear();
+  const m = dataReferencia.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && dataReferencia.getDate() < birth.getDate())) {
+    age--;
+  }
+  return Math.max(0, age);
+}
+
 // ============================================================================
 // SCHEMAS DE VALIDAÇÃO ZOD
 // ============================================================================
+
+export const FullNameSchema = z.string()
+  .min(3, 'Nome deve ter no mínimo 3 caracteres')
+  .max(150, 'Nome não pode exceder 150 caracteres')
+  .refine((val) => isValidFullName(val), {
+    message: 'Nome completo inválido ou fictício. Digite nome e sobrenome reais sem repetições excessivas.',
+  });
 
 export const CPFSchema = z.string()
   .min(11, 'CPF deve conter no mínimo 11 dígitos')
@@ -154,6 +270,8 @@ export const RelationshipSchema = z.enum([
   'Avô / Avó',
   'Tio/Tia',
   'Tio / Tia',
+  'Próprio Estudante',
+  'Próprio(a) Estudante (Maior de Idade)',
   'Outro',
   'Outro Responsável Legal'
 ], {
@@ -171,9 +289,9 @@ export const CreateTemplateSchema = z.object({
 export const CreateDocumentSchema = z.object({
   template_id: z.string().min(1, 'Template de procedimento é obrigatório'),
   template_version: z.number().int().positive().optional(),
-  minor_name: z.string().min(3, 'Nome completo do menor é obrigatório').max(150),
+  minor_name: FullNameSchema,
   minor_birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data de nascimento deve estar no formato AAAA-MM-DD'),
-  parent_name: z.string().min(3, 'Nome do responsável é obrigatório').max(150),
+  parent_name: FullNameSchema,
   parent_email: z.string().email('E-mail do responsável inválido'),
   parent_phone: z.string().min(10).max(15).regex(/^\+?[0-9\s()-]+$/, 'Telefone celular inválido'),
   expires_in_days: z.number().int().min(1).max(30).default(7),
@@ -182,13 +300,13 @@ export const CreateDocumentSchema = z.object({
 export const VerifyMatriculaSchema = z.object({
   token: z.string().min(16),
   signer_cpf: CPFSchema,
-  signer_name: z.string().min(3).max(150),
+  signer_name: FullNameSchema,
   signer_relationship: RelationshipSchema,
 });
 
 export const ManualReviewUploadSchema = z.object({
   token: z.string().min(16),
-  signer_name: z.string().min(3).max(150),
+  signer_name: FullNameSchema,
   signer_cpf: CPFSchema,
   signer_relationship: RelationshipSchema,
   identity_doc_base64: z.string().min(100, 'Documento de identidade é obrigatório'),
@@ -213,11 +331,13 @@ export const OtpVerifySchema = z.object({
 export const SignDocumentSchema = z.object({
   token: z.string().min(16),
   otp_code: z.string().regex(/^\d{6}$/, 'Código OTP inválido'),
-  signer_name: z.string().min(3).max(150),
+  signer_name: FullNameSchema,
   signer_cpf: CPFSchema,
   signer_relationship: RelationshipSchema,
   signer_email: z.string().email().optional(),
-  minor_name: z.string().optional(),
+  minor_name: z.string().optional().refine((val) => !val || isValidFullName(val), {
+    message: 'Nome do estudante inválido ou fictício.',
+  }),
   minor_birth_date: z.string().optional(),
   minor_cpf: z.string().min(1, 'O CPF do estudante é obrigatório').refine((val) => isValidCPF(val), { message: 'CPF do menor inválido perante o algoritmo oficial' }),
   minor_series: z.string().optional(),

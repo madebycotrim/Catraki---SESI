@@ -46,22 +46,14 @@ const EMAIL_BASE_CSS = `
   .logo-cell {
     vertical-align: middle;
     width: 44px;
-    padding-right: 14px;
+    padding-right: 16px;
   }
-  .logo-mark {
-    width: 40px;
-    height: 40px;
-    background-color: #034b7f;
-    border-radius: 8px;
+  .logo-img {
     display: block;
-    text-align: center;
-    line-height: 40px;
-    font-size: 22px;
-    font-weight: 900;
-    color: #ffffff;
-    font-family: Georgia, 'Times New Roman', serif;
-    letter-spacing: -1px;
-    text-decoration: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: none;
   }
   .title-cell {
     vertical-align: middle;
@@ -253,10 +245,10 @@ function buildEmailShell(
       <div class="sheet-header">
         <table class="sheet-header-table">
           <tr>
-            <td class="logo-cell">
-              <span class="logo-mark">C</span>
+            <td class="logo-cell" style="vertical-align: middle; width: 44px; padding-right: 16px;">
+              <img src="https://www.catraki.com.br/catraki.png" alt="Logo Catraki" class="logo-img" width="44" height="44" style="display: block; border-radius: 10px; width: 44px; height: 44px; border: none; outline: none;" />
             </td>
-            <td class="title-cell">
+            <td class="title-cell" style="vertical-align: middle;">
               <p class="doc-title">${titleLine}</p>
               <span class="doc-subtitle">${subtitle}</span>
             </td>
@@ -276,7 +268,8 @@ function buildEmailShell(
         Para mais informações sobre como protegemos seus dados, consulte nossa
         <a href="https://www.catraki.com.br/privacidade">Política de Privacidade e Termos de Uso</a>.
       </div>
-
+      <!-- Barra institucional azul (Padronizada) -->
+      <div style="height: 10px; background-color: #034b7f; line-height: 10px; font-size: 1px;">&nbsp;</div>
     </div>
   </div>
 </body>
@@ -457,7 +450,7 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
   `;
 
   return buildEmailShell(
-    'Escola Cidadã — Saúde em Movimento',
+    'PLATAFORMA CATRAKI — ASSINATURA ELETRÔNICA',
     'Aviso de Cancelamento de Autorização',
     body,
     'Este é um e-mail transacional automático emitido em conformidade com o Marco Civil da Internet (Lei nº 12.965/2014) e a LGPD (Lei nº 13.709/2018).',
@@ -599,7 +592,7 @@ export function getRevocationEmailHtml(params: RevocationEmailParams): string {
   `;
 
   return buildEmailShell(
-    'Escola Cidadã — Saúde em Movimento',
+    'PLATAFORMA CATRAKI — ASSINATURA ELETRÔNICA',
     'Confirmação de Revogação de Consentimento — LGPD Art. 18',
     body,
     'E-mail transacional imutável emitido pela Plataforma Catraki em conformidade com a LGPD (Lei nº 13.709/2018, Art. 18) e Marco Civil da Internet (Lei nº 12.965/2014).',
@@ -698,7 +691,7 @@ export function getTransactionalCompletionEmailHtml(params: CompletionEmailParam
   `;
 
   return buildEmailShell(
-    'Escola Cidadã — Saúde em Movimento',
+    'PLATAFORMA CATRAKI — ASSINATURA ELETRÔNICA',
     'Confirmação de Conclusão de Assinatura',
     body,
     'Este é um e-mail transacional automático emitido em conformidade com a MP 2.200-2/2001, Lei 14.063/2020 e LGPD (Lei nº 13.709/2018).',

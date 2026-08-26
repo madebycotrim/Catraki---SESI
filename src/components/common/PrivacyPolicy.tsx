@@ -126,9 +126,8 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
           <p className="m-0">Atualizado e homologado em 21 de agosto de 2026 • Plataforma Catraki</p>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden pointer-events-none z-10 leading-none">
-          <img src="/barra.jpg" alt="Barra institucional SESI" className="w-full h-4 sm:h-5 object-cover object-center block" />
-        </div>
+        {/* Barra institucional azul sólida no final da folha A5 (Padronizada) */}
+        <div className="absolute bottom-0 left-0 right-0 h-2 sm:h-2.5 bg-[#034b7f] pointer-events-none z-10" />
 
       </div>
     </div>

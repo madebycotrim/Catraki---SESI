@@ -1164,7 +1164,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
+              from: 'Escola Cidadã — Saúde em Movimento <onboarding@resend.dev>',
               to: [targetEmail],
               subject: emailSubject,
               html: emailHtml,
@@ -1339,7 +1339,7 @@ signerRouter.post('/revoke', async (c) => {
     <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px 28px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
       <div style="border-bottom: 2px solid #034b7f; padding-bottom: 16px; margin-bottom: 20px;">
         <h2 style="color: #034b7f; margin: 0; font-size: 15px; font-weight: 800; text-transform: uppercase;">
-          Escola Cidadã — SESI Saúde DF
+          Escola Cidadã — Saúde em Movimento
         </h2>
         <span style="color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase;">
           Comprovante de Revogação de Consentimento (LGPD Art. 18)

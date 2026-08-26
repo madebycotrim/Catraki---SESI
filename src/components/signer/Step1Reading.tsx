@@ -18,7 +18,7 @@ interface Step1ReadingProps {
   onProceed: () => void;
 }
 
-export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institution, onProceed }) => {
+export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed }) => {
 
   const dataHoje = new Intl.DateTimeFormat('pt-BR', {
     day:   '2-digit',
@@ -42,7 +42,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
           </div>
           <div className="text-left sm:text-right">
             <p className="text-[10px] sm:text-[8.5pt] text-slate-500 m-0 uppercase tracking-wider font-semibold">
-              {institution?.name || 'Escola Cidadã — Saúde em Movimento'}
+              PLATAFORMA CATRAKI — ASSINATURA ELETRÔNICA
             </p>
             <p className="text-xs sm:text-[9pt] text-slate-800 m-0 font-bold">
               Doc. nº {document.id}
@@ -126,15 +126,13 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
           </div>
 
           {/* Seção de Consentimento Inicial (Adequação LGPD) */}
-          <div className="pt-4 sm:pt-6 border-t border-slate-200">
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-600 leading-relaxed space-y-2">
-              <p className="m-0 font-medium text-slate-800">
-                Ao clicar em <strong className="text-slate-900">"Continuar para Assinatura"</strong>, você declara estar ciente, ter lido e concordar expressamente com os <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Política de Privacidade</a>.
-              </p>
-              <p className="m-0 text-[11px] sm:text-xs text-slate-500 italic">
-                Você também autoriza o tratamento dos seus dados de identificação (IP, nome, e-mail e dispositivo) exclusivamente para fins de autenticidade, integridade e validade jurídica desta assinatura eletrônica, em plena conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).
-              </p>
-            </div>
+          <div className="pt-4 sm:pt-5 border-t border-slate-200 space-y-2.5">
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed m-0 text-justify">
+              Ao clicar em <strong className="text-slate-900">"Continuar para Assinatura"</strong>, você declara estar ciente, ter lido e concordar expressamente com os <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Política de Privacidade</a>.
+            </p>
+            <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed italic m-0 text-justify">
+              Você também autoriza o tratamento dos seus dados de identificação (IP, nome, e-mail e dispositivo) exclusivamente para fins de autenticidade, integridade e validade jurídica desta assinatura eletrônica, em plena conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).
+            </p>
           </div>
 
           {/* Botão de ação integrado na folha A4 */}
@@ -150,14 +148,8 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
           </div>
         </div>
 
-        {/* Barra institucional no final da folha */}
-        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden pointer-events-none z-10 leading-none">
-          <img
-            src="/barra.jpg"
-            alt="Barra institucional SESI"
-            className="w-full h-6 sm:h-9 object-cover object-center block"
-          />
-        </div>
+        {/* Barra institucional azul sólida no final da folha (Padronizada) */}
+        <div className="absolute bottom-0 left-0 right-0 h-2.5 sm:h-3.5 bg-[#034b7f] pointer-events-none z-10" />
 
         {/* Número de página (canto superior direito ABNT) */}
         <div className="absolute top-4 sm:top-9 right-4 sm:right-12 font-sans text-xs text-slate-400">

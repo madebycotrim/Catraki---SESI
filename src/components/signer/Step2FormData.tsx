@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, ChevronLeft, ShieldAlert, AlertTriangle, AlertCircle, Loader2, FileSearch } from 'lucide-react';
+import { ChevronRight, ChevronLeft, AlertTriangle, AlertCircle, Loader2, FileSearch } from 'lucide-react';
 import { isValidCPF } from '../../lib/schemas.ts';
 import { apiClient } from '../../lib/api.ts';
 import type { SignerRelationship, Institution, DuplicateStudentCheckResponse } from '../../lib/types.ts';
@@ -234,7 +234,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
           </div>
           <div className="text-left sm:text-right">
             <p className="text-[10px] sm:text-[8.5pt] text-slate-500 m-0 uppercase tracking-wider font-semibold">
-              Escola Cidadã — Saúde em Movimento
+              PLATAFORMA CATRAKI — ASSINATURA ELETRÔNICA
             </p>
             <p className="text-xs sm:text-[9pt] text-slate-800 m-0 font-bold">
               Termo de Consentimento (TCLE)
@@ -586,13 +586,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
             </div>
           )}
 
-          {/* Declaração de veracidade e proteção */}
-          <div className="bg-blue-50/70 border border-blue-200 p-3.5 sm:p-4 rounded-xl flex gap-3 text-xs text-blue-900 mt-4 sm:mt-6 leading-relaxed">
-            <ShieldAlert className="w-4 h-4 shrink-0 text-blue-600 mt-0.5" />
-            <div>
-              <strong className="text-blue-900 block mb-0.5">Segurança e Proteção das Informações:</strong> Ao continuar, você declara que as informações preenchidas são verdadeiras e que é o responsável legal pelo estudante. Para garantir a segurança do processo, os dados serão confirmados junto à base escolar do SESI.
-            </div>
-          </div>
+
 
           {/* Botões de Ação dentro do documento */}
           <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-6 border-t border-slate-200 mt-6 sm:mt-8">
@@ -624,14 +618,8 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
           </div>
         </form>
 
-        {/* Barra institucional no final da folha */}
-        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden pointer-events-none z-10 leading-none">
-          <img
-            src="/barra.jpg"
-            alt="Barra institucional SESI"
-            className="w-full h-6 sm:h-9 object-cover object-center block"
-          />
-        </div>
+        {/* Barra institucional azul sólida no final da folha (Padronizada) */}
+        <div className="absolute bottom-0 left-0 right-0 h-2.5 sm:h-3.5 bg-[#034b7f] pointer-events-none z-10" />
 
         {/* Número de página (canto superior direito ABNT) */}
         <div className="absolute top-4 sm:top-9 right-4 sm:right-12 font-sans text-xs text-slate-400">

@@ -11,7 +11,6 @@ import {
   User,
   Fingerprint,
   ShieldCheck,
-  Clock,
 } from 'lucide-react';
 import { StatusAlertScreen } from '../common/StatusAlertScreen.tsx';
 import { apiClient } from '../../lib/api.ts';
@@ -52,13 +51,6 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const [authHealth, setAuthHealth] = useState(false);
   const [authData, setAuthData] = useState(false);
   const [authImage, setAuthImage] = useState(false);
-  const [specialties, setSpecialties] = useState({
-    oftalmologia: true,
-    odontologia: true,
-    audiometria: true,
-    psicologia: true,
-    nutricao: true,
-  });
   const [readAndAccept, setReadAndAccept] = useState(false);
   const [otpChannel] = useState<'email' | 'sms'>('email');
   const [declarationLegalResponsibility, setDeclarationLegalResponsibility] = useState(false);
@@ -286,7 +278,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
           </div>
           <div className="text-left sm:text-right">
             <p className="text-[10px] sm:text-[8.5pt] text-slate-500 m-0 uppercase tracking-wider font-semibold">
-              Escola Cidadã — Saúde em Movimento
+              PLATAFORMA CATRAKI — ASSINATURA ELETRÔNICA
             </p>
             <p className="text-xs sm:text-[9pt] text-slate-800 m-0 font-bold">
               Termo de Consentimento (TCLE)
@@ -332,65 +324,9 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                       className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                     />
                     <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                      <strong>SIM, AUTORIZO</strong> o atendimento preventivo de saúde do estudante nas unidades móveis durante o período escolar. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                      <strong>SIM, AUTORIZO</strong> o atendimento preventivo de saúde do estudante nas unidades móveis do projeto, englobando as especialidades clínicas de <strong>Oftalmologia (Exame de Vista)</strong>, <strong>Odontologia (Saúde Bucal)</strong>, <strong>Fonoaudiologia (Audiometria)</strong>, <strong>Terapia Integrativa (Psicologia)</strong> e <strong>Nutrição (Alimentação Saudável)</strong> durante o período escolar. <span className="text-red-500 font-bold">* (Obrigatório)</span>
                     </span>
                   </label>
-
-                  {/* Especialidades Clínicas Detalhadas */}
-                  {authHealth && (
-                    <div className="ml-7 pl-3 py-2 border-l-2 border-sesi-primary/40 bg-blue-50/50 rounded-r-lg space-y-1.5 text-xs text-slate-700">
-                      <span className="font-bold text-[11px] text-sesi-primary uppercase tracking-wide block">
-                        Especialidades Clínicas Integradas:
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={specialties.oftalmologia}
-                            onChange={(e) => setSpecialties({ ...specialties, oftalmologia: e.target.checked })}
-                            className="rounded text-sesi-primary focus:ring-sesi-primary w-3.5 h-3.5"
-                          />
-                          <span>Oftalmologia (Exame de vista)</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={specialties.odontologia}
-                            onChange={(e) => setSpecialties({ ...specialties, odontologia: e.target.checked })}
-                            className="rounded text-sesi-primary focus:ring-sesi-primary w-3.5 h-3.5"
-                          />
-                          <span>Odontologia (Saúde bucal)</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={specialties.audiometria}
-                            onChange={(e) => setSpecialties({ ...specialties, audiometria: e.target.checked })}
-                            className="rounded text-sesi-primary focus:ring-sesi-primary w-3.5 h-3.5"
-                          />
-                          <span>Fonoaudiologia / Audiometria</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={specialties.psicologia}
-                            onChange={(e) => setSpecialties({ ...specialties, psicologia: e.target.checked })}
-                            className="rounded text-sesi-primary focus:ring-sesi-primary w-3.5 h-3.5"
-                          />
-                          <span>Terapia Integrativa / Psicologia</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={specialties.nutricao}
-                            onChange={(e) => setSpecialties({ ...specialties, nutricao: e.target.checked })}
-                            className="rounded text-sesi-primary focus:ring-sesi-primary w-3.5 h-3.5"
-                          />
-                          <span>Nutrição e Alimentação Saudável</span>
-                        </label>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Campo 2: Tratamento de Dados */}
@@ -434,15 +370,16 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               </div>
             </div>
 
-          {/* 5. ASSINATURA ELETRÔNICA E VALIDAÇÃO DE IDENTIDADE */}
+          {/* ASSINATURA ELETRÔNICA E VALIDAÇÃO DE IDENTIDADE */}
           <div className="pt-5 sm:pt-6 border-t border-slate-200 space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-1">
-              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#034b7f] m-0 flex items-center gap-1.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1.5">
+              <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#004b8d] m-0 flex items-center gap-2">
                 <Lock className="w-4 h-4 text-sesi-primary shrink-0" />
-                <span>5. Assinatura Eletrônica e Validação</span>
+                <span>Assinatura Eletrônica</span>
               </h3>
-              <span className="inline-flex px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-semibold border border-slate-200/60">
-                Resguardo legal: Art. 4º, II, Lei 14.063/2020 | MP 2.200-2/2001 | LGPD | ECA Art. 17
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50/50 text-[#004b8d] text-[10px] font-bold border border-blue-100/60 shadow-3xs">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span>Resguardo Legal: Art. 4º, II, Lei 14.063/2020 | MP 2.200-2 | LGPD</span>
               </span>
             </div>
 
@@ -496,10 +433,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   </div>
                 </div>
                 
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-100 text-amber-800 rounded-lg text-[10px] sm:text-xs font-semibold">
-                  <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>Código de segurança expira em 5 minutos</span>
-                </div>
+
               </div>
 
             </div>
@@ -603,7 +537,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 />
                 <div style={{ textAlign: 'right' }}>
                   <p style={{ fontSize: '7.5pt', color: '#555', margin: '0 0 1px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Escola Cidadã • SESI Saúde
+                    Escola Cidadã — Saúde em Movimento
                   </p>
                   <p style={{ fontSize: '8pt', color: '#1e293b', margin: 0, fontWeight: 'bold' }}>
                     Validação de Identidade
@@ -625,39 +559,81 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               </div>
 
               {/* Corpo do Documento A5 */}
-              <div className="space-y-3.5">
-                <p style={{ textAlign: 'justify', fontSize: '9.5pt', color: '#334155', margin: 0, lineHeight: '1.5' }}>
-                  Para confirmar a assinatura da autorização do(a) estudante <strong>{minorName}</strong>, enviamos um código de segurança de 6 dígitos para o e-mail:
+              <div className="space-y-4">
+                
+                {/* Instrução com email destacado em pill */}
+                <p className="text-xs sm:text-sm text-slate-600 m-0 leading-relaxed text-justify">
+                  Para assinar a autorização do(a) estudante <strong>{minorName}</strong>, enviamos um código de 6 dígitos para o e-mail:
+                  <span className="inline-block bg-blue-50 text-sesi-primary border border-blue-100 font-mono font-bold text-xs px-2 py-0.5 rounded ml-1 select-all break-all">
+                    {identityData.signerEmail}
+                  </span>.
                 </p>
 
-                <div className="bg-blue-50/80 border border-blue-200 rounded-md p-2.5 text-center">
-                  <span className="font-mono font-bold text-sesi-primary text-xs tracking-wide select-all break-all">
-                    {identityData.signerEmail}
+                {/* 1. Código OTP de Segurança */}
+                <div className="space-y-1.5 pt-1">
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-[#004b8d]">
+                    1. Digite o Código de 6 Dígitos
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    autoFocus
+                    className="w-full text-center tracking-[0.5em] text-xl font-mono font-black py-2 bg-slate-50 border border-slate-300 rounded-xl focus:border-sesi-primary focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all text-slate-800"
+                  />
+                  <span className="block text-[9px] text-slate-400 leading-tight">
+                    * Digitação limitada a 3 tentativas e reenvios limitados a 8.
                   </span>
                 </div>
 
-                {/* Checkbox de Responsabilidade Legal mandatória (Validade Jurídica) */}
-                <div className="pt-1.5 pb-1">
-                  <label htmlFor="field-declarationLegalResponsibility" className="flex items-start gap-2.5 p-2.5 border-2 border-slate-200 hover:border-slate-300 rounded-lg bg-slate-50 cursor-pointer select-none transition-colors">
+                {/* Reenvio de Código */}
+                <div className="text-center">
+                  {resendCooldown > 0 ? (
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      Novo código disponível em {resendCooldown}s
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={dispararEnvioOtpEmail}
+                      disabled={otpSending}
+                      className="text-[10px] text-sesi-primary hover:text-blue-900 font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${otpSending ? 'animate-spin' : ''}`} />
+                      {otpSending ? 'Enviando...' : 'Reenviar código de segurança'}
+                    </button>
+                  )}
+                </div>
+
+                {/* 2. Assinatura Manual por Desenho */}
+                <div className="pt-1">
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-[#004b8d] mb-1.5">
+                    2. Faça sua Assinatura Manual
+                  </label>
+                  <SignaturePad
+                    onSave={(base64) => setSignaturePngBase64(base64)}
+                    onClear={() => setSignaturePngBase64('')}
+                  />
+                </div>
+
+                {/* 3. Declaração de Responsabilidade */}
+                <div className="pt-1.5">
+                  <label htmlFor="field-declarationLegalResponsibility" className="flex items-start gap-2.5 p-3 border border-slate-200 hover:border-blue-200 rounded-xl bg-slate-50/50 hover:bg-blue-50/10 cursor-pointer select-none transition-all">
                     <input
                       id="field-declarationLegalResponsibility"
                       name="declarationLegalResponsibility"
                       type="checkbox"
                       checked={declarationLegalResponsibility}
                       onChange={(e) => setDeclarationLegalResponsibility(e.target.checked)}
-                      className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
+                      className="mt-0.5 w-4 h-4 text-[#004b8d] border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
                     />
-                    <span className="text-[10px] sm:text-[11px] font-bold text-slate-800 leading-normal text-justify">
-                      Confirmo que sou o(a) responsável legal pelo(a) estudante e autorizo a emissão deste documento digital através da plataforma Catraki.
+                    <span className="text-[11px] font-semibold text-slate-700 leading-normal text-justify select-none">
+                      Confirmo que sou o(a) responsável legal pelo(a) estudante e autorizo a emissão deste documento digital através da plataforma Catraki. <span className="text-red-500 font-bold">*</span>
                     </span>
                   </label>
                 </div>
-
-                {/* Quadro de Assinatura por Desenho */}
-                <SignaturePad
-                  onSave={(base64) => setSignaturePngBase64(base64)}
-                  onClear={() => setSignaturePngBase64('')}
-                />
 
                 {/* Mensagem de Erro do OTP com UX Copy Oficial */}
                 {otpError && (
@@ -668,61 +644,23 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   />
                 )}
 
-                {/* Campo do Código OTP */}
-                <div className="space-y-1 pt-1">
-                  <label className="block text-center text-[10px] font-bold uppercase tracking-wider text-slate-700">
-                    Insira o Código de 6 Dígitos
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="000000"
-                    autoFocus
-                    className="w-full text-center tracking-[0.5em] text-xl font-mono font-extrabold py-2.5 px-3 bg-slate-50 border-2 border-slate-300 rounded-lg focus:border-sesi-primary focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all text-slate-900"
-                  />
-                  <span className="block text-center text-[9px] text-slate-400 leading-tight">
-                    * Por medidas de segurança, são permitidas até 3 tentativas de digitação e 8 reenvios do código por documento.
-                  </span>
-                </div>
-
-                {/* Reenvio de Código */}
-                <div className="text-center">
-                  {resendCooldown > 0 ? (
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      Reenviar novo código em {resendCooldown}s
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={dispararEnvioOtpEmail}
-                      disabled={otpSending}
-                      className="text-[11px] text-sesi-primary hover:text-blue-900 font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${otpSending ? 'animate-spin' : ''}`} />
-                      {otpSending ? 'Enviando...' : 'Não recebeu? Reenviar código'}
-                    </button>
-                  )}
-                </div>
-
                 {/* Botões de Ação na Folha A5 */}
                 <div className="pt-2 space-y-2">
                   <button
                     type="button"
                     onClick={handleVerifyAndFinalizeSign}
                     disabled={otpCode.length < 6 || !declarationLegalResponsibility || !signaturePngBase64 || submittingSign}
-                    className="w-full py-2.5 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer"
+                    className="w-full py-3 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none cursor-pointer active:scale-[0.99]"
                   >
                     {submittingSign ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Confirmando Assinatura...
+                        <span>Finalizando Assinatura...</span>
                       </>
                     ) : (
                       <>
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        Confirmar e Concluir Assinatura
+                        <span>Confirmar e Concluir Assinatura</span>
                       </>
                     )}
                   </button>
@@ -730,33 +668,21 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowOtpModal(false)}
-                    className="w-full py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors cursor-pointer text-center"
+                    className="w-full py-1 text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors cursor-pointer text-center"
                   >
                     Cancelar e Voltar ao Termo
                   </button>
                 </div>
               </div>
 
-              {/* Barra institucional no final da folha A5 */}
-              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, overflow: 'hidden' }}>
-                <img
-                  src="/barra.jpg"
-                  alt="Barra institucional SESI"
-                  style={{ width: '100%', height: '20px', display: 'block', objectFit: 'cover', objectPosition: 'center' }}
-                />
-              </div>
+              {/* Barra institucional azul sólida no final da folha A5 (Padronizada) */}
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '10px', backgroundColor: '#034b7f' }} />
             </div>
           </div>
         )}
 
-        {/* Barra institucional no final da folha */}
-        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden pointer-events-none z-10 leading-none">
-          <img
-            src="/barra.jpg"
-            alt="Barra institucional SESI"
-            className="w-full h-6 sm:h-9 object-cover object-center block"
-          />
-        </div>
+        {/* Barra institucional azul sólida no final da folha (Padronizada) */}
+        <div className="absolute bottom-0 left-0 right-0 h-2.5 sm:h-3.5 bg-[#034b7f] pointer-events-none z-10" />
 
         {/* Número de página (canto superior direito ABNT) */}
         <div className="absolute top-4 sm:top-9 right-4 sm:right-12 font-sans text-xs text-slate-400">
@@ -856,10 +782,8 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear }) => {
 
   return (
     <div className="space-y-1 text-left">
-      <div className="flex items-center justify-between">
-        <label className="block text-[10px] font-bold text-slate-500 uppercase">
-          Assinatura Manual (Desenhe abaixo) <span className="text-red-500">*</span>
-        </label>
+      <div className="flex items-center justify-between min-h-[16px]">
+        <div />
         {hasDrawn && (
           <button
             type="button"
@@ -873,7 +797,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear }) => {
       <div className="border-2 border-dashed border-slate-300 rounded-lg overflow-hidden bg-slate-50 relative group select-none">
         {/* Marca d'água de proteção no fundo do quadro */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none opacity-25 text-[8.5px] sm:text-[9.5px] font-bold uppercase tracking-widest text-slate-400 rotate-[-6deg] space-y-1">
-          <span>CATRAKI DIGITAL • ASSINATURA ELETRÔNICA</span>
+          <span>ASSINATURA ELETRÔNICA</span>
           <span>USO EXCLUSIVO NESTE TERMO • NÃO COPIAR</span>
         </div>
 

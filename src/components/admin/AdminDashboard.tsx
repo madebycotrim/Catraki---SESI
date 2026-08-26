@@ -1351,7 +1351,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <div className="col-span-2">
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Tipo de Documento:</span>
-                  <span className="font-bold text-slate-800 truncate block">Termo de Consentimento — SESI Saúde / Escola Cidadã</span>
+                  <span className="font-bold text-slate-800 truncate block">Termo de Consentimento — Escola Cidadã — Saúde em Movimento</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Estudante / Aluno(a):</span>
@@ -1484,7 +1484,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-                      Ficha do Estudante &bull; SESI Saúde
+                      Ficha do Estudante &bull; Escola Cidadã — Saúde em Movimento
                     </h3>
                     <span className="font-mono text-xs font-bold text-blue-900 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-lg">
                       {selectedAuthForDetails.validationCode || selectedAuthForDetails.id}

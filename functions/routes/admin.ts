@@ -630,7 +630,7 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
+              from: 'Escola Cidadã — Saúde em Movimento <onboarding@resend.dev>',
               to: [targetEmail],
               subject: emailSubject,
               html: emailHtml,
@@ -650,7 +650,7 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             personalizations: [{ to: [{ email: targetEmail }] }],
-            from: { email: 'autorizacoes@catraki.com.br', name: 'Escola Cidadã — SESI Saúde' },
+            from: { email: 'autorizacoes@catraki.com.br', name: 'Escola Cidadã — Saúde em Movimento' },
             subject: emailSubject,
             content: [
               { type: 'text/plain', value: emailText },
@@ -862,7 +862,7 @@ adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'oper
       signerName: auditLog?.signer_name || doc.parent_name || 'Responsável Legal',
       signerCpfMasked: auditLog?.signer_cpf_masked || '***.***.***-**',
       signerRelationship: auditLog?.signer_relationship || 'Responsável',
-      institutionName: doc.institution_name || 'SESI Escola Cidadã',
+      institutionName: doc.institution_name || 'Escola Cidadã — Saúde em Movimento',
       manifestSha256,
       contentSha256: doc.content_sha256 || '',
       logRowHash: auditLog?.log_row_hash || '',
@@ -984,7 +984,7 @@ adminRouter.post('/documents/:id/notify-cancellation', requireAuth(['admin_maste
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
+            from: 'Escola Cidadã — Saúde em Movimento <onboarding@resend.dev>',
             to: [rawEmail],
             subject: emailSubject,
             html: emailHtml,
@@ -1004,7 +1004,7 @@ adminRouter.post('/documents/:id/notify-cancellation', requireAuth(['admin_maste
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           personalizations: [{ to: [{ email: rawEmail }] }],
-          from: { email: 'autorizacoes@catraki.com.br', name: 'Escola Cidadã — SESI Saúde' },
+          from: { email: 'autorizacoes@catraki.com.br', name: 'Escola Cidadã — Saúde em Movimento' },
           subject: emailSubject,
           content: [
             { type: 'text/plain', value: emailText },
@@ -1101,7 +1101,7 @@ adminRouter.post('/documents/:id/resend-signed-email', requireAuth(['admin_maste
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
+            from: 'Escola Cidadã — Saúde em Movimento <onboarding@resend.dev>',
             to: [rawEmail],
             subject: emailSubject,
             html: emailHtml,
@@ -1121,7 +1121,7 @@ adminRouter.post('/documents/:id/resend-signed-email', requireAuth(['admin_maste
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           personalizations: [{ to: [{ email: rawEmail }] }],
-          from: { email: 'autorizacoes@catraki.com.br', name: 'Escola Cidadã — SESI Saúde' },
+          from: { email: 'autorizacoes@catraki.com.br', name: 'Escola Cidadã — Saúde em Movimento' },
           subject: emailSubject,
           content: [
             { type: 'text/plain', value: emailText },

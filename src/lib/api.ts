@@ -522,6 +522,7 @@ export const apiClient = {
       success: true,
       channel,
       expires_in_seconds: 300,
+      simulated_otp: devOtp,
       message: `Código de verificação enviado para o ${channel === 'sms' ? 'celular' : 'e-mail'} do responsável legal.`,
     };
   },

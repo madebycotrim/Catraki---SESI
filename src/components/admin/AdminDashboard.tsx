@@ -25,12 +25,6 @@ import {
   Clock,
   GraduationCap,
   Printer,
-  Eye,
-  Ear,
-  Smile,
-  Brain,
-  Apple,
-  HeartPulse,
   Cake,
   UserCheck,
   Mail,
@@ -1909,7 +1903,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* MODAL: FICHA CADASTRAL E DE TRIAGEM CLÍNICA DO ESTUDANTE — FOLHA A4 (SESI SAÚDE) */}
+      {/* MODAL: FICHA CADASTRAL E DE COMPROVANTE DO ESTUDANTE — FOLHA A4 (PADRÃO TIMBRADO CATRAKI / SESI) */}
       {showDetailsModal && selectedAuthForDetails && (
         <div 
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-2 sm:p-4 animate-in fade-in duration-200 overflow-y-auto"
@@ -1919,61 +1913,79 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             className="document-sheet-a4 max-w-3xl w-full animate-in zoom-in-95 duration-200 text-left my-6 space-y-5 relative"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header Timbrado Oficial SESI / UnB (Padrão A4) */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b-2 border-[#034b7f] pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#004b8d] text-white flex items-center justify-center font-bold text-xl shadow-xs shrink-0">
-                  <GraduationCap className="w-7 h-7" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-                      Ficha do Estudante &bull; Escola Cidadã — Saúde em Movimento
-                    </h3>
-                    <span className="font-mono text-xs font-bold text-blue-900 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-lg">
-                      {selectedAuthForDetails.validationCode || selectedAuthForDetails.id}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                    Projeto Escola Cidadã: Saúde em Movimento (SESI-DF &bull; Universidade de Brasília)
-                  </p>
+            {/* ━━ CABEÇALHO TIMBRADO OFICIAL PLATAFORMA CATRAKI (PADRÃO COMPROVANTE) ━━ */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b-2 border-[#034b7f] pb-4">
+              
+              {/* Lado Esquerdo: Logo Catraki Oficial */}
+              <div className="flex items-center gap-3.5">
+                <img
+                  src="/catraki.png"
+                  alt="Catraki Logo"
+                  className="h-10 sm:h-11 w-auto object-contain rounded shrink-0"
+                />
+              </div>
+
+              {/* Centro / Direita: Título Oficial do Comprovante e Data */}
+              <div className="text-left sm:text-right flex-1 min-w-0">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
+                  PLATAFORMA CATRAKI
+                </span>
+                <h3 className="text-base sm:text-xl font-black text-[#004b8d] tracking-tight leading-tight">
+                  Comprovante de Assinatura Eletrônica
+                </h3>
+                <div className="flex items-center sm:justify-end gap-2 mt-0.5 text-xs text-slate-500 font-medium">
+                  <span>
+                    {new Intl.DateTimeFormat('pt-BR', {
+                      timeZone: 'America/Sao_Paulo',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    }).format(parseUtcDate(selectedAuthForDetails.signedAtDate || selectedAuthForDetails.dateSent))}
+                  </span>
+                  <span>&bull;</span>
+                  <span className="font-mono font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded text-[11px]">
+                    {selectedAuthForDetails.validationCode || selectedAuthForDetails.id}
+                  </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              {/* Botões de Ação Topo (Impressão & Fechar) */}
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center ml-auto sm:ml-0">
                 <button
                   type="button"
                   onClick={handlePrintStudentCard}
                   className="px-3 py-2 rounded-xl bg-blue-50 text-[#004b8d] hover:bg-blue-100 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Imprimir Ficha de Triagem em Folha A4"
+                  title="Imprimir Ficha em Folha A4"
                 >
                   <Printer className="w-4 h-4" />
-                  <span>Imprimir A4</span>
+                  <span className="hidden sm:inline">Imprimir A4</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowDetailsModal(false)}
                   className="text-slate-400 hover:text-slate-600 rounded-xl p-2 transition-colors cursor-pointer"
+                  title="Fechar"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
+
             </div>
 
             {/* Grid de Conteúdo A4 */}
             <div className="space-y-4">
               
               {/* Bloco 1: Identificação Escolar do Estudante */}
-              <div className="bg-gradient-to-br from-blue-50/60 to-white border border-blue-100 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-2xs">
-                <div className="flex items-center justify-between border-b border-blue-100/80 pb-2">
+              <div className="bg-gradient-to-br from-blue-50/50 to-white border border-blue-100 rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-blue-100/80 pb-2.5">
                   <div className="flex items-center gap-2">
                     <UserCheck className="w-4 h-4 text-[#004b8d]" />
                     <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">Identificação Escolar do Estudante</span>
                   </div>
-                  <span className={`inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-bold ${
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                     selectedAuthForDetails.status === 'CANCELADO_POR_ERRO' || selectedAuthForDetails.status === 'cancelled_error'
                       ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                      : 'bg-emerald-100 text-emerald-900'
+                      : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
                   }`}>
                     {selectedAuthForDetails.status === 'CANCELADO_POR_ERRO' || selectedAuthForDetails.status === 'cancelled_error' ? (
                       <Ban className="w-3.5 h-3.5 text-rose-600" />
@@ -2011,39 +2023,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Nome do Aluno(a):</span>
-                    <span className="font-bold text-slate-900 text-sm">{selectedAuthForDetails.studentName}</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Nome do Aluno(a):</span>
+                    <span className="font-black text-slate-900 text-sm sm:text-base mt-0.5 block">{selectedAuthForDetails.studentName}</span>
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">CPF do Aluno(a):</span>
-                    <span className="font-mono font-bold text-slate-800">{selectedAuthForDetails.studentCpfMasked}</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">CPF do Aluno(a):</span>
+                    <span className="font-mono font-bold text-slate-800 text-sm mt-0.5 block">{selectedAuthForDetails.studentCpfMasked}</span>
                   </div>
 
                   {/* DESTAQUE: ANO / SÉRIE, TURMA E TURNO */}
-                  <div className="sm:col-span-2 bg-white rounded-xl p-3 border border-blue-200 shadow-2xs">
-                    <span className="text-blue-900 block text-[10px] uppercase font-bold mb-2 flex items-center gap-1.5">
+                  <div className="sm:col-span-2 bg-white rounded-2xl p-3.5 border border-blue-200 shadow-2xs">
+                    <span className="text-blue-900 block text-[10px] uppercase font-bold mb-2.5 flex items-center gap-1.5">
                       <GraduationCap className="w-4 h-4 text-blue-600" />
                       <span>Enturmação Escolar Oficial na Unidade de Ensino:</span>
                     </span>
                     <div className="grid grid-cols-3 gap-2.5 text-center">
                       <div className="bg-blue-50/70 rounded-xl p-2.5 border border-blue-100">
                         <span className="text-[10px] text-blue-700 font-bold block uppercase">Ano / Série</span>
-                        <strong className="text-xs sm:text-sm text-blue-950 font-bold">
+                        <strong className="text-xs sm:text-sm text-blue-950 font-black">
                           {selectedAuthForDetails.minorSeries ? formatStudentSeriesClass(selectedAuthForDetails.minorSeries) : 'Não informado'}
                         </strong>
                       </div>
                       <div className="bg-blue-50/70 rounded-xl p-2.5 border border-blue-100">
                         <span className="text-[10px] text-blue-700 font-bold block uppercase">Turma</span>
-                        <strong className="text-xs sm:text-sm text-blue-950 font-bold">
+                        <strong className="text-xs sm:text-sm text-blue-950 font-black">
                           {selectedAuthForDetails.minorClass ? `Turma ${selectedAuthForDetails.minorClass}` : 'Não informada'}
                         </strong>
                       </div>
                       <div className="bg-blue-50/70 rounded-xl p-2.5 border border-blue-100">
                         <span className="text-[10px] text-blue-700 font-bold block uppercase">Turno</span>
-                        <strong className="text-xs sm:text-sm text-blue-950 font-bold capitalize">
+                        <strong className="text-xs sm:text-sm text-blue-950 font-black capitalize">
                           {selectedAuthForDetails.minorTurn || 'Matutino'}
                         </strong>
                       </div>
@@ -2051,110 +2063,77 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Data de Nascimento &amp; Idade:</span>
-                    <span className="font-medium text-slate-800 flex items-center gap-1.5 mt-0.5">
-                      <Cake className="w-3.5 h-3.5 text-slate-400" />
-                      {formatBirthDateAndAge(selectedAuthForDetails.birthDate)?.formattedDate || 'Não informada'}
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Data de Nascimento &amp; Idade:</span>
+                    <span className="font-semibold text-slate-800 flex items-center gap-1.5 mt-1">
+                      <Cake className="w-4 h-4 text-slate-400" />
+                      <span>{formatBirthDateAndAge(selectedAuthForDetails.birthDate)?.formattedDate || 'Não informada'}</span>
                       {formatBirthDateAndAge(selectedAuthForDetails.birthDate)?.age && (
-                        <strong className="text-blue-700 ml-1">({formatBirthDateAndAge(selectedAuthForDetails.birthDate)?.age})</strong>
+                        <strong className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 text-xs">
+                          {formatBirthDateAndAge(selectedAuthForDetails.birthDate)?.age}
+                        </strong>
                       )}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Instituição / Escola:</span>
-                    <span className="font-bold text-slate-800 flex items-center gap-1.5 mt-0.5">
-                      <Building2 className="w-3.5 h-3.5 text-slate-500" />
-                      {selectedAuthForDetails.institutionName}
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Instituição / Escola:</span>
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5 mt-1">
+                      <Building2 className="w-4 h-4 text-slate-500" />
+                      <span>{selectedAuthForDetails.institutionName}</span>
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* Bloco 2: Responsável Legal */}
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs space-y-2">
-                <div className="flex items-center gap-2 border-b border-slate-200 pb-1.5">
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 text-xs space-y-3">
+                <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
                   <Users className="w-4 h-4 text-slate-600" />
                   <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Responsável Legal Cadastrado</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Nome Completo:</span>
-                    <span className="font-bold text-slate-900">{selectedAuthForDetails.parentName}</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Nome Completo:</span>
+                    <span className="font-black text-slate-900 text-sm mt-0.5 block">{selectedAuthForDetails.parentName}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">CPF do Responsável:</span>
-                    <span className="font-mono font-medium text-slate-800">{selectedAuthForDetails.parentCpfMasked}</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">CPF do Responsável:</span>
+                    <span className="font-mono font-bold text-slate-800 mt-0.5 block">{selectedAuthForDetails.parentCpfMasked}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Grau de Parentesco / Vínculo:</span>
-                    <span className="inline-block bg-white px-2.5 py-0.5 rounded border border-slate-200 font-bold text-slate-800 capitalize">
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Grau de Parentesco:</span>
+                    <span className="inline-block bg-white px-3 py-1 rounded-lg border border-slate-200 font-black text-slate-800 capitalize mt-0.5">
                       {selectedAuthForDetails.relationship}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Bloco 3: Grade de Atendimentos Clínicos Autorizados (SESI Saúde) */}
-              <div className="border border-emerald-200/60 bg-emerald-50/20 rounded-2xl p-4 text-xs space-y-2.5">
-                <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
-                  <div className="flex items-center gap-2">
-                    <HeartPulse className="w-4 h-4 text-emerald-700" />
-                    <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
-                      Grade de Atendimentos Autorizados
+              {/* Bloco 3: Trilha de Auditoria e Hash Criptográfico */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 text-xs text-slate-600 space-y-2">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <div className="flex items-center gap-2 font-bold text-slate-800">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>Autenticação &amp; Trilha de Integridade (Lei nº 14.063/2020)</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                    Hash Válido SHA-256
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <span className="font-bold text-slate-700 text-[11px]">Hash SHA-256 do Manifesto:</span>
+                    <span className="font-mono text-[11px] text-slate-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 break-all select-all">
+                      {selectedAuthForDetails.hash}
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    SESI 5 em 1
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-bold text-slate-800 shadow-2xs">
-                    <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Oftalmologia</span>
-                  </span>
-
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-bold text-slate-800 shadow-2xs">
-                    <Ear className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Audiometria</span>
-                  </span>
-
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-bold text-slate-800 shadow-2xs">
-                    <Smile className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Odontologia</span>
-                  </span>
-
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-bold text-slate-800 shadow-2xs">
-                    <Apple className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Nutrição</span>
-                  </span>
-
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-bold text-slate-800 shadow-2xs">
-                    <Brain className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Psicologia</span>
-                  </span>
-
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-2xs bg-white border ${
-                    selectedAuthForDetails.authImage ? 'border-blue-200 text-slate-800' : 'border-slate-200 text-slate-400'
-                  }`}>
-                    <Camera className={`w-3.5 h-3.5 ${selectedAuthForDetails.authImage ? 'text-blue-600' : 'text-slate-400'}`} />
-                    <span>Uso de Imagem: {selectedAuthForDetails.authImage ? 'Autorizado ✓' : 'Não Autorizado ✕'}</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Bloco 4: Trilha de Auditoria e Hash Criptográfico */}
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs text-slate-600 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-700">Hash SHA-256 do Manifesto:</span>
-                  <span className="font-mono text-xs text-slate-600 truncate max-w-[340px] bg-white px-2 py-0.5 rounded border border-slate-200">
-                    {selectedAuthForDetails.hash}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-slate-500 text-[11px] pt-1">
-                  <span>Assinatura Eletrônica Avançada (Lei nº 14.063/2020)</span>
-                  <span>Data de Registro: {formatBrasiliaDateTime(selectedAuthForDetails.dateSent || selectedAuthForDetails.signedAtDate)}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-slate-500 text-[11px] pt-1 border-t border-slate-200/60">
+                    <span>Base Legal: Assinatura Eletrônica Avançada (Art. 10, §2º da MP 2.200-2/2001)</span>
+                    <span className="font-semibold text-slate-700">
+                      Data de Registro: {formatBrasiliaDateTime(selectedAuthForDetails.dateSent || selectedAuthForDetails.signedAtDate)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -2194,6 +2173,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* Barra institucional azul sólida no final da folha */}
+            <div className="absolute bottom-0 left-0 right-0 h-2.5 sm:h-3.5 bg-[#034b7f] pointer-events-none z-10" />
 
           </div>
         </div>

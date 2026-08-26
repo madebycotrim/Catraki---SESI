@@ -151,14 +151,14 @@ const SEED_DOCUMENTS: (DocumentRecord & { template_title: string; procedure_desc
 
 const memoryStore = new Map<string, string>();
 
-// Helper Functions para Armazenamento Transitório de Contingência (SessionStorage Volátil)
+// Helper Functions para Armazenamento Transitório de Contingência (LocalStorage Persistente para Testes)
 const getStorage = <T>(key: string, seed: T): T => {
-  if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-    const data = sessionStorage.getItem(key);
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    const data = localStorage.getItem(key);
     if (data) {
       try { return JSON.parse(data); } catch {}
     }
-    sessionStorage.setItem(key, JSON.stringify(seed));
+    localStorage.setItem(key, JSON.stringify(seed));
     return JSON.parse(JSON.stringify(seed));
   }
   
@@ -171,8 +171,8 @@ const getStorage = <T>(key: string, seed: T): T => {
 };
 
 const setStorage = <T>(key: string, data: T) => {
-  if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-    sessionStorage.setItem(key, JSON.stringify(data));
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    localStorage.setItem(key, JSON.stringify(data));
   } else {
     memoryStore.set(key, JSON.stringify(data));
   }
@@ -224,6 +224,14 @@ export const apiClient = {
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.clear();
     }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('catraki_templates');
+      localStorage.removeItem('catraki_docs');
+      localStorage.removeItem('catraki_audit');
+      localStorage.removeItem('catraki_reviews');
+      localStorage.removeItem('catraki_lgpd');
+      localStorage.removeItem('catraki_institutions');
+    }
   },
 
   /**
@@ -269,9 +277,10 @@ export const apiClient = {
     // Atribui e persiste número de protocolo único para a sessão
     if (typeof window !== 'undefined') {
       const sessionDocKey = `catraki_doc_id_${token}`;
-      let activeDocId = sessionStorage.getItem(sessionDocKey);
+      let activeDocId = localStorage.getItem(sessionDocKey) || sessionStorage.getItem(sessionDocKey);
       if (!activeDocId) {
         activeDocId = generateUniqueDocId();
+        localStorage.setItem(sessionDocKey, activeDocId);
         sessionStorage.setItem(sessionDocKey, activeDocId);
       }
       doc.id = activeDocId;
@@ -785,6 +794,13 @@ export const apiClient = {
     const audit = logs.find((a) => {
       const vCodeCatraki = `CATRAKI-${a.manifest_sha256.substring(0, 4).toUpperCase()}-${a.manifest_sha256.substring(a.manifest_sha256.length - 4).toUpperCase()}`;
       const vCodeSesi = `SESI-${a.manifest_sha256.substring(0, 4).toUpperCase()}-${a.manifest_sha256.substring(a.manifest_sha256.length - 4).toUpperCase()}`;
+      
+      // Também verifica o código sem o prefixo (ex: 7C22-AB19 ou 7C22AB19)
+      const cleanRawNoPrefix = cleanRaw.replace(/^(SESI|CATRAKI)/i, '');
+      const isShortCodeMatch = cleanRawNoPrefix.length === 8 &&
+        a.manifest_sha256.substring(0, 4).toUpperCase() === cleanRawNoPrefix.substring(0, 4) &&
+        a.manifest_sha256.substring(a.manifest_sha256.length - 4).toUpperCase() === cleanRawNoPrefix.substring(4, 8);
+
       return (
         a.manifest_sha256.toLowerCase() === query.trim().toLowerCase() ||
         vCodeCatraki === clean ||
@@ -792,7 +808,8 @@ export const apiClient = {
         vCodeCatraki.replace(/-/g, '') === cleanRaw ||
         vCodeSesi.replace(/-/g, '') === cleanRaw ||
         a.manifest_sha256.toUpperCase().startsWith(cleanRaw) ||
-        a.document_id.toUpperCase() === clean
+        a.document_id.toUpperCase() === clean ||
+        isShortCodeMatch
       );
     });
 

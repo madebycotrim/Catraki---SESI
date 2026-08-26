@@ -501,7 +501,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
 
       const otpHtml = getTransactionalOtpEmailHtml({ studentName, otpCode });
 
-      if (resendApiKey) {
+      if (resendApiKey && resendApiKey !== 're_sua_chave_aqui') {
         try {
           const resendResp = await fetch('https://api.resend.com/emails', {
             method: 'POST',

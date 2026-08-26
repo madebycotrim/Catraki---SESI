@@ -668,6 +668,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 {otpError && (
                   <StatusAlertScreen
                     scenario="otp_auth_failed"
+                    customReason={otpError}
                     primaryActionLabel="Reenviar código de segurança"
                     onPrimaryAction={dispararEnvioOtpEmail}
                   />

@@ -2378,7 +2378,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   type="button"
                   onClick={() => {
                     setShowDetailsModal(false);
-                    onNavigateToValidatorHash(selectedAuthForDetails.hash);
+                    onNavigateToValidatorHash(selectedAuthForDetails.validationCode || selectedAuthForDetails.hash);
                   }}
                   className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-[#004b8d] hover:bg-blue-50 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 border border-blue-200"
                 >

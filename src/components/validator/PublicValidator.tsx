@@ -47,7 +47,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
 
   useEffect(() => {
     if (validationResult) {
-      const code = (validationResult.validation_code || `CATRAKI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}`).replace(/^SESI-/i, 'CATRAKI-');
+      const code = validationResult.validation_code || (validationResult.manifest_sha256 ? `SESI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}` : '');
       const url = `${window.location.origin}/validar/${code}`;
       QRCode.toDataURL(url, {
         width: 160,
@@ -60,9 +60,14 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
   }, [validationResult]);
 
   const handleValidate = async (targetHash: string) => {
-    const cleanHash = targetHash.trim();
+    let cleanHash = targetHash.trim();
+    if (cleanHash.includes('/validar/')) {
+      cleanHash = cleanHash.split('/validar/').pop()?.split('?')[0]?.split('#')[0] || cleanHash;
+    }
+    cleanHash = cleanHash.replace(/^[/#]+/, '').trim();
+
     if (!cleanHash) {
-       setErrorMessage('Por favor, digite ou cole o código de autenticidade (ex: CATRAKI-XXXX-XXXX) ou o hash SHA-256.');
+       setErrorMessage('Por favor, digite ou cole o código de autenticidade (ex: SESI-XXXX-XXXX ou CATRAKI-XXXX-XXXX) ou o hash SHA-256.');
       return;
     }
 
@@ -74,6 +79,8 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
       const resp = await apiClient.validatePublic(cleanHash);
       if (resp.success && resp.validation) {
         setValidationResult(resp.validation);
+        const finalCode = resp.validation.validation_code || cleanHash;
+        window.history.pushState({}, '', `/validar/${finalCode}`);
       } else {
          setErrorMessage(resp.error || 'Nenhum documento foi encontrado com este código. Verifique se o código foi digitado corretamente ou tente com o código SHA-256 completo presente no comprovante.');
       }
@@ -99,7 +106,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
   }).format(new Date());
 
   const validationCode = validationResult
-    ? (validationResult.validation_code || `CATRAKI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}`).replace(/^SESI-/i, 'CATRAKI-')
+    ? (validationResult.validation_code || (validationResult.manifest_sha256 ? `SESI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}` : ''))
     : '';
 
   const handleDownloadDossierJson = async () => {
@@ -224,7 +231,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                     type="text"
                     value={hashInput}
                     onChange={(e) => setHashInput(e.target.value)}
-                    placeholder="Digite ou cole o código de autenticidade (ex: CATRAKI-94D4-E1A0) ou o código SHA-256..."
+                    placeholder="Digite ou cole o código de autenticidade (ex: SESI-0AD2-2A49) ou hash SHA-256..."
                     autoCapitalize="characters"
                     className="w-full px-3.5 sm:px-4 py-3 bg-white border border-slate-300 rounded-xl font-mono text-xs sm:text-base uppercase text-slate-900 tracking-wider focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20 transition-all shadow-xs"
                   />

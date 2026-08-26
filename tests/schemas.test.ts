@@ -160,4 +160,55 @@ describe('Validações e Schemas Zod (schemas.ts)', () => {
     const resId = await apiClient.validatePublic('DOC-20260826-7541E01C');
     expect(resId.success).toBe(true);
   });
+
+  it('deve validar o código exato do SESI (SESI-0AD2-2A49), URLs completas e hashes de auditoria', async () => {
+    const { apiClient } = await import('../src/lib/api.ts');
+
+    const sabrinaHash = '0ad26789abcdef0123456789abcdef0123456789abcdef0123456789abcdef2a49';
+    const sabrinaDoc = {
+      id: 'DOC-20260826-0AD22A49',
+      template_id: 'proc_audiometria_infantil',
+      template_version: 1,
+      access_token: 'token-sabrina-0ad2',
+      status: 'signed' as const,
+      minor_name: 'Sabrina Dias Barros',
+      minor_cpf: '098.755.861-70',
+      minor_series: '2º ano',
+      minor_class: 'Turma C',
+      minor_turn: 'Matutino',
+      parent_name: 'Cleide Samaria Dias Cardoso',
+      relationship: 'MÃE',
+      manifest_sha256: sabrinaHash,
+      validation_code: 'SESI-0AD2-2A49',
+      created_at: '2026-08-26T18:16:12.000Z',
+    };
+
+    apiClient.seedDocument(sabrinaDoc);
+
+    // 1. Validação exata com formato exibido no Admin: SESI-0AD2-2A49
+    const res1 = await apiClient.validatePublic('SESI-0AD2-2A49');
+    expect(res1.success).toBe(true);
+    expect(res1.validation?.document_id).toBe(sabrinaDoc.id);
+    expect(res1.validation?.valid).toBe(true);
+    expect(res1.validation?.minor_name_initials).toBe('Sabrina D. B.');
+
+    // 2. Validação com formato alternativo CATRAKI-0AD2-2A49
+    const res2 = await apiClient.validatePublic('CATRAKI-0AD2-2A49');
+    expect(res2.success).toBe(true);
+
+    // 3. Validação com código curto 0AD2-2A49 e 0ad22a49
+    const res3 = await apiClient.validatePublic('0AD2-2A49');
+    expect(res3.success).toBe(true);
+    const res3b = await apiClient.validatePublic('0ad22a49');
+    expect(res3b.success).toBe(true);
+
+    // 4. Validação colando URL completa de validação
+    const res4 = await apiClient.validatePublic('https://www.catraki.com.br/validar/SESI-0AD2-2A49');
+    expect(res4.success).toBe(true);
+
+    // 5. Validação colando hash SHA-256 completo
+    const res5 = await apiClient.validatePublic(sabrinaHash);
+    expect(res5.success).toBe(true);
+    expect(res5.validation?.manifest_sha256).toBe(sabrinaHash);
+  });
 });

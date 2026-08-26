@@ -807,72 +807,114 @@ export const apiClient = {
   },
 
   /**
-   * Validador público de autenticidade (aceita token curto SESI-XXXX-XXXX ou hash SHA-256)
+   * Validador público de autenticidade (aceita token curto SESI-XXXX-XXXX, CATRAKI-XXXX-XXXX, URLs, ID ou hash SHA-256)
    */
   async validatePublic(query: string): Promise<{ success: boolean; validation?: PublicValidationResponse; error?: string }> {
+    if (!query || typeof query !== 'string' || !query.trim()) {
+      return { success: false, error: 'Por favor, informe o código de autenticidade ou hash SHA-256.' };
+    }
+
+    // Normalização inicial: remove espaços, aspas e extrai código se for uma URL completa
+    let rawQuery = query.trim();
+    if (rawQuery.includes('/validar/')) {
+      rawQuery = rawQuery.split('/validar/').pop()?.split('?')[0]?.split('#')[0] || rawQuery;
+    }
+    rawQuery = rawQuery.replace(/^[/#]+/, '').trim();
+
     try {
-      const resp = await fetch(`${API_BASE}/public/validate/${encodeURIComponent(query)}`);
-      if (resp.ok) return await resp.json();
+      const resp = await fetch(`${API_BASE}/public/validate/${encodeURIComponent(rawQuery)}`);
+      const contentType = resp.headers.get('content-type') || '';
+      if (resp.ok && contentType.includes('application/json')) {
+        const json = (await resp.json()) as any;
+        if (json && json.success && json.validation) {
+          return json;
+        }
+      }
     } catch {}
 
     const logs = getAuditLogs();
-    const clean = query.trim().toUpperCase();
+    const docs = getDocuments();
+
+    const clean = rawQuery.toUpperCase();
     const cleanRaw = clean.replace(/[^A-Z0-9]/g, '');
+    const cleanNoPrefix = cleanRaw.replace(/^(SESI|CATRAKI|DOC)/i, '');
+    const cleanLower = rawQuery.toLowerCase();
+    const is64Hex = /^[0-9a-f]{64}$/i.test(clean);
+
+    // Extração de prefixo e sufixo de 4 caracteres para códigos curtos (ex: 0AD2-2A49 -> 0AD2 e 2A49)
+    const hexPref = cleanNoPrefix.length >= 8 ? cleanNoPrefix.substring(0, 4) : '';
+    const hexSuff = cleanNoPrefix.length >= 8 ? cleanNoPrefix.substring(cleanNoPrefix.length - 4) : '';
 
     const audit = logs.find((a) => {
-      const vCodeCatraki = `CATRAKI-${a.manifest_sha256.substring(0, 4).toUpperCase()}-${a.manifest_sha256.substring(a.manifest_sha256.length - 4).toUpperCase()}`;
-      const vCodeSesi = `SESI-${a.manifest_sha256.substring(0, 4).toUpperCase()}-${a.manifest_sha256.substring(a.manifest_sha256.length - 4).toUpperCase()}`;
-      
-      // Também verifica o código sem o prefixo (ex: 7C22-AB19 ou 7C22AB19)
-      const cleanRawNoPrefix = cleanRaw.replace(/^(SESI|CATRAKI)/i, '');
-      const isShortCodeMatch = cleanRawNoPrefix.length === 8 &&
-        a.manifest_sha256.substring(0, 4).toUpperCase() === cleanRawNoPrefix.substring(0, 4) &&
-        a.manifest_sha256.substring(a.manifest_sha256.length - 4).toUpperCase() === cleanRawNoPrefix.substring(4, 8);
+      const mSha = (a?.manifest_sha256 || '').toUpperCase();
+      const cSha = (a?.content_sha256_at_signing || '').toUpperCase();
+      const pSha = (a?.doc_parent_hash_sha256 || '').toUpperCase();
+      const docId = (a?.document_id || '').toUpperCase();
+      const auditId = (a?.id || '').toUpperCase();
+
+      const vCodeCatraki = mSha.length >= 8 ? `CATRAKI-${mSha.substring(0, 4)}-${mSha.substring(mSha.length - 4)}` : '';
+      const vCodeSesi = mSha.length >= 8 ? `SESI-${mSha.substring(0, 4)}-${mSha.substring(mSha.length - 4)}` : '';
+
+      const isShortHexMatch = hexPref && hexSuff && mSha.length >= 8 &&
+        mSha.startsWith(hexPref) && mSha.endsWith(hexSuff);
+
+      const isContentHexMatch = hexPref && hexSuff && cSha.length >= 8 &&
+        cSha.startsWith(hexPref) && cSha.endsWith(hexSuff);
+
+      const isDocParentHexMatch = hexPref && hexSuff && pSha.length >= 8 &&
+        pSha.startsWith(hexPref) && pSha.endsWith(hexSuff);
 
       return (
-        a.manifest_sha256.toLowerCase() === query.trim().toLowerCase() ||
+        mSha.toLowerCase() === cleanLower ||
+        cSha.toLowerCase() === cleanLower ||
+        pSha.toLowerCase() === cleanLower ||
         vCodeCatraki === clean ||
         vCodeSesi === clean ||
         vCodeCatraki.replace(/-/g, '') === cleanRaw ||
         vCodeSesi.replace(/-/g, '') === cleanRaw ||
-        a.manifest_sha256.toUpperCase().startsWith(cleanRaw) ||
-        a.document_id.toUpperCase() === clean ||
-        isShortCodeMatch
+        (mSha.length > 0 && mSha.startsWith(cleanRaw)) ||
+        docId === clean ||
+        docId.replace(/[^A-Z0-9]/g, '') === cleanRaw ||
+        auditId === clean ||
+        isShortHexMatch ||
+        isContentHexMatch ||
+        isDocParentHexMatch
       );
     });
 
-    const docs = getDocuments();
     let doc = docs.find((d) => d.id === audit?.document_id);
 
     if (!audit) {
-      const cleanNoPrefix = cleanRaw.replace(/^(SESI|CATRAKI)/i, '');
-      const hexPref = cleanNoPrefix.substring(0, 4);
-      const hexSuff = cleanNoPrefix.substring(Math.max(0, cleanNoPrefix.length - 4));
-
       doc = docs.find((d) => {
         const dManifest = ((d as any).manifest_sha256 || d.content_sha256 || (d as any).doc_parent_hash_sha256 || '').toUpperCase();
-        const dValCode = ((d as any).validation_code || (dManifest ? `CATRAKI-${dManifest.substring(0, 4)}-${dManifest.substring(dManifest.length - 4)}` : '')).toUpperCase();
-        const dIdClean = d.id.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const dValCode = ((d as any).validation_code || (dManifest.length >= 8 ? `SESI-${dManifest.substring(0, 4)}-${dManifest.substring(dManifest.length - 4)}` : '')).toUpperCase();
+        const dIdClean = (d.id || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
         const dTokenClean = (d.access_token || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-        const isHexMatch = cleanNoPrefix.length === 8 && dManifest.length >= 8 &&
+        const isHexMatch = hexPref && hexSuff && dManifest.length >= 8 &&
           dManifest.startsWith(hexPref) && dManifest.endsWith(hexSuff);
+
+        const isIdMatch = hexPref && hexSuff && dIdClean.length >= 8 &&
+          dIdClean.includes(hexPref) && dIdClean.includes(hexSuff);
 
         return (
           d.id.toUpperCase() === clean ||
           dIdClean === cleanRaw ||
-          dIdClean.includes(cleanNoPrefix) ||
-          dTokenClean.includes(cleanNoPrefix) ||
+          (cleanNoPrefix.length >= 4 && dIdClean.includes(cleanNoPrefix)) ||
+          (cleanNoPrefix.length >= 4 && dTokenClean.includes(cleanNoPrefix)) ||
           dValCode === clean ||
           dValCode.replace(/-/g, '') === cleanRaw ||
-          dManifest.toLowerCase() === query.trim().toLowerCase() ||
-          isHexMatch
+          dValCode.replace(/^SESI-/i, 'CATRAKI-') === clean ||
+          dManifest.toLowerCase() === cleanLower ||
+          isHexMatch ||
+          isIdMatch
         );
       });
 
       if (doc) {
-        const manifest = (doc as any).manifest_sha256 || doc.content_sha256 || (doc as any).doc_parent_hash_sha256 || `${cleanNoPrefix.toLowerCase()}${'0'.repeat(Math.max(0, 64 - cleanNoPrefix.length))}`;
-        const validationCode = (doc as any).validation_code || `CATRAKI-${manifest.substring(0, 4).toUpperCase()}-${manifest.substring(manifest.length - 4).toUpperCase()}`;
+        const manifest = (doc as any).manifest_sha256 || doc.content_sha256 || (doc as any).doc_parent_hash_sha256 || (is64Hex ? cleanLower : `${cleanNoPrefix.toLowerCase()}${'0'.repeat(Math.max(0, 64 - cleanNoPrefix.length))}`);
+        const codePrefix = clean.startsWith('CATRAKI') ? 'CATRAKI' : 'SESI';
+        const validationCode = (doc as any).validation_code || `${codePrefix}-${manifest.substring(0, 4).toUpperCase()}-${manifest.substring(Math.max(0, manifest.length - 4)).toUpperCase()}`;
 
         return {
           success: true,
@@ -921,7 +963,9 @@ export const apiClient = {
     if (!audit) {
       return { success: false, error: 'Código de validação ou manifesto não localizado na base de registros da plataforma. Verifique se digitou o código completo (Ex: CATRAKI-XXXX-XXXX ou SESI-XXXX-XXXX).' };
     }
-    const validationCode = `CATRAKI-${audit.manifest_sha256.substring(0, 4).toUpperCase()}-${audit.manifest_sha256.substring(audit.manifest_sha256.length - 4).toUpperCase()}`;
+
+    const codePrefix = clean.startsWith('CATRAKI') ? 'CATRAKI' : 'SESI';
+    const validationCode = `${codePrefix}-${audit.manifest_sha256.substring(0, 4).toUpperCase()}-${audit.manifest_sha256.substring(audit.manifest_sha256.length - 4).toUpperCase()}`;
 
     // Monta string de geolocalização apenas com dados reais disponíveis
     const geoStr = [audit.geo_city, audit.geo_region, audit.geo_country]
@@ -931,7 +975,7 @@ export const apiClient = {
     return {
       success: true,
       validation: {
-        valid: true,
+        valid: doc?.status !== 'CANCELADO_POR_ERRO' && (doc?.status as any) !== 'cancelled_error' && doc?.status !== 'revoked',
         validation_code: validationCode,
         // Classificação correta: Assinatura Eletrônica Avançada (Art. 4º, II, Lei 14.063/2020)
         legal_notice: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020 c/c Art. 10, §2º, MP nº 2.200-2/2001; LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
@@ -950,7 +994,10 @@ export const apiClient = {
         identity_method: audit.identity_method,
         procedure_title: doc?.template_title || 'Procedimento Médico SESI',
         procedure_description: doc?.procedure_description || 'Descrição médica registrada.',
-        minor_name_initials: getInitials(doc?.minor_name || 'Menor Cadastrado'),
+        minor_name_initials: getInitials(doc?.minor_name || (audit as any).minor_name || 'Menor Cadastrado'),
+        minor_series: (doc as any)?.minor_series,
+        minor_class: (doc as any)?.minor_class,
+        minor_turn: (doc as any)?.minor_turn,
         document_status: doc?.status || 'signed',
         chain_position: logs.findIndex((a) => a.id === audit.id) + 1,
         prev_log_hash: audit.prev_log_hash,
@@ -958,8 +1005,13 @@ export const apiClient = {
         // Carimbo do tempo interno — não confundir com TSA ICP-Brasil
         tsa_authority: 'Catraki TSA Interno (Sincronizado NTP.br / RFC 3161-Like)',
         revocation_info: doc?.status === 'revoked' ? {
-          revoked_at: doc.revoked_at || '',
-          revoked_reason: doc.revoked_reason || 'Revogado a pedido do responsável legal',
+          revoked_at: doc?.revoked_at || '',
+          revoked_reason: doc?.revoked_reason || 'Revogado a pedido do responsável legal',
+        } : null,
+        cancellation_info: doc?.status === 'CANCELADO_POR_ERRO' || (doc?.status as any) === 'cancelled_error' ? {
+          cancelled_at: doc?.cancelled_at || doc?.revoked_at || '',
+          cancellation_reason: doc?.cancellation_reason || doc?.revoked_reason || 'Invalidação administrativa por erro operacional',
+          cancelled_by_role: 'Operador Administrativo SESI / Saúde',
         } : null,
       },
     };
@@ -1067,7 +1119,13 @@ export const apiClient = {
       const resp = await fetch(url, {
         headers: this.getAuthHeaders(),
       });
-      if (resp.ok) return await resp.json();
+      if (resp.ok) {
+        const data = (await resp.json()) as any;
+        if (data && data.success && Array.isArray(data.documents)) {
+          setDocuments(data.documents);
+        }
+        return data;
+      }
       if (resp.status === 401 && this.getAdminToken()) {
         this.logoutAdmin();
       }
@@ -1285,7 +1343,7 @@ export const apiClient = {
       const resp = await fetch(`${API_BASE}/admin/manual-reviews`, {
         headers: this.getAuthHeaders(),
       });
-      if (resp.ok) return await resp.json();
+      if (resp.ok) return (await resp.json()) as any;
       if (resp.status === 401 && this.getAdminToken()) {
         this.logoutAdmin();
       }
@@ -1300,7 +1358,7 @@ export const apiClient = {
         headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ action, notes }),
       });
-      if (resp.ok) return await resp.json();
+      if (resp.ok) return (await resp.json()) as any;
       if (resp.status === 401 && this.getAdminToken()) {
         this.logoutAdmin();
       }
@@ -1322,7 +1380,7 @@ export const apiClient = {
       const resp = await fetch(`${API_BASE}/admin/verify-chain`, {
         headers: this.getAuthHeaders(),
       });
-      if (resp.ok) return await resp.json();
+      if (resp.ok) return (await resp.json()) as any;
       if (resp.status === 401 && this.getAdminToken()) {
         this.logoutAdmin();
       }
@@ -1342,7 +1400,13 @@ export const apiClient = {
       const resp = await fetch(`${API_BASE}/admin/audit-logs`, {
         headers: this.getAuthHeaders(),
       });
-      if (resp.ok) return await resp.json();
+      if (resp.ok) {
+        const data = (await resp.json()) as any;
+        if (data && data.success && Array.isArray(data.logs)) {
+          setAuditLogs(data.logs);
+        }
+        return data;
+      }
       if (resp.status === 401 && this.getAdminToken()) {
         this.logoutAdmin();
       }

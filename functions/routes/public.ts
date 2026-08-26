@@ -20,16 +20,28 @@ publicRouter.get('/validate/:query', async (c) => {
     return c.json({ success: false, error: 'Código ou hash de validação inválido.', code: 'INVALID_QUERY' }, 400);
   }
 
-  const clean = query.trim();
-  const cleanLower = clean.toLowerCase();
+  // Normalização avançada: decodifica URLs, remove aspas e barras
+  let clean = decodeURIComponent(query.trim());
+  if (clean.includes('/validar/')) {
+    clean = clean.split('/validar/').pop()?.split('?')[0]?.split('#')[0] || clean;
+  }
+  clean = clean.replace(/^[/#]+/, '').trim();
 
-  // Remove prefixo 'SESI-' ou 'CATRAKI-' caso o usuário tenha colado o código de validação formatado
-  const searchHex = clean.replace(/^(SESI|CATRAKI)-?/i, '').replace(/[^a-fA-F0-9]/g, '').toLowerCase();
+  const cleanUpper = clean.toUpperCase();
+  const cleanLower = clean.toLowerCase();
+  const cleanRaw = cleanUpper.replace(/[^A-Z0-9]/g, '');
+  const cleanNoPrefix = cleanRaw.replace(/^(SESI|CATRAKI|DOC)/i, '');
+  const is64Hex = /^[0-9a-f]{64}$/i.test(clean);
+
+  // Extrai prefixo e sufixo de 4 caracteres para códigos hexadecimais formatados (ex: SESI-0AD2-2A49 -> 0ad2 e 2a49)
+  const searchHex = cleanNoPrefix.replace(/[^0-9a-f]/gi, '').toLowerCase();
+  const hexPrefix = searchHex.length >= 8 ? searchHex.substring(0, 4) : '';
+  const hexSuffix = searchHex.length >= 8 ? searchHex.substring(searchHex.length - 4) : '';
 
   let record: any = null;
 
-  if (cleanLower.length === 64 && /^[0-9a-f]{64}$/.test(cleanLower)) {
-    // 1. Busca por Hash SHA-256 exato de 64 caracteres
+  if (is64Hex) {
+    // 1. Busca exata por Hash SHA-256 (64 hexadecimais)
     record = await db.prepare(
       `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
               d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason, d.cancelled_by_admin_id,
@@ -37,43 +49,57 @@ publicRouter.get('/validate/:query', async (c) => {
        FROM audit_logs a
        LEFT JOIN documents d ON a.document_id = d.id
        LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-       WHERE a.manifest_sha256 = ?
+       WHERE a.manifest_sha256 = ? 
+          OR a.content_sha256_at_signing = ? 
+          OR a.doc_parent_hash_sha256 = ?
+          OR a.signature_png_sha256 = ?
        LIMIT 1`
-    ).bind(cleanLower).first<any>();
-  } else if (searchHex.length === 8) {
-    // 2. Busca estrita por código formatado SESI-XXXX-YYYY (exatamente 8 chars hexadecimais: 4 prefixo + 4 sufixo)
-    const hexPrefix = searchHex.substring(0, 4);
-    const hexSuffix = searchHex.substring(4, 8);
-
-    record = await db.prepare(
-      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
-              d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason, d.cancelled_by_admin_id,
-              t.title as template_title, t.procedure_description
-       FROM audit_logs a
-       LEFT JOIN documents d ON a.document_id = d.id
-       LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-       WHERE a.manifest_sha256 LIKE ? AND a.manifest_sha256 LIKE ?
-       LIMIT 1`
-    ).bind(`${hexPrefix}%`, `%${hexSuffix}`).first<any>();
-  } else if (clean.startsWith('DOC-') && clean.length >= 8) {
-    // 3. Busca por identificador de documento DOC-YYYYMMDD-HHMMSS ou DOC-XXXX
-    record = await db.prepare(
-      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
-              d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason, d.cancelled_by_admin_id,
-              t.title as template_title, t.procedure_description
-       FROM audit_logs a
-       LEFT JOIN documents d ON a.document_id = d.id
-       LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-       WHERE a.document_id = ? OR a.document_id LIKE ?
-       LIMIT 1`
-    ).bind(clean, `%${clean}%`).first<any>();
+    ).bind(cleanLower, cleanLower, cleanLower, cleanLower).first<any>();
   }
 
-  // 4. Se não encontrado em audit_logs, busca diretamente na tabela documents
+  if (!record && hexPrefix && hexSuffix) {
+    // 2. Busca por código formatado SESI-XXXX-YYYY / CATRAKI-XXXX-YYYY (4 prefixo + 4 sufixo)
+    record = await db.prepare(
+      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
+              d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason, d.cancelled_by_admin_id,
+              t.title as template_title, t.procedure_description
+       FROM audit_logs a
+       LEFT JOIN documents d ON a.document_id = d.id
+       LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       WHERE (a.manifest_sha256 LIKE ? AND a.manifest_sha256 LIKE ?)
+          OR (a.content_sha256_at_signing LIKE ? AND a.content_sha256_at_signing LIKE ?)
+          OR (a.doc_parent_hash_sha256 LIKE ? AND a.doc_parent_hash_sha256 LIKE ?)
+          OR a.document_id LIKE ?
+          OR a.id LIKE ?
+       LIMIT 1`
+    ).bind(
+      `${hexPrefix}%`, `%${hexSuffix}`,
+      `${hexPrefix}%`, `%${hexSuffix}`,
+      `${hexPrefix}%`, `%${hexSuffix}`,
+      `%${searchHex}%`,
+      `%${searchHex}%`
+    ).first<any>();
+  }
+
+  if (!record && clean.length >= 4) {
+    // 3. Busca por identificador de documento DOC-YYYYMMDD-XXXX ou access_token
+    record = await db.prepare(
+      `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
+              d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason, d.cancelled_by_admin_id,
+              t.title as template_title, t.procedure_description
+       FROM audit_logs a
+       LEFT JOIN documents d ON a.document_id = d.id
+       LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       WHERE a.document_id = ? OR a.document_id LIKE ? OR a.id = ?
+       LIMIT 1`
+    ).bind(clean, `%${clean}%`, clean).first<any>();
+  }
+
+  // 4. Se não localizado em audit_logs, busca diretamente na tabela documents
   if (!record && db) {
     let docRecord: any = null;
 
-    if (cleanLower.length === 64) {
+    if (is64Hex) {
       docRecord = await db.prepare(
         `SELECT d.*, t.title as template_title, t.procedure_description
          FROM documents d
@@ -81,9 +107,7 @@ publicRouter.get('/validate/:query', async (c) => {
          WHERE d.content_sha256 = ? OR d.doc_parent_hash_sha256 = ?
          LIMIT 1`
       ).bind(cleanLower, cleanLower).first<any>().catch(() => null);
-    } else if (searchHex.length === 8) {
-      const hexPrefix = searchHex.substring(0, 4);
-      const hexSuffix = searchHex.substring(4, 8);
+    } else if (hexPrefix && hexSuffix) {
       docRecord = await db.prepare(
         `SELECT d.*, t.title as template_title, t.procedure_description
          FROM documents d
@@ -117,7 +141,7 @@ publicRouter.get('/validate/:query', async (c) => {
       record = {
         ...(matchedAudit || {}),
         document_id: docRecord.id,
-        manifest_sha256: matchedAudit?.manifest_sha256 || docRecord.doc_parent_hash_sha256 || docRecord.content_sha256 || (cleanLower.length === 64 ? cleanLower : `${searchHex}${'0'.repeat(Math.max(0, 64 - searchHex.length))}`),
+        manifest_sha256: matchedAudit?.manifest_sha256 || docRecord.doc_parent_hash_sha256 || docRecord.content_sha256 || (is64Hex ? cleanLower : `${searchHex}${'0'.repeat(Math.max(0, 64 - searchHex.length))}`),
         content_sha256_at_signing: matchedAudit?.content_sha256_at_signing || docRecord.content_sha256 || 'SHA256-PENDING',
         signature_png_sha256: matchedAudit?.signature_png_sha256 || docRecord.doc_parent_hash_sha256,
         signed_at: matchedAudit?.signed_at || docRecord.otp_verified_at || docRecord.created_at,
@@ -130,7 +154,7 @@ publicRouter.get('/validate/:query', async (c) => {
         geo_region: matchedAudit?.geo_region || 'DF',
         geo_country: matchedAudit?.geo_country || 'BR',
         user_agent: matchedAudit?.user_agent || 'Navegador Web Padrão',
-        identity_method: matchedAudit?.identity_method || 'OTP_EMAIL',
+        identity_method: matchedAudit?.identity_method || 'matricula_sesi',
         minor_name: docRecord.minor_name || 'Estudante',
         minor_series: docRecord.minor_series,
         minor_class: docRecord.minor_class,
@@ -160,9 +184,9 @@ publicRouter.get('/validate/:query', async (c) => {
   // Conta posição na cadeia
   const positionResult = await db.prepare(
     `SELECT COUNT(*) as pos FROM audit_logs WHERE created_at <= ?`
-  ).bind(record.created_at).first<{ pos: number }>();
+  ).bind(record.created_at || record.signed_at || new Date().toISOString()).first<{ pos: number }>().catch(() => ({ pos: 1 }));
 
-  const maskedIp = maskIpAddress(record.ip_address);
+  const maskedIp = maskIpAddress(record.ip_address || '127.0.0.1');
 
   const geoStr = [record.geo_city, record.geo_region, record.geo_country]
     .filter(Boolean)
@@ -170,13 +194,18 @@ publicRouter.get('/validate/:query', async (c) => {
 
   const isCancelledError = record.doc_status === 'CANCELADO_POR_ERRO' || record.doc_status === 'cancelled_error';
 
+  const codePrefix = cleanUpper.startsWith('CATRAKI') ? 'CATRAKI' : 'SESI';
+  const manifest = record.manifest_sha256 || '0'.repeat(64);
+  const validationCode = `${codePrefix}-${manifest.substring(0, 4).toUpperCase()}-${manifest.substring(Math.max(0, manifest.length - 4)).toUpperCase()}`;
+
   const response: PublicValidationResponse = {
     valid: !isCancelledError && record.doc_status !== 'revoked',
+    validation_code: validationCode,
     legal_notice: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020 c/c Art. 10, §2º, MP nº 2.200-2/2001; LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
     signature_type: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020',
     document_id: record.document_id,
     manifest_sha256: record.manifest_sha256,
-    content_sha256: record.content_sha256_at_signing,
+    content_sha256: record.content_sha256_at_signing || record.content_sha256 || 'SHA256-PENDING',
     signature_png_sha256: record.signature_png_sha256,
     signed_at_utc: record.signed_at,
     signer_name: record.signer_name,

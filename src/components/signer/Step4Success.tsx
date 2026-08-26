@@ -129,11 +129,11 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
 
         {/* Título do Recibo */}
         <div className="text-center mb-5 sm:mb-6 pb-3 border-b border-slate-100">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-[11px] sm:text-xs font-bold uppercase tracking-wider mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50/60 text-emerald-700 border border-emerald-200/60 rounded-full text-[11px] sm:text-xs font-bold uppercase tracking-wider mb-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600" /> 
             <span>Assinatura Concluída</span>
           </div>
-          <h1 className="text-sm sm:text-base font-bold uppercase tracking-wide text-slate-900 m-0">
+          <h1 className="text-sm sm:text-base font-extrabold uppercase tracking-wider text-slate-800 m-0">
             COMPROVANTE DE ASSINATURA ELETRÔNICA
           </h1>
           <p className="text-xs text-slate-500 mt-1">
@@ -142,16 +142,19 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
         </div>
 
         {/* Banner de Envio de Cópia por E-mail */}
-        <div className="mb-4 bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 sm:p-3.5 flex items-start gap-3 text-emerald-950">
-          <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
-            <MailCheck className="w-4 h-4" />
+        <div className="mb-5 bg-emerald-50/40 border border-emerald-200/80 rounded-xl p-3 sm:p-4 flex items-start gap-3.5 text-emerald-950 shadow-2xs">
+          <div className="w-9 h-9 rounded-xl bg-emerald-100/60 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-200/50 shadow-3xs">
+            <MailCheck className="w-4.5 h-4.5" />
           </div>
-          <div className="space-y-0.5 text-xs sm:text-sm">
-            <strong className="text-xs sm:text-sm font-bold uppercase tracking-wide block text-emerald-950">
+          <div className="space-y-1 text-left flex-1 min-w-0">
+            <strong className="text-xs sm:text-sm font-bold uppercase tracking-wider block text-emerald-950">
               Cópia do Comprovante Enviada por E-mail
             </strong>
             <p className="text-xs text-emerald-800 m-0 leading-relaxed">
-              Uma via completa deste termo assinado e o código de autenticidade foram enviados para: <span className="font-bold underline text-emerald-950 break-all">{signerEmail || 'seu e-mail informado'}</span>.
+              Uma via completa deste termo assinado e o código de autenticidade foram enviados para o endereço:
+              <span className="inline-block px-2 py-0.5 bg-emerald-100/60 border border-emerald-200/80 text-emerald-900 font-mono font-bold rounded-md mx-1 select-all break-all">
+                {signerEmail || 'seu e-mail informado'}
+              </span>
             </p>
           </div>
         </div>
@@ -167,7 +170,12 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
 
         {/* Dados Principais do Evento */}
         <div className="space-y-4 sm:space-y-5 text-xs sm:text-sm">
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 sm:p-4 space-y-2.5">
+          <div className="border border-slate-200 rounded-xl p-3.5 sm:p-4 bg-slate-50/50 space-y-3">
+            <h3 className="font-bold text-xs sm:text-sm uppercase tracking-wider text-slate-800 flex items-center gap-2 m-0 border-b border-slate-200 pb-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" /> 
+              <span>Dados da Autorização</span>
+            </h3>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs sm:text-sm">
               <div>
                 <span className="block text-[10px] font-bold text-slate-400 uppercase">Estudante</span>

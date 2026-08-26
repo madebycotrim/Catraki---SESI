@@ -248,11 +248,19 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
         {/* Título */}
         <div className="text-left mb-6 sm:mb-8">
           <h1 className="text-sm sm:text-base font-bold uppercase tracking-wide text-slate-900 m-0">
-            1. IDENTIFICAÇÃO DAS PARTES (PREENCHIMENTO)
+            1. IDENTIFICAÇÃO DO RESPONSÁVEL E DO ESTUDANTE
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Os dados informados serão utilizados para a identificação do signatário e do estudante no Termo de Consentimento.
-          </p>
+          <div className="text-xs text-slate-500 mt-1.5 space-y-1 leading-relaxed">
+            <p className="m-0">
+              <strong>Quem deve preencher:</strong> Este formulário deve ser preenchido pelo <strong>responsável legal</strong> (mãe, pai, tutor ou guardião judicial) que irá assinar eletronicamente o termo.
+            </p>
+            <p className="m-0">
+              <strong>Como funciona a validação:</strong> Os dados informados serão cruzados automaticamente com o cadastro escolar e a base de matrículas do <strong>SESI-DF</strong> para verificar o vínculo familiar. Caso esse vínculo não seja localizado de forma automática, a plataforma solicitará o envio de uma foto do documento de identidade e certidão de nascimento do menor na etapa seguinte para <strong>revisão manual da equipe</strong>.
+            </p>
+            <p className="m-0 text-sesi-primary font-medium">
+              🔒 <strong>Privacidade Garantida:</strong> Todo o tratamento de dados pessoais é criptografado e segue estritamente as diretrizes da LGPD (Lei nº 13.709/2018).
+            </p>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">

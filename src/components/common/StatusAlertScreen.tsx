@@ -178,33 +178,33 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
 
   // Cenário 4: Falha na etapa de confirmação de identidade (OTP/Token)
   return (
-    <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-5 sm:p-6 text-left shadow-sm space-y-4 my-4 animate-in fade-in duration-300">
-      <div className="flex items-start gap-3.5">
-        <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 mt-0.5 border border-red-200">
-          <KeyRound className="w-5 h-5" />
+    <div className="bg-red-50 border border-red-200 rounded-xl p-4 sm:p-5 text-left shadow-xs space-y-3.5 my-2 animate-in fade-in duration-300">
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 mt-0.5 border border-red-100">
+          <KeyRound className="w-4 h-4" />
         </div>
-        <div className="space-y-1 flex-1">
-          <h3 className="text-base sm:text-lg font-bold text-red-950">
+        <div className="space-y-0.5 flex-1">
+          <h3 className="text-sm sm:text-base font-bold text-red-950">
             Não foi possível confirmar sua identidade
           </h3>
-          <p className="text-sm font-semibold text-red-800 leading-snug">
+          <p className="text-xs sm:text-sm font-semibold text-red-800 leading-snug">
             O código de segurança inserido está incorreto ou já expirou.
           </p>
         </div>
       </div>
 
-      <p className="text-xs sm:text-sm text-slate-700 leading-relaxed bg-white/70 p-3 rounded-xl border border-red-100">
+      <p className="text-xs text-slate-600 leading-normal bg-white/60 p-2.5 rounded-lg border border-red-100/50">
         Para mantermos a validade jurídica da sua assinatura, precisamos ter certeza de que é você. Por favor, solicite um novo código e tente novamente em alguns instantes.
       </p>
 
       {onPrimaryAction && (
-        <div className="pt-1 flex justify-end">
+        <div className="flex justify-end pt-0.5">
           <button
             onClick={onPrimaryAction}
             type="button"
-            className="w-full sm:w-auto px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg shadow-2xs transition-all flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer"
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-3.5 h-3.5" />
             {primaryActionLabel || 'Reenviar código de segurança'}
           </button>
         </div>

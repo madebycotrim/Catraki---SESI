@@ -30,6 +30,7 @@ import {
   getTransactionalCompletionEmailHtml,
   getTransactionalCompletionEmailText,
   getCompletionEmailSubject,
+  getTransactionalOtpEmailHtml,
 } from '../../src/lib/email-templates.ts';
 import { querySesiMatricula } from '../../src/lib/sesi-matricula.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
@@ -474,72 +475,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
       const resendApiKey = (c.env as any).RESEND_API_KEY;
       const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
 
-      const otpHtml = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Código de Confirmação — Catraki</title>
-  <style>
-    body { margin:0;padding:0;background-color:#e8edf4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1e293b;-webkit-font-smoothing:antialiased; }
-    .wrapper { width:100%;background-color:#e8edf4;padding:36px 12px; }
-    .sheet { max-width:600px;margin:0 auto;background:#fff;border:1px solid #cbd5e1;border-radius:4px;box-shadow:0 4px 18px -2px rgba(0,0,0,.12),0 1px 4px rgba(0,0,0,.06);overflow:hidden; }
-    .sheet-header { padding:24px 28px 18px 28px; }
-    .logo-mark { width:40px;height:40px;background:#034b7f;border-radius:8px;display:inline-block;text-align:center;line-height:40px;font-size:22px;font-weight:900;color:#fff;font-family:Georgia,serif;letter-spacing:-1px;vertical-align:middle; }
-    .title-wrap { display:inline-block;vertical-align:middle;padding-left:14px; }
-    .doc-title { margin:0;font-size:14px;font-weight:800;color:#034b7f;text-transform:uppercase;letter-spacing:.03em;line-height:1.2; }
-    .doc-subtitle { display:block;margin-top:3px;font-size:9.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em; }
-    .header-divider { height:2.5px;background:#034b7f;margin:0 28px; }
-    .sheet-body { padding:28px 28px 24px 28px;font-size:13.5px;color:#334155;line-height:1.65; }
-    .otp-box { background:#f0f9ff;border:2px solid #bae6fd;border-radius:10px;padding:22px;text-align:center;margin:20px 0; }
-    .otp-code { font-size:38px;font-weight:800;letter-spacing:8px;color:#034b7f;font-family:monospace; }
-    .sheet-footer { border-top:1px solid #e2e8f0;background:#f8fafc;padding:16px 28px;text-align:center;font-size:10.5px;color:#94a3b8;line-height:1.6; }
-    .sheet-footer a { color:#034b7f;text-decoration:underline; }
-  </style>
-</head>
-<body>
-  <div class="wrapper">
-    <div class="sheet">
-
-      <!-- Cabeçalho -->
-      <div class="sheet-header">
-        <span class="logo-mark">C</span>
-        <span class="title-wrap">
-          <p class="doc-title">Escola Cidadã — Saúde em Movimento</p>
-          <span class="doc-subtitle">Validação de Autoria por Código Eletrônico</span>
-        </span>
-      </div>
-      <div class="header-divider"></div>
-
-      <!-- Corpo -->
-      <div class="sheet-body">
-        <p style="margin:0 0 14px 0;">Olá,</p>
-        <p style="margin:0 0 20px 0;">
-          Para autenticar e concluir a assinatura do Termo de Consentimento referente ao(à)
-          estudante <strong>${studentName}</strong>, utilize o código de segurança abaixo:
-        </p>
-
-        <div class="otp-box">
-          <span class="otp-code">${otpCode}</span>
-        </div>
-
-        <p style="color:#64748b;font-size:11.5px;line-height:1.5;margin:20px 0 0 0;">
-          ⏱️ <strong>Validade:</strong> Este código expira em 5 minutos.
-          Se você não solicitou este procedimento, por favor desconsidere este e-mail.
-        </p>
-      </div>
-
-      <!-- Rodapé -->
-      <div class="sheet-footer">
-        Assinatura Eletrônica Avançada &bull; Lei Federal nº&nbsp;14.063/2020 &bull; Plataforma Catraki<br>
-        Para mais informações sobre como protegemos seus dados, consulte nossa
-        <a href="https://www.catraki.com.br/privacidade">Política de Privacidade e Termos de Uso</a>.
-      </div>
-
-    </div>
-  </div>
-</body>
-</html>`;
+      const otpHtml = getTransactionalOtpEmailHtml({ studentName, otpCode });
 
       if (resendApiKey) {
         try {

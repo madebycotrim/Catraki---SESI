@@ -187,7 +187,7 @@ body {
   .document-sheet-a4 {
     padding: 2.75rem 2.75rem 4rem 2.75rem;
     border-radius: 0px;
-    min-height: 1080px;
+    min-height: auto;
   }
 }
 

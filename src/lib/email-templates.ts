@@ -45,36 +45,42 @@ const EMAIL_BASE_CSS = `
   }
   .logo-cell {
     vertical-align: middle;
-    width: 44px;
+    width: 48px;
     padding-right: 16px;
+    text-align: left;
   }
   .logo-img {
     display: block;
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     border-radius: 10px;
     border: none;
   }
   .title-cell {
     vertical-align: middle;
+    text-align: right;
   }
-  .doc-title {
+  .platform-tag {
     margin: 0;
-    font-size: 14px;
-    font-weight: 800;
-    color: #034b7f;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    line-height: 1.2;
-  }
-  .doc-subtitle {
-    display: block;
-    margin-top: 3px;
-    font-size: 9.5px;
+    font-size: 10px;
     font-weight: 700;
     color: #64748b;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+  }
+  .doc-title {
+    margin: 3px 0 0 0;
+    font-size: 15px;
+    font-weight: 800;
+    color: #034b7f;
+    line-height: 1.3;
+  }
+  .doc-date {
+    display: block;
+    margin-top: 3px;
+    font-size: 10px;
+    color: #94a3b8;
   }
   .header-divider {
     height: 2.5px;
@@ -214,27 +220,33 @@ const EMAIL_BASE_CSS = `
 `;
 
 /**
- * Envolve o conteúdo no shell padrão de e-mail com design A4.
- * @param titleLine  Título principal em MAIÚSCULAS (ex: "ESCOLA CIDADÃ — SAÚDE EM MOVIMENTO")
- * @param subtitle   Subtítulo descritivo (ex: "Notificação de Cancelamento de Documento")
+ * Envolve o conteúdo no shell padrão de e-mail com design A4 e cabeçalho alinhado à direita.
+ * @param emailTitle Título principal (ex: "Comprovante de Assinatura Eletrônica")
  * @param body       HTML interno do corpo do e-mail
  * @param footerExtra Texto opcional adicional no rodapé
  */
 function buildEmailShell(
-  titleLine: string,
-  subtitle: string,
+  emailTitle: string,
   body: string,
   footerExtra?: string,
 ): string {
+  const dataHoje = new Intl.DateTimeFormat('pt-BR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'America/Sao_Paulo',
+  }).format(new Date());
+
   const footer = footerExtra
     ? `${footerExtra}<br>`
     : '';
+
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${titleLine}</title>
+  <title>${emailTitle}</title>
   <style>${EMAIL_BASE_CSS}</style>
 </head>
 <body>
@@ -245,12 +257,13 @@ function buildEmailShell(
       <div class="sheet-header">
         <table class="sheet-header-table">
           <tr>
-            <td class="logo-cell" style="vertical-align: middle; width: 44px; padding-right: 16px;">
-              <img src="https://www.catraki.com.br/catraki.png" alt="Logo Catraki" class="logo-img" width="44" height="44" style="display: block; border-radius: 10px; width: 44px; height: 44px; border: none; outline: none;" />
+            <td class="logo-cell">
+              <img src="https://www.catraki.com.br/catraki.png" alt="Logo Catraki" class="logo-img" width="48" height="48" />
             </td>
-            <td class="title-cell" style="vertical-align: middle;">
-              <p class="doc-title">${titleLine}</p>
-              <span class="doc-subtitle">${subtitle}</span>
+            <td class="title-cell">
+              <p class="platform-tag">PLATAFORMA CATRAKI</p>
+              <h1 class="doc-title">${emailTitle}</h1>
+              <span class="doc-date">${dataHoje}</span>
             </td>
           </tr>
         </table>
@@ -450,8 +463,7 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
   `;
 
   return buildEmailShell(
-    'PLATAFORMA CATRAKI — ASSINATURA ELETRÔNICA',
-    'Aviso de Cancelamento de Autorização',
+    'Cancelamento de Autorização',
     body,
     'Este é um e-mail transacional automático emitido em conformidade com o Marco Civil da Internet (Lei nº 12.965/2014) e a LGPD (Lei nº 13.709/2018).',
   );
@@ -592,8 +604,7 @@ export function getRevocationEmailHtml(params: RevocationEmailParams): string {
   `;
 
   return buildEmailShell(
-    'PLATAFORMA CATRAKI — ASSINATURA ELETRÔNICA',
-    'Confirmação de Revogação de Consentimento — LGPD Art. 18',
+    'Revogação de Consentimento',
     body,
     'E-mail transacional imutável emitido pela Plataforma Catraki em conformidade com a LGPD (Lei nº 13.709/2018, Art. 18) e Marco Civil da Internet (Lei nº 12.965/2014).',
   );
@@ -691,10 +702,9 @@ export function getTransactionalCompletionEmailHtml(params: CompletionEmailParam
   `;
 
   return buildEmailShell(
-    'PLATAFORMA CATRAKI — ASSINATURA ELETRÔNICA',
-    'Confirmação de Conclusão de Assinatura',
+    'Comprovante de Assinatura Eletrônica',
     body,
-    'Este é um e-mail transacional automático emitido em conformidade com a MP 2.200-2/2001, Lei 14.063/2020 e LGPD (Lei nº 13.709/2018).',
+    'Este é um e-mail transacional automático emitido em conformidade com o MP 2.200-2/2001, Lei 14.063/2020 e LGPD (Lei nº 13.709/2018).',
   );
 }
 
@@ -723,4 +733,51 @@ Atenciosamente,
 
 Equipe ${companyName}
 ${companyWebsite} | ${supportPhone ? `${supportPhone} | ` : ''}${supportEmail}`;
+}
+
+// ---------------------------------------------------------------------------
+// SOLICITAÇÃO DE CÓDIGO DE SEGURANÇA (OTP)
+// ---------------------------------------------------------------------------
+
+/**
+ * Gera o template HTML padronizado para e-mail de envio de OTP.
+ */
+export function getTransactionalOtpEmailHtml(params: { studentName: string; otpCode: string }): string {
+  const { studentName, otpCode } = params;
+  const body = `
+    <p>Olá,</p>
+    <p>
+      Para autenticar e concluir a assinatura do Termo de Consentimento referente ao(à)
+      estudante <strong>${studentName}</strong>, utilize o código de segurança abaixo:
+    </p>
+
+    <div class="otp-box">
+      <span class="otp-code">${otpCode}</span>
+    </div>
+
+    <p style="color:#64748b;font-size:11.5px;line-height:1.5;margin:20px 0 0 0;">
+      ⏱️ <strong>Validade:</strong> Este código expira em 5 minutos.
+      Se você não solicitou este procedimento, por favor desconsidere este e-mail.
+    </p>
+  `;
+
+  return buildEmailShell(
+    'Código de Confirmação',
+    body,
+    'Este é um e-mail transacional automático para validação de autoria por código eletrônico (2FA) em conformidade com a Lei 14.063/2020.',
+  );
+}
+
+/**
+ * Versão texto puro do e-mail de OTP.
+ */
+export function getTransactionalOtpEmailText(params: { studentName: string; otpCode: string }): string {
+  const { studentName, otpCode } = params;
+  return `Assunto: Código de Confirmação: ${otpCode}
+
+Olá, para autenticar e concluir a assinatura do Termo de Consentimento do(a) estudante ${studentName}, utilize o código de segurança abaixo:
+
+${otpCode}
+
+Este código expira em 5 minutos.`;
 }

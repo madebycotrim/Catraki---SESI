@@ -13,7 +13,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { StatusAlertScreen } from '../common/StatusAlertScreen.tsx';
-import { apiClient } from '../../lib/api.ts';
+import { apiClient, captureDeviceFingerprint } from '../../lib/api.ts';
 import { calcularIdade, maskCPF } from '../../lib/schemas.ts';
 import type { SignerRelationship } from '../../lib/types.ts';
 
@@ -229,6 +229,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         declaration_art299_penal: true,
         declaration_legal_responsibility: true,
         client_fingerprint: `${navigator.language}_${screen.width}x${screen.height}`,
+        device_fingerprint_data: captureDeviceFingerprint(),
         ip_address: clientGeo.ip || undefined,
         geolocation: clientGeo.location || undefined,
         user_agent: navigator.userAgent,

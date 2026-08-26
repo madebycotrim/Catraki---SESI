@@ -55,3 +55,70 @@ export function rateLimiter(options: RateLimitOptions): MiddlewareHandler<{ Bind
     await next();
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OTP BRUTE-FORCE GUARD (Rate Limit por Documento — Anti Força Bruta)
+// Bloqueia tentativas de OTP por documentId no KV com TTL de 15 minutos.
+// Independente de IP (resiste a mudanças de rede / VPN do atacante).
+// Conformidade: Art. 10, MP 2.200-2/2001 (provas de autoria e autenticidade).
+// ─────────────────────────────────────────────────────────────────────────────
+
+const OTP_BLOCK_TTL_SECONDS = 900; // 15 minutos
+const OTP_BLOCK_KEY_PREFIX = 'otp_block';
+
+/**
+ * Verifica se o documentId está temporariamente bloqueado por excesso de erros OTP.
+ * Retorna null se livre, ou { blockedUntil: string, retryAfterSeconds: number } se bloqueado.
+ */
+export async function checkOtpBruteForceBlock(
+  kv: KVNamespace,
+  documentId: string
+): Promise<{ blockedUntil: string; retryAfterSeconds: number } | null> {
+  try {
+    const key = `${OTP_BLOCK_KEY_PREFIX}:${documentId}`;
+    const blockedAtStr = await kv.get(key);
+    if (!blockedAtStr) return null;
+
+    const blockedAt = parseInt(blockedAtStr, 10);
+    const unblockAt = blockedAt + OTP_BLOCK_TTL_SECONDS * 1000;
+    const now = Date.now();
+
+    if (now < unblockAt) {
+      const retryAfterSeconds = Math.ceil((unblockAt - now) / 1000);
+      return {
+        blockedUntil: new Date(unblockAt).toISOString(),
+        retryAfterSeconds,
+      };
+    }
+
+    // Bloco expirou — limpa a chave
+    await kv.delete(key).catch(() => {});
+    return null;
+  } catch {
+    return null; // Falha silenciosa — não bloqueia o fluxo em instabilidade do KV
+  }
+}
+
+/**
+ * Grava um bloqueio de 15 minutos para o documentId no KV.
+ * Chamado após o 3º erro consecutivo de OTP.
+ */
+export async function setOtpBruteForceBlock(kv: KVNamespace, documentId: string): Promise<void> {
+  try {
+    const key = `${OTP_BLOCK_KEY_PREFIX}:${documentId}`;
+    await kv.put(key, Date.now().toString(), { expirationTtl: OTP_BLOCK_TTL_SECONDS });
+  } catch {
+    // Falha silenciosa — o bloqueio no DB ainda protege
+  }
+}
+
+/**
+ * Remove o bloqueio KV após um OTP bem-sucedido.
+ */
+export async function clearOtpBruteForceBlock(kv: KVNamespace, documentId: string): Promise<void> {
+  try {
+    await kv.delete(`${OTP_BLOCK_KEY_PREFIX}:${documentId}`);
+  } catch {
+    // Falha silenciosa
+  }
+}

@@ -434,6 +434,14 @@ export const SignDocumentSchema = z.object({
     errorMap: () => ({ message: 'É obrigatório declarar que é o responsável legal e reconhecer a validade jurídica da assinatura' })
   }),
   client_fingerprint: z.string().max(256).optional(),
+  device_fingerprint_data: z.object({
+    screen_resolution: z.string().optional(),
+    os_name: z.string().optional(),
+    browser_language: z.string().optional(),
+    timezone: z.string().optional(),
+    color_depth: z.number().optional(),
+    captured_at: z.string().optional(),
+  }).optional(),
 });
 
 export const LogAdminExportSchema = z.object({

@@ -38,7 +38,7 @@ import {
   getTransactionalOtpEmailHtml,
 } from '../../src/lib/email-templates.ts';
 import { querySesiMatricula } from '../../src/lib/sesi-matricula.ts';
-import { rateLimiter } from '../middleware/ratelimit.ts';
+import { rateLimiter, checkOtpBruteForceBlock, setOtpBruteForceBlock, clearOtpBruteForceBlock } from '../middleware/ratelimit.ts';
 import type { Env, AuditLogRowInput, DocumentRecord } from '../../src/lib/types.ts';
 
 export const signerRouter = new Hono<{ Bindings: Env }>();
@@ -186,6 +186,25 @@ signerRouter.get('/doc/:token', async (c) => {
   }
 
   const now = new Date().toISOString();
+
+  // ── Verificação de TTL de 3 dias para links enviados por e-mail/WhatsApp ────────
+  // O link expira 3 dias após o envio (token_sent_at + token_ttl_days).
+  // Dados sensíveis de menores: janela mínima de exposição (LGPD Art. 46).
+  if (doc.status === 'pending' && doc.token_sent_at) {
+    const ttlDays = doc.token_ttl_days ?? 3;
+    const sentAt = new Date(doc.token_sent_at).getTime();
+    const linkExpiresAt = sentAt + ttlDays * 24 * 60 * 60 * 1000;
+
+    if (Date.now() > linkExpiresAt) {
+      return c.json({
+        success: false,
+        error: 'Este link de acesso expirou. Por segurança, os links de assinatura são válidos por 3 dias a partir do envio. Entre em contato com a escola ou o SESI para solicitar um novo link.',
+        code: 'TOKEN_LINK_EXPIRED',
+        expired_at: new Date(linkExpiresAt).toISOString(),
+      }, 410); // 410 Gone — semanticamente correto para recursos expirados definitivamente
+    }
+  }
+
   if (doc.status === 'pending' && doc.expires_at && doc.expires_at < now) {
     await db.prepare("UPDATE documents SET status = 'expired' WHERE id = ?").bind(doc.id).run();
     doc.status = 'expired';
@@ -616,7 +635,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
 
 /**
  * POST /api/signer/otp/verify
- * Validação de OTP em tempo constante
+ * Validação de OTP em tempo constante com bloqueio anti-força-bruta no KV (15 min)
  */
 signerRouter.post('/otp/verify', async (c) => {
   const body = await c.req.json();
@@ -629,6 +648,7 @@ signerRouter.post('/otp/verify', async (c) => {
   const { token, otp_code } = parsed.data;
   const db = c.env.DB;
   const pepper = c.env.OTP_PEPPER;
+  const kv = c.env.KV_RATE_LIMIT;
 
   if (!pepper) {
     return c.json({ success: false, error: 'Configuração do servidor incompleta (OTP_PEPPER).', code: 'KEY_CONFIG_ERROR' }, 500);
@@ -639,7 +659,24 @@ signerRouter.post('/otp/verify', async (c) => {
     return c.json({ success: false, error: 'Código de verificação não solicitado.', code: 'OTP_NOT_REQUESTED' }, 400);
   }
 
+  // ── Verificação de Bloqueio Anti-Força-Bruta (KV Temporal — 15 minutos) ────────
+  // Independente de IP: bloqueia por documentId, resistindo a troca de rede/VPN.
+  if (kv) {
+    const block = await checkOtpBruteForceBlock(kv, doc.id);
+    if (block) {
+      return c.json({
+        success: false,
+        error: `Acesso bloqueado por segurança após múltiplas tentativas incorretas. Aguarde ${Math.ceil(block.retryAfterSeconds / 60)} minuto(s) e tente novamente, ou solicite um novo código OTP.`,
+        code: 'OTP_BRUTE_FORCE_BLOCKED',
+        blocked_until: block.blockedUntil,
+        retry_after_seconds: block.retryAfterSeconds,
+      }, 429);
+    }
+  }
+
   if (doc.otp_attempts >= 3) {
+    // Garantia extra: se chegou aqui sem o bloco KV (ex: KV indisponível), aplica bloqueio agora
+    if (kv) await setOtpBruteForceBlock(kv, doc.id);
     return c.json({
       success: false,
       error: 'Número máximo de tentativas de código incorreto excedido (3). Solicite um novo código de verificação.',
@@ -667,15 +704,27 @@ signerRouter.post('/otp/verify', async (c) => {
   const isValid = constantTimeEqual(doc.otp_secret_hash, computedOtpHash);
 
   if (!isValid) {
+    const newAttempts = doc.otp_attempts + 1;
     await db.prepare('UPDATE documents SET otp_attempts = otp_attempts + 1 WHERE id = ?').bind(doc.id).run();
-    const remaining = 3 - (doc.otp_attempts + 1);
+    const remaining = 3 - newAttempts;
+
+    // ── 3º erro: grava bloqueio de 15 min no KV ────────────────────────────────
+    if (newAttempts >= 3 && kv) {
+      await setOtpBruteForceBlock(kv, doc.id);
+    }
+
     return c.json({
       success: false,
-      error: `Código de verificação incorreto. Tentativas restantes: ${Math.max(0, remaining)}`,
+      error: remaining <= 0
+        ? 'Número máximo de tentativas excedido. Acesso bloqueado por 15 minutos. Solicite um novo código após o período de bloqueio.'
+        : `Código de verificação incorreto. Tentativas restantes: ${remaining}`,
       code: 'OTP_INVALID',
       remaining_attempts: Math.max(0, remaining),
     }, 400);
   }
+
+  // Sucesso: limpa o bloqueio KV (boa prática — libera o documento para futuras opções)
+  if (kv) await clearOtpBruteForceBlock(kv, doc.id);
 
   return c.json({
     success: true,
@@ -697,6 +746,16 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   }
 
   const { token, otp_code, signer_name, signer_cpf, signer_relationship, signature_png_base64, client_fingerprint } = parsed.data;
+  // device_fingerprint_data: dados adicionais de impressão digital do dispositivo
+  // Capturado pelo frontend (captureDeviceFingerprint) e enviado junto à assinatura.
+  // Conformidade: Art. 10, MP 2.200-2/2001 — prova material de autoria da assinatura.
+  const device_fingerprint_data = (body as any).device_fingerprint_data as {
+    screen_resolution?: string;  // Ex: "1920x1080"
+    os_name?: string;            // Ex: "Windows", "Android", "iOS"
+    browser_language?: string;   // Ex: "pt-BR"
+    timezone?: string;           // Ex: "America/Sao_Paulo"
+    color_depth?: number;        // Ex: 24
+  } | null | undefined;
   const db = c.env.DB;
   const bucket = c.env.BUCKET_DOCS;
   const masterKey = c.env.ENCRYPTION_KEY_V1 || 'SESI_ENCRYPTION_KEY_32BYTES_PROD_12345';
@@ -886,7 +945,21 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     otp_verified_at: signedAtIso,
     otp_email_message_id: doc.otp_email_message_id,
     doc_parent_hash_sha256: docParentHash,
-    device_metadata: formatUserAgent(userAgent),
+    device_metadata: JSON.stringify({
+      user_agent_parsed: formatUserAgent(userAgent),
+      // ── Device Fingerprint Expandido (Art. 10, MP 2.200-2/2001) ──────────────────────
+      // Combina dados do servidor (Cloudflare Edge) com dados do navegador (frontend)
+      // para criar uma "impressão digital" única e irrefutável do dispositivo.
+      screen_resolution: device_fingerprint_data?.screen_resolution || null,
+      os_name: device_fingerprint_data?.os_name || null,
+      browser_language: device_fingerprint_data?.browser_language || null,
+      timezone: device_fingerprint_data?.timezone || null,
+      color_depth: device_fingerprint_data?.color_depth || null,
+      cf_asn: cfData.asnOrg ? `${cfData.asnOrg} (AS${cfData.asnNumber})` : null,
+      cf_tls: cfData.tlsVersion || null,
+      cf_colo: cfData.colo || null,
+      captured_at: new Date().toISOString(),
+    }),
   };
 
   const logRowHash = await computeLogRowHash(auditRowInput);

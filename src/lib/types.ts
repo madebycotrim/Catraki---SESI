@@ -80,6 +80,10 @@ export interface DocumentRecord {
   retention_expires_at: string;
   expires_at: string;
   created_at: string;
+  // ── V3: Versionamento de Consentimento LGPD (migration_v3.sql) ─────────────
+  terms_version?: string;        // Versão semântica do termo aceito (ex: "1.0")
+  token_sent_at?: string | null; // Timestamp de envio do link por e-mail/WhatsApp
+  token_ttl_days?: number;       // Prazo de validade do link em dias (padrão: 3)
 }
 
 export interface DocumentCancellationAudit {

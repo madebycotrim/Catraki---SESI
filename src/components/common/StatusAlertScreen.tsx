@@ -10,13 +10,15 @@ import {
   RotateCcw,
   ShieldCheck,
   ExternalLink,
+  Clock,
 } from 'lucide-react';
 
 export type AlertScenario =
   | 'cancelled_link'      // Cenário 1: Link indisponível ou documento cancelado
   | 'security_tampered'   // Cenário 2: Acesso interrompido por segurança (Hash)
   | 'already_signed'      // Cenário 3: Tudo certo por aqui! (Já assinado)
-  | 'otp_auth_failed';    // Cenário 4: Não foi possível confirmar sua identidade
+  | 'otp_auth_failed'     // Cenário 4: Não foi possível confirmar sua identidade
+  | 'link_expired';       // Cenário 5: Link de acesso expirado (TTL 3 dias - Segurança LGPD)
 
 interface StatusAlertScreenProps {
   scenario: AlertScenario;
@@ -42,6 +44,51 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
   const handleDefaultGoHome = () => {
     window.location.href = '/autorizar/cemeit';
   };
+
+  if (scenario === 'link_expired') {
+    return (
+      <div className="max-w-xl mx-auto py-8 sm:py-12 px-4 animate-in fade-in zoom-in-95 duration-300">
+        <div className="bg-white rounded-2xl p-6 sm:p-10 text-center border border-amber-200 shadow-xl space-y-6">
+          <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200 shadow-inner">
+            <Clock className="w-9 h-9 text-amber-600" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold uppercase tracking-wider mb-1">
+              <Clock className="w-3.5 h-3.5 text-amber-700" />
+              Expiração de Segurança
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
+              Link de Acesso Expirado
+            </h2>
+            <p className="text-sm sm:text-base font-medium text-amber-900 leading-relaxed bg-amber-50/80 p-3.5 rounded-xl border border-amber-200/60">
+              Por motivos de segurança e proteção aos dados do estudante (LGPD), este link de assinatura possui validade de 3 dias e já expirou.
+            </p>
+          </div>
+
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-center px-1">
+            Por favor, entre em contato com a escola ou com a equipe do SESI para solicitar um novo link de acesso atualizado.
+          </p>
+
+          {customReason && (
+            <div className="text-left text-xs bg-slate-50 p-3 rounded-lg border border-slate-200 text-slate-500">
+              <span className="font-semibold text-slate-700">Detalhe:</span> {customReason}
+            </div>
+          )}
+
+          <div className="pt-2">
+            <button
+              onClick={onPrimaryAction || handleDefaultGoHome}
+              className="w-full sm:w-auto px-6 py-3 bg-[#004b8d] hover:bg-[#003666] text-white font-semibold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 mx-auto active:scale-98 cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {primaryActionLabel || 'Voltar para a página inicial'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (scenario === 'cancelled_link') {
     return (

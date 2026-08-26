@@ -27,6 +27,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
   const [loading, setLoading] = useState(true);
   const [documentData, setDocumentData] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [errorCode, setErrorCode] = useState('');
 
   // Dados coletados nas etapas
   const [formData, setFormData] = useState<any>(null);
@@ -45,11 +46,13 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
   const loadDocument = async (t: string) => {
     setLoading(true);
     setErrorMessage('');
+    setErrorCode('');
     try {
       const resp = await apiClient.getSignerDoc(t);
       if (resp.success && resp.document) {
         setDocumentData(resp.document);
       } else {
+        setErrorCode(resp.code || '');
         setErrorMessage(resp.error || 'Este documento não foi encontrado ou o link expirou. Por favor, verifique se você está usando o link mais recente enviado pela escola.');
       }
     } catch {
@@ -87,6 +90,16 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
     );
   }
 
+  // Cenário 5: Link Expirado (TTL de 3 dias — LGPD e Segurança)
+  if (errorCode === 'TOKEN_LINK_EXPIRED' || (errorMessage && errorMessage.toLowerCase().includes('expirou'))) {
+    return (
+      <StatusAlertScreen
+        scenario="link_expired"
+        customReason={errorMessage}
+      />
+    );
+  }
+
   // Cenário 2: Erro de segurança ou autenticidade/hash
   if (errorMessage && (errorMessage.toLowerCase().includes('segurança') || errorMessage.toLowerCase().includes('hash') || errorMessage.toLowerCase().includes('adulterado'))) {
     return (
@@ -97,7 +110,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
     );
   }
 
-  // Cenário 1: Documento cancelado, expirado ou link indisponível
+  // Cenário 1: Documento cancelado ou link indisponível
   if (errorMessage || !documentData || documentData.status === 'cancelado_por_erro' || documentData.status === 'revogado') {
     return (
       <StatusAlertScreen

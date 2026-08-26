@@ -17,6 +17,7 @@ export interface CloudflareClientData {
   userAgent: string;
   deviceMetadata: string;
   formattedLocation: string;
+  colo: string | null;
 }
 
 /**
@@ -69,6 +70,8 @@ export function extractCloudflareClientData(c: Context): CloudflareClientData {
   // 7. Localização Estruturada Formatada
   const formattedLocation = `${city}, ${region}, ${countryName}`;
 
+  const colo = cf.colo || req.header('cf-ray')?.split('-')[1] || null;
+
   return {
     ip,
     city,
@@ -85,5 +88,6 @@ export function extractCloudflareClientData(c: Context): CloudflareClientData {
     userAgent,
     deviceMetadata,
     formattedLocation,
+    colo,
   };
 }

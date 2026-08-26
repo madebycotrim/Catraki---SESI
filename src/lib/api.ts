@@ -257,7 +257,8 @@ export const apiClient = {
   async getSignerDoc(token: string): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/signer/doc/${token}`);
-      if (resp.ok) return await resp.json();
+      const data = (await resp.json().catch(() => null)) as any;
+      if (data && (resp.ok || data.code || data.error)) return data;
     } catch {}
 
     const docs = getDocuments();
@@ -582,6 +583,7 @@ export const apiClient = {
     geolocation?: string;
     user_agent?: string;
     identity_method?: 'matricula_sesi' | 'manual_review';
+    device_fingerprint_data?: any;
   }): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/signer/sign`, {
@@ -1864,3 +1866,92 @@ export const apiClient = {
     }
   },
 };
+
+// ============================================================================
+// DEVICE FINGERPRINTING — IMPRESSÃO DIGITAL DO DISPOSITIVO
+// Conformidade: Art. 10, MP 2.200-2/2001 (prova material de autoria)
+// LGPD Art. 46 (medidas técnicas de segurança no tratamento)
+// Captura dados do navegador/dispositivo no momento exato da assinatura.
+// Estes dados complementam os dados de servidor (IP, User-Agent, Cloudflare)
+// criando uma "impressão digital" irrefutável do dispositivo utilizado.
+// ============================================================================
+
+export interface DeviceFingerprintData {
+  /** Resolução da tela em pixels, ex: "1920x1080" */
+  screen_resolution: string;
+  /** Sistema operacional inferido pelo navegador, ex: "Windows", "Android", "iOS" */
+  os_name: string;
+  /** Idioma configurado no navegador, ex: "pt-BR" */
+  browser_language: string;
+  /** Fuso horário do dispositivo, ex: "America/Sao_Paulo" */
+  timezone: string;
+  /** Profundidade de cor da tela em bits, ex: 24 */
+  color_depth: number;
+  /** Timestamp UTC da captura (para auditoria de precisão) */
+  captured_at: string;
+}
+
+/**
+ * Captura a impressão digital do dispositivo usando apenas APIs nativas do navegador.
+ * Não usa bibliotecas externas — máxima compatibilidade e sem dependências.
+ * 
+ * @returns DeviceFingerprintData — dados do dispositivo para registro forense
+ */
+export function captureDeviceFingerprint(): DeviceFingerprintData {
+  // Resolução da tela
+  const screenW = typeof window !== 'undefined' ? window.screen?.width ?? 0 : 0;
+  const screenH = typeof window !== 'undefined' ? window.screen?.height ?? 0 : 0;
+  const screenResolution = `${screenW}x${screenH}`;
+
+  // Sistema Operacional via User-Agent (melhor esforço — sem fingerprinting invasivo)
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  let osName = 'Desconhecido';
+  if (/Windows NT/i.test(ua)) {
+    const match = ua.match(/Windows NT ([\d.]+)/);
+    const ntMap: Record<string, string> = {
+      '10.0': 'Windows 10/11', '6.3': 'Windows 8.1', '6.2': 'Windows 8',
+      '6.1': 'Windows 7', '6.0': 'Windows Vista',
+    };
+    osName = (match && ntMap[match[1]]) ? ntMap[match[1]] : 'Windows';
+  } else if (/Android/i.test(ua)) {
+    const match = ua.match(/Android ([\d.]+)/);
+    osName = match ? `Android ${match[1]}` : 'Android';
+  } else if (/iPhone OS/i.test(ua)) {
+    const match = ua.match(/iPhone OS ([\d_]+)/);
+    osName = match ? `iOS ${match[1].replace(/_/g, '.')}` : 'iOS';
+  } else if (/iPad/i.test(ua)) {
+    osName = 'iPadOS';
+  } else if (/Mac OS X/i.test(ua)) {
+    const match = ua.match(/Mac OS X ([\d_.]+)/);
+    osName = match ? `macOS ${match[1].replace(/_/g, '.')}` : 'macOS';
+  } else if (/Linux/i.test(ua)) {
+    osName = 'Linux';
+  } else if (/CrOS/i.test(ua)) {
+    osName = 'ChromeOS';
+  }
+
+  // Idioma do navegador (IETF BCP 47)
+  const browserLanguage = typeof navigator !== 'undefined'
+    ? (navigator.language || (navigator as any).userLanguage || 'não-detectado')
+    : 'não-detectado';
+
+  // Fuso horário IANA (ex: "America/Sao_Paulo")
+  let timezone = 'não-detectado';
+  try {
+    timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'não-detectado';
+  } catch {
+    // Suporte limitado em browsers antigos
+  }
+
+  // Profundidade de cor da tela (bits)
+  const colorDepth = typeof window !== 'undefined' ? (window.screen?.colorDepth ?? 24) : 24;
+
+  return {
+    screen_resolution: screenResolution,
+    os_name: osName,
+    browser_language: browserLanguage,
+    timezone,
+    color_depth: colorDepth,
+    captured_at: new Date().toISOString(),
+  };
+}

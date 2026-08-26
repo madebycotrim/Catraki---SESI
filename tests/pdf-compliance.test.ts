@@ -18,6 +18,11 @@ describe('Validação de Conformidade do Gerador de PDF (Páginas 1 e 2)', () =>
       autorizacaoSaude: true,
       autorizacaoDados: true,
       autorizacaoImagem: true,
+      nomeProjeto: 'Escola Cidadã: Saúde em Movimento',
+      instituicao1Nome: 'Universidade de Brasília (UnB)',
+      instituicao1Cnpj: '00.038.174/0001-43',
+      instituicao2Nome: 'Serviço Social da Indústria (SESI-DF)',
+      instituicao2Cnpj: '03.777.341/0001-08',
       hashManifesto: 'a1b2c3d4e5f678901234567890abcdefa1b2c3d4e5f678901234567890abcdef',
       dataAssinatura: new Date('2026-08-26T14:30:00Z'),
       tipoAssinatura: 'ELETRONICA_AVANCADA',
@@ -36,7 +41,7 @@ describe('Validação de Conformidade do Gerador de PDF (Páginas 1 e 2)', () =>
     expect(title).toContain('Carlos Eduardo Oliveira');
   });
 
-  it('deve gerar PDF para menor de idade (< 18 anos) incluindo representação legal e citação ao ECA', async () => {
+  it('deve gerar PDF para menor de idade (< 18 anos) incluindo representação legal, ECA e CNPJs dos controladores', async () => {
     const pdfBytes = await GeradorPdfTermoSesi.gerarPdfOriginal({
       tituloProcedimento: 'Circuito de Saúde Escolar',
       descricaoProcedimento: 'Triagens preventivas durante o turno escolar.',
@@ -50,6 +55,11 @@ describe('Validação de Conformidade do Gerador de PDF (Páginas 1 e 2)', () =>
       autorizacaoSaude: true,
       autorizacaoDados: true,
       autorizacaoImagem: false,
+      nomeProjeto: 'Escola Cidadã: Saúde em Movimento',
+      instituicao1Nome: 'Universidade de Brasília (UnB)',
+      instituicao1Cnpj: '00.038.174/0001-43',
+      instituicao2Nome: 'Serviço Social da Indústria (SESI-DF)',
+      instituicao2Cnpj: '03.777.341/0001-08',
       hashManifesto: 'f9e8d7c6b5a43210f9e8d7c6b5a43210f9e8d7c6b5a43210f9e8d7c6b5a43210',
       dataAssinatura: new Date('2026-08-26T14:30:00Z'),
       tipoAssinatura: 'ELETRONICA_AVANCADA',

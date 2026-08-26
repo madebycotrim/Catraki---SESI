@@ -32,12 +32,17 @@ export interface IDadosTermoPdf {
   minorCpfCompleto?: string;
   nomeEscola?: string;
   isMaiorDeIdade?: boolean;
+  nomeProjeto?: string;
+  instituicao1Nome?: string;
+  instituicao1Cnpj?: string;
+  instituicao2Nome?: string;
+  instituicao2Cnpj?: string;
 }
 
 /**
  * Gerador de PDF A4 Oficial para Termos de Consentimento (TCLE) SESI Saúde / Catraki
  * Formatado rigorosamente de acordo com as normas ABNT e os preceitos da LGPD (Lei nº 13.709/2018),
- * Lei nº 14.063/2020 e ECA (Lei nº 8.069/1990).
+ * Lei nº 14.063/2020, Código Civil (Lei nº 10.406/2002), Código Penal (Art. 299) e ECA (Lei nº 8.069/1990).
  */
 export class GeradorPdfTermoSesi {
   public static async gerarPdfOriginal(dados: IDadosTermoPdf): Promise<Uint8Array> {
@@ -83,6 +88,14 @@ export class GeradorPdfTermoSesi {
         }
       }
     }
+
+    // Parametrização dos Controladores e Projeto
+    const nomeProjeto = dados.nomeProjeto || 'Escola Cidadã: Saúde em Movimento';
+    const inst1Nome = dados.instituicao1Nome || 'Universidade de Brasília (UnB)';
+    const inst1Cnpj = dados.instituicao1Cnpj || '00.038.174/0001-43';
+    const inst2Nome = dados.instituicao2Nome || 'Serviço Social da Indústria (SESI-DF)';
+    const inst2Cnpj = dados.instituicao2Cnpj || '03.777.341/0001-08';
+    const controladoresStr = `${inst1Nome} - CNPJ ${inst1Cnpj} e ${inst2Nome} - CNPJ ${inst2Cnpj}`;
 
     // Carregamento do Logo Catraki
     let logoCatrakiImg: any = null;
@@ -156,12 +169,12 @@ export class GeradorPdfTermoSesi {
       color: corAzulSesi,
     });
 
-    // 2. Parágrafo de Apresentação e Qualificação (com Controladores CNPJ e Lógica de Maioridade ECA)
+    // 2. Parágrafo de Apresentação e Qualificação (com Controladores CNPJ e Lógica de Maioridade ECA vs CC)
     y -= 16;
     const cpfIntro = dados.cpfResponsavelCompleto || dados.minorCpfCompleto || dados.cpfResponsavelMascarado || dados.minorCpfMascarado || '***.***.***-**';
     const textoIntro = isMaior
-      ? `Eu, ${dados.nomeMenor}, portador(a) do CPF ${cpfIntro}, nascido(a) em ${dados.dataNascimentoMenor}, na qualidade de titular e estudante maior de idade, declaro que recebi as orientações sobre o projeto itinerante promovido pela Universidade de Brasília (UnB — CNPJ 00.038.174/0001-43) e Serviço Social da Indústria (SESI-DF — CNPJ 03.777.341/0001-08) e, de acordo com o Art. 14 da LGPD (Lei nº 13.709/2018), manifesto meu consentimento livre, informado e inequívoco para os itens a seguir:`
-      : `Eu, ${dados.nomeResponsavel}, portador(a) do CPF ${cpfIntro}, na qualidade de ${dados.parentesco ? dados.parentesco.toLowerCase() : 'responsável legal'} do(a) estudante ${dados.nomeMenor}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante promovido pela Universidade de Brasília (UnB — CNPJ 00.038.174/0001-43) e Serviço Social da Indústria (SESI-DF — CNPJ 03.777.341/0001-08) e, de acordo com o Art. 14 da LGPD (Lei nº 13.709/2018) e o Art. 17 do ECA (Lei nº 8.069/1990), manifesto meu consentimento livre, informado e inequívoco para os itens a seguir:`;
+      ? `Eu, ${dados.nomeMenor}, portador(a) do CPF ${cpfIntro}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante "${nomeProjeto}", realizado por ${controladoresStr}. Manifesto meu consentimento livre, informado e inequívoco, aplicável ao tratamento de dados sensíveis conforme o Art. 11, I e Art. 18 da LGPD (Lei nº 13.709/2018) e autorização de imagem (Art. 20 da Lei nº 10.406/2002 - Código Civil), para os itens selecionados abaixo:`
+      : `Eu, ${dados.nomeResponsavel}, portador(a) do CPF ${cpfIntro}, na qualidade de responsável legal do(a) estudante ${dados.nomeMenor}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante "${nomeProjeto}", realizado por ${controladoresStr}. Manifesto meu consentimento livre, informado e inequívoco, nos termos do Art. 14 e Art. 18 da LGPD (Lei nº 13.709/2018) e do Art. 17 do ECA (Lei nº 8.069/1990), para os itens selecionados abaixo:`;
 
     const linhasIntro = this.quebrarTexto(textoIntro, 92);
     for (let i = 0; i < linhasIntro.length; i++) {
@@ -201,13 +214,13 @@ export class GeradorPdfTermoSesi {
     // 4. Seção 2: AUTORIZAÇÕES E CONSENTIMENTO GRANULAR
     y -= 8;
     const tituloSecao2 = isMaior
-      ? '2. AUTORIZAÇÕES E CONSENTIMENTO (LEI Nº 13.709/2018)'
-      : '2. AUTORIZAÇÕES E CONSENTIMENTO (LEI Nº 13.709/2018 E LEI Nº 8.069/1990)';
+      ? '2. AUTORIZAÇÕES E CONSENTIMENTO (ART. 11, I E ART. 18 DA LEI Nº 13.709/2018 E ART. 20 DO CÓDIGO CIVIL)'
+      : '2. AUTORIZAÇÕES E CONSENTIMENTO (ART. 14 E ART. 18 DA LEI Nº 13.709/2018 E ART. 17 DO ECA)';
 
     page1.drawText(tituloSecao2, {
       x: margemEsquerda,
       y,
-      size: 9.5,
+      size: 9,
       font: fontBold,
       color: corPreto,
     });
@@ -247,9 +260,13 @@ export class GeradorPdfTermoSesi {
       y -= 9.5;
     }
 
-    // Item B: Dados Pessoais (LGPD Art. 14)
+    // Item B: Dados Pessoais (LGPD Art. 14 para menores vs Art. 11, I para maiores)
     y -= 5;
-    page1.drawText('b) Tratamento de Dados Pessoais (LGPD, Art. 14): ', {
+    const labelDados = isMaior
+      ? 'b) Tratamento de Dados Pessoais e Sensíveis (LGPD, Art. 11, I e Art. 18): '
+      : 'b) Tratamento de Dados Pessoais do Menor (LGPD, Art. 14 e Art. 18): ';
+
+    page1.drawText(labelDados, {
       x: margemEsquerda,
       y,
       size: 8.5,
@@ -260,8 +277,9 @@ export class GeradorPdfTermoSesi {
     const statusDadosText = dados.autorizacaoDados ? '[ AUTORIZADO ]' : '[ NÃO AUTORIZADO ]';
     const statusDadosColor = dados.autorizacaoDados ? corVerde : corVermelho;
 
+    const xOffsetStatusDados = isMaior ? 285 : 245;
     page1.drawText(statusDadosText, {
-      x: margemEsquerda + 215,
+      x: margemEsquerda + xOffsetStatusDados,
       y,
       size: 8.5,
       font: fontBold,
@@ -269,7 +287,10 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 11;
-    const descDados = '— Autorizo a coleta e o processamento dos dados pessoais informados para fins exclusivos de identificação e validação legal da permissão de atendimento, garantido o direito de acesso e revogação (Art. 18, LGPD).';
+    const descDados = isMaior
+      ? '— Autorizo a coleta e o tratamento dos meus dados pessoais e dados de saúde para fins exclusivos de identificação e validação legal da permissão de atendimento, garantido o direito de acesso e revogação (Art. 18, LGPD).'
+      : '— Autorizo a coleta e o processamento dos dados pessoais informados para fins exclusivos de identificação e validação legal da permissão de atendimento do menor, garantido o direito de acesso e revogação (Art. 18, LGPD).';
+
     const linhasDescDados = this.quebrarTexto(descDados, 94);
     for (const linha of linhasDescDados) {
       page1.drawText(linha, {
@@ -282,10 +303,10 @@ export class GeradorPdfTermoSesi {
       y -= 9.5;
     }
 
-    // Item C: Imagem e Voz
+    // Item C: Imagem e Voz (ECA Art. 17 para menores vs Código Civil Art. 20 para maiores)
     y -= 5;
     const labelImg = isMaior
-      ? 'c) Captação e Uso de Imagem e Voz: '
+      ? 'c) Captação e Uso de Imagem e Voz (Art. 20 do Código Civil): '
       : 'c) Captação e Uso de Imagem e Voz (ECA, Art. 17): ';
 
     page1.drawText(labelImg, {
@@ -299,8 +320,9 @@ export class GeradorPdfTermoSesi {
     const statusImgText = dados.autorizacaoImagem ? '[ AUTORIZADO ]' : '[ NÃO AUTORIZADO ]';
     const statusImgColor = dados.autorizacaoImagem ? corVerde : corVermelho;
 
+    const xOffsetStatusImg = isMaior ? 260 : 225;
     page1.drawText(statusImgText, {
-      x: margemEsquerda + (isMaior ? 175 : 225),
+      x: margemEsquerda + xOffsetStatusImg,
       y,
       size: 8.5,
       font: fontBold,
@@ -321,7 +343,7 @@ export class GeradorPdfTermoSesi {
       y -= 9.5;
     }
 
-    // 5. Seção 3: DECLARAÇÃO DE VERACIDADE E ASSINATURA ELETRÔNICA
+    // 5. Seção 3: DECLARAÇÃO DE VERACIDADE E ASSINATURA ELETRÔNICA AVANÇADA
     y -= 12;
     page1.drawText('3. DECLARAÇÃO E ASSINATURA ELETRÔNICA AVANÇADA', {
       x: margemEsquerda,
@@ -333,8 +355,8 @@ export class GeradorPdfTermoSesi {
 
     y -= 12;
     const textoDeclaracao = isMaior
-      ? 'Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras.'
-      : 'Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras e que sou o(a) responsável legal.';
+      ? 'Declaração de Veracidade: Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas e a identidade declarada são verdadeiras.'
+      : 'Declaração de Veracidade: Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras e que sou o responsável legal do menor.';
 
     page1.drawText(textoDeclaracao, {
       x: margemEsquerda,
@@ -758,7 +780,11 @@ export class GeradorPdfTermoSesi {
       });
 
       y2 -= 10;
-      page2.drawText('Em conformidade com o Art. 4º, II da Lei 14.063/2020, Art. 10, §2º da MP 2.200-2/2001 e Arts. 7º, 11, 14 e 18 da LGPD.', {
+      const textoIntegridadeLegal = isMaior
+        ? 'Em conformidade com o Art. 4º, II da Lei 14.063/2020, Art. 10, §2º da MP 2.200-2/2001, Arts. 7º, 11, I e 18 da LGPD, e Art. 20 da Lei nº 10.406/2002 (Código Civil).'
+        : 'Em conformidade com o Art. 4º, II da Lei 14.063/2020, Art. 10, §2º da MP 2.200-2/2001, Arts. 7º, 11, 14 e 18 da LGPD, e Art. 17 do ECA (Lei nº 8.069/1990).';
+
+      page2.drawText(textoIntegridadeLegal, {
         x: margemEsquerda,
         y: y2,
         size: 7,
@@ -768,7 +794,7 @@ export class GeradorPdfTermoSesi {
 
       // 6. DISCLAIMER OBRIGATÓRIO DA PLATAFORMA CATRAKI (MÓDULO 4)
       y2 -= 16;
-      const disclaimerTexto = 'A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.';
+      const disclaimerTexto = 'A Plataforma Catraki atua exclusivamente como operadora e infraestrutura tecnológica para registro de log e emissão de hash probatório, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes controladoras.';
       const linhasDisclaimer = this.quebrarTexto(disclaimerTexto, 98);
       for (const l of linhasDisclaimer) {
         page2.drawText(l, {

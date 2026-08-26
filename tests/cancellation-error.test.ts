@@ -113,7 +113,7 @@ describe('Funcionalidade: Revogação e Cancelamento por Erro Operacional (LGPD 
       expect(html).toContain('Plataforma Catraki');
       expect(html).toContain('Inconsistência cadastral na data de nascimento');
       expect(html).toContain('O que acontece agora?');
-      expect(html).toContain('Os links e acessos que você recebeu anteriormente para este documento foram desativados.');
+      expect(html).toContain('Os links de acesso que você recebeu para este documento foram desativados.');
       expect(html).toContain('LGPD');
       expect(html).toContain('privacidade@catraki.com.br');
     });

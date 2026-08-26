@@ -300,15 +300,15 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               </h2>
               <div className="space-y-4 text-justify text-slate-700 leading-relaxed text-xs sm:text-sm pt-2">
                 <p>
-                  Para que o(a) estudante participe das atividades do projeto itinerante “Escola Cidadã — Saúde em Movimento” (parceria UnB e SESI-DF), {isMaiorDeIdade ? 'pedimos o seu consentimento direto como titular dos dados.' : 'pedimos o consentimento do responsável legal. Os dados informados são usados exclusivamente para o registro desta autorização e são protegidos nos termos da Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).'}
+                  Para que o(a) estudante participe das atividades do projeto itinerante “Escola Cidadã — Saúde em Movimento” (parceria UnB e SESI-DF), {isMaiorDeIdade ? 'pedimos o seu consentimento direto como titular dos dados. O tratamento dos dados de saúde é fundamentado no Art. 11, I e Art. 18 da Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018) e a autorização de imagem e voz no Art. 20 do Código Civil (Lei nº 10.406/2002).' : 'pedimos o consentimento do responsável legal. O tratamento de dados de crianças e adolescentes é fundamentado no Art. 14 e Art. 18 da Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018) e o uso de imagem no Art. 17 do ECA (Lei nº 8.069/1990).'}
                 </p>
                 <p>
                   Você pode solicitar o acesso, a correção ou o cancelamento desta autorização a qualquer momento, procurando a coordenação da escola ou a equipe de apoio presencial.
                 </p>
                 <p>
                   {isMaiorDeIdade
-                    ? <>Ao assinar, você declara, como titular e estudante maior de idade, que as informações prestadas são verdadeiras. O registro é feito de forma eletrônica pela plataforma Catraki, constituindo <strong>Assinatura Eletrônica Avançada</strong> nos termos do <strong>Art. 4º, II, da Lei nº 14.063/2020</strong>, do <strong>Art. 10, §2º, da MP 2.200-2/2001</strong> e da <strong>LGPD (Lei nº 13.709/2018)</strong>, com respaldo da jurisprudência do STJ (REsp 2.205.708/PR).</>
-                    : <>Ao assinar, você confirma que é o(a) responsável legal pelo(a) menor e que as informações prestadas são verdadeiras. O registro é feito de forma eletrônica pela plataforma Catraki, constituindo <strong>Assinatura Eletrônica Avançada</strong> nos termos do <strong>Art. 4º, II, da Lei nº 14.063/2020</strong>, do <strong>Art. 10, §2º, da MP 2.200-2/2001</strong>, da <strong>LGPD (Lei nº 13.709/2018)</strong> e do <strong>ECA (Art. 17 — Lei nº 8.069/1990)</strong>, com respaldo da jurisprudência do STJ (REsp 2.205.708/PR).</>
+                    ? <>Ao assinar, você declara, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas e a identidade declarada são verdadeiras. O registro é feito de forma eletrônica pela plataforma Catraki, constituindo <strong>Assinatura Eletrônica Avançada</strong> nos termos do <strong>Art. 4º, II, da Lei nº 14.063/2020</strong>, do <strong>Art. 10, §2º, da MP 2.200-2/2001</strong> e dos <strong>Arts. 11, I e 18 da LGPD (Lei nº 13.709/2018)</strong>, com respaldo da jurisprudência do STJ (REsp 2.205.708/PR).</>
+                    : <>Ao assinar, você declara, sob as penas da lei (Art. 299 do Código Penal), que é o(a) responsável legal pelo(a) menor e que as informações prestadas são verdadeiras. O registro é feito de forma eletrônica pela plataforma Catraki, constituindo <strong>Assinatura Eletrônica Avançada</strong> nos termos do <strong>Art. 4º, II, da Lei nº 14.063/2020</strong>, do <strong>Art. 10, §2º, da MP 2.200-2/2001</strong>, da <strong>LGPD (Lei nº 13.709/2018)</strong> e do <strong>ECA (Art. 17 — Lei nº 8.069/1990)</strong>, com respaldo da jurisprudência do STJ (REsp 2.205.708/PR).</>
                   }
                 </p>
               </div>
@@ -321,7 +321,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               </h3>
               
               <div className="space-y-3">
-                {/* Campo 1: Atendimento de Saúde com Granularidade (LGPD Art. 11 e 14) */}
+                {/* Campo 1: Atendimento de Saúde com Granularidade */}
                 <div className="space-y-2">
                   <label className="flex items-start gap-3 cursor-pointer select-none">
                     <input
@@ -336,7 +336,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   </label>
                 </div>
 
-                {/* Campo 2: Tratamento de Dados */}
+                {/* Campo 2: Tratamento de Dados (Art. 11/18 vs Art. 14/18) */}
                 <label className="flex items-start gap-3 cursor-pointer select-none">
                   <input
                     type="checkbox"
@@ -345,11 +345,14 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                   />
                   <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                    <strong>SIM, AUTORIZO</strong> o uso dos dados pessoais informados exclusivamente para registrar este termo com segurança, conforme a Lei Geral de Proteção de Dados (LGPD). <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                    {isMaiorDeIdade
+                      ? <><strong>SIM, AUTORIZO</strong> o tratamento dos meus dados pessoais e dados de saúde exclusivamente para fins de identificação e validação legal da permissão de atendimento (Art. 11, I e Art. 18 da LGPD). <span className="text-red-500 font-bold">* (Obrigatório)</span></>
+                      : <><strong>SIM, AUTORIZO</strong> o tratamento dos dados pessoais informados exclusivamente para registrar a autorização do menor com segurança, nos termos do Art. 14 e Art. 18 da LGPD. <span className="text-red-500 font-bold">* (Obrigatório)</span></>
+                    }
                   </span>
                 </label>
 
-                {/* Campo 3: Uso de Imagem */}
+                {/* Campo 3: Uso de Imagem e Voz (Art. 20 CC vs Art. 17 ECA) */}
                 <label className="flex items-start gap-3 cursor-pointer select-none">
                   <input
                     type="checkbox"
@@ -358,7 +361,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                   />
                   <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                    <strong>SIM, AUTORIZO</strong> o registro fotográfico e/ou audiovisual do(a) estudante para fins institucionais e de divulgação oficial do projeto Escola Cidadã — Saúde em Movimento, em materiais produzidos pelo SESI-DF e pela UnB. <span className="text-slate-500 font-normal">(Opcional — a recusa não impede a participação.)</span>
+                    <strong>SIM, AUTORIZO</strong> o registro fotográfico e/ou audiovisual do(a) estudante para fins institucionais e de divulgação oficial do projeto Escola Cidadã — Saúde em Movimento ({isMaiorDeIdade ? 'Art. 20 do Código Civil' : 'Art. 17 do ECA'}), em materiais produzidos pelo SESI-DF e pela UnB. <span className="text-slate-500 font-normal">(Opcional — a recusa não impede a participação.)</span>
                   </span>
                 </label>
 
@@ -371,7 +374,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
                   />
                    <span className="text-xs sm:text-sm text-slate-900 font-bold leading-relaxed">
-                     <strong>Declaro que li e compreendi</strong> todas as informações deste Termo de Consentimento e concordo em assinar eletronicamente, confirmando a veracidade de todas as declarações prestadas. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                     <strong>Declaro que li e compreendi</strong> todas as informações deste Termo de Consentimento e concordo em assinar eletronicamente, confirmando a veracidade de todas as declarações prestadas sob as penas da lei (Art. 299 do Código Penal). <span className="text-red-500 font-bold">* (Obrigatório)</span>
                    </span>
                 </label>
               </div>
@@ -640,7 +643,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   />
                 </div>
 
-                {/* 3. Declaração de Responsabilidade */}
+                {/* 3. Declaração de Responsabilidade e Veracidade (Art. 299 do Código Penal) */}
                 <div className="pt-1.5">
                   <label htmlFor="field-declarationLegalResponsibility" className="flex items-start gap-2.5 p-3 border border-slate-200 hover:border-blue-200 rounded-xl bg-slate-50/50 hover:bg-blue-50/10 cursor-pointer select-none transition-all">
                     <input
@@ -652,7 +655,10 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                       className="mt-0.5 w-4 h-4 text-[#004b8d] border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
                     />
                     <span className="text-[11px] font-semibold text-slate-700 leading-normal text-justify select-none">
-                      Confirmo que sou o(a) responsável legal pelo(a) estudante e autorizo a emissão deste documento digital através da plataforma Catraki. <span className="text-red-500 font-bold">*</span>
+                      {isMaiorDeIdade
+                        ? <>Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas e a identidade declarada são verdadeiras, e autorizo a emissão deste documento digital através da plataforma Catraki. <span className="text-red-500 font-bold">*</span></>
+                        : <>Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras, que sou o(a) responsável legal do menor e autorizo a emissão deste documento digital através da plataforma Catraki. <span className="text-red-500 font-bold">*</span></>
+                      }
                     </span>
                   </label>
                 </div>

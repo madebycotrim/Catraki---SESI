@@ -1,5 +1,6 @@
 import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
 import QRCode from 'qrcode';
+import { LOGO_BASE64 } from './LogoBase64.ts';
 
 export interface IDadosTermoPdf {
   tituloProcedimento: string;
@@ -29,37 +30,7 @@ export interface IDadosTermoPdf {
   nomeEscola?: string;
 }
 
-/**
- * Carrega bytes de imagem em ambientes Web ou Node.js
- */
-async function carregarImagemBytes(caminhoOuUrl: string): Promise<Uint8Array | null> {
-  // 1. Tenta carregar no ambiente Browser
-  if (typeof fetch !== 'undefined') {
-    try {
-      const resp = await fetch(caminhoOuUrl);
-      if (resp.ok) {
-        const buf = await resp.arrayBuffer();
-        return new Uint8Array(buf);
-      }
-    } catch {}
-  }
 
-  // 2. Tenta carregar no ambiente Node.js / Vitest
-  if (typeof process !== 'undefined' && process.versions?.node) {
-    try {
-      const fs = await import(/* @vite-ignore */ 'fs');
-      const path = await import(/* @vite-ignore */ 'path');
-      const cleanPath = caminhoOuUrl.replace(/^\//, '');
-      const fullPath = path.resolve(process.cwd(), 'public', cleanPath);
-      if (fs.existsSync(fullPath)) {
-        const fileBuf = fs.readFileSync(fullPath);
-        return new Uint8Array(fileBuf);
-      }
-    } catch {}
-  }
-
-  return null;
-}
 
 /**
  * Gerador de PDF A4 Oficial para Termos de Consentimento (TCLE) SESI Saúde
@@ -89,10 +60,8 @@ export class GeradorPdfTermoSesi {
     let logoCatrakiImg: any = null;
 
     try {
-      const logoBytes = await carregarImagemBytes('/catraki.png');
-      if (logoBytes) {
-        logoCatrakiImg = await pdfDoc.embedPng(logoBytes);
-      }
+      const logoBytes = Uint8Array.from(atob(LOGO_BASE64), (c) => c.charCodeAt(0));
+      logoCatrakiImg = await pdfDoc.embedPng(logoBytes);
     } catch {}
 
 
@@ -466,9 +435,9 @@ export class GeradorPdfTermoSesi {
 
     // Linha de rodapé estilizada Catraki
     page1.drawLine({
-      start: { x: 0, y: 3 },
-      end: { x: width, y: 3 },
-      thickness: 6,
+      start: { x: 0, y: 6 },
+      end: { x: width, y: 6 },
+      thickness: 12,
       color: corAzulSesi,
     });
 
@@ -759,9 +728,9 @@ export class GeradorPdfTermoSesi {
 
       // Linha de rodapé estilizada Catraki folha 2
       page2.drawLine({
-        start: { x: 0, y: 3 },
-        end: { x: width, y: 3 },
-        thickness: 6,
+        start: { x: 0, y: 6 },
+        end: { x: width, y: 6 },
+        thickness: 12,
         color: corAzulSesi,
       });
     }

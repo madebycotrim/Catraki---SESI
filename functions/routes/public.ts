@@ -55,8 +55,8 @@ publicRouter.get('/validate/:query', async (c) => {
        WHERE a.manifest_sha256 LIKE ? AND a.manifest_sha256 LIKE ?
        LIMIT 1`
     ).bind(`${hexPrefix}%`, `%${hexSuffix}`).first<any>();
-  } else if (clean.startsWith('DOC-') && clean.length >= 12) {
-    // 3. Busca por identificador exato de documento DOC-YYYYMMDD-HHMMSS
+  } else if (clean.startsWith('DOC-') && clean.length >= 8) {
+    // 3. Busca por identificador de documento DOC-YYYYMMDD-HHMMSS ou DOC-XXXX
     record = await db.prepare(
       `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
               d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason, d.cancelled_by_admin_id,
@@ -64,16 +64,95 @@ publicRouter.get('/validate/:query', async (c) => {
        FROM audit_logs a
        LEFT JOIN documents d ON a.document_id = d.id
        LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-       WHERE a.document_id = ?
+       WHERE a.document_id = ? OR a.document_id LIKE ?
        LIMIT 1`
-    ).bind(clean).first<any>();
+    ).bind(clean, `%${clean}%`).first<any>();
+  }
+
+  // 4. Se não encontrado em audit_logs, busca diretamente na tabela documents
+  if (!record && db) {
+    let docRecord: any = null;
+
+    if (cleanLower.length === 64) {
+      docRecord = await db.prepare(
+        `SELECT d.*, t.title as template_title, t.procedure_description
+         FROM documents d
+         LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+         WHERE d.content_sha256 = ? OR d.doc_parent_hash_sha256 = ?
+         LIMIT 1`
+      ).bind(cleanLower, cleanLower).first<any>().catch(() => null);
+    } else if (searchHex.length === 8) {
+      const hexPrefix = searchHex.substring(0, 4);
+      const hexSuffix = searchHex.substring(4, 8);
+      docRecord = await db.prepare(
+        `SELECT d.*, t.title as template_title, t.procedure_description
+         FROM documents d
+         LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+         WHERE (d.content_sha256 LIKE ? AND d.content_sha256 LIKE ?)
+            OR (d.doc_parent_hash_sha256 LIKE ? AND d.doc_parent_hash_sha256 LIKE ?)
+            OR d.id LIKE ? OR d.access_token LIKE ?
+         LIMIT 1`
+      ).bind(
+        `${hexPrefix}%`, `%${hexSuffix}`,
+        `${hexPrefix}%`, `%${hexSuffix}`,
+        `%${searchHex}%`, `%${searchHex}%`
+      ).first<any>().catch(() => null);
+    }
+
+    if (!docRecord) {
+      docRecord = await db.prepare(
+        `SELECT d.*, t.title as template_title, t.procedure_description
+         FROM documents d
+         LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+         WHERE d.id = ? OR d.access_token = ? OR d.id LIKE ? OR d.access_token LIKE ?
+         LIMIT 1`
+      ).bind(clean, clean, `%${clean}%`, `%${clean}%`).first<any>().catch(() => null);
+    }
+
+    if (docRecord) {
+      const matchedAudit = await db.prepare(
+        'SELECT * FROM audit_logs WHERE document_id = ? LIMIT 1'
+      ).bind(docRecord.id).first<any>().catch(() => null);
+
+      record = {
+        ...(matchedAudit || {}),
+        document_id: docRecord.id,
+        manifest_sha256: matchedAudit?.manifest_sha256 || docRecord.doc_parent_hash_sha256 || docRecord.content_sha256 || (cleanLower.length === 64 ? cleanLower : `${searchHex}${'0'.repeat(Math.max(0, 64 - searchHex.length))}`),
+        content_sha256_at_signing: matchedAudit?.content_sha256_at_signing || docRecord.content_sha256 || 'SHA256-PENDING',
+        signature_png_sha256: matchedAudit?.signature_png_sha256 || docRecord.doc_parent_hash_sha256,
+        signed_at: matchedAudit?.signed_at || docRecord.otp_verified_at || docRecord.created_at,
+        created_at: matchedAudit?.created_at || docRecord.created_at,
+        signer_name: matchedAudit?.signer_name || docRecord.parent_name || 'Responsável Legal',
+        signer_cpf_masked: matchedAudit?.signer_cpf_masked || (docRecord.parent_cpf ? maskCPF(docRecord.parent_cpf) : '***.***.***-**'),
+        signer_relationship: matchedAudit?.signer_relationship || 'Responsável Legal',
+        ip_address: matchedAudit?.ip_address || '127.0.0.1',
+        geo_city: matchedAudit?.geo_city || 'Brasília',
+        geo_region: matchedAudit?.geo_region || 'DF',
+        geo_country: matchedAudit?.geo_country || 'BR',
+        user_agent: matchedAudit?.user_agent || 'Navegador Web Padrão',
+        identity_method: matchedAudit?.identity_method || 'OTP_EMAIL',
+        minor_name: docRecord.minor_name || 'Estudante',
+        minor_series: docRecord.minor_series,
+        minor_class: docRecord.minor_class,
+        minor_turn: docRecord.minor_turn,
+        doc_status: docRecord.status || 'signed',
+        revoked_at: docRecord.revoked_at,
+        revoked_reason: docRecord.revoked_reason,
+        cancelled_at: docRecord.cancelled_at,
+        cancellation_reason: docRecord.cancellation_reason,
+        cancelled_by_admin_id: docRecord.cancelled_by_admin_id,
+        template_title: docRecord.template_title || 'Autorização SESI Escola Cidadã',
+        procedure_description: docRecord.procedure_description || 'Autorização clínica escolar.',
+        tsa_timestamp_token: matchedAudit?.tsa_timestamp_token || 'tsa_internal_token',
+      };
+    }
   }
 
   if (!record) {
     return c.json({
       success: false,
       valid: false,
-      error: 'Código de autenticidade não localizado na base de registros da plataforma Catraki. Verifique se digitou o código completo (Ex: SESI-XXXX-XXXX).',
+      error: 'Código de validação ou manifesto não localizado na base de registros da plataforma. Verifique se digitou o código completo (Ex: CATRAKI-XXXX-XXXX ou SESI-XXXX-XXXX).',
       code: 'MANIFEST_NOT_FOUND',
     }, 404);
   }

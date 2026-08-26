@@ -122,4 +122,42 @@ describe('Validações e Schemas Zod (schemas.ts)', () => {
       expect(res.success).toBe(true);
     }
   });
+
+  it('deve validar documentos públicos usando múltiplos formatos de código (CATRAKI, SESI, Hash)', async () => {
+    const { apiClient } = await import('../src/lib/api.ts');
+
+    const manifestHash = '7541abcdef0123456789abcdef0123456789abcdef0123456789abcdef01e01c';
+    const mockDoc = {
+      id: 'DOC-20260826-7541E01C',
+      template_id: 'proc_audiometria_infantil',
+      template_version: 1,
+      access_token: 'token-7541e01c',
+      status: 'signed' as const,
+      minor_name: 'Gabriela Alvarenga Teles',
+      minor_cpf: '099.123.456-10',
+      parent_name: 'Editania Ferreira Teles',
+      manifest_sha256: manifestHash,
+      validation_code: 'CATRAKI-7541-E01C',
+      created_at: new Date().toISOString(),
+    };
+
+    apiClient.seedDocument(mockDoc);
+
+    // Validação com formato CATRAKI-XXXX-XXXX
+    const resCatraki = await apiClient.validatePublic('CATRAKI-7541-E01C');
+    expect(resCatraki.success).toBe(true);
+    expect(resCatraki.validation?.document_id).toBe(mockDoc.id);
+
+    // Validação com formato SESI-XXXX-XXXX
+    const resSesi = await apiClient.validatePublic('SESI-7541-E01C');
+    expect(resSesi.success).toBe(true);
+
+    // Validação com formato sem prefixo (7541-E01C)
+    const resShort = await apiClient.validatePublic('7541-E01C');
+    expect(resShort.success).toBe(true);
+
+    // Validação por ID do documento
+    const resId = await apiClient.validatePublic('DOC-20260826-7541E01C');
+    expect(resId.success).toBe(true);
+  });
 });

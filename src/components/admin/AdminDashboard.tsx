@@ -75,13 +75,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showRevocationModal, setShowRevocationModal] = useState(false);
   const [selectedAuthToRevoke, setSelectedAuthToRevoke] = useState<any | null>(null);
   const [revocationReason, setRevocationReason] = useState('');
-  const [notifyEmail, setNotifyEmail] = useState('');
   const [revocationConfirmed, setRevocationConfirmed] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
   const [revocationError, setRevocationError] = useState('');
   const [revocationSuccessToast, setRevocationSuccessToast] = useState<string | null>(null);
-  const [isFetchingEmail, setIsFetchingEmail] = useState(false);
-  const [emailAutoFilled, setEmailAutoFilled] = useState(false);
 
   // Estados do Modal de Reenvio de E-mail de Cancelamento
   const [showResendEmailModal, setShowResendEmailModal] = useState(false);
@@ -167,7 +164,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             minorSeries: doc.minor_series || '',
             minorClass: doc.minor_class || '',
             minorTurn: doc.minor_turn || '',
-            dateSent: doc.created_at ? new Date(doc.created_at).toLocaleDateString('pt-BR') : 'Hoje',
+            dateSent: doc.created_at ? new Date(doc.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Hoje',
             signedAtDate: doc.created_at ? new Date(doc.created_at) : new Date(),
             hash: log?.manifest_sha256 || doc.content_sha256,
             validationCode: log?.manifest_sha256
@@ -310,30 +307,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleOpenRevokeModal = async (auth: any) => {
+  const handleOpenRevokeModal = (auth: any) => {
     setSelectedAuthToRevoke(auth);
     setRevocationReason('');
-    setNotifyEmail('');
     setRevocationConfirmed(false);
     setRevocationError('');
-    setEmailAutoFilled(false);
     setShowRevocationModal(true);
-
-    // Busca automática do e-mail do responsável via descriptografia segura no backend
-    if (auth.id) {
-      setIsFetchingEmail(true);
-      try {
-        const result = await apiClient.getDocumentParentEmail(auth.id);
-        if (result.success && result.parent_email) {
-          setNotifyEmail(result.parent_email);
-          setEmailAutoFilled(true);
-        }
-      } catch {
-        // Falha silenciosa — admin pode preencher manualmente
-      } finally {
-        setIsFetchingEmail(false);
-      }
-    }
   };
 
   const handleConfirmRevoke = async () => {
@@ -352,9 +331,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     try {
       const res = await apiClient.cancelDocumentDueToError(
-        selectedAuthToRevoke.id, 
-        revocationReason.trim(), 
-        notifyEmail.trim() || undefined
+        selectedAuthToRevoke.id,
+        revocationReason.trim()
+        // notify_email omitido — o backend descriptografa automaticamente o e-mail cadastrado
       );
       setIsRevoking(false);
 
@@ -623,62 +602,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   return (
     <div className="p-2 sm:p-4 lg:p-6 max-w-full mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
-      {/* Header Corporativo */}
-      <div className="bg-white border border-slate-200 p-4 sm:p-6 lg:p-8 rounded-2xl shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative overflow-hidden">
-        
+
+      {/* ━━ HEADER CORPORATIVO PREMIUM ━━ */}
+      <div className="header-card rounded-2xl p-4 sm:p-5 lg:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative overflow-hidden">
+
+        {/* Decoração geométrica de fundo */}
+        <div className="absolute top-0 right-0 w-64 h-64 opacity-[0.03] pointer-events-none">
+          <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="150" cy="50" r="120" fill="#1d4ed8"/>
+            <circle cx="180" cy="150" r="80" fill="#3b82f6"/>
+          </svg>
+        </div>
+        <div className="absolute -bottom-8 -left-8 w-40 h-40 rounded-full bg-blue-500/5 pointer-events-none" />
+
+        {/* Lado esquerdo: Logo + Título */}
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-blue-50 border border-blue-100 text-blue-700 text-[10px] font-bold tracking-widest uppercase mb-2 sm:mb-3">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-blue-50 border border-blue-100/80 text-blue-700 text-[10px] font-bold tracking-widest uppercase mb-2.5">
             <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
             </span>
             PLATAFORMA CATRAKI ATIVA
           </div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl lg:text-[26px] font-black text-slate-900 tracking-tight leading-none">
             Painel Gestor
           </h1>
-          <p className="text-slate-500 mt-1 text-xs sm:text-sm max-w-xl leading-relaxed">
-            Acompanhamento de autorizações e gestão de escolas participantes da campanha "Saúde em Movimento".
+          <p className="text-slate-500 mt-1.5 text-xs sm:text-[13px] max-w-md leading-relaxed">
+            Acompanhamento de autorizações e gestão de escolas da campanha
+            <span className="font-semibold text-slate-600"> "Saúde em Movimento"</span>.
           </p>
         </div>
-        
+
+        {/* Lado direito: Usuário + Ações */}
         <div className="flex flex-col items-stretch sm:items-end gap-2.5 relative z-10">
-          {/* Card do Usuário Logado */}
           {currentUser && (
-            <div className="flex items-center gap-3 px-3.5 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs shadow-xs w-full sm:w-auto">
-              <div className="w-8 h-8 rounded-lg bg-sesi-primary text-white font-bold flex items-center justify-center text-xs shadow-xs shrink-0">
-                {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+            <div className="flex items-center gap-3 px-3.5 py-2.5 bg-white/80 border border-slate-200/80 rounded-xl text-xs shadow-sm w-full sm:w-auto backdrop-blur-sm">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 text-white font-black flex items-center justify-center text-sm shadow-sm shrink-0">
+                {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'A'}
               </div>
               <div className="text-left min-w-0">
                 <div className="font-bold text-slate-800 leading-tight flex items-center gap-1.5">
-                  <span className="truncate max-w-[200px] md:max-w-[320px]">{currentUser.name}</span>
-                  <span className="px-1.5 py-0.5 bg-blue-100 text-sesi-primary text-[9px] font-bold rounded-full uppercase tracking-wider shrink-0">
+                  <span className="truncate max-w-[180px] md:max-w-[280px] text-[13px]">{currentUser.name}</span>
+                  <span className="px-1.5 py-0.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-[8px] font-black rounded-md uppercase tracking-wider shrink-0 shadow-sm">
                     {currentUser.role === 'admin_master' ? 'Master' : 'Gestor'}
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-500 font-mono leading-tight mt-0.5 truncate">{currentUser.email}</div>
+                <div className="text-[11px] text-slate-400 font-mono leading-tight mt-0.5 truncate">{currentUser.email}</div>
               </div>
             </div>
           )}
 
-          {/* Botões de Ação Abaixo do Card do Usuário */}
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <button 
+            <button
               onClick={() => setShowNewSchoolModal(true)}
-              className="flex-1 sm:flex-none px-4 py-2 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs hover:shadow transition-all cursor-pointer"
+              className="btn-primary-grad flex-1 sm:flex-none px-4 py-2 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              <span>Cadastrar Nova Escola</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Nova Escola</span>
             </button>
 
             {onLogout && (
               <button
                 onClick={onLogout}
                 title="Sair do Painel Gestor"
-                className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 text-slate-600 font-medium text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                className="px-3 py-2 bg-white border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 text-slate-500 font-medium text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
                 <span>Sair</span>
               </button>
             )}
@@ -686,30 +675,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
-      {/* Navegação entre Abas (Scrollável no Mobile) */}
-      <div className="flex border-b border-slate-200 gap-2 sm:gap-4 overflow-x-auto pb-px">
+
+      {/* ━━ TABS DE NAVEGAÇÃO PREMIUM ━━ */}
+      <div className="flex gap-1 bg-white/70 backdrop-blur-sm border border-slate-200/80 rounded-xl p-1 w-fit shadow-sm">
         <button
           onClick={() => setActiveTab('authorizations')}
-          className={`pb-3 px-2 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+          className={`px-4 py-2 text-xs font-bold flex items-center gap-2 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
             activeTab === 'authorizations'
-              ? 'border-sesi-primary text-sesi-primary'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'bg-sesi-primary text-white shadow-sm'
+              : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
           }`}
         >
-          <FileText className="w-4 h-4 shrink-0" />
-          <span>Autorizações ({filteredAuths.length})</span>
+          <FileText className="w-3.5 h-3.5 shrink-0" />
+          <span>Autorizações</span>
+          <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+            activeTab === 'authorizations' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+          }`}>{filteredAuths.length}</span>
         </button>
 
         <button
           onClick={() => setActiveTab('schools')}
-          className={`pb-3 px-2 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+          className={`px-4 py-2 text-xs font-bold flex items-center gap-2 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
             activeTab === 'schools'
-              ? 'border-sesi-primary text-sesi-primary'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'bg-sesi-primary text-white shadow-sm'
+              : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
           }`}
         >
-          <Building2 className="w-4 h-4 shrink-0" />
-          <span>Escolas & Links ({institutions.length})</span>
+          <Building2 className="w-3.5 h-3.5 shrink-0" />
+          <span>Escolas &amp; Links</span>
+          <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+            activeTab === 'schools' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+          }`}>{institutions.length}</span>
         </button>
       </div>
 
@@ -717,16 +713,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeTab === 'authorizations' && (
         <div className="space-y-4">
 
+          {/* ━━ FILTROS PREMIUM ━━ */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 space-y-3">
 
-          {/* Caixa de Pesquisa e Filtros Avançados */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200/90 space-y-4">
-            
-            {/* Linha 1: Barra de Busca + Dropdowns de Filtro */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-              
-              {/* Input de Busca */}
-              <div className="relative group sm:col-span-2 lg:col-span-2">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            {/* Linha 1: Busca + Filtros */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2">
+
+              {/* Busca */}
+              <div className="relative lg:col-span-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                 <input
                   id="admin-search-input"
                   name="adminSearchTerm"
@@ -735,153 +730,140 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   placeholder="Buscar aluno, responsável..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium placeholder:text-slate-400 focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all"
+                  className="filter-input w-full pl-9 pr-3 py-2 text-xs text-slate-700 font-medium placeholder:text-slate-400"
                 />
               </div>
 
-              {/* Filtro: Status */}
+              {/* Status */}
               <div className="relative">
-                <FileCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                <select
-                  id="admin-filter-status"
-                  name="filterStatus"
-                  aria-label="Filtrar por status"
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value as any)}
-                  className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none truncate"
-                >
+                <FileCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value as any)}
+                  className="filter-input w-full pl-9 pr-7 py-2 text-xs text-slate-700 font-medium cursor-pointer appearance-none">
                   <option value="all">Status: Todos</option>
-                  <option value="signed">✅ Autorizadas (Assinadas)</option>
+                  <option value="signed">✅ Autorizadas</option>
                   <option value="pending">⏳ Pendentes</option>
-                  <option value="revoked">🚫 Negadas pelo Responsável</option>
-                  <option value="CANCELADO_POR_ERRO">⚠️ Canceladas por Erro (Invalidadas)</option>
+                  <option value="revoked">🚫 Negadas</option>
+                  <option value="CANCELADO_POR_ERRO">⚠️ Canceladas</option>
                 </select>
-                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[9px]">▼</div>
               </div>
 
-              {/* Filtro: Escola */}
+              {/* Escola */}
               <div className="relative">
-                <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                <select
-                  value={selectedInstitution}
-                  onChange={(e) => setSelectedInstitution(e.target.value)}
-                  className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none truncate"
-                >
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                <select value={selectedInstitution} onChange={(e) => setSelectedInstitution(e.target.value)}
+                  className="filter-input w-full pl-9 pr-7 py-2 text-xs text-slate-700 font-medium cursor-pointer appearance-none">
                   <option value="all">Todas as Escolas</option>
                   {institutions.map((inst) => (
-                    <option key={inst.id} value={inst.id}>
-                      {inst.short_name} - {inst.city}/{inst.state}
-                    </option>
+                    <option key={inst.id} value={inst.id}>{inst.short_name} - {inst.city}/{inst.state}</option>
                   ))}
                 </select>
-                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[9px]">▼</div>
               </div>
 
-
-              {/* Filtro: Série / Ano */}
+              {/* Série */}
               <div className="relative">
-                <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                <select
-                  value={selectedSeries}
-                  onChange={(e) => setSelectedSeries(e.target.value)}
-                  className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none truncate"
-                >
-                  <option value="all">Série/Ano: Todos</option>
+                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                <select value={selectedSeries} onChange={(e) => setSelectedSeries(e.target.value)}
+                  className="filter-input w-full pl-9 pr-7 py-2 text-xs text-slate-700 font-medium cursor-pointer appearance-none">
+                  <option value="all">Série: Todas</option>
                   <option value="1º Ano">1º Ano</option>
                   <option value="2º Ano">2º Ano</option>
                   <option value="3º Ano">3º Ano</option>
                   <option value="4º Ano">4º Ano</option>
                   <option value="9º Ano">9º Ano</option>
                 </select>
-                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[9px]">▼</div>
               </div>
 
-              {/* Filtro: Uso de Imagem */}
+              {/* Período */}
               <div className="relative">
-                <Camera className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                <select
-                  value={selectedImageOption}
-                  onChange={(e) => setSelectedImageOption(e.target.value as any)}
-                  className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none truncate"
-                >
-                  <option value="all">Imagem: Todas</option>
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                <select value={selectedDateRange} onChange={(e) => setSelectedDateRange(e.target.value as any)}
+                  className="filter-input w-full pl-9 pr-7 py-2 text-xs text-slate-700 font-medium cursor-pointer appearance-none">
+                  <option value="all">Período: Todo</option>
+                  <option value="today">📅 Hoje</option>
+                  <option value="7days">📅 7 dias</option>
+                  <option value="30days">📅 30 dias</option>
+                </select>
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[9px]">▼</div>
+              </div>
+
+              {/* Imagem */}
+              <div className="relative">
+                <Camera className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                <select value={selectedImageOption} onChange={(e) => setSelectedImageOption(e.target.value as any)}
+                  className="filter-input w-full pl-9 pr-7 py-2 text-xs text-slate-700 font-medium cursor-pointer appearance-none">
+                  <option value="all">Foto/Voz: Todas</option>
                   <option value="authorized">📸 Autorizada</option>
                   <option value="not_authorized">🚫 Não Autorizada</option>
                 </select>
-                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-              </div>
-
-              {/* Filtro: Período */}
-              <div className="relative">
-                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                <select
-                  value={selectedDateRange}
-                  onChange={(e) => setSelectedDateRange(e.target.value as any)}
-                  className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-medium focus:outline-none focus:border-sesi-primary focus:bg-white focus:ring-1 focus:ring-sesi-primary transition-all cursor-pointer appearance-none truncate"
-                >
-                  <option value="all">Período: Todo</option>
-                  <option value="today">📅 Assinadas Hoje</option>
-                  <option value="7days">📅 Últimos 7 dias</option>
-                  <option value="30days">📅 Últimos 30 dias</option>
-                </select>
-                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[9px]">▼</div>
               </div>
 
             </div>
 
-            {/* Linha 2: Resumo Métrico + Botões de Exportação Consolidada */}
-            <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-              
-              {/* Badges de Contagem */}
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-sesi-primary font-bold rounded-lg border border-blue-100">
-                  <Users className="w-3.5 h-3.5" />
-                  <span>{filteredAuths.length} registros</span>
-                </span>
+            {/* Linha 2: Stats + Exportação */}
+            <div className="pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
 
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-800 font-bold rounded-lg border border-emerald-100">
-                  <Camera className="w-3.5 h-3.5" />
-                  <span>{totalImageAuthorized} com imagem autorizada</span>
-                </span>
+              {/* Stat cards */}
+              <div className="flex items-center gap-2">
+                <div className="stat-card flex items-center gap-2.5 px-3.5 py-2">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <Users className="w-3.5 h-3.5 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="text-lg font-black text-slate-900 leading-none">{filteredAuths.length}</div>
+                    <div className="text-[10px] text-slate-500 font-medium">registros</div>
+                  </div>
+                </div>
+
+                <div className="stat-card flex items-center gap-2.5 px-3.5 py-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <div className="text-lg font-black text-slate-900 leading-none">
+                      {authorizations.filter(a => a.status === 'signed').length}
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-medium">assinadas</div>
+                  </div>
+                </div>
+
+                <div className="stat-card flex items-center gap-2.5 px-3.5 py-2">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <Camera className="w-3.5 h-3.5 text-blue-500" />
+                  </div>
+                  <div>
+                    <div className="text-lg font-black text-slate-900 leading-none">{totalImageAuthorized}</div>
+                    <div className="text-[10px] text-slate-500 font-medium">c/ foto</div>
+                  </div>
+                </div>
               </div>
 
-              {/* Botões de Ação: Excel / CSV e ZIP de PDFs */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <button
-                  onClick={handleExportCsv}
-                  title="Exportar dados consolidados em planilha Excel/CSV"
-                  className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
-                >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              {/* Botões de exportação */}
+              <div className="flex items-center gap-2">
+                <button onClick={handleExportCsv}
+                  className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer hover:-translate-y-px">
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Exportar CSV</span>
                 </button>
 
-                <button
-                  onClick={handleExportZipPdfs}
-                  disabled={isExportingZip || filteredAuths.length === 0}
-                  title="Baixar todos os termos assinados filtrados em um arquivo ZIP"
-                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
-                >
+                <button onClick={handleExportZipPdfs} disabled={isExportingZip || filteredAuths.length === 0}
+                  className="btn-primary-grad px-3.5 py-2 text-white font-bold text-xs rounded-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
                   {isExportingZip ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      <span>Gerando ZIP...</span>
-                    </>
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Gerando...</span></>
                   ) : (
-                    <>
-                      <Archive className="w-4 h-4 text-blue-300" />
-                      <span>Baixar ZIP de PDFs</span>
-                    </>
+                    <><Archive className="w-3.5 h-3.5 text-blue-200" /><span>ZIP de PDFs</span></>
                   )}
                 </button>
               </div>
 
             </div>
-
           </div>
 
-          {/* Tabela de Autorizações — Largura Total sem Scroll Horizontal */}
-          <div className="bg-white rounded-2xl shadow-xs border border-slate-200/90 overflow-hidden">
+          {/* ━━ TABELA PREMIUM ━━ */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
             <div className="w-full">
               <table className="w-full text-left border-collapse table-fixed">
                 <colgroup>
@@ -894,19 +876,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <col style={{width: '8%'}} />
                   <col style={{width: '20%'}} />
                 </colgroup>
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                    <th className="px-2 py-3">Código</th>
-                    <th className="px-2 py-3">Paciente / Aluno</th>
-                    <th className="px-2 py-3">Turma / Turno</th>
-                    <th className="px-2 py-3">Responsável Legal</th>
-                    <th className="px-2 py-3">Escola</th>
-                    <th className="px-2 py-3">Status</th>
-                    <th className="px-2 py-3">Data</th>
-                    <th className="px-2 py-3 text-right">Ações</th>
+                <thead className="table-thead-premium">
+                  <tr>
+                    <th className="px-3 py-3">Código</th>
+                    <th className="px-3 py-3">Paciente / Aluno</th>
+                    <th className="px-3 py-3">Turma / Turno</th>
+                    <th className="px-3 py-3">Responsável Legal</th>
+                    <th className="px-3 py-3">Escola</th>
+                    <th className="px-3 py-3">Status</th>
+                    <th className="px-3 py-3">Data</th>
+                    <th className="px-3 py-3 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
+                <tbody className="divide-y divide-slate-100/80">
                   {filteredAuths.length > 0 ? (
                     filteredAuths.map((auth) => {
                       const isSigned = auth.status === 'signed';
@@ -919,11 +901,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       return (
                         <tr 
                           key={auth.id} 
-                          className={`hover:bg-slate-50/70 transition-colors border-b border-slate-100 last:border-0 ${isCancelled ? 'bg-amber-50/30' : ''}`}
+                          className={`table-row-premium border-b border-slate-100/80 last:border-0 ${isCancelled ? 'bg-amber-50/40' : ''}`}
                         >
                           {/* Col 1: Código */}
-                          <td className="px-2 py-3 align-middle">
-                            <span className="font-mono text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded block truncate" title={auth.validationCode || auth.id}>
+                          <td className="px-3 py-3 align-middle">
+                            <span className="badge-code" title={auth.validationCode || auth.id}>
                               {auth.validationCode || auth.id}
                             </span>
                           </td>
@@ -1012,7 +994,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                           {/* Col 7: Data */}
                           <td className="px-2 py-3 align-middle">
-                            <span className="text-[10px] text-slate-500 font-medium whitespace-nowrap">{auth.dateSent}</span>
+                            {auth.dateSent ? (() => {
+                              const parts = auth.dateSent.split(', ');
+                              return (
+                                <div>
+                                  <div className="text-[10px] text-slate-700 font-semibold">{parts[0]}</div>
+                                  {parts[1] && <div className="text-[9px] text-slate-400 font-mono mt-0.5">{parts[1]}</div>}
+                                </div>
+                              );
+                            })() : <span className="text-[10px] text-slate-400">—</span>}
                           </td>
 
                           {/* Col 8: Ações */}
@@ -1391,7 +1381,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <span>Aviso de Impacto do Cancelamento:</span>
               </div>
               <p className="text-[12px] text-rose-900 font-medium leading-relaxed">
-                Esta ação é permanente. Os links de assinatura serão desativados agora mesmo e todos os envolvidos receberão um e-mail avisando sobre o cancelamento.
+                Esta ação é permanente. Os links de assinatura serão desativados agora mesmo e o responsável receberá uma notificação automática no e-mail cadastrado no momento do envio do código de verificação.
               </p>
             </div>
 
@@ -1416,49 +1406,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 placeholder="Descreva o motivo da anulação/revogação (ex: erro de digitação do CPF na matrícula ou solicitação do responsável)..."
                 className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 placeholder:text-slate-400 leading-relaxed resize-none disabled:bg-slate-100"
               />
-            </div>
-
-            {/* Campo: E-mail de Notificação Instantânea ao Responsável */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <label htmlFor="notify-email" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  E-mail para Notificação do Responsável <span className="text-slate-400 font-normal lowercase">(disparo imediato)</span>
-                </label>
-                {isFetchingEmail && (
-                  <span className="flex items-center gap-1 text-[10px] text-blue-600 font-semibold shrink-0">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    Buscando...
-                  </span>
-                )}
-                {emailAutoFilled && !isFetchingEmail && (
-                  <span className="flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold shrink-0">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Auto-detectado
-                  </span>
-                )}
-              </div>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  id="notify-email"
-                  type="email"
-                  value={notifyEmail}
-                  disabled={isRevoking || isFetchingEmail}
-                  onChange={(e) => { setNotifyEmail(e.target.value); setEmailAutoFilled(false); }}
-                  placeholder={isFetchingEmail ? 'Buscando e-mail do responsável...' : 'exemplo: pai.responsavel@gmail.com...'}
-                  className={`w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm border rounded-xl focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 placeholder:text-slate-400 disabled:bg-slate-100 transition-all ${
-                    emailAutoFilled
-                      ? 'border-emerald-400 bg-emerald-50/50 text-emerald-800 font-medium'
-                      : 'border-slate-300'
-                  }`}
-                />
-              </div>
-              <p className="text-[11px] text-slate-500">
-                {emailAutoFilled
-                  ? 'E-mail recuperado automaticamente do cadastro do documento. Edite se necessário.'
-                  : 'O responsável receberá o comprovante formal de cancelamento com protocolo e data/hora.'
-                }
-              </p>
             </div>
 
             {/* Checkbox de Confirmação */}

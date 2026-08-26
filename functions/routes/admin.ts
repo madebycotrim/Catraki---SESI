@@ -583,8 +583,9 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
       reason,
       // Novos campos de transparência LGPD
       documentHashSha256: manifestSha256 || undefined,
-      revokedByName: user.name || user.email,
-      revokedByEmail: user.email,
+      // Nome institucional do sistema — o responsável real está na trilha de auditoria forense
+      revokedByName: 'Gestão Administrativa — Plataforma Catraki',
+      revokedByEmail: 'autorizacoes@catraki.com.br',
     });
     const emailText = getTransactionalCancellationEmailText({
       parentName: doc.parent_name || 'Responsável Legal',
@@ -596,8 +597,9 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
       institutionName: doc.institution_name || 'Escola CEMEIT',
       reason,
       documentHashSha256: manifestSha256 || undefined,
-      revokedByName: user.name || user.email,
-      revokedByEmail: user.email,
+      // Nome institucional do sistema — o responsável real está na trilha de auditoria forense
+      revokedByName: 'Gestão Administrativa — Plataforma Catraki',
+      revokedByEmail: 'autorizacoes@catraki.com.br',
     });
 
     const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
@@ -937,6 +939,8 @@ adminRouter.post('/documents/:id/notify-cancellation', requireAuth(['admin_maste
     institutionName: (doc as any).institution_name || 'Escola CEMEIT',
     reason,
     documentHashSha256: manifestSha256 || undefined,
+    revokedByName: 'Gestão Administrativa — Plataforma Catraki',
+    revokedByEmail: 'autorizacoes@catraki.com.br',
   });
   const emailText = getTransactionalCancellationEmailText({
     parentName: doc.parent_name || 'Responsável Legal',
@@ -948,6 +952,8 @@ adminRouter.post('/documents/:id/notify-cancellation', requireAuth(['admin_maste
     institutionName: (doc as any).institution_name || 'Escola CEMEIT',
     reason,
     documentHashSha256: manifestSha256 || undefined,
+    revokedByName: 'Gestão Administrativa — Plataforma Catraki',
+    revokedByEmail: 'autorizacoes@catraki.com.br',
   });
 
   let emailDispatched = false;

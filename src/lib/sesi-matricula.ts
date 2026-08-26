@@ -18,6 +18,6 @@ export async function querySesiMatricula(
     guardianType: result.guardianType,
     matriculaCode: result.matriculaCode,
     verifiedAt: result.verifiedAt,
-    source: 'sesi_sistema_academico_saude_v2',
+    source: 'catraki_sistema_academico_v2',
   };
 }

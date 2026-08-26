@@ -690,6 +690,70 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
 });
 
 // ============================================================================
+// EMAIL DO RESPONSÁVEL — DESCRIPTOGRAFIA SEGURA (Pilar LGPD — Art. 5º, X)
+// Retorna o e-mail descriptografado do responsável legal para preenchimento
+// automático do campo de notificação no modal de cancelamento administrativo.
+// ============================================================================
+
+/**
+ * GET /api/admin/documents/:id/parent-email
+ * Descriptografa e retorna o e-mail do responsável legal cadastrado no documento.
+ * Utilizado pelo painel administrativo para preencher automaticamente o campo
+ * de notificação no fluxo de cancelamento/anulação de documento.
+ */
+adminRouter.get('/documents/:id/parent-email', requireAuth(['admin_master', 'operador']), async (c) => {
+  const id = c.req.param('id');
+  const db = c.env.DB;
+
+  if (!db) {
+    return c.json({ success: false, error: 'Banco de dados indisponível.' }, 503);
+  }
+
+  try {
+    const doc = await db.prepare(
+      `SELECT parent_email_encrypted, parent_name, parent_email FROM documents WHERE id = ?`
+    ).bind(id).first<any>();
+
+    if (!doc) {
+      return c.json({ success: false, error: 'Documento não encontrado.', code: 'DOC_NOT_FOUND' }, 404);
+    }
+
+    const masterKey = c.env.ENCRYPTION_KEY_V1;
+    let parentEmail: string | null = null;
+
+    // Tenta descriptografar o e-mail protegido
+    if (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' && masterKey) {
+      try {
+        parentEmail = await decryptAesGcm(doc.parent_email_encrypted, masterKey);
+      } catch {
+        // Falha silenciosa — fallback abaixo
+      }
+    }
+
+    // Fallback: e-mail em texto plano (documentos legados anteriores à criptografia)
+    if (!parentEmail && doc.parent_email && doc.parent_email.includes('@')) {
+      parentEmail = doc.parent_email;
+    }
+
+    if (!parentEmail) {
+      return c.json({
+        success: false,
+        error: 'E-mail do responsável não disponível para este documento.',
+        code: 'EMAIL_NOT_FOUND',
+      }, 404);
+    }
+
+    return c.json({
+      success: true,
+      parent_email: parentEmail,
+      parent_name: doc.parent_name || null,
+    });
+  } catch (err: any) {
+    return c.json({ success: false, error: 'Erro ao recuperar e-mail do responsável.', code: 'DECRYPT_ERROR' }, 500);
+  }
+});
+
+// ============================================================================
 // CERTIFICADO DE CONCLUSÃO PDF (Pilar 4 — Lei 14.063/2020)
 // Download do relatório forense de linha do tempo do documento
 // ============================================================================

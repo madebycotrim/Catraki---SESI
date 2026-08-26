@@ -957,6 +957,22 @@ export const apiClient = {
   },
 
   /**
+   * Recupera o e-mail descriptografado do responsável legal de um documento.
+   * Usado para preenchimento automático do campo de notificação no modal de cancelamento.
+   */
+  async getDocumentParentEmail(docId: string): Promise<{ success: boolean; parent_email?: string; parent_name?: string; error?: string }> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/documents/${encodeURIComponent(docId)}/parent-email`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+      const data = await resp.json().catch(() => null) as { success: boolean; parent_email?: string; parent_name?: string; error?: string } | null;
+      if (data) return data;
+    } catch {}
+    return { success: false, error: 'Não foi possível recuperar o e-mail do responsável.' };
+  },
+
+  /**
    * Revoga / Cancela autorização por erro operacional com soft delete e trilha de auditoria imutável (LGPD/Marco Civil)
    */
   async cancelDocumentDueToError(docId: string, reason: string, notifyEmail?: string): Promise<any> {

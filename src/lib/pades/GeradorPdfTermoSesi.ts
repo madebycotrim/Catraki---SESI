@@ -87,7 +87,6 @@ export class GeradorPdfTermoSesi {
 
     // Carregamento de Ativos Gráficos (Logo e Barra)
     let logoCatrakiImg: any = null;
-    let barraInstitucionalImg: any = null;
 
     try {
       const logoBytes = await carregarImagemBytes('/catraki.png');
@@ -96,12 +95,6 @@ export class GeradorPdfTermoSesi {
       }
     } catch {}
 
-    try {
-      const barraBytes = await carregarImagemBytes('/barra.jpg');
-      if (barraBytes) {
-        barraInstitucionalImg = await pdfDoc.embedJpg(barraBytes);
-      }
-    } catch {}
 
     // Formatação de data da assinatura
     const dataHoraStr = (dados.dataAssinatura || new Date()).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });

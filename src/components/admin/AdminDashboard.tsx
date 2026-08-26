@@ -81,6 +81,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isRevoking, setIsRevoking] = useState(false);
   const [revocationError, setRevocationError] = useState('');
   const [revocationSuccessToast, setRevocationSuccessToast] = useState<string | null>(null);
+  const [isFetchingEmail, setIsFetchingEmail] = useState(false);
+  const [emailAutoFilled, setEmailAutoFilled] = useState(false);
 
   // Estados do Modal de Reenvio de E-mail de Cancelamento
   const [showResendEmailModal, setShowResendEmailModal] = useState(false);
@@ -309,13 +311,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleOpenRevokeModal = (auth: any) => {
+  const handleOpenRevokeModal = async (auth: any) => {
     setSelectedAuthToRevoke(auth);
     setRevocationReason('');
-    setNotifyEmail(auth.parentEmail || '');
+    setNotifyEmail('');
     setRevocationConfirmed(false);
     setRevocationError('');
+    setEmailAutoFilled(false);
     setShowRevocationModal(true);
+
+    // Busca automática do e-mail do responsável via descriptografia segura no backend
+    if (auth.id) {
+      setIsFetchingEmail(true);
+      try {
+        const result = await apiClient.getDocumentParentEmail(auth.id);
+        if (result.success && result.parent_email) {
+          setNotifyEmail(result.parent_email);
+          setEmailAutoFilled(true);
+        }
+      } catch {
+        // Falha silenciosa — admin pode preencher manualmente
+      } finally {
+        setIsFetchingEmail(false);
+      }
+    }
   };
 
   const handleConfirmRevoke = async () => {
@@ -1452,23 +1471,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             {/* Campo: E-mail de Notificação Instantânea ao Responsável */}
             <div className="space-y-1.5">
-              <label htmlFor="notify-email" className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                E-mail para Notificação do Responsável <span className="text-slate-400 font-normal lowercase">(disparo imediato)</span>
-              </label>
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor="notify-email" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  E-mail para Notificação do Responsável <span className="text-slate-400 font-normal lowercase">(disparo imediato)</span>
+                </label>
+                {isFetchingEmail && (
+                  <span className="flex items-center gap-1 text-[10px] text-blue-600 font-semibold shrink-0">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Buscando...
+                  </span>
+                )}
+                {emailAutoFilled && !isFetchingEmail && (
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold shrink-0">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Auto-detectado
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   id="notify-email"
                   type="email"
                   value={notifyEmail}
-                  disabled={isRevoking}
-                  onChange={(e) => setNotifyEmail(e.target.value)}
-                  placeholder="exemplo: pai.responsavel@gmail.com..."
-                  className="w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 placeholder:text-slate-400 disabled:bg-slate-100"
+                  disabled={isRevoking || isFetchingEmail}
+                  onChange={(e) => { setNotifyEmail(e.target.value); setEmailAutoFilled(false); }}
+                  placeholder={isFetchingEmail ? 'Buscando e-mail do responsável...' : 'exemplo: pai.responsavel@gmail.com...'}
+                  className={`w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm border rounded-xl focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 placeholder:text-slate-400 disabled:bg-slate-100 transition-all ${
+                    emailAutoFilled
+                      ? 'border-emerald-400 bg-emerald-50/50 text-emerald-800 font-medium'
+                      : 'border-slate-300'
+                  }`}
                 />
               </div>
               <p className="text-[11px] text-slate-500">
-                O responsável receberá o comprovante formal de cancelamento com protocolo e data/hora.
+                {emailAutoFilled
+                  ? 'E-mail recuperado automaticamente do cadastro do documento. Edite se necessário.'
+                  : 'O responsável receberá o comprovante formal de cancelamento com protocolo e data/hora.'
+                }
               </p>
             </div>
 

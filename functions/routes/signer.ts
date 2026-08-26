@@ -28,6 +28,7 @@ import {
   canonicalJson,
 } from '../../src/lib/crypto.ts';
 import { getSyncedTimestamp } from '../../src/lib/ntp-sync.ts';
+import { extractCloudflareClientData } from '../utils/cloudflare.ts';
 import { GeradorPdfTermoSesi } from '../../src/lib/pades/GeradorPdfTermoSesi.ts';
 import { computeLogRowHash } from '../../src/lib/audit-chain.ts';
 import {
@@ -787,11 +788,12 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     identityMethod = 'manual_review';
   }
 
-  const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
-  const userAgent = c.req.header('user-agent') || 'Desconhecido';
-  const geoCity = c.req.header('cf-ipcity') || 'Local';
-  const geoRegion = c.req.header('cf-region') || 'BR-SP';
-  const geoCountry = c.req.header('cf-ipcountry') || 'BR';
+  const cfData = extractCloudflareClientData(c);
+  const ipAddress = cfData.ip;
+  const userAgent = cfData.userAgent;
+  const geoCity = cfData.city;
+  const geoRegion = cfData.region;
+  const geoCountry = cfData.country;
 
   // ── NTP SYNC (Pilar 3 — Observatório Nacional Brasileiro) ────────────────────────
   // Usa timestamp certificado NTP para impossibilitar fraude com datas retroativas.
@@ -839,8 +841,10 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     digital_evidence: {
       ip: ipAddress,
       user_agent_hash: await sha256(userAgent),
-      geo: `${geoCity}/${geoRegion}/${geoCountry}`,
+      geo: cfData.formattedLocation,
       fingerprint: client_fingerprint || null,
+      asn: cfData.asnOrg ? `${cfData.asnOrg} (AS${cfData.asnNumber})` : null,
+      tls_version: cfData.tlsVersion,
     },
     legal_basis: isMaiorDeIdade
       ? 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020 Art. 4º, II (Assinatura Eletrônica Avançada); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; Art. 299 CP; REsp 2.205.708/PR (STJ)'
@@ -1226,8 +1230,9 @@ signerRouter.post('/revoke', async (c) => {
   }
 
   const revokedAtIso = new Date().toISOString();
-  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
-  const userAgent = c.req.header('user-agent') || 'Catraki Signer';
+  const cfDataRevoke = extractCloudflareClientData(c);
+  const clientIp = cfDataRevoke.ip;
+  const userAgent = cfDataRevoke.userAgent;
 
   let updateOk = false;
   try {

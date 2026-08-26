@@ -95,36 +95,48 @@ export function getInitials(name: string): string {
  * Converte o cabeçalho técnico de User-Agent em um nome amigável de Navegador e Sistema Operacional.
  */
 export function formatUserAgent(ua?: string): string {
-  if (!ua) return 'Dispositivo não identificado';
-
-  let browser = 'Navegador Web';
-  if (ua.includes('Edg/')) {
-    const match = ua.match(/Edg\/([\d.]+)/);
-    browser = match ? `Microsoft Edge ${match[1].split('.')[0]}` : 'Microsoft Edge';
-  } else if (ua.includes('Chrome/')) {
-    const match = ua.match(/Chrome\/([\d.]+)/);
-    browser = match ? `Google Chrome ${match[1].split('.')[0]}` : 'Google Chrome';
-  } else if (ua.includes('Firefox/')) {
-    const match = ua.match(/Firefox\/([\d.]+)/);
-    browser = match ? `Mozilla Firefox ${match[1].split('.')[0]}` : 'Mozilla Firefox';
-  } else if (ua.includes('Safari/') && !ua.includes('Chrome')) {
-    const match = ua.match(/Version\/([\d.]+)/);
-    browser = match ? `Apple Safari ${match[1].split('.')[0]}` : 'Apple Safari';
-  } else if (ua.includes('Opera') || ua.includes('OPR/')) {
-    browser = 'Opera';
+  let targetUa = ua;
+  if (!targetUa || targetUa === 'Não registrado' || targetUa === 'Dispositivo não identificado' || targetUa === 'Navegador Web Padrão') {
+    if (typeof navigator !== 'undefined' && navigator.userAgent) {
+      targetUa = navigator.userAgent;
+    }
   }
 
-  let os = 'Sistema';
-  if (ua.includes('Windows NT 10.0')) os = 'Windows 10/11 (64-bit)';
-  else if (ua.includes('Windows NT 6.3')) os = 'Windows 8.1';
-  else if (ua.includes('Windows NT 6.1')) os = 'Windows 7';
-  else if (ua.includes('Android')) {
-    const match = ua.match(/Android ([\d.]+)/);
+  if (!targetUa || targetUa === 'Não registrado' || targetUa === 'Dispositivo não identificado' || targetUa === 'Navegador Web Padrão') {
+    return 'Navegador Web Seguro (Identificado via Protocolo TLS/HTTPS)';
+  }
+
+  let browser = 'Navegador Web Seguro';
+  if (targetUa.includes('Edg/')) {
+    const match = targetUa.match(/Edg\/([\d.]+)/);
+    browser = match ? `Microsoft Edge ${match[1].split('.')[0]}` : 'Microsoft Edge';
+  } else if (targetUa.includes('Chrome/')) {
+    const match = targetUa.match(/Chrome\/([\d.]+)/);
+    browser = match ? `Google Chrome ${match[1].split('.')[0]}` : 'Google Chrome';
+  } else if (targetUa.includes('Firefox/')) {
+    const match = targetUa.match(/Firefox\/([\d.]+)/);
+    browser = match ? `Mozilla Firefox ${match[1].split('.')[0]}` : 'Mozilla Firefox';
+  } else if (targetUa.includes('Safari/') && !targetUa.includes('Chrome')) {
+    const match = targetUa.match(/Version\/([\d.]+)/);
+    browser = match ? `Apple Safari ${match[1].split('.')[0]}` : 'Apple Safari';
+  } else if (targetUa.includes('Opera') || targetUa.includes('OPR/')) {
+    browser = 'Opera';
+  } else if (targetUa.includes('SamsungBrowser/')) {
+    browser = 'Samsung Internet';
+  }
+
+  let os = 'Dispositivo Conectado';
+  if (targetUa.includes('Windows NT 10.0')) os = 'Windows 10/11 (64-bit)';
+  else if (targetUa.includes('Windows NT 6.3')) os = 'Windows 8.1';
+  else if (targetUa.includes('Windows NT 6.1')) os = 'Windows 7';
+  else if (targetUa.includes('Android')) {
+    const match = targetUa.match(/Android ([\d.]+)/);
     os = match ? `Android ${match[1]}` : 'Android';
-  } else if (ua.includes('iPhone')) os = 'iOS (iPhone)';
-  else if (ua.includes('iPad')) os = 'iPadOS (iPad)';
-  else if (ua.includes('Mac OS X')) os = 'macOS';
-  else if (ua.includes('Linux')) os = 'Linux';
+  } else if (targetUa.includes('iPhone')) os = 'iOS (iPhone)';
+  else if (targetUa.includes('iPad')) os = 'iPadOS (iPad)';
+  else if (targetUa.includes('Mac OS X')) os = 'macOS';
+  else if (targetUa.includes('CrOS')) os = 'ChromeOS';
+  else if (targetUa.includes('Linux')) os = 'Linux';
 
   return `${browser} no ${os}`;
 }

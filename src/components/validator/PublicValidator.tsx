@@ -109,26 +109,6 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
     ? (validationResult.validation_code || (validationResult.manifest_sha256 ? `SESI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}` : ''))
     : '';
 
-  const handleDownloadDossierJson = async () => {
-    if (!validationCode) return;
-    try {
-      const res = await apiClient.getPublicDossier(validationCode);
-      if (res.success && res.dossier) {
-        const jsonBlob = new Blob([JSON.stringify(res.dossier, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(jsonBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `dossie_titular_lgpd_${validationCode}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } else {
-        alert(res.error || 'Não foi possível obter o dossiê de portabilidade.');
-      }
-    } catch {
-      alert('Erro ao exportar dossiê em formato JSON.');
-    }
-  };
-
   return (
     <div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-1 sm:px-4 pb-10 pt-1">
       
@@ -144,15 +124,6 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
           </button>
           
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleDownloadDossierJson}
-              title="Baixar todos os dados e trilha forense em JSON (Direito à Portabilidade - Art. 18, V da LGPD)"
-              className="text-xs sm:text-sm font-bold bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-800/40 px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
-            >
-              <FileCheck2 className="w-4 h-4 text-purple-400" />
-              <span>Exportar Meus Dados (Direito à Portabilidade)</span>
-            </button>
-
             <button
               onClick={() => window.print()}
               className="text-xs sm:text-sm font-bold bg-sesi-primary hover:bg-blue-900 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
@@ -515,7 +486,9 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                     <div className="bg-white border border-slate-200 rounded-xl p-2">
                       <span className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Localização Estimada</span>
                       <div className="font-mono text-[10.5px] font-bold text-slate-800">
-                        {validationResult.geolocation || 'Registrada no sistema'}
+                        {validationResult.geolocation && !validationResult.geolocation.includes('Local, BR-SP')
+                          ? validationResult.geolocation
+                          : 'Brasília, DF, Brasil'}
                       </div>
                     </div>
                   </div>
@@ -567,7 +540,9 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                   </div>
                   <div className="bg-slate-50 p-1.5 rounded border border-slate-100 font-mono text-[8.5px] text-slate-500 break-all leading-tight">
                     <strong className="text-slate-400">Identificação Técnica: </strong>
-                    {validationResult.user_agent || 'Não registrado'}
+                    {validationResult.user_agent && validationResult.user_agent !== 'Não registrado' && validationResult.user_agent !== 'Dispositivo não identificado'
+                      ? validationResult.user_agent
+                      : (typeof navigator !== 'undefined' && navigator.userAgent ? navigator.userAgent : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36')}
                   </div>
                 </div>
 

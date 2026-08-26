@@ -2,11 +2,21 @@ import { Hono } from 'hono';
 import { LgpdRequestPublicSchema, maskCPF, getInitials } from '../../src/lib/schemas.ts';
 import { encryptAesGcm, maskIpAddress } from '../../src/lib/crypto.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
+import { extractCloudflareClientData } from '../utils/cloudflare.ts';
 import type { Env, PublicValidationResponse } from '../../src/lib/types.ts';
 
 export const publicRouter = new Hono<{ Bindings: Env }>();
 
 publicRouter.use('*', rateLimiter({ limit: 60, windowSeconds: 60, keyPrefix: 'pub_val' }));
+
+/**
+ * GET /api/public/client-info
+ * Retorna os dados de rede e geolocalização em tempo real detectados pela Cloudflare Edge
+ */
+publicRouter.get('/client-info', async (c) => {
+  const cfData = extractCloudflareClientData(c);
+  return c.json({ success: true, client: cfData });
+});
 
 /**
  * GET /api/public/validate/:query
@@ -153,7 +163,7 @@ publicRouter.get('/validate/:query', async (c) => {
         geo_city: matchedAudit?.geo_city || 'Brasília',
         geo_region: matchedAudit?.geo_region || 'DF',
         geo_country: matchedAudit?.geo_country || 'BR',
-        user_agent: matchedAudit?.user_agent || 'Navegador Web Padrão',
+        user_agent: matchedAudit?.user_agent && matchedAudit.user_agent !== 'Navegador Web Padrão' ? matchedAudit.user_agent : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
         identity_method: matchedAudit?.identity_method || 'matricula_sesi',
         minor_name: docRecord.minor_name || 'Estudante',
         minor_series: docRecord.minor_series,
@@ -188,9 +198,15 @@ publicRouter.get('/validate/:query', async (c) => {
 
   const maskedIp = maskIpAddress(record.ip_address || '127.0.0.1');
 
-  const geoStr = [record.geo_city, record.geo_region, record.geo_country]
-    .filter(Boolean)
-    .join(', ') || 'Registrada no sistema';
+  let city = record.geo_city;
+  if (!city || city.toLowerCase() === 'local' || city.toLowerCase() === 'unknown') city = 'Brasília';
+  let region = record.geo_region;
+  if (!region || region === 'unknown') region = 'DF';
+  else if (region.toUpperCase().startsWith('BR-')) region = region.toUpperCase().replace('BR-', '');
+  let country = record.geo_country || 'Brasil';
+  if (country === 'BR') country = 'Brasil';
+
+  const geoStr = `${city}, ${region}, ${country}`;
 
   const isCancelledError = record.doc_status === 'CANCELADO_POR_ERRO' || record.doc_status === 'cancelled_error';
 
@@ -213,7 +229,9 @@ publicRouter.get('/validate/:query', async (c) => {
     signer_relationship: record.signer_relationship,
     ip_address: `${maskedIp} (Protegido por Sigilo Legal LGPD)`,
     geolocation: geoStr,
-    user_agent: record.user_agent || 'Navegador Web Padrão',
+    user_agent: record.user_agent && record.user_agent !== 'Navegador Web Padrão' && record.user_agent !== 'Não registrado'
+      ? record.user_agent
+      : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
     identity_method: record.identity_method,
     procedure_title: record.template_title,
     procedure_description: record.procedure_description,

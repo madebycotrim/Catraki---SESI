@@ -26,6 +26,7 @@ import {
 } from '../../src/lib/email-templates.ts';
 import { verifyAuditChain, computeMerkleRoot } from '../../src/lib/audit-chain.ts';
 import { requireAuth, signJwt, JwtPayload } from '../middleware/auth.ts';
+import { extractCloudflareClientData } from '../utils/cloudflare.ts';
 import { GeradorCertificadoConclusao, EventoCertificado } from '../../src/lib/pades/GeradorCertificadoConclusao.ts';
 import type {
   Env,
@@ -75,8 +76,9 @@ export async function logAdminAction(
 adminRouter.post('/auth/login', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const { email, password } = body;
-  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
-  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
+  const cfData = extractCloudflareClientData(c);
+  const clientIp = cfData.ip;
+  const userAgent = cfData.userAgent;
 
   if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
     return c.json({ success: false, error: 'E-mail e senha são obrigatórios.', code: 'VALIDATION_ERROR' }, 400);

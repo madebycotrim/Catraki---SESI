@@ -33,7 +33,6 @@ import {
   HeartPulse,
   Cake,
   UserCheck,
-  Sparkles,
   Mail,
   Send
 } from 'lucide-react';
@@ -623,7 +622,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   return (
-    <div className="p-2 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="p-2 sm:p-4 lg:p-6 max-w-full mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
       {/* Header Corporativo */}
       <div className="bg-white border border-slate-200 p-4 sm:p-6 lg:p-8 rounded-2xl shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative overflow-hidden">
@@ -881,21 +880,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           </div>
 
-          {/* Tabela de Autorizações com Rolagem Horizontal Suave */}
+          {/* Tabela de Autorizações — Largura Total sem Scroll Horizontal */}
           <div className="bg-white rounded-2xl shadow-xs border border-slate-200/90 overflow-hidden">
-            <div className="overflow-x-auto w-full">
-              <table className="w-full text-left border-collapse min-w-[1280px]">
+            <div className="w-full">
+              <table className="w-full text-left border-collapse table-fixed">
+                <colgroup>
+                  <col style={{width: '11%'}} />
+                  <col style={{width: '16%'}} />
+                  <col style={{width: '11%'}} />
+                  <col style={{width: '15%'}} />
+                  <col style={{width: '9%'}} />
+                  <col style={{width: '10%'}} />
+                  <col style={{width: '8%'}} />
+                  <col style={{width: '20%'}} />
+                </colgroup>
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
-                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Código</th>
-                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Paciente / Aluno</th>
-                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Ano / Turma</th>
-                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Responsável Legal</th>
-                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Instituição / Escola</th>
-                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Atendimentos</th>
-                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Status</th>
-                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4">Data</th>
-                    <th className="px-3.5 sm:px-4 py-3.5 sm:py-4 text-right">Ação</th>
+                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                    <th className="px-2 py-3">Código</th>
+                    <th className="px-2 py-3">Paciente / Aluno</th>
+                    <th className="px-2 py-3">Turma / Turno</th>
+                    <th className="px-2 py-3">Responsável Legal</th>
+                    <th className="px-2 py-3">Escola</th>
+                    <th className="px-2 py-3">Status</th>
+                    <th className="px-2 py-3">Data</th>
+                    <th className="px-2 py-3 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
@@ -911,213 +919,156 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       return (
                         <tr 
                           key={auth.id} 
-                          className={`hover:bg-slate-50/70 transition-colors ${isCancelled ? 'bg-amber-50/30' : ''}`}
+                          className={`hover:bg-slate-50/70 transition-colors border-b border-slate-100 last:border-0 ${isCancelled ? 'bg-amber-50/30' : ''}`}
                         >
-                          {/* Coluna 1: Código de Validação */}
-                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4 whitespace-nowrap">
-                            <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 border border-slate-200 px-2 py-1 rounded-md">
+                          {/* Col 1: Código */}
+                          <td className="px-2 py-3 align-middle">
+                            <span className="font-mono text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded block truncate" title={auth.validationCode || auth.id}>
                               {auth.validationCode || auth.id}
                             </span>
                           </td>
 
-                          {/* Coluna 2: Paciente / Aluno + Data Nasc/Idade */}
-                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
-                            <div>
-                              <div className="font-bold text-slate-900 text-xs sm:text-sm">{auth.studentName}</div>
-                              <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                                <span className="text-[11px] text-slate-500 font-mono">{auth.studentCpfMasked}</span>
-                                {birthInfo && (
-                                  <span className="text-[10px] text-slate-600 font-medium bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200" title="Data de Nascimento">
-                                    🎂 {birthInfo.formattedDate} {birthInfo.age ? `(${birthInfo.age})` : ''}
-                                  </span>
-                                )}
+                          {/* Col 2: Aluno + Nasc */}
+                          <td className="px-2 py-3 align-middle">
+                            <div className="font-bold text-slate-900 text-[11px] leading-tight truncate">{auth.studentName}</div>
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">{auth.studentCpfMasked}</div>
+                            {birthInfo && (
+                              <div className="text-[10px] text-slate-500 mt-0.5">
+                                🎂 {birthInfo.formattedDate}{birthInfo.age ? ` · ${birthInfo.age}` : ''}
                               </div>
-                            </div>
-                          </td>
-
-                          {/* Coluna 3: Ano / Série, Turma e Turno (Destaque SESI) */}
-                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
-                            {seriesClassText ? (
-                              <div className="flex flex-col gap-1">
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 text-xs font-bold w-fit shadow-xs">
-                                  <GraduationCap className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                                  <span>{seriesClassText}</span>
-                                </span>
-                                {auth.minorTurn && (
-                                  <span className="text-[10px] text-slate-500 font-medium capitalize pl-0.5">
-                                    Turno: <strong className="text-slate-700">{auth.minorTurn}</strong>
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-slate-400 text-xs italic">Não informado</span>
                             )}
                           </td>
 
-                          {/* Coluna 4: Responsável Legal + Vínculo */}
-                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
-                            <div className="text-xs text-slate-700 font-medium">
-                              <span className="font-bold text-slate-900">{auth.parentName}</span>
-                              <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex items-center gap-1">
-                                <span>{auth.parentCpfMasked}</span>
-                                <span className="bg-slate-100 px-1.5 py-0.2 rounded text-[10px] font-semibold text-slate-600 uppercase border border-slate-200">
-                                  {auth.relationship}
+                          {/* Col 3: Turma / Turno */}
+                          <td className="px-2 py-3 align-middle">
+                            {seriesClassText ? (
+                              <div>
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-900 border border-blue-200 text-[10px] font-bold">
+                                  <GraduationCap className="w-3 h-3 text-blue-600 shrink-0" />
+                                  <span className="truncate">{seriesClassText}</span>
                                 </span>
+                                {auth.minorTurn && (
+                                  <div className="text-[10px] text-slate-500 mt-0.5 capitalize">
+                                    {auth.minorTurn}
+                                  </div>
+                                )}
                               </div>
-                            </div>
+                            ) : (
+                              <span className="text-slate-400 text-[10px] italic">—</span>
+                            )}
                           </td>
 
-                          {/* Coluna 5: Instituição / Escola */}
-                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold">
-                              <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                              <span className="truncate max-w-[140px]">{auth.institutionName}</span>
+                          {/* Col 4: Responsável */}
+                          <td className="px-2 py-3 align-middle">
+                            <div className="font-bold text-slate-900 text-[11px] leading-tight truncate">{auth.parentName}</div>
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">{auth.parentCpfMasked}</div>
+                            <span className="text-[9px] bg-slate-100 px-1 py-0.5 rounded border border-slate-200 font-semibold text-slate-500 uppercase">
+                              {auth.relationship}
                             </span>
                           </td>
 
-                          {/* Coluna 6: Atendimentos & Imagem */}
-                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
-                            {isSigned ? (
-                              <div className="flex flex-col gap-1">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold w-fit" title="Oftalmologia, Audiometria, Odontologia, Psicologia e Nutrição">
-                                  <Sparkles className="w-3 h-3 text-emerald-600" />
-                                  <span>Saúde 5 em 1</span>
-                                </span>
-                                {auth.authImage ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold w-fit" title="Uso de Imagem e Voz Autorizado">
-                                    <Camera className="w-3 h-3 text-blue-600" />
-                                    <span>Foto/Voz Sim</span>
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200 text-[10px] font-semibold w-fit" title="Uso de Imagem e Voz Recusado">
-                                    <span>Sem Foto</span>
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-slate-400 text-xs">—</span>
-                            )}
+                          {/* Col 5: Escola */}
+                          <td className="px-2 py-3 align-middle">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-semibold">
+                              <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
+                              <span className="truncate">{auth.institutionName}</span>
+                            </span>
                           </td>
 
-                          {/* Coluna 7: Status */}
-                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
+                          {/* Col 6: Status + Atendimentos embutido */}
+                          <td className="px-2 py-3 align-middle">
                             {isSigned && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold whitespace-nowrap">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                                <span>Autorizada</span>
-                              </span>
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                  Autorizada
+                                </span>
+                                {auth.authImage ? (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 text-[9px] font-bold">
+                                    <Camera className="w-2.5 h-2.5" /> Foto/Voz
+                                  </span>
+                                ) : null}
+                              </div>
                             )}
                             {isCancelled && (
-                              <span 
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-[11px] font-bold shadow-2xs whitespace-nowrap" 
-                                title="Autorização invalidada administrativamente com preservação de custódia pericial (soft delete)"
-                              >
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-bold">
                                 <Ban className="w-3 h-3 text-rose-600 shrink-0" />
-                                <span>Cancelado</span>
+                                Cancelado
                               </span>
                             )}
                             {isRevoked && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-[11px] font-bold whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-bold">
                                 <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
-                                <span>Negada</span>
+                                Negada
                               </span>
                             )}
                             {isPending && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold whitespace-nowrap">
-                                <Clock className="w-3 h-3 text-slate-500 shrink-0" />
-                                <span>Pendente</span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold">
+                                <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                                Pendente
                               </span>
                             )}
                           </td>
 
-                          {/* Coluna 8: Data */}
-                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4">
-                            <span className="text-xs text-slate-600 font-medium whitespace-nowrap">
-                              {auth.dateSent}
-                            </span>
+                          {/* Col 7: Data */}
+                          <td className="px-2 py-3 align-middle">
+                            <span className="text-[10px] text-slate-500 font-medium whitespace-nowrap">{auth.dateSent}</span>
                           </td>
 
-                          {/* Coluna 9: Ações (Bloqueio Visual para Cancelados — Modo Somente Leitura) */}
-                          <td className="px-3.5 sm:px-4 py-3.5 sm:py-4 text-right whitespace-nowrap">
+                          {/* Col 8: Ações */}
+                          <td className="px-2 py-3 align-middle">
                             {isCancelled ? (
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  onClick={() => handleOpenDetailsModal(auth)}
-                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-xs transition-all cursor-pointer"
-                                  title="Ver Detalhes do Cancelamento e Ficha do Estudante"
-                                >
-                                  <FileText className="w-3.5 h-3.5 text-slate-500" /> 
-                                  <span>Ver Detalhes</span>
+                              <div className="flex items-center justify-end flex-wrap gap-1">
+                                <button onClick={() => handleOpenDetailsModal(auth)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[10px] font-bold shadow-xs transition-all cursor-pointer"
+                                  title="Ver Detalhes">
+                                  <FileText className="w-3 h-3 text-slate-500" /><span>Detalhes</span>
                                 </button>
-                                <button
-                                  onClick={async () => {
-                                    await apiClient.downloadDocumentCertificate(auth.id);
-                                  }}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-900 text-xs font-bold transition-all cursor-pointer shadow-2xs"
-                                  title="Baixar Certificado de Conclusão / Timeline (PDF)"
-                                >
-                                  <FileCheck className="w-3.5 h-3.5 text-blue-700" />
-                                  <span>Certificado</span>
+                                <button onClick={async () => { await apiClient.downloadDocumentCertificate(auth.id); }}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-900 text-[10px] font-bold transition-all cursor-pointer"
+                                  title="Certificado PDF">
+                                  <FileCheck className="w-3 h-3 text-blue-700" /><span>PDF</span>
                                 </button>
-                                <button
-                                  onClick={() => handleOpenResendEmailModal(auth)}
-                                  className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium transition-all cursor-pointer shadow-2xs"
-                                  title="Reenviar Notificação de Cancelamento por E-mail ao Responsável"
-                                >
-                                  <Mail className="w-3.5 h-3.5 text-slate-500" />
+                                <button onClick={() => handleOpenResendEmailModal(auth)}
+                                  className="inline-flex items-center justify-center p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 transition-all cursor-pointer"
+                                  title="Reenviar E-mail">
+                                  <Mail className="w-3 h-3" />
                                 </button>
                               </div>
                             ) : isSigned ? (
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  onClick={() => handleOpenDetailsModal(auth)}
-                                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-sesi-primary hover:bg-blue-800 text-white text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
-                                  title="Abrir Ficha Completa de Triagem do Estudante (SESI Saúde)"
-                                >
-                                  <FileText className="w-3.5 h-3.5 text-white" /> 
-                                  <span>Ver Ficha</span>
+                              <div className="flex items-center justify-end flex-wrap gap-1">
+                                <button onClick={() => handleOpenDetailsModal(auth)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-sesi-primary hover:bg-blue-800 text-white text-[10px] font-bold shadow-xs transition-all cursor-pointer"
+                                  title="Ver Ficha">
+                                  <FileText className="w-3 h-3" /><span>Ficha</span>
                                 </button>
-                                <button
-                                  onClick={() => handleOpenResendEmailModal(auth)}
-                                  className="inline-flex items-center justify-center p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer shadow-2xs"
-                                  title="Reenviar Comprovante de Assinatura por E-mail ao Responsável"
-                                >
-                                  <Mail className="w-3.5 h-3.5" />
+                                <button onClick={() => handleOpenResendEmailModal(auth)}
+                                  className="inline-flex items-center justify-center p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 transition-colors cursor-pointer"
+                                  title="Reenviar E-mail">
+                                  <Mail className="w-3 h-3" />
                                 </button>
-                                <button
-                                  onClick={() => handleOpenRevokeModal(auth)}
-                                  className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 hover:border-rose-300 text-rose-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer whitespace-nowrap"
-                                  title="Revogar autorização e desativar links de acesso por inconsistência ou solicitação"
-                                >
-                                  <Ban className="w-3.5 h-3.5 text-rose-600" />
-                                  <span>Revogar</span>
+                                <button onClick={() => handleOpenRevokeModal(auth)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 text-[10px] font-semibold transition-all cursor-pointer"
+                                  title="Revogar">
+                                  <Ban className="w-3 h-3" /><span>Revogar</span>
                                 </button>
                               </div>
                             ) : (
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  onClick={() => handleOpenDetailsModal(auth)}
-                                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold shadow-xs transition-all cursor-pointer"
-                                  title="Ver dados cadastrais"
-                                >
-                                  <FileText className="w-3.5 h-3.5 text-slate-500" /> 
-                                  <span>Ver Ficha</span>
+                              <div className="flex items-center justify-end flex-wrap gap-1">
+                                <button onClick={() => handleOpenDetailsModal(auth)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] font-bold shadow-xs transition-all cursor-pointer"
+                                  title="Ver Ficha">
+                                  <FileText className="w-3 h-3" /><span>Ficha</span>
                                 </button>
-                                <button
-                                  onClick={() => handleCopySchoolLink(auth.institutionId || 'cemeit')}
-                                  className="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium shadow-xs transition-all cursor-pointer"
-                                  title="Copiar link de assinatura para os pais"
-                                >
-                                  <Copy className="w-3.5 h-3.5 text-slate-400" />
-                                  <span>Link</span>
+                                <button onClick={() => handleCopySchoolLink(auth.institutionId || 'cemeit')}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] font-medium shadow-xs transition-all cursor-pointer"
+                                  title="Copiar Link">
+                                  <Copy className="w-3 h-3" /><span>Link</span>
                                 </button>
-                                <button
-                                  onClick={() => handleOpenRevokeModal(auth)}
-                                  className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 hover:border-rose-300 text-rose-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
-                                  title="Revogar documento pendente e inutilizar link de acesso"
-                                >
-                                  <Ban className="w-3.5 h-3.5 text-rose-600" />
-                                  <span>Revogar Documento</span>
+                                <button onClick={() => handleOpenRevokeModal(auth)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 text-[10px] font-semibold transition-all cursor-pointer"
+                                  title="Revogar">
+                                  <Ban className="w-3 h-3" /><span>Revogar</span>
                                 </button>
                               </div>
                             )}
@@ -1127,13 +1078,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     })
                   ) : (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 sm:py-16 text-center">
+                      <td colSpan={8} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <AlertTriangle className="w-8 h-8 text-slate-300 mb-3" />
                           <h3 className="text-sm font-bold text-slate-700 mb-1">Nenhum registro encontrado</h3>
-                          <p className="text-xs text-slate-500">
-                            Nenhum documento corresponde aos filtros selecionados.
-                          </p>
+                          <p className="text-xs text-slate-500">Nenhum documento corresponde aos filtros selecionados.</p>
                         </div>
                       </td>
                     </tr>

@@ -61,11 +61,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'signed' | 'pending' | 'revoked' | 'CANCELADO_POR_ERRO'>('all');
   const [selectedDateRange, setSelectedDateRange] = useState<'all' | 'today' | '7days' | '30days'>('all');
   const [selectedSeries, setSelectedSeries] = useState<string>('all');
+  const [subTab, setSubTab] = useState<'active' | 'cancelled' | 'all'>('active');
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [authorizations, setAuthorizations] = useState<any[]>([]);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [showNewSchoolModal, setShowNewSchoolModal] = useState(false);
+
+  const handleStatusFilterChange = (status: 'all' | 'signed' | 'pending' | 'revoked' | 'CANCELADO_POR_ERRO') => {
+    setSelectedStatus(status);
+    if (status === 'signed' || status === 'pending') {
+      setSubTab('active');
+    } else if (status === 'revoked' || status === 'CANCELADO_POR_ERRO') {
+      setSubTab('cancelled');
+    }
+  };
+
+  const handleSubTabChange = (tab: 'active' | 'cancelled' | 'all') => {
+    setSubTab(tab);
+    if (tab === 'active' && (selectedStatus === 'revoked' || selectedStatus === 'CANCELADO_POR_ERRO')) {
+      setSelectedStatus('all');
+    } else if (tab === 'cancelled' && (selectedStatus === 'signed' || selectedStatus === 'pending')) {
+      setSelectedStatus('all');
+    }
+  };
 
   // Estados do Modal de Ficha Completa do Aluno (Triagem SESI Saúde)
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -418,6 +437,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  const getSubTabCounts = () => {
+    const baseFiltered = authorizations.filter((auth) => {
+      const matchesSearch =
+        auth.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        auth.parentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        auth.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (auth.validationCode && auth.validationCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (auth.minorSeries && auth.minorSeries.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (auth.minorClass && auth.minorClass.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (auth.minorTurn && auth.minorTurn.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const matchesInstitution =
+        selectedInstitution === 'all' ||
+        auth.institutionId === selectedInstitution ||
+        (auth.institutionName && auth.institutionName.toLowerCase().includes(selectedInstitution.toLowerCase()));
+
+      const matchesImage =
+        selectedImageOption === 'all' ||
+        (selectedImageOption === 'authorized' && auth.authImage === true) ||
+        (selectedImageOption === 'not_authorized' && auth.authImage === false);
+
+      const matchesSeries =
+        selectedSeries === 'all' ||
+        (auth.minorSeries && auth.minorSeries.toLowerCase().includes(selectedSeries.toLowerCase()));
+
+      let matchesDate = true;
+      if (selectedDateRange !== 'all') {
+        const now = new Date();
+        const authDate = new Date(auth.signedAtDate);
+        const diffTime = Math.abs(now.getTime() - authDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (selectedDateRange === 'today') {
+          matchesDate = now.toDateString() === authDate.toDateString();
+        } else if (selectedDateRange === '7days') {
+          matchesDate = diffDays <= 7;
+        } else if (selectedDateRange === '30days') {
+          matchesDate = diffDays <= 30;
+        }
+      }
+
+      return matchesSearch && matchesInstitution && matchesImage && matchesDate && matchesSeries;
+    });
+
+    const activeCount = baseFiltered.filter(a => a.status === 'signed' || a.status === 'pending' || a.status === 'draft').length;
+    const cancelledCount = baseFiltered.filter(a => a.status === 'CANCELADO_POR_ERRO' || a.status === 'cancelled_error' || a.status === 'revoked').length;
+    const totalCount = baseFiltered.length;
+
+    return { activeCount, cancelledCount, totalCount };
+  };
+
+  const { activeCount, cancelledCount, totalCount } = getSubTabCounts();
+
   const filteredAuths = authorizations.filter((auth) => {
     const matchesSearch =
       auth.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -433,10 +505,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       auth.institutionId === selectedInstitution ||
       (auth.institutionName && auth.institutionName.toLowerCase().includes(selectedInstitution.toLowerCase()));
 
-    const matchesStatus =
-      selectedStatus === 'all' ||
-      auth.status === selectedStatus ||
-      (selectedStatus === 'CANCELADO_POR_ERRO' && (auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error'));
+    const matchesStatus = (() => {
+      // 1. Filtro por sub-aba
+      if (subTab === 'active') {
+        const isActive = auth.status === 'signed' || auth.status === 'pending' || auth.status === 'draft';
+        if (!isActive) return false;
+      } else if (subTab === 'cancelled') {
+        const isCancelOrRevoke = auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error' || auth.status === 'revoked';
+        if (!isCancelOrRevoke) return false;
+      }
+
+      // 2. Filtro por dropdown específico
+      if (selectedStatus === 'all') return true;
+      return (
+        auth.status === selectedStatus ||
+        (selectedStatus === 'CANCELADO_POR_ERRO' && (auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error'))
+      );
+    })();
 
     const matchesImage =
       selectedImageOption === 'all' ||
@@ -737,7 +822,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* Status */}
               <div className="relative">
                 <FileCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-                <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value as any)}
+                <select value={selectedStatus} onChange={(e) => handleStatusFilterChange(e.target.value as any)}
                   className="filter-input w-full pl-9 pr-7 py-2 text-xs text-slate-700 font-medium cursor-pointer appearance-none">
                   <option value="all">Status: Todos</option>
                   <option value="signed">✅ Autorizadas</option>
@@ -807,36 +892,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
 
               {/* Stat cards */}
-              <div className="flex items-center gap-2">
-                <div className="stat-card flex items-center gap-2.5 px-3.5 py-2">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <Users className="w-3.5 h-3.5 text-blue-600" />
+              <div className="grid grid-cols-3 gap-2.5 w-full sm:w-auto">
+                <div className="stat-card flex items-center gap-3 px-4 py-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50/80 border border-blue-100 flex items-center justify-center shadow-3xs">
+                    <Users className="w-4 h-4 text-blue-600 animate-pulse" />
                   </div>
-                  <div>
-                    <div className="text-lg font-black text-slate-900 leading-none">{filteredAuths.length}</div>
-                    <div className="text-[10px] text-slate-500 font-medium">registros</div>
+                  <div className="text-left">
+                    <div className="text-base sm:text-lg font-black text-slate-900 leading-tight">{filteredAuths.length}</div>
+                    <div className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider">Filtrados</div>
                   </div>
                 </div>
 
-                <div className="stat-card flex items-center gap-2.5 px-3.5 py-2">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <div className="stat-card flex items-center gap-3 px-4 py-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50/80 border border-emerald-100 flex items-center justify-center shadow-3xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   </div>
-                  <div>
-                    <div className="text-lg font-black text-slate-900 leading-none">
+                  <div className="text-left">
+                    <div className="text-base sm:text-lg font-black text-slate-900 leading-tight">
                       {authorizations.filter(a => a.status === 'signed').length}
                     </div>
-                    <div className="text-[10px] text-slate-500 font-medium">assinadas</div>
+                    <div className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider">Assinadas</div>
                   </div>
                 </div>
 
-                <div className="stat-card flex items-center gap-2.5 px-3.5 py-2">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <Camera className="w-3.5 h-3.5 text-blue-500" />
+                <div className="stat-card flex items-center gap-3 px-4 py-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-sky-50/80 border border-sky-100 flex items-center justify-center shadow-3xs">
+                    <Camera className="w-4 h-4 text-sky-600" />
                   </div>
-                  <div>
-                    <div className="text-lg font-black text-slate-900 leading-none">{totalImageAuthorized}</div>
-                    <div className="text-[10px] text-slate-500 font-medium">c/ foto</div>
+                  <div className="text-left">
+                    <div className="text-base sm:text-lg font-black text-slate-900 leading-tight">{totalImageAuthorized}</div>
+                    <div className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider">c/ foto</div>
                   </div>
                 </div>
               </div>
@@ -859,6 +944,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
 
+            </div>
+          </div>
+
+          {/* ━━ SELETOR DE SUB-STATUS (SEGMENTED CONTROL) ━━ */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white border border-slate-200/80 rounded-2xl p-2.5 shadow-2xs">
+            <div className="flex gap-1.5 p-1 bg-slate-100/80 rounded-xl w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => handleSubTabChange('active')}
+                className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  subTab === 'active'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Ativas</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-black ${
+                  subTab === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                }`}>{activeCount}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSubTabChange('cancelled')}
+                className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  subTab === 'cancelled'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                <span>Canceladas &amp; Negadas</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-black ${
+                  subTab === 'cancelled' ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-600'
+                }`}>{cancelledCount}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSubTabChange('all')}
+                className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  subTab === 'all'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                <span>Todas</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-black ${
+                  subTab === 'all' ? 'bg-slate-200 text-slate-700' : 'bg-slate-200 text-slate-600'
+                }`}>{totalCount}</span>
+              </button>
+            </div>
+
+            <div className="text-[11px] sm:text-xs text-slate-500 font-semibold px-2 text-center sm:text-right">
+              Exibindo <span className="text-slate-800 font-bold">{filteredAuths.length}</span> de <span className="text-slate-800 font-bold">{authorizations.length}</span> registros totais
             </div>
           </div>
 
@@ -1008,57 +1150,64 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           {/* Col 8: Ações */}
                           <td className="px-2 py-3 align-middle">
                             {isCancelled ? (
-                              <div className="flex items-center justify-end flex-wrap gap-1">
+                              <div className="flex items-center justify-end gap-1.5">
                                 <button onClick={() => handleOpenDetailsModal(auth)}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[10px] font-bold shadow-xs transition-all cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[10px] font-bold shadow-2xs transition-all cursor-pointer active:scale-95"
                                   title="Ver Detalhes">
-                                  <FileText className="w-3 h-3 text-slate-500" /><span>Detalhes</span>
+                                  <FileText className="w-3.5 h-3.5 text-slate-500" />
+                                  <span>Detalhes</span>
                                 </button>
                                 <button onClick={async () => { await apiClient.downloadDocumentCertificate(auth.id); }}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-900 text-[10px] font-bold transition-all cursor-pointer"
-                                  title="Certificado PDF">
-                                  <FileCheck className="w-3 h-3 text-blue-700" /><span>PDF</span>
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-900 text-[10px] font-bold transition-all cursor-pointer active:scale-95"
+                                  title="Baixar Certificado PDF">
+                                  <FileCheck className="w-3.5 h-3.5 text-blue-700" />
+                                  <span>PDF</span>
                                 </button>
                                 <button onClick={() => handleOpenResendEmailModal(auth)}
-                                  className="inline-flex items-center justify-center p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 transition-all cursor-pointer"
-                                  title="Reenviar E-mail">
-                                  <Mail className="w-3 h-3" />
+                                  className="inline-flex items-center justify-center p-1.5 rounded-lg bg-slate-50 border border-slate-200 hover:bg-blue-55 hover:text-blue-700 hover:border-blue-200 text-slate-500 transition-all cursor-pointer active:scale-95"
+                                  title="Reenviar E-mail de Cancelamento">
+                                  <Mail className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                             ) : isSigned ? (
-                              <div className="flex items-center justify-end flex-wrap gap-1">
+                              <div className="flex items-center justify-end gap-1.5">
                                 <button onClick={() => handleOpenDetailsModal(auth)}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-sesi-primary hover:bg-blue-800 text-white text-[10px] font-bold shadow-xs transition-all cursor-pointer"
-                                  title="Ver Ficha">
-                                  <FileText className="w-3 h-3" /><span>Ficha</span>
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-sesi-primary hover:bg-blue-800 text-white text-[10px] font-bold shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-95"
+                                  title="Ver Ficha Completa">
+                                  <FileText className="w-3.5 h-3.5" />
+                                  <span>Ficha</span>
                                 </button>
                                 <button onClick={() => handleOpenResendEmailModal(auth)}
-                                  className="inline-flex items-center justify-center p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 transition-colors cursor-pointer"
+                                  className="inline-flex items-center justify-center p-1.5 rounded-lg bg-slate-50 border border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-500 transition-all cursor-pointer active:scale-95"
                                   title="Reenviar E-mail">
-                                  <Mail className="w-3 h-3" />
+                                  <Mail className="w-3.5 h-3.5" />
                                 </button>
                                 <button onClick={() => handleOpenRevokeModal(auth)}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 text-[10px] font-semibold transition-all cursor-pointer"
-                                  title="Revogar">
-                                  <Ban className="w-3 h-3" /><span>Revogar</span>
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 text-[10px] font-semibold transition-all cursor-pointer active:scale-95"
+                                  title="Revogar Autorização">
+                                  <Ban className="w-3.5 h-3.5" />
+                                  <span>Revogar</span>
                                 </button>
                               </div>
                             ) : (
-                              <div className="flex items-center justify-end flex-wrap gap-1">
+                              <div className="flex items-center justify-end gap-1.5">
                                 <button onClick={() => handleOpenDetailsModal(auth)}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] font-bold shadow-xs transition-all cursor-pointer"
-                                  title="Ver Ficha">
-                                  <FileText className="w-3 h-3" /><span>Ficha</span>
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] font-bold shadow-2xs transition-all cursor-pointer active:scale-95"
+                                  title="Ver Detalhes">
+                                  <FileText className="w-3.5 h-3.5" />
+                                  <span>Ficha</span>
                                 </button>
                                 <button onClick={() => handleCopySchoolLink(auth.institutionId || 'cemeit')}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] font-medium shadow-xs transition-all cursor-pointer"
-                                  title="Copiar Link">
-                                  <Copy className="w-3 h-3" /><span>Link</span>
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] font-medium shadow-2xs transition-all cursor-pointer active:scale-95"
+                                  title="Copiar Link para Pais">
+                                  <Copy className="w-3.5 h-3.5" />
+                                  <span>Link</span>
                                 </button>
                                 <button onClick={() => handleOpenRevokeModal(auth)}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 text-[10px] font-semibold transition-all cursor-pointer"
-                                  title="Revogar">
-                                  <Ban className="w-3 h-3" /><span>Revogar</span>
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 text-[10px] font-semibold transition-all cursor-pointer active:scale-95"
+                                  title="Revogar Autorização">
+                                  <Ban className="w-3.5 h-3.5" />
+                                  <span>Revogar</span>
                                 </button>
                               </div>
                             )}
@@ -1164,7 +1313,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* MODAL: CADASTRAR NOVA ESCOLA */}
       {showNewSchoolModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-5 border border-slate-200 my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
               <div className="flex items-center gap-2.5">
@@ -1309,46 +1458,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* MODAL DE CONFIRMAÇÃO DE SEGURANÇA: REVOGAÇÃO / ANULAÇÃO DE DOCUMENTO */}
       {showRevocationModal && selectedAuthToRevoke && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-2 sm:p-4 animate-in fade-in duration-200 overflow-y-auto"
           onClick={() => !isRevoking && setShowRevocationModal(false)}
         >
           <div 
-            className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-200 text-left"
+            className="document-sheet-a4 max-w-2xl w-full animate-in zoom-in-95 duration-200 text-left my-6 space-y-5 relative"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header com Título Claro e Alerta de Segurança */}
-            <div className="flex items-start justify-between gap-3">
+            {/* Header Timbrado Oficial */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b-2 border-[#034b7f] pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-700 shrink-0 shadow-xs">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
+                <img
+                  src="/catraki.png"
+                  alt="Catraki Logo"
+                  className="h-8 sm:h-9 w-auto object-contain rounded"
+                />
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-                    Tem certeza de que deseja anular este documento?
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">
+                    Solicitação de Anulação de Documento
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-[10px] text-slate-500 mt-0.5">
                     Revogação administrativa de autorização por inconsistência cadastral ou operacional
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => !isRevoking && setShowRevocationModal(false)}
-                disabled={isRevoking}
-                className="text-slate-400 hover:text-slate-600 rounded-lg p-1.5 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-3 shrink-0 ml-auto sm:ml-0">
+                <div className="text-right hidden sm:block">
+                  <p className="text-[9px] text-slate-500 m-0 uppercase tracking-wider font-semibold">
+                    PLATAFORMA CATRAKI
+                  </p>
+                  <p className="text-xs font-mono font-bold text-slate-800 m-0">
+                    Doc. nº {selectedAuthToRevoke.validationCode || selectedAuthToRevoke.id}
+                  </p>
+                </div>
+                <button
+                  onClick={() => !isRevoking && setShowRevocationModal(false)}
+                  disabled={isRevoking}
+                  className="text-slate-400 hover:text-slate-600 rounded-xl p-2 transition-colors cursor-pointer disabled:opacity-50"
+                  title="Fechar modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Aviso de Alerta */}
+            <div className="flex items-start gap-3 bg-rose-50 border border-rose-100 rounded-2xl p-4">
+              <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 shrink-0 shadow-xs">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-slate-900">Atenção: Processo de Anulação do Termo</h4>
+                <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                  Você está prestes a anular administrativamente a autorização de atendimento de saúde. Esta ação é definitiva.
+                </p>
+              </div>
             </div>
 
             {/* Resumo do Item / Documento Alvo */}
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs space-y-2">
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <span className="text-slate-500 font-semibold uppercase tracking-wider text-[10px]">Documento & Protocolo:</span>
+                <span className="text-slate-500 font-semibold uppercase tracking-wider text-[10px]">Protocolo de Assinatura:</span>
                 <span className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200">
                   {selectedAuthToRevoke.validationCode || selectedAuthToRevoke.id}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-2 gap-2 pt-1 text-slate-700">
                 <div className="col-span-2">
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Tipo de Documento:</span>
                   <span className="font-bold text-slate-800 truncate block">Termo de Consentimento — Escola Cidadã — Saúde em Movimento</span>
@@ -1374,7 +1549,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* Aviso de Impacto (Tom amigável e transparente) */}
+            {/* Aviso de Impacto */}
             <div className="bg-rose-50/80 border border-rose-200/90 rounded-2xl p-4 text-xs text-rose-950 leading-relaxed space-y-1.5">
               <div className="flex items-center gap-2 font-bold text-rose-900">
                 <Info className="w-4 h-4 text-rose-700 shrink-0" />
@@ -1386,10 +1561,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* Formulário: Justificativa Obrigatória */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 text-left">
               <div className="flex items-center justify-between">
                 <label htmlFor="revocation-reason" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Por favor, explique o motivo do cancelamento <span className="text-slate-400 font-normal lowercase">(registro obrigatório para segurança e auditoria)</span> <span className="text-red-500">*</span>
+                  Por favor, explique o motivo do cancelamento <span className="text-red-500">*</span>
                 </label>
                 <span className={`text-[11px] font-mono font-semibold ${revocationReason.trim().length >= 10 ? 'text-emerald-600' : 'text-slate-400'}`}>
                   {revocationReason.trim().length}/10 caracteres mín.
@@ -1403,7 +1578,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 disabled={isRevoking}
                 value={revocationReason}
                 onChange={(e) => setRevocationReason(e.target.value)}
-                placeholder="Descreva o motivo da anulação/revogação (ex: erro de digitação do CPF na matrícula ou solicitação do responsável)..."
+                placeholder="Descreva o motivo da anulação/revogação (ex: erro de digitação do CPF na matrícula)..."
                 className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 placeholder:text-slate-400 leading-relaxed resize-none disabled:bg-slate-100"
               />
             </div>
@@ -1433,7 +1608,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             )}
 
             {/* Botões de Decisão */}
-            <div className="pt-2 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5">
+            <div className="pt-4 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5">
               <button
                 type="button"
                 disabled={isRevoking}
@@ -1461,6 +1636,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
               </button>
             </div>
+
+            {/* Barra institucional azul sólida no final da folha */}
+            <div className="absolute bottom-0 left-0 right-0 h-2.5 sm:h-3.5 bg-[#034b7f] pointer-events-none z-10" />
+
+            {/* Número de página */}
+            <div className="absolute top-4 sm:top-9 right-4 sm:right-12 font-sans text-xs text-slate-400">
+              1
+            </div>
           </div>
         </div>
       )}
@@ -1468,7 +1651,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* MODAL: FICHA CADASTRAL E DE TRIAGEM CLÍNICA DO ESTUDANTE — FOLHA A4 SEM BORDAS (SESI SAÚDE) */}
       {showDetailsModal && selectedAuthForDetails && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200 overflow-y-auto"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-2 sm:p-4 animate-in fade-in duration-200 overflow-y-auto"
           onClick={() => setShowDetailsModal(false)}
         >
           <div 
@@ -1652,69 +1835,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {/* Bloco 3: Grade de Atendimentos Clínicos Autorizados (SESI Saúde) */}
-              <div className="border border-emerald-200/90 bg-emerald-50/40 rounded-2xl p-4 text-xs space-y-2.5">
-                <div className="flex items-center justify-between border-b border-emerald-200 pb-1.5">
-                  <div className="flex items-center gap-2">
-                    <HeartPulse className="w-4 h-4 text-emerald-700" />
-                    <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
-                      Grade de Atendimentos de Saúde (SESI 5 em 1)
+              <div className="border border-emerald-200/60 bg-emerald-50/20 rounded-xl p-3 text-xs space-y-2">
+                <div className="flex items-center justify-between border-b border-emerald-100 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <HeartPulse className="w-3.5 h-3.5 text-emerald-700" />
+                    <span className="text-[10px] font-bold text-emerald-950 uppercase tracking-wider">
+                      Grade de Atendimentos Autorizados
                     </span>
                   </div>
-                  <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                    100% Gratuito
+                  <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100/60 px-2 py-0.5 rounded-full">
+                    SESI 5 em 1
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-                  <div className="bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <div>
-                      <strong className="block text-slate-800 text-[11px]">Oftalmologia</strong>
-                      <span className="text-[10px] text-emerald-700 font-semibold">Acuidade Visual &bull; Autorizado ✓</span>
-                    </div>
-                  </div>
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-emerald-100 text-[10px] font-bold text-slate-800 shadow-3xs">
+                    <Eye className="w-3 h-3 text-emerald-600" />
+                    <span>Oftalmologia</span>
+                  </span>
 
-                  <div className="bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs flex items-center gap-2">
-                    <Ear className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <div>
-                      <strong className="block text-slate-800 text-[11px]">Audiometria</strong>
-                      <span className="text-[10px] text-emerald-700 font-semibold">Triagem Auditiva &bull; Autorizado ✓</span>
-                    </div>
-                  </div>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-emerald-100 text-[10px] font-bold text-slate-800 shadow-3xs">
+                    <Ear className="w-3 h-3 text-emerald-600" />
+                    <span>Audiometria</span>
+                  </span>
 
-                  <div className="bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs flex items-center gap-2">
-                    <Smile className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <div>
-                      <strong className="block text-slate-800 text-[11px]">Odontologia</strong>
-                      <span className="text-[10px] text-emerald-700 font-semibold">Saúde Bucal &bull; Autorizado ✓</span>
-                    </div>
-                  </div>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-emerald-100 text-[10px] font-bold text-slate-800 shadow-3xs">
+                    <Smile className="w-3 h-3 text-emerald-600" />
+                    <span>Odontologia</span>
+                  </span>
 
-                  <div className="bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs flex items-center gap-2">
-                    <Apple className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <div>
-                      <strong className="block text-slate-800 text-[11px]">Nutrição</strong>
-                      <span className="text-[10px] text-emerald-700 font-semibold">Antropometria &bull; Autorizado ✓</span>
-                    </div>
-                  </div>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-emerald-100 text-[10px] font-bold text-slate-800 shadow-3xs">
+                    <Apple className="w-3 h-3 text-emerald-600" />
+                    <span>Nutrição</span>
+                  </span>
 
-                  <div className="bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs flex items-center gap-2">
-                    <Brain className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <div>
-                      <strong className="block text-slate-800 text-[11px]">Psicologia</strong>
-                      <span className="text-[10px] text-emerald-700 font-semibold">Acolhimento &bull; Autorizado ✓</span>
-                    </div>
-                  </div>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-emerald-100 text-[10px] font-bold text-slate-800 shadow-3xs">
+                    <Brain className="w-3 h-3 text-emerald-600" />
+                    <span>Psicologia</span>
+                  </span>
 
-                  <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs flex items-center gap-2">
-                    <Camera className="w-4 h-4 text-blue-600 shrink-0" />
-                    <div>
-                      <strong className="block text-slate-800 text-[11px]">Uso de Imagem</strong>
-                      <span className={`text-[10px] font-bold ${selectedAuthForDetails.authImage ? 'text-blue-700' : 'text-slate-500'}`}>
-                        {selectedAuthForDetails.authImage ? 'Autorizado ✓' : 'Não Autorizado ✕'}
-                      </span>
-                    </div>
-                  </div>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-3xs bg-white border ${
+                    selectedAuthForDetails.authImage ? 'border-blue-100 text-slate-800' : 'border-slate-200 text-slate-400'
+                  }`}>
+                    <Camera className={`w-3 h-3 ${selectedAuthForDetails.authImage ? 'text-blue-600' : 'text-slate-400'}`} />
+                    <span>Uso de Imagem: {selectedAuthForDetails.authImage ? 'Autorizado ✓' : 'Não Autorizado ✕'}</span>
+                  </span>
                 </div>
               </div>
 
@@ -1776,7 +1941,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* MODAL: REENVIAR E-MAIL DE NOTIFICAÇÃO DE CANCELAMENTO */}
       {showResendEmailModal && selectedAuthForResendEmail && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-3 sm:p-4 animate-in fade-in duration-200"
           onClick={() => setShowResendEmailModal(false)}
         >
           <div 

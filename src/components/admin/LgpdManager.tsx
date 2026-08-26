@@ -136,7 +136,7 @@ export const LgpdManager: React.FC = () => {
 
       {/* Modal de Parecer do DPO */}
       {selectedReq && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="glass-panel rounded-2xl p-6 max-w-xl w-full space-y-4 border border-slate-800 shadow-2xl text-xs">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-base font-bold text-white">Parecer do Encarregado (DPO)</h3>

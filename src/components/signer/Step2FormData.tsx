@@ -92,25 +92,6 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
     }
   };
 
-  const handleMinorCpfBlur = async () => {
-    if (formData.minorCpf && isValidCPF(formData.minorCpf)) {
-      setCheckingDuplicate(true);
-      try {
-        const dup = await apiClient.checkStudentDuplicate({
-          minor_cpf: formData.minorCpf,
-          minor_name: formData.minorName,
-          minor_birth_date: formData.minorBirthDate,
-        });
-        if (dup.hasExistingSignature) {
-          setDuplicateInfo(dup);
-        }
-      } catch (err) {
-        console.error('Erro na checagem de duplicidade:', err);
-      } finally {
-        setCheckingDuplicate(false);
-      }
-    }
-  };
 
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof FormData, string>> = {};
@@ -457,7 +438,6 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   name="minorCpf"
                   value={formData.minorCpf}
                   onChange={handleChange}
-                  onBlur={handleMinorCpfBlur}
                   maxLength={14}
                   inputMode="numeric"
                   className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.minorCpf ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : duplicateInfo ? 'border-amber-400 bg-amber-50/20' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ChevronRight, Info, Eye, HelpCircle, AlertTriangle } from 'lucide-react';
 import type { Institution } from '../../lib/types.ts';
 
@@ -19,7 +19,6 @@ interface Step1ReadingProps {
 }
 
 export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institution, onProceed }) => {
-  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const dataHoje = new Intl.DateTimeFormat('pt-BR', {
     day:   '2-digit',
@@ -127,23 +126,15 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
           </div>
 
           {/* Seção de Consentimento Inicial (Adequação LGPD) */}
-          <div className="pt-4 sm:pt-6 border-t border-slate-200 space-y-4">
-            <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <input
-                id="checkbox-consentimento-termos"
-                type="checkbox"
-                checked={termsAccepted}
-                onChange={(e) => setTermsAccepted(e.target.checked)}
-                className="w-5 h-5 mt-0.5 text-[#004b8d] border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
-              />
-              <label htmlFor="checkbox-consentimento-termos" className="text-xs sm:text-sm text-slate-700 font-medium cursor-pointer leading-relaxed select-none">
-                Li e concordo com os <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Política de Privacidade</a>.
-              </label>
+          <div className="pt-4 sm:pt-6 border-t border-slate-200">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-600 leading-relaxed space-y-2">
+              <p className="m-0 font-medium text-slate-800">
+                Ao clicar em <strong className="text-slate-900">"Continuar para Assinatura"</strong>, você declara estar ciente, ter lido e concordar expressamente com os <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Política de Privacidade</a>.
+              </p>
+              <p className="m-0 text-[11px] sm:text-xs text-slate-500 italic">
+                Você também autoriza o tratamento dos seus dados de identificação (IP, nome, e-mail e dispositivo) exclusivamente para fins de autenticidade, integridade e validade jurídica desta assinatura eletrônica, em plena conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).
+              </p>
             </div>
-
-            <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed italic pl-1">
-              "Ao prosseguir, você autoriza o tratamento dos seus dados de identificação (IP, nome, e-mail e dispositivo) exclusivamente para garantir a validade jurídica desta assinatura."
-            </p>
           </div>
 
           {/* Botão de ação integrado na folha A4 */}
@@ -151,8 +142,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
             <button
               id="btn-avancar-leitura"
               onClick={onProceed}
-              disabled={!termsAccepted}
-              className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-[#004b8d] hover:bg-[#003666] text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer active:scale-[0.99]"
+              className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-[#004b8d] hover:bg-[#003666] text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer active:scale-[0.99]"
             >
               <span>Continuar para Assinatura</span>
               <ChevronRight className="w-4 h-4" />

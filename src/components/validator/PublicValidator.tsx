@@ -47,7 +47,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
 
   useEffect(() => {
     if (validationResult) {
-      const code = validationResult.validation_code || `SESI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}`;
+      const code = (validationResult.validation_code || `CATRAKI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}`).replace(/^SESI-/i, 'CATRAKI-');
       const url = `${window.location.origin}/validar/${code}`;
       QRCode.toDataURL(url, {
         width: 160,
@@ -62,7 +62,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
   const handleValidate = async (targetHash: string) => {
     const cleanHash = targetHash.trim();
     if (!cleanHash) {
-      setErrorMessage('Por favor, digite o código de validação (ex: SESI-XXXX-XXXX) ou o hash SHA-256.');
+      setErrorMessage('Por favor, digite o código de validação (ex: CATRAKI-XXXX-XXXX) ou o hash SHA-256.');
       return;
     }
 
@@ -99,7 +99,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
   }).format(new Date());
 
   const validationCode = validationResult
-    ? validationResult.validation_code || `SESI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}`
+    ? (validationResult.validation_code || `CATRAKI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}`).replace(/^SESI-/i, 'CATRAKI-')
     : '';
 
   const handleDownloadDossierJson = async () => {
@@ -224,7 +224,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                     type="text"
                     value={hashInput}
                     onChange={(e) => setHashInput(e.target.value)}
-                    placeholder="Digite o código (ex: SESI-94D4-E1A0) ou cole o código de integridade..."
+                    placeholder="Digite o código (ex: CATRAKI-94D4-E1A0) ou cole o código de integridade..."
                     autoCapitalize="characters"
                     className="w-full px-3.5 sm:px-4 py-3 bg-white border border-slate-300 rounded-xl font-mono text-xs sm:text-base uppercase text-slate-900 tracking-wider focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20 transition-all shadow-xs"
                   />
@@ -323,7 +323,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                       {validationResult.procedure_title || 'Escola Cidadã — Saúde em Movimento'}
                     </strong>
                     <span className="text-[10px] text-slate-500 block mt-0.5">
-                      SESI-DF • UnB
+                      Plataforma Catraki
                     </span>
                   </div>
                 </div>
@@ -570,14 +570,8 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
           </div>
         )}
 
-        {/* Barra institucional no final da folha A4 */}
-        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden pointer-events-none z-10 leading-none">
-          <img
-            src="/barra.jpg"
-            alt="Barra institucional SESI"
-            className="w-full h-6 sm:h-9 object-cover object-center block"
-          />
-        </div>
+        {/* Rodapé limpo */}
+        <div className="absolute bottom-0 left-0 right-0 w-full h-3 bg-blue-900 overflow-hidden pointer-events-none z-10 leading-none" />
 
         {/* Número de página (canto superior direito ABNT) */}
         <div className="absolute top-4 sm:top-9 right-4 sm:right-12 font-sans text-xs text-slate-400">

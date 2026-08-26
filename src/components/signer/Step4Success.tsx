@@ -48,9 +48,9 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [copiedCode, setCopiedCode] = useState(false);
 
-  const validationCode = signResult.validation_code || (signResult.manifest_sha256
-    ? `SESI-${signResult.manifest_sha256.substring(0, 4).toUpperCase()}-${signResult.manifest_sha256.substring(signResult.manifest_sha256.length - 4).toUpperCase()}`
-    : 'SESI-VALID');
+  const validationCode = (signResult.validation_code || (signResult.manifest_sha256
+    ? `CATRAKI-${signResult.manifest_sha256.substring(0, 4).toUpperCase()}-${signResult.manifest_sha256.substring(signResult.manifest_sha256.length - 4).toUpperCase()}`
+    : 'CATRAKI-VALID')).replace(/^SESI-/i, 'CATRAKI-');
 
   useEffect(() => {
     const fullValidationUrl = `${window.location.origin}/validar/${validationCode}`;
@@ -116,7 +116,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
           </div>
           <div className="text-left sm:text-right">
             <p className="text-[10px] sm:text-[8.5pt] text-slate-500 m-0 uppercase tracking-wider font-semibold">
-              Escola Cidadã — Saúde em Movimento
+              Plataforma Catraki
             </p>
             <p className="text-xs sm:text-[9pt] text-slate-800 m-0 font-bold">
               Comprovante de Assinatura Eletrônica
@@ -339,14 +339,8 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
 
         </div>
 
-        {/* Barra institucional no final da folha */}
-        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden pointer-events-none z-10 leading-none">
-          <img
-            src="/barra.jpg"
-            alt="Barra institucional SESI"
-            className="w-full h-6 sm:h-9 object-cover object-center block"
-          />
-        </div>
+        {/* Rodapé limpo */}
+        <div className="absolute bottom-0 left-0 right-0 w-full h-3 bg-blue-900 overflow-hidden pointer-events-none z-10 leading-none" />
 
         {/* Número de página (canto superior direito ABNT) */}
         <div className="absolute top-4 sm:top-9 right-4 sm:right-12 font-sans text-xs text-slate-400">

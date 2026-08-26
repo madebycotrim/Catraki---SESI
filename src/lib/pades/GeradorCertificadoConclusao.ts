@@ -96,9 +96,9 @@ export class GeradorCertificadoConclusao {
 
     // Metadados PDF
     pdfDoc.setTitle(`Certificado de Conclusão — ${dados.validationCode}`);
-    pdfDoc.setAuthor('Plataforma Catraki / SESI Saúde — Escola Cidadã');
+    pdfDoc.setAuthor('Plataforma Catraki');
     pdfDoc.setSubject(`Relatório Forense de Linha do Tempo — Documento ${dados.documentId}`);
-    pdfDoc.setKeywords(['LGPD', 'Lei 14.063/2020', 'Catraki', 'SESI', 'Assinatura Eletrônica', 'Auditoria']);
+    pdfDoc.setKeywords(['LGPD', 'Lei 14.063/2020', 'Catraki', 'Assinatura Eletrônica', 'Auditoria']);
     pdfDoc.setCreationDate(new Date());
     pdfDoc.setModificationDate(new Date());
 
@@ -122,7 +122,7 @@ export class GeradorCertificadoConclusao {
         y = PAGE_H - MARGIN;
         // Cabeçalho mini nas páginas subsequentes
         page.drawRectangle({ x: 0, y: PAGE_H - 28, width: PAGE_W, height: 28, color: COR_AZUL_SESI });
-        page.drawText('CATRAKI / SESI SAÚDE — CERTIFICADO DE CONCLUSÃO (CONTINUAÇÃO)', {
+        page.drawText('CATRAKI — CERTIFICADO DE CONCLUSÃO (CONTINUAÇÃO)', {
           x: MARGIN, y: PAGE_H - 20, size: 7, font: fontBold, color: rgb(1, 1, 1),
         });
         y = PAGE_H - 42;
@@ -136,7 +136,7 @@ export class GeradorCertificadoConclusao {
     // ── CABEÇALHO ──────────────────────────────────────────────────────────
     page.drawRectangle({ x: 0, y: PAGE_H - 80, width: PAGE_W, height: 80, color: COR_AZUL_SESI });
 
-    page.drawText('SESI SAÚDE · ESCOLA CIDADÃ', {
+    page.drawText('PLATAFORMA CATRAKI', {
       x: MARGIN, y: PAGE_H - 28, size: 9, font: fontBold, color: rgb(1, 1, 1),
     });
     page.drawText('CERTIFICADO DE CONCLUSÃO DE ASSINATURA ELETRÔNICA', {
@@ -204,7 +204,6 @@ export class GeradorCertificadoConclusao {
       ['Data e Hora Exata', formattedSignDate],
       ['Estudante Vinculado', dados.minorName],
       ['Vínculo Declarado', dados.signerRelationship],
-      ['Escola / Instituição', dados.institutionName],
     ];
 
     for (const [label, value] of fields) {
@@ -345,7 +344,7 @@ export class GeradorCertificadoConclusao {
     novaLinha(11);
 
     const disclaimer = [
-      'Este Certificado de Conclusão é um documento digital imutável gerado automaticamente pela Plataforma Catraki / SESI Saúde,',
+      'Este Certificado de Conclusão é um documento digital imutável gerado automaticamente pela Plataforma Catraki,',
       'chancelado com o Hash SHA-256 do manifesto criptográfico registrado no momento da assinatura eletrônica.',
       'Qualquer alteração posterior a este documento — incluindo a modificação de um único bit — invalida sua prova jurídica.',
       '',
@@ -361,7 +360,7 @@ export class GeradorCertificadoConclusao {
     }
 
     novaLinha(8);
-    page.drawText(`Gerado em: ${formatarDataBr(new Date().toISOString())} | Plataforma: Catraki v1.0 | SESI-DF / UnB — Projeto Escola Cidadã`, {
+    page.drawText(`Gerado em: ${formatarDataBr(new Date().toISOString())} | Plataforma: Catraki v1.0`, {
       x: MARGIN, y, size: 6, font: fontRegular, color: rgb(0.6, 0.6, 0.65),
     });
 

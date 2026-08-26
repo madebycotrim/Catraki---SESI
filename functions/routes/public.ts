@@ -23,8 +23,8 @@ publicRouter.get('/validate/:query', async (c) => {
   const clean = query.trim();
   const cleanLower = clean.toLowerCase();
 
-  // Remove prefixo 'SESI-' caso o usuário tenha colado o código de validação formatado
-  const searchHex = clean.replace(/^SESI-?/i, '').replace(/[^a-fA-F0-9]/g, '').toLowerCase();
+  // Remove prefixo 'SESI-' ou 'CATRAKI-' caso o usuário tenha colado o código de validação formatado
+  const searchHex = clean.replace(/^(SESI|CATRAKI)-?/i, '').replace(/[^a-fA-F0-9]/g, '').toLowerCase();
 
   let record: any = null;
 
@@ -218,7 +218,7 @@ publicRouter.get('/dossier/:query', async (c) => {
   }
 
   const clean = query.trim().toLowerCase();
-  const searchHex = clean.replace(/^sesi-?/i, '').replace(/[^a-f0-9]/g, '');
+  const searchHex = clean.replace(/^(sesi|catraki)-?/i, '').replace(/[^a-f0-9]/g, '');
 
   let record: any = null;
   if (clean.length === 64 && /^[0-9a-f]{64}$/.test(clean)) {

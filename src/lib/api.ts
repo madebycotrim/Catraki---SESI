@@ -391,8 +391,8 @@ export const apiClient = {
       const manifestHash = audit?.manifest_sha256 || (signedDoc as any).manifest_sha256;
       
       const validationCode = (signedDoc as any).validation_code || (manifestHash
-        ? `SESI-${manifestHash.substring(0, 4).toUpperCase()}-${manifestHash.substring(manifestHash.length - 4).toUpperCase()}`
-        : `SESI-${(signedDoc.id.replace(/\D/g, '') + '00000000').slice(-8, -4)}-${(signedDoc.id.replace(/\D/g, '') + '00000000').slice(-4)}`);
+        ? `CATRAKI-${manifestHash.substring(0, 4).toUpperCase()}-${manifestHash.substring(manifestHash.length - 4).toUpperCase()}`
+        : `CATRAKI-${(signedDoc.id.replace(/\D/g, '') + '00000000').slice(-8, -4)}-${(signedDoc.id.replace(/\D/g, '') + '00000000').slice(-4)}`);
 
       return {
         hasExistingSignature: true,
@@ -696,7 +696,7 @@ export const apiClient = {
     (doc as any).otp_verified_at = signedAt;
     (doc as any).doc_parent_hash_sha256 = docParentHash;
     (doc as any).manifest_sha256 = manifestSha256;
-    const validationCode = `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`;
+    const validationCode = `CATRAKI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`;
     (doc as any).validation_code = validationCode;
     if (payload.minor_name) {
       doc.minor_name = payload.minor_name;
@@ -783,11 +783,14 @@ export const apiClient = {
     const cleanRaw = clean.replace(/[^A-Z0-9]/g, '');
 
     const audit = logs.find((a) => {
-      const vCode = `SESI-${a.manifest_sha256.substring(0, 4).toUpperCase()}-${a.manifest_sha256.substring(a.manifest_sha256.length - 4).toUpperCase()}`;
+      const vCodeCatraki = `CATRAKI-${a.manifest_sha256.substring(0, 4).toUpperCase()}-${a.manifest_sha256.substring(a.manifest_sha256.length - 4).toUpperCase()}`;
+      const vCodeSesi = `SESI-${a.manifest_sha256.substring(0, 4).toUpperCase()}-${a.manifest_sha256.substring(a.manifest_sha256.length - 4).toUpperCase()}`;
       return (
         a.manifest_sha256.toLowerCase() === query.trim().toLowerCase() ||
-        vCode === clean ||
-        vCode.replace(/-/g, '') === cleanRaw ||
+        vCodeCatraki === clean ||
+        vCodeSesi === clean ||
+        vCodeCatraki.replace(/-/g, '') === cleanRaw ||
+        vCodeSesi.replace(/-/g, '') === cleanRaw ||
         a.manifest_sha256.toUpperCase().startsWith(cleanRaw) ||
         a.document_id.toUpperCase() === clean
       );
@@ -799,7 +802,7 @@ export const apiClient = {
 
     const docs = getDocuments();
     const doc = docs.find((d) => d.id === audit.document_id);
-    const validationCode = `SESI-${audit.manifest_sha256.substring(0, 4).toUpperCase()}-${audit.manifest_sha256.substring(audit.manifest_sha256.length - 4).toUpperCase()}`;
+    const validationCode = `CATRAKI-${audit.manifest_sha256.substring(0, 4).toUpperCase()}-${audit.manifest_sha256.substring(audit.manifest_sha256.length - 4).toUpperCase()}`;
 
     // Monta string de geolocalização apenas com dados reais disponíveis
     const geoStr = [audit.geo_city, audit.geo_region, audit.geo_country]

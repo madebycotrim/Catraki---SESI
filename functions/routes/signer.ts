@@ -297,8 +297,8 @@ signerRouter.post('/check-student', async (c) => {
     const existing = await db.prepare(query).bind(...params).first<any>();
     if (existing) {
       const validationCode = existing.manifest_sha256
-        ? `SESI-${existing.manifest_sha256.substring(0, 4).toUpperCase()}-${existing.manifest_sha256.substring(existing.manifest_sha256.length - 4).toUpperCase()}`
-        : `SESI-${existing.id.slice(-8).toUpperCase()}`;
+        ? `CATRAKI-${existing.manifest_sha256.substring(0, 4).toUpperCase()}-${existing.manifest_sha256.substring(existing.manifest_sha256.length - 4).toUpperCase()}`
+        : `CATRAKI-${existing.id.slice(-8).toUpperCase()}`;
 
       return c.json({
         hasExistingSignature: true,
@@ -477,39 +477,65 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
       const otpHtml = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Código de Confirmação — Catraki</title>
+  <style>
+    body { margin:0;padding:0;background-color:#e8edf4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1e293b;-webkit-font-smoothing:antialiased; }
+    .wrapper { width:100%;background-color:#e8edf4;padding:36px 12px; }
+    .sheet { max-width:600px;margin:0 auto;background:#fff;border:1px solid #cbd5e1;border-radius:4px;box-shadow:0 4px 18px -2px rgba(0,0,0,.12),0 1px 4px rgba(0,0,0,.06);overflow:hidden; }
+    .sheet-header { padding:24px 28px 18px 28px; }
+    .logo-mark { width:40px;height:40px;background:#034b7f;border-radius:8px;display:inline-block;text-align:center;line-height:40px;font-size:22px;font-weight:900;color:#fff;font-family:Georgia,serif;letter-spacing:-1px;vertical-align:middle; }
+    .title-wrap { display:inline-block;vertical-align:middle;padding-left:14px; }
+    .doc-title { margin:0;font-size:14px;font-weight:800;color:#034b7f;text-transform:uppercase;letter-spacing:.03em;line-height:1.2; }
+    .doc-subtitle { display:block;margin-top:3px;font-size:9.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em; }
+    .header-divider { height:2.5px;background:#034b7f;margin:0 28px; }
+    .sheet-body { padding:28px 28px 24px 28px;font-size:13.5px;color:#334155;line-height:1.65; }
+    .otp-box { background:#f0f9ff;border:2px solid #bae6fd;border-radius:10px;padding:22px;text-align:center;margin:20px 0; }
+    .otp-code { font-size:38px;font-weight:800;letter-spacing:8px;color:#034b7f;font-family:monospace; }
+    .sheet-footer { border-top:1px solid #e2e8f0;background:#f8fafc;padding:16px 28px;text-align:center;font-size:10.5px;color:#94a3b8;line-height:1.6; }
+    .sheet-footer a { color:#034b7f;text-decoration:underline; }
+  </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-  <div style="background-color: #f1f5f9; padding: 28px 10px; color: #1e293b; line-height: 1.6;">
-    <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 32px 28px;">
-      <div style="border-bottom: 2.5px solid #034b7f; padding-bottom: 16px; margin-bottom: 22px;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="vertical-align: middle;">
-              <h2 style="color: #034b7f; margin: 0; font-size: 15px; font-weight: 800; text-transform: uppercase;">Escola Cidadã — Saúde em Movimento</h2>
-              <span style="color: #64748b; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; display: block; margin-top: 2px;">Validação de Autoria por Código Eletrônico</span>
-            </td>
-            <td style="width: 40px; vertical-align: middle; text-align: right;">
-              <img src="https://www.catraki.com.br/catraki.png" alt="Catraki" style="width: 36px; height: 36px; border-radius: 6px;" />
-            </td>
-          </tr>
-        </table>
+<body>
+  <div class="wrapper">
+    <div class="sheet">
+
+      <!-- Cabeçalho -->
+      <div class="sheet-header">
+        <span class="logo-mark">C</span>
+        <span class="title-wrap">
+          <p class="doc-title">Escola Cidadã — Saúde em Movimento</p>
+          <span class="doc-subtitle">Validação de Autoria por Código Eletrônico</span>
+        </span>
       </div>
-      <p style="color: #334155; font-size: 13.5px; line-height: 1.6; margin: 0 0 12px 0;">Olá,</p>
-      <p style="color: #334155; font-size: 13.5px; line-height: 1.6; margin: 0 0 20px 0;">
-        Para autenticar e concluir a assinatura do Termo de Consentimento referente ao(à) estudante <strong>${studentName}</strong>, utilize o código de segurança abaixo:
-      </p>
-      <div style="background: #f0f9ff; border: 2px solid #bae6fd; border-radius: 10px; padding: 22px; text-align: center; margin: 20px 0;">
-        <span style="font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #034b7f; font-family: monospace;">${otpCode}</span>
+      <div class="header-divider"></div>
+
+      <!-- Corpo -->
+      <div class="sheet-body">
+        <p style="margin:0 0 14px 0;">Olá,</p>
+        <p style="margin:0 0 20px 0;">
+          Para autenticar e concluir a assinatura do Termo de Consentimento referente ao(à)
+          estudante <strong>${studentName}</strong>, utilize o código de segurança abaixo:
+        </p>
+
+        <div class="otp-box">
+          <span class="otp-code">${otpCode}</span>
+        </div>
+
+        <p style="color:#64748b;font-size:11.5px;line-height:1.5;margin:20px 0 0 0;">
+          ⏱️ <strong>Validade:</strong> Este código expira em 5 minutos.
+          Se você não solicitou este procedimento, por favor desconsidere este e-mail.
+        </p>
       </div>
-      <p style="color: #64748b; font-size: 11.5px; line-height: 1.5; margin: 20px 0 0 0;">
-        ⏱️ <strong>Validade:</strong> Este código expira em 5 minutes. Se você não solicitou este procedimento, por favor desconsidere este e-mail.
-      </p>
-      <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 10.5px; color: #94a3b8; text-align: center; line-height: 1.5;">
-        Assinatura Eletrônica Avançada • Lei Federal nº 14.063/2020 • Plataforma Catraki<br />
-        Para mais informações sobre como protegemos seus dados, consulte nossa <a href="https://www.catraki.com.br/privacidade" style="color: #034b7f; text-decoration: underline;">Política de Privacidade e Termos de Uso</a>.
+
+      <!-- Rodapé -->
+      <div class="sheet-footer">
+        Assinatura Eletrônica Avançada &bull; Lei Federal nº&nbsp;14.063/2020 &bull; Plataforma Catraki<br>
+        Para mais informações sobre como protegemos seus dados, consulte nossa
+        <a href="https://www.catraki.com.br/privacidade">Política de Privacidade e Termos de Uso</a>.
       </div>
+
     </div>
   </div>
 </body>
@@ -526,7 +552,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
             body: JSON.stringify({
               from: fromAddress,
               to: [targetEmail],
-              subject: `Código de Confirmação: ${otpCode} — Catraki`,
+              subject: `Escola Cidadã — Código de Confirmação: ${otpCode}`,
               html: otpHtml,
             }),
           });
@@ -555,7 +581,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
                 email: 'autorizacoes@catraki.com.br',
                 name: 'Escola Cidadã — Saúde em Movimento',
               },
-              subject: `Código de Confirmação: ${otpCode} — Catraki`,
+              subject: `Escola Cidadã — Código de Confirmação: ${otpCode}`,
               content: [{
                 type: 'text/html',
                 value: otpHtml,
@@ -785,8 +811,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
 
     if (existingSigned) {
       const vCode = existingSigned.manifest_sha256
-        ? `SESI-${existingSigned.manifest_sha256.substring(0, 4).toUpperCase()}-${existingSigned.manifest_sha256.substring(existingSigned.manifest_sha256.length - 4).toUpperCase()}`
-        : `SESI-${existingSigned.id.slice(-8).toUpperCase()}`;
+        ? `CATRAKI-${existingSigned.manifest_sha256.substring(0, 4).toUpperCase()}-${existingSigned.manifest_sha256.substring(existingSigned.manifest_sha256.length - 4).toUpperCase()}`
+        : `CATRAKI-${existingSigned.id.slice(-8).toUpperCase()}`;
 
       return c.json({
         success: false,
@@ -1078,11 +1104,11 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     }, 500);
   }
 
-  const validationCode = `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`;
+  const validationCode = `CATRAKI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`;
 
   // Disparo do E-mail Oficial de Comprovante de Assinatura (Resend API)
   const resendApiKey = (c.env as any).RESEND_API_KEY;
-  const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
+  const fromAddress = (c.env as any).EMAIL_FROM || 'Plataforma Catraki <autorizacoes@catraki.com.br>';
   const targetEmail = parsed.data.signer_email;
   const institutionName = parsed.data.institution_name || 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)';
 
@@ -1091,14 +1117,14 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     signerName: signer_name,
     documentTitle: docTitle,
     downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
-    companyName: institutionName,
+    companyName: 'Plataforma Catraki',
     supportEmail: 'suporte@catraki.com.br',
   });
   const emailText = getTransactionalCompletionEmailText({
     signerName: signer_name,
     documentTitle: docTitle,
     downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
-    companyName: institutionName,
+    companyName: 'Plataforma Catraki',
     supportEmail: 'suporte@catraki.com.br',
   });
   const emailSubject = getCompletionEmailSubject(docTitle);
@@ -1300,7 +1326,7 @@ signerRouter.post('/revoke', async (c) => {
   if (targetEmail && targetEmail.includes('@')) {
     const formattedDate = new Date(revokedAtIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     const validationCode = doc.content_sha256 
-      ? `SESI-${doc.content_sha256.substring(0, 4).toUpperCase()}-${doc.content_sha256.substring(doc.content_sha256.length - 4).toUpperCase()}`
+      ? `CATRAKI-${doc.content_sha256.substring(0, 4).toUpperCase()}-${doc.content_sha256.substring(doc.content_sha256.length - 4).toUpperCase()}`
       : `DOC-${doc.id.substring(0, 8).toUpperCase()}`;
 
     const revokeHtml = `<!DOCTYPE html>
@@ -1335,7 +1361,7 @@ signerRouter.post('/revoke', async (c) => {
         A partir deste momento, nenhum novo atendimento médico preventivo ou triagem clínica será realizado para o estudante sem uma nova autorização formal.
       </p>
       <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 10.5px; color: #94a3b8; text-align: center;">
-        Projeto Escola Cidadã: Saúde em Movimento • SESI-DF • Universidade de Brasília (UnB)
+        Plataforma Catraki
       </div>
     </div>
   </div>
@@ -1343,7 +1369,7 @@ signerRouter.post('/revoke', async (c) => {
 </html>`;
 
     const resendApiKey = (c.env as any).RESEND_API_KEY;
-    const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
+    const fromAddress = (c.env as any).EMAIL_FROM || 'Plataforma Catraki <autorizacoes@catraki.com.br>';
 
     try {
       if (resendApiKey) {
@@ -1356,7 +1382,7 @@ signerRouter.post('/revoke', async (c) => {
           body: JSON.stringify({
             from: fromAddress,
             to: [targetEmail],
-            subject: `[SESI / Escola Cidadã] Comprovante de Revogação de Consentimento — ${doc.minor_name || 'Estudante'}`,
+            subject: `Escola Cidadã — Consentimento Revogado`,
             html: revokeHtml,
           }),
         });
@@ -1369,9 +1395,9 @@ signerRouter.post('/revoke', async (c) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              from: 'Escola Cidadã — SESI Saúde <onboarding@resend.dev>',
+              from: 'Plataforma Catraki <onboarding@resend.dev>',
               to: [targetEmail],
-              subject: `[SESI / Escola Cidadã] Comprovante de Revogação de Consentimento — ${doc.minor_name || 'Estudante'}`,
+            subject: `Escola Cidadã — Consentimento Revogado`,
               html: revokeHtml,
             }),
           });
@@ -1390,9 +1416,9 @@ signerRouter.post('/revoke', async (c) => {
             personalizations: [{ to: [{ email: targetEmail }] }],
             from: {
               email: 'autorizacoes@catraki.com.br',
-              name: 'Escola Cidadã — Saúde em Movimento',
+              name: 'Plataforma Catraki',
             },
-            subject: `[SESI / Escola Cidadã] Comprovante de Revogação de Consentimento — ${doc.minor_name || 'Estudante'}`,
+            subject: `[Plataforma Catraki] Comprovante de Revogação de Consentimento — ${doc.minor_name || 'Estudante'}`,
             content: [{
               type: 'text/html',
               value: revokeHtml,
@@ -1414,6 +1440,6 @@ signerRouter.post('/revoke', async (c) => {
     target_email: targetEmail,
     message: emailDispatched
       ? `Consentimento revogado com sucesso e comprovante enviado para ${targetEmail}.`
-      : 'Consentimento revogado com sucesso. A equipe médica e a administração do SESI foram notificadas.',
+      : 'Consentimento revogado com sucesso. A equipe médica e a administração da plataforma Catraki foram notificadas.',
   });
 });

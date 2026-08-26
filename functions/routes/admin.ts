@@ -571,13 +571,13 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
   if (targetEmail && targetEmail.includes('@')) {
     const formattedDate = new Date(cancelledAtIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     const docTitle = (doc as any).title || (doc as any).document_title || (doc.minor_name ? `Termo de Consentimento - ${doc.minor_name}` : 'Termo de Consentimento');
-    const emailSubject = getCancellationEmailSubject(docTitle);
+    const emailSubject = getCancellationEmailSubject();
     const emailHtml = getTransactionalCancellationEmailHtml({
       parentName: doc.parent_name || 'Responsável Legal',
       minorName: doc.minor_name || 'Estudante',
       documentId: doc.id,
       documentTitle: docTitle,
-      validationCode: manifestSha256 ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
+      validationCode: manifestSha256 ? `CATRAKI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
       cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
       institutionName: doc.institution_name || 'Escola CEMEIT',
       reason,
@@ -591,7 +591,7 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
       minorName: doc.minor_name || 'Estudante',
       documentId: doc.id,
       documentTitle: docTitle,
-      validationCode: manifestSha256 ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
+      validationCode: manifestSha256 ? `CATRAKI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
       cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
       institutionName: doc.institution_name || 'Escola CEMEIT',
       reason,
@@ -774,7 +774,7 @@ adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'oper
 
   const manifestSha256 = auditLog?.manifest_sha256 || doc.content_sha256 || '';
   const validationCode = manifestSha256
-    ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`
+    ? `CATRAKI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`
     : `DOC-${doc.id.substring(0, 8).toUpperCase()}`;
 
   let parentEmail: string | null = null;
@@ -861,14 +861,14 @@ adminRouter.post('/documents/:id/notify-cancellation', requireAuth(['admin_maste
   const formattedDate = new Date(cancelledAtIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
   const docTitle = (doc as any).title || (doc as any).document_title || (doc.minor_name ? `Termo de Consentimento - ${doc.minor_name}` : 'Termo de Consentimento');
-  const emailSubject = getCancellationEmailSubject(docTitle);
+  const emailSubject = getCancellationEmailSubject();
 
   const emailHtml = getTransactionalCancellationEmailHtml({
     parentName: doc.parent_name || 'Responsável Legal',
     minorName: doc.minor_name || 'Estudante',
     documentId: doc.id,
     documentTitle: docTitle,
-    validationCode: manifestSha256 ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
+    validationCode: manifestSha256 ? `CATRAKI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
     cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
     institutionName: (doc as any).institution_name || 'Escola CEMEIT',
     reason,
@@ -879,7 +879,7 @@ adminRouter.post('/documents/:id/notify-cancellation', requireAuth(['admin_maste
     minorName: doc.minor_name || 'Estudante',
     documentId: doc.id,
     documentTitle: docTitle,
-    validationCode: manifestSha256 ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
+    validationCode: manifestSha256 ? `CATRAKI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}` : `DOC-${doc.id.substring(0, 8).toUpperCase()}`,
     cancelledAtFormatted: `${formattedDate} (Horário de Brasília)`,
     institutionName: (doc as any).institution_name || 'Escola CEMEIT',
     reason,
@@ -887,7 +887,7 @@ adminRouter.post('/documents/:id/notify-cancellation', requireAuth(['admin_maste
   });
 
   let emailDispatched = false;
-  const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
+  const fromAddress = (c.env as any).EMAIL_FROM || 'Plataforma Catraki <autorizacoes@catraki.com.br>';
 
   try {
     if ((c.env as any).RESEND_API_KEY) {
@@ -980,7 +980,7 @@ adminRouter.post('/documents/:id/resend-signed-email', requireAuth(['admin_maste
   const auditLog = await db.prepare('SELECT * FROM audit_logs WHERE document_id = ?').bind(id).first<any>();
   const manifestSha256 = auditLog?.manifest_sha256 || doc.content_sha256 || '';
   const validationCode = manifestSha256 
-    ? `SESI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`
+    ? `CATRAKI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`
     : `DOC-${doc.id.substring(0, 8).toUpperCase()}`;
 
   const signerName = auditLog?.signer_name || doc.parent_name || 'Responsável Legal';
@@ -991,20 +991,20 @@ adminRouter.post('/documents/:id/resend-signed-email', requireAuth(['admin_maste
     signerName,
     documentTitle: docTitle,
     downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
-    companyName: 'SESI Saúde / Escola Cidadã',
+    companyName: 'Plataforma Catraki',
     supportEmail: 'suporte@catraki.com.br',
   });
   const emailText = getTransactionalCompletionEmailText({
     signerName,
     documentTitle: docTitle,
     downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
-    companyName: 'SESI Saúde / Escola Cidadã',
+    companyName: 'Plataforma Catraki',
     supportEmail: 'suporte@catraki.com.br',
   });
 
   let emailDispatched = false;
   const resendApiKey = (c.env as any).RESEND_API_KEY;
-  const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
+  const fromAddress = (c.env as any).EMAIL_FROM || 'Plataforma Catraki <autorizacoes@catraki.com.br>';
 
   try {
     if (resendApiKey) {

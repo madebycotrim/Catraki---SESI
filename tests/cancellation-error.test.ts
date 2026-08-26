@@ -90,17 +90,17 @@ describe('Funcionalidade: Revogação e Cancelamento por Erro Operacional (LGPD 
       minorName: 'Lucas Silva Santos',
       documentId: 'DOC-20260825-001',
       documentTitle: 'Termo de Consentimento - Lucas Silva Santos',
-      validationCode: 'SESI-8661-7A48',
+      validationCode: 'CATRAKI-8661-7A48',
       cancelledAtFormatted: '25/08/2026 às 10:30 (Horário de Brasília)',
-      institutionName: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)',
+      institutionName: 'Plataforma Catraki',
       reason: 'Inconsistência cadastral na data de nascimento do estudante',
-      supportEmail: 'suporte.escolacidada@catraki.com.br',
+      supportEmail: 'suporte@catraki.com.br',
       dpoContact: 'privacidade@catraki.com.br',
     };
 
     it('deve gerar assunto padronizado para o e-mail de cancelamento', () => {
-      const subject = getCancellationEmailSubject('Termo de Consentimento - Lucas Silva Santos');
-      expect(subject).toBe('Aviso: O documento "Termo de Consentimento - Lucas Silva Santos" foi cancelado');
+      const subject = getCancellationEmailSubject();
+      expect(subject).toBe('Escola Cidadã — Autorização Cancelada');
     });
 
     it('deve gerar template HTML com modelo oficial, hash de autenticidade, menção à LGPD e próximos passos', () => {
@@ -108,9 +108,9 @@ describe('Funcionalidade: Revogação e Cancelamento por Erro Operacional (LGPD 
 
       expect(html).toContain('Olá, Maria Silva Santos,');
       expect(html).toContain('Termo de Consentimento - Lucas Silva Santos');
-      expect(html).toContain('SESI-8661-7A48');
+      expect(html).toContain('CATRAKI-8661-7A48');
       expect(html).toContain('CANCELADO POR ERRO');
-      expect(html).toContain('CEMEIT');
+      expect(html).toContain('Plataforma Catraki');
       expect(html).toContain('Inconsistência cadastral na data de nascimento');
       expect(html).toContain('O que acontece agora?');
       expect(html).toContain('Os links e acessos que você recebeu anteriormente para este documento foram desativados.');
@@ -122,11 +122,10 @@ describe('Funcionalidade: Revogação e Cancelamento por Erro Operacional (LGPD 
       const text = getTransactionalCancellationEmailText(mockParams);
 
       expect(text).toContain('Assunto: Aviso: O documento "Termo de Consentimento - Lucas Silva Santos" foi cancelado');
-      expect(text).toContain('Olá, Maria Silva Santos,');
-      expect(text).toContain('Código de Autenticidade (Hash): SESI-8661-7A48');
-      expect(text).toContain('Motivo: "Inconsistência cadastral na data de nascimento do estudante"');
-      expect(text).toContain('O que acontece agora?');
-      expect(text).toContain('suporte.escolacidada@catraki.com.br');
+      expect(text).toContain('Olá, Maria Silva Santos.');
+      expect(text).toContain('Código de Autenticidade (Hash): CATRAKI-8661-7A48');
+      expect(text).toContain("Motivo: 'Inconsistência cadastral na data de nascimento do estudante'");
+      expect(text).toContain('Os links anteriores foram desativados. Seus dados continuam protegidos.');
     });
   });
 });

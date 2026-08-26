@@ -75,11 +75,11 @@ app.post('/send-test-email', requireAuth(['admin_master']), async (c) => {
         body: JSON.stringify({
           from: fromAddress,
           to: [emailDestino],
-          subject: `SESI Saúde — Teste de Disparo de E-mail (${nowIso})`,
+          subject: `Escola Cidadã — Teste de Disparo de E-mail (${nowIso})`,
           html: `<div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;">
             <div style="border-bottom: 2px solid #034b7f; padding-bottom: 12px; margin-bottom: 16px;">
-              <h2 style="color: #034b7f; margin: 0; font-size: 18px;">SESI Saúde — Teste de Comunicação</h2>
-              <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Diagnóstico de Entrega de E-mail</span>
+              <h2 style="color: #034b7f; margin: 0; font-size: 18px;">Escola Cidadã — Diagnóstico de Comunicação</h2>
+              <span style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Teste de Entrega de E-mail — Plataforma Catraki</span>
             </div>
             <p style="color: #334155; font-size: 14px; line-height: 1.6;">Este é um e-mail de teste disparado pelo <strong>Painel Gestor do Catraki</strong>.</p>
             <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 18px 0;">
@@ -122,11 +122,11 @@ app.post('/send-test-email', requireAuth(['admin_master']), async (c) => {
           email: 'autorizacoes@catraki.com.br',
           name: 'Escola Cidadã — Saúde em Movimento',
         },
-        subject: `SESI Saúde — Teste de Disparo de E-mail (${nowIso})`,
+        subject: `Escola Cidadã — Teste de Disparo de E-mail (${nowIso})`,
         content: [{
           type: 'text/html',
           value: `<div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;">
-            <h2 style="color: #034b7f; margin-top: 0;">SESI Saúde — Teste de Comunicação</h2>
+            <h2 style="color: #034b7f; margin-top: 0;">Escola Cidadã — Diagnóstico de Comunicação</h2>
             <p style="color: #334155; font-size: 14px;">Este é um e-mail de teste disparado pelo <strong>Painel Gestor do Catraki</strong>.</p>
             <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 14px; margin: 16px 0;">
               <strong style="color: #166534; font-size: 14px;">Status: Servidor de E-mail Conectado e Operacional ✓</strong>

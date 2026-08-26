@@ -108,8 +108,8 @@ export class GeradorPdfTermoSesi {
 
     // Código de validação curto
     const validationCode = dados.hashManifesto
-      ? `SESI-${dados.hashManifesto.substring(0, 4).toUpperCase()}-${dados.hashManifesto.substring(dados.hashManifesto.length - 4).toUpperCase()}`
-      : 'SESI-PENDENTE';
+      ? `CATRAKI-${dados.hashManifesto.substring(0, 4).toUpperCase()}-${dados.hashManifesto.substring(dados.hashManifesto.length - 4).toUpperCase()}`
+      : 'CATRAKI-PENDENTE';
 
     // ========================================================================
     // PÁGINA 1: TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO (TCLE)
@@ -133,7 +133,7 @@ export class GeradorPdfTermoSesi {
 
     const xCabecalhoTexto = logoCatrakiImg ? margemEsquerda + 85 : margemEsquerda;
 
-    page1.drawText('ESCOLA CIDADÃ — SAÚDE EM MOVIMENTO', {
+    page1.drawText('PLATAFORMA CATRAKI', {
       x: xCabecalhoTexto,
       y: y - 5,
       size: 11,
@@ -141,7 +141,7 @@ export class GeradorPdfTermoSesi {
       color: corAzulSesi,
     });
 
-    page1.drawText('Termo de Consentimento Livre e Esclarecido (TCLE) • Parceria UnB e SESI-DF', {
+    page1.drawText('Termo de Consentimento Livre e Esclarecido (TCLE)', {
       x: xCabecalhoTexto,
       y: y - 17,
       size: 7.5,
@@ -309,7 +309,7 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 11;
-    const descImg = '— Autorização de caráter gratuito para registro institucional e relatórios de prestação de contas do projeto pela UnB e SESI-DF, com vedação expressa de exploração comercial ou fins vexatórios.';
+    const descImg = '— Autorização de caráter gratuito para registro institucional e relatórios de prestação de contas do projeto, com vedação expressa de exploração comercial ou fins vexatórios.';
     const linhasDescImg = this.quebrarTexto(descImg, 94);
     for (const linha of linhasDescImg) {
       page1.drawText(linha, {
@@ -414,7 +414,7 @@ export class GeradorPdfTermoSesi {
 
         // Marca d'água sobreposta à assinatura (inutiliza recortes e cópias forjadas)
         const vHash = dados.hashManifesto ? dados.hashManifesto.substring(0, 16).toUpperCase() : 'CATRAKI-TERMO';
-        page1.drawText(`VINCULADO AO TERMO SESI • ${vHash} • CÓPIA PROIBIDA`, {
+        page1.drawText(`VINCULADO AO TERMO CATRAKI • ${vHash} • CÓPIA PROIBIDA`, {
           x: margemEsquerda + 16,
           y: y + 10,
           size: 6,
@@ -471,23 +471,13 @@ export class GeradorPdfTermoSesi {
       color: corCinzaEscuro,
     });
 
-    // Barra Institucional SESI no rodapé da folha (se carregada)
-    if (barraInstitucionalImg) {
-      page1.drawImage(barraInstitucionalImg, {
-        x: 0,
-        y: 0,
-        width: width,
-        height: 12,
-      });
-    } else {
-      // Fallback de linha estilizada
-      page1.drawLine({
-        start: { x: 0, y: 3 },
-        end: { x: width, y: 3 },
-        thickness: 4,
-        color: corAzulSesi,
-      });
-    }
+    // Linha de rodapé estilizada Catraki
+    page1.drawLine({
+      start: { x: 0, y: 3 },
+      end: { x: width, y: 3 },
+      thickness: 6,
+      color: corAzulSesi,
+    });
 
     // ========================================================================
     // PÁGINA 2: REGISTRO DE AUDITORIA E CUSTÓDIA DIGITAL (EVIDÊNCIAS DIGITAIS)
@@ -774,22 +764,13 @@ export class GeradorPdfTermoSesi {
         color: corCinzaEscuro,
       });
 
-      // Barra Institucional SESI no rodapé da folha 2
-      if (barraInstitucionalImg) {
-        page2.drawImage(barraInstitucionalImg, {
-          x: 0,
-          y: 0,
-          width: width,
-          height: 12,
-        });
-      } else {
-        page2.drawLine({
-          start: { x: 0, y: 3 },
-          end: { x: width, y: 3 },
-          thickness: 4,
-          color: corAzulSesi,
-        });
-      }
+      // Linha de rodapé estilizada Catraki folha 2
+      page2.drawLine({
+        start: { x: 0, y: 3 },
+        end: { x: width, y: 3 },
+        thickness: 6,
+        color: corAzulSesi,
+      });
     }
 
     return await pdfDoc.save();

@@ -56,7 +56,7 @@ describe('Prevenção de Duplicidade de Assinatura por Estudante', () => {
     });
 
     expect(dupCheck.hasExistingSignature).toBe(true);
-    expect(dupCheck.existingValidationCode).toMatch(/^SESI-[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+    expect(dupCheck.existingValidationCode).toMatch(/^CATRAKI-[A-Z0-9]{4}-[A-Z0-9]{4}$/);
     expect(dupCheck.minorName).toBe('Lucas Cotrim Silva');
     expect(dupCheck.signerNameMasked).toBe('Mateus C***');
 

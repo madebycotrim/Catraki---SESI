@@ -1,5 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import QRCode from 'qrcode';
+import { formatBrasiliaDateTime } from '../schemas';
 
 // ============================================================================
 // GERADOR DE CERTIFICADO DE CONCLUSÃO — RELATÓRIO FINAL DE LINHA DO TEMPO
@@ -60,15 +61,7 @@ const COR_FUNDO_CLARO = rgb(0.97, 0.97, 0.98);
 function formatarDataBr(isoDate?: string | null): string {
   if (!isoDate) return '—';
   try {
-    return new Date(isoDate).toLocaleString('pt-BR', {
-      timeZone: 'America/Sao_Paulo',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    }) + ' (BRT)';
+    return formatBrasiliaDateTime(isoDate) + ' (BRT)';
   } catch {
     return isoDate;
   }
@@ -203,15 +196,7 @@ export class GeradorCertificadoConclusao {
     novaLinha(10);
 
     const formattedSignDate = dados.signedAt
-      ? new Date(dados.signedAt).toLocaleString('pt-BR', {
-          timeZone: 'America/Sao_Paulo',
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        }) + ' UTC-3'
+      ? formatBrasiliaDateTime(dados.signedAt) + ' UTC-3'
       : 'Pendente';
 
     // CPF completo na página de certificado para prova jurídica irrefutável

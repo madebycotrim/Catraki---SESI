@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { apiClient } from '../../lib/api.ts';
-import { formatUserAgent } from '../../lib/schemas.ts';
+import { formatUserAgent, formatBrasiliaDateTime } from '../../lib/schemas.ts';
 import type { PublicValidationResponse } from '../../lib/types.ts';
 
 interface PublicValidatorProps {
@@ -475,7 +475,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                       <span className="block text-[9px] font-bold text-slate-400 uppercase">Data e Horário</span>
                       <div className="font-mono text-[11px] font-bold text-slate-800 flex items-center gap-1">
                         <Clock className="w-3 h-3 text-sesi-primary shrink-0" />
-                        <span>{new Date(validationResult.signed_at_utc).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</span>
+                        <span>{formatBrasiliaDateTime(validationResult.signed_at_utc)}</span>
                       </div>
                       <span className="text-[9px] text-slate-500 block font-medium">
                         🕒 Hora Legal de Brasília (NTP.br)

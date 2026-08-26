@@ -44,6 +44,7 @@ import {
 import JSZip from 'jszip';
 import { GeradorPdfTermoSesi } from '../../lib/pades/GeradorPdfTermoSesi.ts';
 import { apiClient } from '../../lib/api.ts';
+import { parseUtcDate, formatBrasiliaDateTime } from '../../lib/schemas.ts';
 import type { Institution } from '../../lib/types.ts';
 
 interface AdminDashboardProps {
@@ -208,8 +209,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             minorSeries: doc.minor_series || '',
             minorClass: doc.minor_class || '',
             minorTurn: doc.minor_turn || '',
-            dateSent: doc.created_at ? new Date(doc.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Hoje',
-            signedAtDate: doc.created_at ? new Date(doc.created_at) : new Date(),
+            dateSent: (log?.signed_at || doc.created_at || log?.created_at)
+              ? formatBrasiliaDateTime(log?.signed_at || doc.created_at || log?.created_at)
+              : 'Hoje',
+            signedAtDate: parseUtcDate(log?.signed_at || doc.created_at || log?.created_at),
             hash: log?.manifest_sha256 || doc.content_sha256,
             validationCode: log?.manifest_sha256
               ? `SESI-${log.manifest_sha256.substring(0, 4).toUpperCase()}-${log.manifest_sha256.substring(log.manifest_sha256.length - 4).toUpperCase()}`
@@ -1996,7 +1999,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       <div>
                         <span className="text-rose-700 block text-[10px] uppercase font-bold">Data da Anulação:</span>
-                        <span className="font-bold text-slate-800">{selectedAuthForDetails.cancelledAt || selectedAuthForDetails.revokedAt || selectedAuthForDetails.dateSent}</span>
+                        <span className="font-bold text-slate-800">{formatBrasiliaDateTime(selectedAuthForDetails.cancelledAt || selectedAuthForDetails.revokedAt || selectedAuthForDetails.dateSent)}</span>
                       </div>
                       <div>
                         <span className="text-rose-700 block text-[10px] uppercase font-bold">Motivo Registrado:</span>
@@ -2151,7 +2154,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <div className="flex items-center justify-between text-slate-500 text-[11px] pt-1">
                   <span>Assinatura Eletrônica Avançada (Lei nº 14.063/2020)</span>
-                  <span>Data de Registro: {selectedAuthForDetails.dateSent}</span>
+                  <span>Data de Registro: {formatBrasiliaDateTime(selectedAuthForDetails.dateSent || selectedAuthForDetails.signedAtDate)}</span>
                 </div>
               </div>
 

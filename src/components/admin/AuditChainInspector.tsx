@@ -7,6 +7,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
+import { formatBrasiliaDateTime } from '../../lib/schemas.ts';
 import type { ChainVerificationResult } from '../../lib/types.ts';
 
 export const AuditChainInspector: React.FC = () => {
@@ -127,7 +128,7 @@ export const AuditChainInspector: React.FC = () => {
                   </div>
 
                   <span className="text-[11px] text-slate-400 font-mono">
-                    {new Date(log.signed_at).toLocaleString('pt-BR')} UTC
+                    {formatBrasiliaDateTime(log.signed_at || log.created_at)} (Horário de Brasília)
                   </span>
                 </div>
 

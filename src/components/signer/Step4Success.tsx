@@ -11,6 +11,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import QRCode from 'qrcode';
+import { formatBrasiliaDateTime } from '../../lib/schemas.ts';
 
 interface Step4SuccessProps {
   signResult: {
@@ -250,7 +251,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                       <Clock className="w-3.5 h-3.5 text-sesi-primary" /> Data e Hora:
                     </span>
                     <span className="font-mono text-xs font-bold text-slate-700">
-                      {new Date(signResult.signed_at_utc || signResult.signed_at || new Date().toISOString()).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Horário de Brasília)
+                      {formatBrasiliaDateTime(signResult.signed_at_utc || signResult.signed_at || new Date())} (Horário de Brasília)
                     </span>
                   </div>
                   

@@ -1,7 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
 import QRCode from 'qrcode';
 import { LOGO_BASE64 } from './LogoBase64.ts';
-import { calcularIdade } from '../schemas.ts';
+import { calcularIdade, formatBrasiliaDateTime } from '../schemas.ts';
 
 export interface IDadosTermoPdf {
   tituloProcedimento: string;
@@ -91,8 +91,8 @@ export class GeradorPdfTermoSesi {
       logoCatrakiImg = await pdfDoc.embedPng(logoBytes);
     } catch {}
 
-    // Formatação de data da assinatura
-    const dataHoraStr = (dados.dataAssinatura || new Date()).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    // Formatação de data da assinatura no Horário Oficial de Brasília
+    const dataHoraStr = formatBrasiliaDateTime(dados.dataAssinatura || new Date());
 
     // Código de validação curto
     const validationCode = dados.hashManifesto
@@ -578,25 +578,9 @@ export class GeradorPdfTermoSesi {
 
       y2 -= 14;
       const dataHoraExata = dados.otpVerifiedAt
-        ? dados.otpVerifiedAt.toLocaleString('pt-BR', {
-            timeZone: 'America/Sao_Paulo',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          }) + ' UTC-3'
+        ? formatBrasiliaDateTime(dados.otpVerifiedAt) + ' UTC-3'
         : (dados.dataAssinatura
-            ? dados.dataAssinatura.toLocaleString('pt-BR', {
-                timeZone: 'America/Sao_Paulo',
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              }) + ' UTC-3'
+            ? formatBrasiliaDateTime(dados.dataAssinatura) + ' UTC-3'
             : dataHoraStr);
 
       // CPF Completo na Folha 2 para validade pericial material em juízo
@@ -671,7 +655,7 @@ export class GeradorPdfTermoSesi {
       });
 
       y2 -= 14;
-      const reqDate = dados.otpRequestedAt ? dados.otpRequestedAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : 'Registrado no envio';
+      const reqDate = dados.otpRequestedAt ? formatBrasiliaDateTime(dados.otpRequestedAt) : 'Registrado no envio';
       page2.drawText(`[Passo 1] Código de segurança de uso único (OTP 6 dígitos) enviado em: ${reqDate}`, {
         x: margemEsquerda,
         y: y2,

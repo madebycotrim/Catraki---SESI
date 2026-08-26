@@ -243,6 +243,50 @@ export function calcularIdade(dataNascimento: string | Date, dataReferencia: Dat
   return Math.max(0, age);
 }
 
+/**
+ * Interpreta com segurança qualquer entrada de data (incluindo formato SQLite "YYYY-MM-DD HH:mm:ss" sem 'Z'),
+ * garantindo que timestamps sem fuso horário sejam tratados como UTC.
+ */
+export function parseUtcDate(dateInput?: string | number | Date | null): Date {
+  if (!dateInput) return new Date();
+  if (dateInput instanceof Date) return dateInput;
+
+  let str = String(dateInput).trim();
+  if (!str) return new Date();
+
+  // SQLite "YYYY-MM-DD HH:mm:ss" ou "YYYY-MM-DDTHH:mm:ss" sem offset
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(str)) {
+    if (!str.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(str)) {
+      str = str.replace(' ', 'T') + 'Z';
+    }
+  }
+
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+
+/**
+ * Formata qualquer timestamp para a Hora Oficial de Brasília (America/Sao_Paulo — UTC-3).
+ */
+export function formatBrasiliaDateTime(
+  dateInput?: string | number | Date | null,
+  options?: Intl.DateTimeFormatOptions
+): string {
+  if (!dateInput) return '—';
+  const d = parseUtcDate(dateInput);
+  const defaultOpts: Intl.DateTimeFormatOptions = {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    ...options,
+  };
+  return d.toLocaleString('pt-BR', defaultOpts);
+}
+
 // ============================================================================
 // SCHEMAS DE VALIDAÇÃO ZOD
 // ============================================================================

@@ -79,27 +79,14 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   });
 
   useEffect(() => {
-    // 1. Obtém IP público real imediatamente
-    fetch('https://api.ipify.org?format=json')
-      .then((r) => r.json() as Promise<any>)
-      .then((data: any) => {
-        if (data && data.ip) {
-          setClientGeo((prev) => ({ ...prev, ip: data.ip }));
-        }
-      })
-      .catch(() => {});
-
-    // 2. Obtém geolocalização e IP completos via IP de forma 100% silenciosa e automática (sem pedir permissão ao usuário)
-    fetch('https://ipwho.is/')
-      .then((r) => r.json() as Promise<any>)
-      .then((data: any) => {
-        if (data && data.success) {
-          const locParts = [data.city, data.region_code].filter(Boolean).join(', ');
-          const fullLoc = locParts ? `${locParts} - ${data.country || 'Brasil'}` : (data.country || 'Brasil');
-          setClientGeo((prev) => ({
-            ip: data.ip || prev.ip,
-            location: fullLoc,
-          }));
+    // Obtém IP e geolocalização reais usando o backend do Cloudflare (/api/public/client-info)
+    apiClient.getClientInfo()
+      .then((res) => {
+        if (res.success && res.client) {
+          setClientGeo({
+            ip: res.client.ip || '',
+            location: res.client.formattedLocation || '',
+          });
         }
       })
       .catch(() => {});

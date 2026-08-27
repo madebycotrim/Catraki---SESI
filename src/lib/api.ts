@@ -586,13 +586,37 @@ export const apiClient = {
     identity_method?: 'matricula_sesi' | 'manual_review';
     device_fingerprint_data?: any;
   }): Promise<any> {
+    // Função auxiliar: persiste auth_image/health/data no localStorage
+    // independente de qual caminho processa a assinatura (backend ou mock local)
+    const persistAuthFieldsLocally = (successResp: any) => {
+      try {
+        const docs = getDocuments();
+        const doc = docs.find((d) => d.access_token === payload.token);
+        if (doc) {
+          (doc as any).auth_image = payload.auth_image ?? 'no';
+          (doc as any).auth_health = payload.auth_health ?? 'yes';
+          (doc as any).auth_data = payload.auth_data ?? 'yes';
+          if (successResp?.document_id) doc.id = successResp.document_id;
+          if (successResp?.validation_code) (doc as any).validation_code = successResp.validation_code;
+          if (successResp?.manifest_sha256) (doc as any).manifest_sha256 = successResp.manifest_sha256;
+          doc.status = 'signed';
+          doc.parent_name = payload.signer_name;
+          setDocuments(docs);
+        }
+      } catch {}
+    };
+
     try {
       const resp = await fetch(`${API_BASE}/signer/sign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      return await resp.json();
+      const data = (await resp.json()) as any;
+      if (data?.success) {
+        persistAuthFieldsLocally(data);
+      }
+      return data;
     } catch {}
 
     const docs = getDocuments();
@@ -734,15 +758,12 @@ export const apiClient = {
       (doc as any).minor_cpf = formatCPF(payload.minor_cpf);
       (doc as any).minor_cpf_raw = payload.minor_cpf.replace(/\D/g, '');
     }
-    if (payload.auth_image) {
-      (doc as any).auth_image = payload.auth_image;
-    }
-    if (payload.auth_health) {
-      (doc as any).auth_health = payload.auth_health;
-    }
-    if (payload.auth_data) {
-      (doc as any).auth_data = payload.auth_data;
-    }
+    // Sempre persiste os campos de autorização — nunca condicionado a truthy
+    // ('no' é string truthy em JS mas representa negativa explícita)
+    (doc as any).auth_image = payload.auth_image ?? 'no';
+    (doc as any).auth_health = payload.auth_health ?? 'yes';
+    (doc as any).auth_data = payload.auth_data ?? 'yes';
+
     setDocuments(docs);
 
     return {
@@ -939,9 +960,9 @@ export const apiClient = {
             manifest_sha256: manifest,
             content_sha256: doc.content_sha256 || 'SHA256-PENDING',
             signature_png_sha256: (doc as any).doc_parent_hash_sha256 || manifest,
-            ip_address: (doc as any).ip_address || '127.0.0.1 (Protegido por Sigilo Legal LGPD)',
-            geolocation: 'Brasília, DF, BR',
-            user_agent: (doc as any).user_agent || (typeof navigator !== 'undefined' && navigator.userAgent ? navigator.userAgent : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'),
+            ip_address: (doc as any).ip_address || 'Não registrado',
+            geolocation: (doc as any).geolocation || 'Não registrado',
+            user_agent: (doc as any).user_agent || (typeof navigator !== 'undefined' ? navigator.userAgent : 'Não registrado'),
             signed_at_utc: (doc as any).otp_verified_at || doc.created_at || new Date().toISOString(),
             signer_name: doc.parent_name || 'Responsável Legal',
             signer_cpf_masked: (doc as any).parent_cpf ? maskCPF((doc as any).parent_cpf) : '***.***.***-**',
@@ -955,9 +976,9 @@ export const apiClient = {
             minor_turn: (doc as any).minor_turn,
             document_status: doc.status || 'signed',
             chain_position: 1,
-            prev_log_hash: 'GENESIS-BLOCK-HASH',
+            prev_log_hash: 'Início da Cadeia',
             tsa_verified: true,
-            tsa_authority: 'Catraki TSA Interno (Sincronizado NTP.br / RFC 3161-Like)',
+            tsa_authority: 'Cadeia de Custódia Local (LocalStorage)',
             auth_image: (doc as any).auth_image === 'yes' || (doc as any).auth_image === true ? 'yes' : (doc as any).auth_image === 'no' || (doc as any).auth_image === false ? 'no' : null,
             auth_health: (doc as any).auth_health ?? null,
             auth_data: (doc as any).auth_data ?? null,
@@ -982,20 +1003,20 @@ export const apiClient = {
     const codePrefix = clean.startsWith('CATRAKI') ? 'CATRAKI' : 'SESI';
     const validationCode = `${codePrefix}-${audit.manifest_sha256.substring(0, 4).toUpperCase()}-${audit.manifest_sha256.substring(audit.manifest_sha256.length - 4).toUpperCase()}`;
 
-    // Monta string de geolocalização com precisão e padronização Cloudflare Edge
+    // Monta string de geolocalização
     let geoCity = audit.geo_city;
-    if (!geoCity || geoCity.toLowerCase() === 'local' || geoCity.toLowerCase() === 'unknown') geoCity = 'Brasília';
+    if (!geoCity || geoCity.toLowerCase() === 'local' || geoCity.toLowerCase() === 'unknown') geoCity = '';
     let geoRegion = audit.geo_region;
-    if (!geoRegion || geoRegion === 'unknown') geoRegion = 'DF';
+    if (!geoRegion || geoRegion === 'unknown') geoRegion = '';
     else if (geoRegion.toUpperCase().startsWith('BR-')) geoRegion = geoRegion.toUpperCase().replace('BR-', '');
-    let geoCountry = audit.geo_country || 'Brasil';
+    let geoCountry = audit.geo_country || '';
     if (geoCountry === 'BR') geoCountry = 'Brasil';
 
-    const geoStr = `${geoCity}, ${geoRegion}, ${geoCountry}`;
+    const geoStr = [geoCity, geoRegion, geoCountry].filter(Boolean).join(', ') || 'Não registrado';
 
     const resolvedUserAgent = audit.user_agent && audit.user_agent !== 'Não registrado' && audit.user_agent !== 'Navegador Web Padrão'
       ? audit.user_agent
-      : ((doc as any)?.user_agent || (typeof navigator !== 'undefined' && navigator.userAgent ? navigator.userAgent : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'));
+      : ((doc as any)?.user_agent || (typeof navigator !== 'undefined' && navigator.userAgent ? navigator.userAgent : 'Não registrado'));
 
     return {
       success: true,
@@ -1027,8 +1048,7 @@ export const apiClient = {
         chain_position: logs.findIndex((a) => a.id === audit.id) + 1,
         prev_log_hash: audit.prev_log_hash,
         tsa_verified: true,
-        // Carimbo do tempo interno — não confundir com TSA ICP-Brasil
-        tsa_authority: 'Catraki TSA Interno (Sincronizado NTP.br / RFC 3161-Like)',
+        tsa_authority: 'Cadeia de Custódia Local (LocalStorage)',
         auth_image: (doc as any)?.auth_image === 'yes' || (doc as any)?.auth_image === true ? 'yes' : (doc as any)?.auth_image === 'no' || (doc as any)?.auth_image === false ? 'no' : null,
         auth_health: (doc as any)?.auth_health ?? null,
         auth_data: (doc as any)?.auth_data ?? null,
@@ -1055,17 +1075,38 @@ export const apiClient = {
         return (await resp.json()) as any;
       }
     } catch {}
+
+    try {
+      // Obtém dados reais diretamente do Cloudflare Edge
+      const cfResp = await fetch('/cdn-cgi/trace');
+      if (cfResp.ok) {
+        const text = await cfResp.text();
+        const lines = text.split('\n');
+        const data: Record<string, string> = {};
+        lines.forEach((line) => {
+          const parts = line.split('=');
+          if (parts.length === 2) {
+            data[parts[0].trim()] = parts[1].trim();
+          }
+        });
+        if (data.ip) {
+          return {
+            success: true,
+            client: {
+              ip: data.ip,
+              country: data.loc || 'Brasil',
+              userAgent: data.uag || (typeof navigator !== 'undefined' ? navigator.userAgent : 'Não identificado'),
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              formattedLocation: data.loc || 'Brasil',
+            },
+          };
+        }
+      }
+    } catch {}
+
     return {
-      success: true,
-      client: {
-        ip: '127.0.0.1',
-        city: 'Brasília',
-        region: 'DF',
-        country: 'Brasil',
-        timezone: 'America/Sao_Paulo',
-        formattedLocation: 'Brasília, DF, Brasil',
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Mozilla/5.0 (Dispositivo Seguro; Conexão TLS 1.3)',
-      },
+      success: false,
+      client: null,
     };
   },
 

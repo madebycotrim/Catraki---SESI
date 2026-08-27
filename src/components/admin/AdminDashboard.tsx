@@ -644,6 +644,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const parentChildMap = new Map<string, string[]>();
 
     authorizations.forEach((auth) => {
+      if (auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error' || auth.status === 'revoked') return;
+
       const cpf = auth.studentCpfMasked;
       const hasCpf = cpf && cpf !== 'Pendente' && cpf !== 'CPF não informado';
 
@@ -671,6 +673,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     });
 
     authorizations.forEach((auth) => {
+      if (auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error' || auth.status === 'revoked') return;
+
       const alerts: string[] = [];
       const cpf = auth.studentCpfMasked;
       const hasCpf = cpf && cpf !== 'Pendente' && cpf !== 'CPF não informado';

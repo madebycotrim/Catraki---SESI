@@ -16,7 +16,8 @@ import {
   QrCode,
   Lock,
   Sparkles,
-  Ban
+  Ban,
+  HelpCircle
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { apiClient } from '../../lib/api.ts';
@@ -397,21 +398,49 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
 
 
 
-                <div className={`border rounded-xl p-2 sm:p-2.5 flex items-start gap-2 ${validationResult.auth_image === 'yes' || validationResult.auth_image === true ? 'bg-slate-50 border-slate-200' : 'bg-red-50 border-red-200'}`}>
-                  {validationResult.auth_image === 'yes' || validationResult.auth_image === true ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
-                  ) : (
-                    <Ban className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
-                  )}
-                  <div>
-                    <strong className={`font-bold block text-[11px] ${validationResult.auth_image === 'yes' || validationResult.auth_image === true ? 'text-slate-900' : 'text-red-900'}`}>
-                      Uso Institucional de Imagem / Voz
-                    </strong>
-                    <span className={`text-[10px] block mt-0.5 leading-snug ${validationResult.auth_image === 'yes' || validationResult.auth_image === true ? 'text-slate-600' : 'text-red-700'}`}>
-                      {validationResult.auth_image === 'yes' || validationResult.auth_image === true ? 'Opção manifestada livremente pelo responsável (ECA Art. 17).' : 'Negado pelo responsável (Opção Opcional).'}
-                    </span>
-                  </div>
-                </div>
+                {/* Uso Institucional de Imagem / Voz - 3 estados */}
+                {(() => {
+                  const authImg = validationResult.auth_image;
+                  const isAuthorized = authImg === 'yes' || authImg === true;
+                  const isDenied = authImg === 'no' || authImg === false;
+                  // null/undefined = doc antigo, não registrado
+                  return (
+                    <div className={`border rounded-xl p-2 sm:p-2.5 flex items-start gap-2 ${
+                      isAuthorized ? 'bg-emerald-50/60 border-emerald-200/80' :
+                      isDenied ? 'bg-red-50 border-red-200' :
+                      'bg-slate-50 border-slate-200'
+                    }`}>
+                      {isAuthorized ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      ) : isDenied ? (
+                        <Ban className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                      ) : (
+                        <HelpCircle className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                      )}
+                      <div>
+                        <strong className={`font-bold block text-[11px] ${
+                          isAuthorized ? 'text-emerald-950' :
+                          isDenied ? 'text-red-900' :
+                          'text-slate-500'
+                        }`}>
+                          Uso Institucional de Imagem / Voz
+                        </strong>
+                        <span className={`text-[10px] block mt-0.5 leading-snug ${
+                          isAuthorized ? 'text-emerald-800' :
+                          isDenied ? 'text-red-700' :
+                          'text-slate-400'
+                        }`}>
+                          {isAuthorized
+                            ? 'Opção manifestada livremente pelo responsável (ECA Art. 17).'
+                            : isDenied
+                            ? 'Negado pelo responsável (Opção Opcional).'
+                            : 'Não registrado — autorização assinada antes desta versão do sistema.'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
               </div>
             </div>
 

@@ -33,7 +33,8 @@ import {
   ChevronRight,
   RotateCcw,
   Sparkles,
-  SlidersHorizontal
+  SlidersHorizontal,
+  HelpCircle
 } from 'lucide-react';
 import JSZip from 'jszip';
 import { GeradorPdfTermoSesi } from '../../lib/pades/GeradorPdfTermoSesi.ts';
@@ -170,7 +171,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           );
 
           const isSigned = doc.status === 'signed';
-          const authImageGranted = doc.auth_image === 'yes' || doc.auth_image === true;
+          // null = não registrado (docs antigos); true = autorizado; false = negado explicitamente
+          const authImageGranted: boolean | null = isSigned
+            ? (doc.auth_image === 'yes' || doc.auth_image === true ? true : doc.auth_image === 'no' || doc.auth_image === false ? false : null)
+            : null;
 
           const realParentName = (log?.signer_name && log.signer_name.trim().toLowerCase() !== 'responsável legal')
             ? log.signer_name
@@ -203,7 +207,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             status: doc.status || 'pending',
             authHealth: true,
             authData: true,
-            authImage: authImageGranted,
+            authImage: authImageGranted,  // true | false | null
             optInOftalmo: isSigned,
             optInAudio: isSigned,
             optInOdonto: isSigned,
@@ -1629,15 +1633,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {/* Badges Adicionais (Foto e 2FA) */}
                               {isSigned && (
                                 <div className="flex items-center gap-1">
-                                  {auth.authImage ? (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold">
+                                  {auth.authImage === true ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
                                       <Camera className="w-2.5 h-2.5" />
                                       <span>Foto/Voz Autorizada</span>
                                     </span>
-                                  ) : (
+                                  ) : auth.authImage === false ? (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold">
                                       <Ban className="w-2.5 h-2.5" />
                                       <span>Foto/Voz Negada</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200 text-[10px] font-bold">
+                                      <HelpCircle className="w-2.5 h-2.5" />
+                                      <span>Foto/Voz Não Reg.</span>
                                     </span>
                                   )}
                                 </div>

@@ -958,9 +958,9 @@ export const apiClient = {
             prev_log_hash: 'GENESIS-BLOCK-HASH',
             tsa_verified: true,
             tsa_authority: 'Catraki TSA Interno (Sincronizado NTP.br / RFC 3161-Like)',
-            auth_image: (doc as any).auth_image ?? 'no',
-            auth_health: (doc as any).auth_health ?? 'yes',
-            auth_data: (doc as any).auth_data ?? 'yes',
+            auth_image: (doc as any).auth_image === 'yes' || (doc as any).auth_image === true ? 'yes' : (doc as any).auth_image === 'no' || (doc as any).auth_image === false ? 'no' : null,
+            auth_health: (doc as any).auth_health ?? null,
+            auth_data: (doc as any).auth_data ?? null,
             revocation_info: doc.status === 'revoked' ? {
               revoked_at: doc.revoked_at || '',
               revoked_reason: doc.revoked_reason || 'Revogado a pedido do responsável legal',
@@ -1029,9 +1029,9 @@ export const apiClient = {
         tsa_verified: true,
         // Carimbo do tempo interno — não confundir com TSA ICP-Brasil
         tsa_authority: 'Catraki TSA Interno (Sincronizado NTP.br / RFC 3161-Like)',
-        auth_image: (doc as any)?.auth_image ?? 'no',
-        auth_health: (doc as any)?.auth_health ?? 'yes',
-        auth_data: (doc as any)?.auth_data ?? 'yes',
+        auth_image: (doc as any)?.auth_image === 'yes' || (doc as any)?.auth_image === true ? 'yes' : (doc as any)?.auth_image === 'no' || (doc as any)?.auth_image === false ? 'no' : null,
+        auth_health: (doc as any)?.auth_health ?? null,
+        auth_data: (doc as any)?.auth_data ?? null,
         revocation_info: doc?.status === 'revoked' ? {
           revoked_at: doc?.revoked_at || '',
           revoked_reason: doc?.revoked_reason || 'Revogado a pedido do responsável legal',

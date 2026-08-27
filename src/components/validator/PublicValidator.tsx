@@ -15,7 +15,8 @@ import {
   Clock,
   QrCode,
   Lock,
-  Sparkles
+  Sparkles,
+  Ban
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { apiClient } from '../../lib/api.ts';
@@ -396,12 +397,18 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
 
 
 
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 sm:p-2.5 flex items-start gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
+                <div className={`border rounded-xl p-2 sm:p-2.5 flex items-start gap-2 ${validationResult.auth_image === 'yes' || validationResult.auth_image === true ? 'bg-slate-50 border-slate-200' : 'bg-red-50 border-red-200'}`}>
+                  {validationResult.auth_image === 'yes' || validationResult.auth_image === true ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
+                  ) : (
+                    <Ban className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                  )}
                   <div>
-                    <strong className="text-slate-900 font-bold block text-[11px]">Uso Institucional de Imagem / Voz</strong>
-                    <span className="text-slate-600 text-[10px] block mt-0.5 leading-snug">
-                      Opção manifestada livremente pelo responsável (ECA Art. 17).
+                    <strong className={`font-bold block text-[11px] ${validationResult.auth_image === 'yes' || validationResult.auth_image === true ? 'text-slate-900' : 'text-red-900'}`}>
+                      Uso Institucional de Imagem / Voz
+                    </strong>
+                    <span className={`text-[10px] block mt-0.5 leading-snug ${validationResult.auth_image === 'yes' || validationResult.auth_image === true ? 'text-slate-600' : 'text-red-700'}`}>
+                      {validationResult.auth_image === 'yes' || validationResult.auth_image === true ? 'Opção manifestada livremente pelo responsável (ECA Art. 17).' : 'Negado pelo responsável (Opção Opcional).'}
                     </span>
                   </div>
                 </div>

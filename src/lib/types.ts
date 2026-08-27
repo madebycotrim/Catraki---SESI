@@ -259,6 +259,9 @@ export interface PublicValidationResponse {
   prev_log_hash: string | null;
   tsa_verified: boolean;
   tsa_authority?: string;
+  auth_image?: 'yes' | 'no' | boolean;
+  auth_health?: 'yes' | 'no' | boolean;
+  auth_data?: 'yes' | 'no' | boolean;
   revocation_info?: {
     revoked_at: string;
     revoked_reason: string;

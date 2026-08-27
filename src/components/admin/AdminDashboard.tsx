@@ -170,7 +170,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           );
 
           const isSigned = doc.status === 'signed';
-          const authImageGranted = doc.auth_image !== 'no' && doc.auth_image !== false;
+          const authImageGranted = doc.auth_image === 'yes' || doc.auth_image === true;
 
           const realParentName = (log?.signer_name && log.signer_name.trim().toLowerCase() !== 'responsável legal')
             ? log.signer_name
@@ -1629,10 +1629,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {/* Badges Adicionais (Foto e 2FA) */}
                               {isSigned && (
                                 <div className="flex items-center gap-1">
-                                  {auth.authImage && (
+                                  {auth.authImage ? (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold">
                                       <Camera className="w-2.5 h-2.5" />
-                                      <span>Foto/Voz</span>
+                                      <span>Foto/Voz Autorizada</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold">
+                                      <Ban className="w-2.5 h-2.5" />
+                                      <span>Foto/Voz Negada</span>
                                     </span>
                                   )}
                                 </div>

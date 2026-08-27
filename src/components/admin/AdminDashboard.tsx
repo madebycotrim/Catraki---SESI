@@ -63,6 +63,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedSeries, setSelectedSeries] = useState<string>('all');
   const [selectedTurn, setSelectedTurn] = useState<string>('all');
   const [subTab, setSubTab] = useState<'active' | 'pending' | 'cancelled' | 'all'>('active');
+  const [alertFilter, setAlertFilter] = useState<'all' | 'duplicate' | 'stale' | 'incomplete' | 'conflict'>('all');
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -105,10 +106,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSelectedSeries('all');
     setSelectedTurn('all');
     setSubTab('all');
+    setAlertFilter('all');
     setCurrentPage(1);
   };
 
-  const isFiltered = searchTerm !== '' || selectedInstitution !== 'all' || selectedImageOption !== 'all' || selectedStatus !== 'all' || selectedDateRange !== 'all' || selectedSeries !== 'all' || selectedTurn !== 'all' || subTab !== 'all';
+  const isFiltered = searchTerm !== '' || selectedInstitution !== 'all' || selectedImageOption !== 'all' || selectedStatus !== 'all' || selectedDateRange !== 'all' || selectedSeries !== 'all' || selectedTurn !== 'all' || subTab !== 'all' || alertFilter !== 'all';
 
   // Estados do Modal de Ficha Completa do Aluno (Triagem SESI Saúde)
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -554,7 +556,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const { activeCount, pendingCount, cancelledCount, totalCount } = getSubTabCounts();
 
-  const filteredAuths = useMemo(() => {
+  const baseFilteredAuths = useMemo(() => {
     return authorizations.filter((auth) => {
       const matchesSearch =
         auth.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -623,7 +625,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, [authorizations, searchTerm, selectedInstitution, subTab, selectedStatus, selectedImageOption, selectedSeries, selectedTurn, selectedDateRange]);
 
   const totalSigned = authorizations.filter((a) => a.status === 'signed').length;
-  const totalImageAuthorized = filteredAuths.filter((a) => a.authImage && a.status === 'signed').length;
   const signedPercentage = authorizations.length > 0 ? ((totalSigned / authorizations.length) * 100).toFixed(1) : '0';
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -635,8 +636,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const now = new Date();
 
     // — Índices para detecção —
-    // 1. CPF do aluno → lista de auths (ignora 'Pendente' e 'CPF não informado')
-    const cpfMap = new Map<string, string[]>();
+    // 1. CPF do aluno → lista de {id, name} (para detectar conflitos de nome)
+    const cpfMap = new Map<string, { id: string; name: string }[]>();
     // 2. Nome normalizado do aluno + escola → lista de auths (para pendentes sem CPF)
     const nameSchoolMap = new Map<string, string[]>();
     // 3. CPF do responsável + nome do aluno → para detectar mesmo responsável,
@@ -651,7 +652,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       if (hasCpf) {
         const list = cpfMap.get(cpf) || [];
-        list.push(auth.id);
+        list.push({ id: auth.id, name: auth.studentName.trim().toLowerCase() });
         cpfMap.set(cpf, list);
       }
 
@@ -679,10 +680,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const cpf = auth.studentCpfMasked;
       const hasCpf = cpf && cpf !== 'Pendente' && cpf !== 'CPF não informado';
 
-      // ① Duplicata por CPF do aluno
+      // ① Duplicata por CPF do aluno e Conflito de Nome
       if (hasCpf && (cpfMap.get(cpf)?.length ?? 0) > 1) {
-        const others = (cpfMap.get(cpf) || []).filter(id => id !== auth.id);
+        const list = cpfMap.get(cpf) || [];
+        const others = list.filter(item => item.id !== auth.id);
         alerts.push(`DUPLICATE_CPF:${others.length}`);
+
+        // Verifica se há conflito de nome (mesmo CPF, nome diferente)
+        const myName = auth.studentName.trim().toLowerCase();
+        const hasNameConflict = others.some(other => other.name !== myName);
+        if (hasNameConflict) {
+          alerts.push('CPF_CONFLICT_NAME');
+        }
       }
 
       // ② Duplicata por nome+escola (para pendentes sem CPF)
@@ -717,6 +726,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         alerts.push('MISSING_EMAIL');
       }
 
+      // ⑦ Responsável usou o mesmo CPF do Aluno
+      if (hasParentCpf && hasCpf && parentCpf === cpf) {
+        alerts.push('PARENT_IS_STUDENT');
+      }
+
       if (alerts.length > 0) flags.set(auth.id, alerts);
     });
 
@@ -743,6 +757,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     anomalyFlags.forEach((flags) => { if (flags.includes('MISSING_EMAIL')) count++; });
     return count;
   }, [anomalyFlags]);
+
+  const totalConflicts = useMemo(() => {
+    let count = 0;
+    anomalyFlags.forEach((flags) => {
+      if (flags.includes('CPF_CONFLICT_NAME') || flags.includes('PARENT_IS_STUDENT')) count++;
+    });
+    return count;
+  }, [anomalyFlags]);
+
+  const filteredAuths = useMemo(() => {
+    if (alertFilter === 'all') return baseFilteredAuths;
+    return baseFilteredAuths.filter(auth => {
+      const flags = anomalyFlags.get(auth.id) || [];
+      if (alertFilter === 'duplicate') return flags.some(f => f.startsWith('DUPLICATE_CPF') || f === 'DUPLICATE_NAME' || f === 'DUPLICATE_PARENT_CHILD');
+      if (alertFilter === 'stale') return flags.some(f => f.startsWith('STALE_PENDING'));
+      if (alertFilter === 'incomplete') return flags.includes('MISSING_EMAIL');
+      if (alertFilter === 'conflict') return flags.includes('CPF_CONFLICT_NAME') || flags.includes('PARENT_IS_STUDENT');
+      return true;
+    });
+  }, [baseFilteredAuths, anomalyFlags, alertFilter]);
+
+  const totalImageAuthorized = filteredAuths.filter((a) => a.authImage && a.status === 'signed').length;
 
   // Paginação
   const totalPages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(filteredAuths.length / pageSize));
@@ -1038,43 +1074,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       {/* ━━ PAINEL DE ALERTAS INTELIGENTES ━━ */}
-      {(totalDuplicates > 0 || totalStale > 0 || totalIncomplete > 0) && (
+      {(totalDuplicates > 0 || totalStale > 0 || totalIncomplete > 0 || totalConflicts > 0) && (
         <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-4 space-y-2 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <AlertTriangle className="w-4 h-4 text-orange-600 shrink-0" />
-            <span className="text-xs font-black text-orange-900 uppercase tracking-wide">Alertas do Sistema — {totalDuplicates + totalStale + totalIncomplete} ocorrências detectadas</span>
+            <span className="text-xs font-black text-orange-900 uppercase tracking-wide">Alertas do Sistema — {totalDuplicates + totalStale + totalIncomplete + totalConflicts} ocorrências detectadas</span>
           </div>
           <div className="flex flex-wrap gap-2">
+            {totalConflicts > 0 && (
+              <button
+                type="button"
+                onClick={() => { setAlertFilter(alertFilter === 'conflict' ? 'all' : 'conflict'); setCurrentPage(1); }}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${alertFilter === 'conflict' ? 'bg-rose-600 border-rose-700 text-white' : 'bg-rose-100 hover:bg-rose-200 border-rose-300 text-rose-900'}`}
+                title="Conflitos cadastrais graves (ex: mesmo CPF com nomes diferentes ou responsável igual ao aluno)"
+              >
+                <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${alertFilter === 'conflict' ? 'bg-rose-100 text-rose-900' : 'bg-rose-500 text-white'}`}>{totalConflicts}</span>
+                🚨 Inconsistências
+              </button>
+            )}
             {totalDuplicates > 0 && (
               <button
                 type="button"
-                onClick={() => { setSearchTerm(''); setSubTab('all'); setSelectedStatus('all'); }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-100 hover:bg-orange-200 border border-orange-300 text-orange-900 text-xs font-bold transition-colors cursor-pointer"
+                onClick={() => { setAlertFilter(alertFilter === 'duplicate' ? 'all' : 'duplicate'); setCurrentPage(1); }}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${alertFilter === 'duplicate' ? 'bg-orange-600 border-orange-700 text-white' : 'bg-orange-100 hover:bg-orange-200 border-orange-300 text-orange-900'}`}
                 title="Registros com o mesmo CPF de aluno cadastrados mais de uma vez"
               >
-                <span className="w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-black flex items-center justify-center shrink-0">{totalDuplicates}</span>
+                <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${alertFilter === 'duplicate' ? 'bg-orange-100 text-orange-900' : 'bg-orange-500 text-white'}`}>{totalDuplicates}</span>
                 ⚠️ Alunos com registro duplicado
               </button>
             )}
             {totalStale > 0 && (
               <button
                 type="button"
-                onClick={() => { setSubTab('pending'); setSelectedStatus('all'); }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 text-xs font-bold transition-colors cursor-pointer"
+                onClick={() => { setAlertFilter(alertFilter === 'stale' ? 'all' : 'stale'); setCurrentPage(1); }}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${alertFilter === 'stale' ? 'bg-amber-600 border-amber-700 text-white' : 'bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-900'}`}
                 title="Documentos que estão pendentes há mais de 7 dias sem assinatura"
               >
-                <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-black flex items-center justify-center shrink-0">{totalStale}</span>
+                <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${alertFilter === 'stale' ? 'bg-amber-100 text-amber-900' : 'bg-amber-500 text-white'}`}>{totalStale}</span>
                 🕐 Pendentes antigos (&gt;7 dias)
               </button>
             )}
             {totalIncomplete > 0 && (
               <button
                 type="button"
-                onClick={() => { setSubTab('pending'); setSelectedStatus('pending'); }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
+                onClick={() => { setAlertFilter(alertFilter === 'incomplete' ? 'all' : 'incomplete'); setCurrentPage(1); }}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${alertFilter === 'incomplete' ? 'bg-slate-700 border-slate-800 text-white' : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'}`}
                 title="Registros pendentes sem e-mail do responsável cadastrado"
               >
-                <span className="w-5 h-5 rounded-full bg-slate-500 text-white text-[10px] font-black flex items-center justify-center shrink-0">{totalIncomplete}</span>
+                <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${alertFilter === 'incomplete' ? 'bg-slate-200 text-slate-900' : 'bg-slate-500 text-white'}`}>{totalIncomplete}</span>
                 📋 Sem e-mail cadastrado
               </button>
             )}
@@ -1401,6 +1448,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       const isCopied = copiedCode === (auth.validationCode || auth.id);
 
                       const authAlerts = anomalyFlags.get(auth.id) || [];
+                      const hasConflict = authAlerts.includes('CPF_CONFLICT_NAME') || authAlerts.includes('PARENT_IS_STUDENT');
                       const hasDuplicate = authAlerts.some(f => f.startsWith('DUPLICATE_CPF') || f === 'DUPLICATE_NAME' || f === 'DUPLICATE_PARENT_CHILD');
                       const isStale = authAlerts.some(f => f.startsWith('STALE_PENDING'));
                       const staleDays = isStale ? parseInt(authAlerts.find(f => f.startsWith('STALE_PENDING'))?.split(':')[1] || '0') : 0;
@@ -1412,6 +1460,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <tr 
                           key={auth.id} 
                           className={`table-row-ultra group ${
+                            hasConflict ? 'bg-rose-50/40 hover:bg-rose-50/70 border-l-2 border-l-rose-500' :
                             hasDuplicate ? 'bg-orange-50/40 hover:bg-orange-50/70 border-l-2 border-l-orange-400' :
                             isStale ? 'bg-amber-50/30 hover:bg-amber-50/60 border-l-2 border-l-amber-400' :
                             isCancelled ? 'bg-rose-50/20 hover:bg-rose-50/40' : ''
@@ -1451,6 +1500,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 {/* ━━ BADGES DE ALERTA INTELIGENTE ━━ */}
                                 {hasAnyAlert && (
                                   <div className="flex flex-wrap gap-1 mt-1">
+                                    {hasConflict && (
+                                      <span
+                                        title={authAlerts.includes('CPF_CONFLICT_NAME') ? "Este CPF está vinculado a outro cadastro com um NOME diferente." : "O CPF do Responsável é idêntico ao CPF do Aluno, indicando possível erro no preenchimento."}
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-300 text-[9px] font-black uppercase cursor-help"
+                                      >
+                                        🚨 {authAlerts.includes('CPF_CONFLICT_NAME') ? 'CPF Inconsistente' : 'Responsável = Aluno'}
+                                      </span>
+                                    )}
                                     {hasDuplicate && (
                                       <span
                                         title={`Este aluno possui ${dupCount} outro(s) registro(s) com o mesmo CPF ou nome na plataforma.`}

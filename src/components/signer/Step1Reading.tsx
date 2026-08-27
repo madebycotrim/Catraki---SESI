@@ -73,23 +73,23 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
             Criamos este ambiente digital para que você possa autorizar a participação do(a) estudante com total transparência, comodidade e segurança jurídica, direto do seu celular e sem a necessidade de imprimir papéis.
           </p>
 
-          {/* Card de Atalho para Validação de Assinaturas Anteriores */}
-          <div className="bg-slate-50/50 border border-slate-200 p-3 sm:p-3.5 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-700 mt-2 shadow-3xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 animate-pulse" />
-              <span className="text-sm">Já assinou e deseja verificar a autenticidade do seu comprovante?</span>
-            </div>
+
+          {/* Atalho de Validação — compacto */}
+          <div className="flex items-center gap-2 text-[11px] sm:text-xs text-slate-500 mt-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 animate-pulse" />
+            <span>Já assinou?</span>
             <button
               type="button"
               onClick={() => {
                 window.history.pushState({}, '', '/validar');
                 window.dispatchEvent(new PopStateEvent('popstate'));
               }}
-              className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-[#004b8d] hover:text-[#003666] font-bold text-xs rounded-lg transition-colors shadow-2xs whitespace-nowrap cursor-pointer text-center"
+              className="text-[#004b8d] hover:underline font-semibold cursor-pointer transition-colors"
             >
-              Verificar Autenticidade do Comprovante
+              Verificar autenticidade do comprovante →
             </button>
           </div>
+
 
           {/* Aviso Operacional Importante */}
           <div className="bg-amber-50/70 border border-amber-200 p-3.5 sm:p-4 rounded-xl flex items-start gap-3 text-xs text-amber-950 mt-2 leading-relaxed">

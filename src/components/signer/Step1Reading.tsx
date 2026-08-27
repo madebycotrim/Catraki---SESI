@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ChevronRight, Info, Eye, HelpCircle, AlertTriangle } from 'lucide-react';
 import type { Institution } from '../../lib/types.ts';
 
@@ -19,7 +19,6 @@ interface Step1ReadingProps {
 }
 
 export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed }) => {
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const dataHoje = new Intl.DateTimeFormat('pt-BR', {
     day:   '2-digit',
@@ -142,37 +141,24 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
             </div>
           </div>
 
-          {/* Seção de Termos de Uso Independentes (Módulo 1 - LGPD) */}
-          <div className="pt-4 sm:pt-5 border-t border-slate-200 space-y-3">
-            <label className="flex items-start gap-3 p-3.5 bg-blue-50/50 hover:bg-blue-50/80 border border-blue-200/80 rounded-xl cursor-pointer select-none transition-colors">
-              <input
-                type="checkbox"
-                id="terms-checkbox"
-                checked={acceptedTerms}
-                onChange={(e) => setAcceptedTerms(e.target.checked)}
-                className="mt-0.5 w-4.5 h-4.5 text-[#004b8d] border-slate-300 rounded focus:ring-[#004b8d] cursor-pointer"
-              />
-               <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                 Declaro que li e aceito os <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-bold" onClick={(e) => e.stopPropagation()}>Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-bold" onClick={(e) => e.stopPropagation()}>Política de Privacidade</a> da Plataforma Catraki. <span className="text-red-500 font-bold">* (Obrigatório)</span>
-               </span>
-            </label>
-
-             <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed italic m-0 text-justify">
-               Ao prosseguir, você também autoriza o registro dos dados técnicos desta sessão (endereço IP, e-mail e dispositivo) exclusivamente para fins de autenticação e validade jurídica desta assinatura eletrônica, em conformidade com a LGPD (Lei nº 13.709/2018).
-             </p>
-          </div>
-
-          {/* Botão de ação integrado na folha A4 */}
-          <div className="pt-4 border-t border-slate-200 flex justify-end">
-            <button
-              id="btn-avancar-leitura"
-              onClick={onProceed}
-              disabled={!acceptedTerms}
-              className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-[#004b8d] hover:bg-[#003666] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed disabled:shadow-none text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer active:scale-[0.99]"
-            >
-               <span>Continuar para Preencher o Formulário</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
+          {/* Aceite implícito de Termos e Botão */}
+          <div className="pt-4 sm:pt-5 border-t border-slate-200">
+            <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed m-0 mb-4 text-justify">
+              Ao clicar em <strong className="text-slate-700">Continuar</strong>, você declara que leu e concorda com os{' '}
+              <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Termos de Uso</a>{' '}e a{' '}
+              <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Política de Privacidade</a>{' '}
+              da Plataforma Catraki, <strong className="text-slate-600">consente com o uso de Assinatura Eletrônica Avançada</strong> para este documento (Art. 4º, II, da Lei nº 14.063/2020 e Art. 10, §2º, da MP nº 2.200-2/2001), e autoriza o registro dos dados técnicos desta sessão (endereço IP, e-mail e dispositivo) para fins de autenticação e validade jurídica, em conformidade com a LGPD (Lei nº 13.709/2018).
+            </p>
+            <div className="flex justify-end">
+              <button
+                id="btn-avancar-leitura"
+                onClick={onProceed}
+                className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-[#004b8d] hover:bg-[#003666] text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer active:scale-[0.99]"
+              >
+                <span>Continuar para Preencher o Formulário</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 

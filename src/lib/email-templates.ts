@@ -229,6 +229,7 @@ function buildEmailShell(
   emailTitle: string,
   body: string,
   footerExtra?: string,
+  projectOwners: string = 'SESI-DF e FS/UnB'
 ): string {
   const dataHoje = new Intl.DateTimeFormat('pt-BR', {
     day: 'numeric',
@@ -279,7 +280,7 @@ function buildEmailShell(
       <div class="sheet-footer">
         ${footer}Assinatura Eletrônica Avançada &bull; Lei Federal nº&nbsp;14.063/2020 &bull; Plataforma Catraki<br>
         <span style="font-size: 9.5px; color: #64748b; display: block; margin: 6px 0;">
-          A Plataforma Catraki atua como testemunha tecnológica: registra e autentica as assinaturas, mas não possui CNPJ, não acessa dados de saúde e não tem ingerência sobre o conteúdo dos documentos. A responsabilidade pelos dados do projeto é do SESI-DF e da FS/UnB.
+          A Plataforma Catraki atua como testemunha tecnológica: registra e autentica as assinaturas, mas não possui CNPJ, não acessa dados de saúde e não tem ingerência sobre o conteúdo dos documentos. A responsabilidade legal pelos dados deste projeto é de: ${projectOwners}.
         </span>
         Para mais informações sobre governança de dados, consulte nossa
         <a href="https://www.catraki.com.br/privacidade">Política de Privacidade e Termos de Uso</a>.
@@ -396,9 +397,7 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
   const body = `
     <p>Olá, ${signerName},</p>
 
-    <p style="font-size:14px;color:#991b1b;font-weight:bold;background:#fee2e2;padding:10px 14px;border-radius:6px;border:1px solid #fca5a5;">
-      Informamos que o documento <strong>«${docTitle}»</strong> foi cancelado por <strong>${cancelledBy}</strong>. Motivo: <em>${reasonText}</em>. O acesso a este documento foi encerrado e o registro de autenticidade foi atualizado no sistema. Código de autenticidade afetado: <span style="font-family:monospace;">${authHash}</span>.
-    </p>
+    <p>Informamos que o processo de assinatura do documento <strong>«${docTitle}»</strong> foi cancelado administrativamente.</p>
 
     <p>
       Para garantir total transparência, conforme exigido pela
@@ -439,12 +438,12 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
       </tr>
       <tr>
         <td class="label">Justificativa</td>
-        <td class="value" style="font-style:italic;color:#475569;">"${reasonText}"</td>
+        <td class="value" style="font-style:italic;font-weight:bold;color:#0f172a;">"${reasonText}"</td>
       </tr>
     </table>
 
     <div class="highlight-box">
-      <strong>O que acontece agora?</strong><br>
+      ℹ️ <strong>O que acontece agora?</strong><br>
       Os links de acesso que você recebeu para este documento foram desativados. <strong>Nenhuma ação é necessária da sua parte.</strong> Se o processo precisar continuar, a equipe responsável enviará um novo documento. Seus dados continuam protegidos conforme a Lei Geral de Proteção de Dados (LGPD).
     </div>
 
@@ -497,9 +496,19 @@ export function getTransactionalCancellationEmailText(params: CancellationEmailP
 
   return `Assunto: Aviso: O documento "${docTitle}" foi cancelado
 
-Olá, ${signerName}. Informamos que o processo de assinatura do documento '${docTitle}' foi cancelado e ele não possui mais validade. Detalhes: Código de Autenticidade (Hash): ${authHash}; Cancelado por: ${cancelledBy}; Data: ${cancelledAtFormatted}; Motivo: '${reasonText}'. Os links anteriores foram desativados. Seus dados continuam protegidos.
+Olá, ${signerName}.
 
-Aviso: O documento '${docTitle}' foi cancelado por ${cancelledBy} com a seguinte justificativa: '${reasonText}'. Os links de acesso foram desativados. Hash invalidado: ${authHash}.`;
+Informamos que o processo de assinatura do documento '${docTitle}' foi cancelado administrativamente.
+
+Para garantir total transparência (LGPD), compartilhamos abaixo os detalhes:
+- Documento: ${docTitle}
+- Código de Autenticidade: ${authHash}
+- Cancelado por: ${cancelledBy}
+- Data: ${cancelledAtFormatted}
+- Justificativa: "${reasonText}"
+
+O que acontece agora?
+Os links de acesso que você recebeu para este documento foram desativados. Nenhuma ação é necessária da sua parte. Seus dados continuam protegidos conforme a LGPD.`;
 }
 
 // ============================================================================
@@ -722,7 +731,8 @@ export function getTransactionalCompletionEmailText(params: CompletionEmailParam
 
   return `Assunto: ✅ Documento finalizado: "${documentTitle}"
 
-Olá, ${signerName}! Olá! O processo foi finalizado. Em anexo, você encontra a via original do documento e o Certificado de Conclusão contendo a trilha de auditoria.
+Olá, ${signerName}!
+O processo foi finalizado com sucesso. Em anexo, você encontra a via original do documento e o Certificado de Conclusão contendo a trilha de auditoria.
 
 Link para download e validação pública:
 ${downloadUrl}
@@ -754,8 +764,8 @@ export function getTransactionalOtpEmailHtml(params: { studentName: string; otpC
     </div>
 
     <p style="color:#64748b;font-size:11.5px;line-height:1.5;margin:20px 0 0 0;">
-      ⏱️ <strong>Este código expira em 5 minutos.</strong> Não o compartilhe com ninguém.
-      Se você não solicitou este código, ignore este e-mail — nenhuma outra ação é necessária.
+      ⏱️ <strong>Este código expira em 5 minutos.</strong><br>
+      Não o compartilhe com ninguém. A Plataforma Catraki nunca solicitará este código por telefone, WhatsApp ou SMS. Se você não solicitou este acesso, ignore este e-mail.
     </p>
   `;
 

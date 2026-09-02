@@ -70,6 +70,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const [otpError, setOtpError] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
   const [signaturePngBase64, setSignaturePngBase64] = useState<string>('');
+  const [simulatedOtp, setSimulatedOtp] = useState<string>('');
 
   // Geolocalização e IP reais do cliente (sem fallbacks hardcoded)
   const [clientGeo, setClientGeo] = useState<{ ip: string; location: string }>({
@@ -78,27 +79,14 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   });
 
   useEffect(() => {
-    // 1. Obtém IP público real imediatamente
-    fetch('https://api.ipify.org?format=json')
-      .then((r) => r.json() as Promise<any>)
-      .then((data: any) => {
-        if (data && data.ip) {
-          setClientGeo((prev) => ({ ...prev, ip: data.ip }));
-        }
-      })
-      .catch(() => {});
-
-    // 2. Obtém geolocalização e IP completos via IP de forma 100% silenciosa e automática (sem pedir permissão ao usuário)
-    fetch('https://ipwho.is/')
-      .then((r) => r.json() as Promise<any>)
-      .then((data: any) => {
-        if (data && data.success) {
-          const locParts = [data.city, data.region_code].filter(Boolean).join(', ');
-          const fullLoc = locParts ? `${locParts} - ${data.country || 'Brasil'}` : (data.country || 'Brasil');
-          setClientGeo((prev) => ({
-            ip: data.ip || prev.ip,
-            location: fullLoc,
-          }));
+    // Obtém IP e geolocalização reais usando o backend do Cloudflare (/api/public/client-info)
+    apiClient.getClientInfo()
+      .then((res) => {
+        if (res.success && res.client) {
+          setClientGeo({
+            ip: res.client.ip || '',
+            location: res.client.formattedLocation || '',
+          });
         }
       })
       .catch(() => {});
@@ -121,6 +109,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const dispararEnvioOtpEmail = async () => {
     setOtpSending(true);
     setOtpError('');
+    setSimulatedOtp('');
     try {
       const resp = await apiClient.requestOtp(
         token, 
@@ -131,8 +120,16 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         identityData.signerPhone || undefined
       );
       if (resp.success) {
+        if (resp.simulated_otp) {
+          setSimulatedOtp(resp.simulated_otp);
+        }
         if (resp.email_sent === false && resp.email_error) {
-          setOtpError(`Falha no envio do código: ${resp.email_error}`);
+          if (resp.simulated_otp) {
+            // Em desenvolvimento local com falha de SMTP/Resend, apenas registra o cooldown e deixa prosseguir com o código simulado
+            setResendCooldown(60);
+          } else {
+            setOtpError(`Falha no envio do código: ${resp.email_error}`);
+          }
         } else {
           setResendCooldown(60);
         }
@@ -168,6 +165,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
     setErrorMessage('');
     setOtpError('');
     setOtpCode('');
+    setSimulatedOtp('');
     setOtpSent(true);
     setShowOtpModal(true);
     await dispararEnvioOtpEmail();
@@ -612,6 +610,16 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   <span className="block text-[9px] text-slate-400 leading-tight">
                     * Digitação limitada a 3 tentativas e reenvios limitados a 8.
                   </span>
+                  {simulatedOtp && (
+                    <div className="mt-2 p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-left">
+                      <p className="text-[11px] font-bold text-blue-900 m-0">
+                        🔑 Modo Desenvolvimento / Teste
+                      </p>
+                      <p className="text-[10px] text-blue-700 m-0 mt-0.5 leading-normal">
+                        O envio de e-mail real falhou ou foi ignorado. Utilize o código simulado gerado para assinar: <strong className="text-blue-900 font-mono font-black select-all bg-white px-1.5 py-0.5 border border-blue-150 rounded ml-1">{simulatedOtp}</strong>
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Reenvio de Código */}
@@ -668,6 +676,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 {otpError && (
                   <StatusAlertScreen
                     scenario="otp_auth_failed"
+                    customReason={otpError}
                     primaryActionLabel="Reenviar código de segurança"
                     onPrimaryAction={dispararEnvioOtpEmail}
                   />

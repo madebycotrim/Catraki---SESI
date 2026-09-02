@@ -501,7 +501,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
 
       const otpHtml = getTransactionalOtpEmailHtml({ studentName, otpCode });
 
-      if (resendApiKey) {
+      if (resendApiKey && resendApiKey !== 're_sua_chave_aqui') {
         try {
           const resendResp = await fetch('https://api.resend.com/emails', {
             method: 'POST',
@@ -622,12 +622,16 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     console.log(`[SECURE_OTP] Código OTP enviado com sucesso.`);
   }
 
+  const requestUrl = new URL(c.req.url);
+  const isLocalhost = requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1' || requestUrl.hostname.startsWith('192.168.') || requestUrl.hostname === '::1';
+
   return c.json({
     success: true,
     channel,
     email_sent: emailSent || smsSent,
     email_error: emailError || smsError || undefined,
     expires_in_seconds: 300,
+    simulated_otp: isLocalhost ? otpCode : undefined,
     message: `Código de verificação de 6 dígitos enviado para o ${channel === 'sms' ? 'celular (SMS/WhatsApp)' : 'e-mail'} do responsável legal.`,
   });
 });

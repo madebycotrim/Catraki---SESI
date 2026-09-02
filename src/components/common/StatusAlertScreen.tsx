@@ -235,7 +235,7 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
             Não foi possível confirmar sua identidade
           </h3>
           <p className="text-xs sm:text-sm font-semibold text-red-800 leading-snug">
-            O código de segurança inserido está incorreto ou já expirou.
+            {customReason || 'O código de segurança inserido está incorreto ou já expirou.'}
           </p>
         </div>
       </div>

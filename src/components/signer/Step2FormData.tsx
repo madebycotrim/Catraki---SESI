@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ChevronRight, ChevronLeft, AlertTriangle, AlertCircle, Loader2, FileSearch } from 'lucide-react';
 import { isValidCPF, isValidFullName, calcularIdade } from '../../lib/schemas.ts';
 import { apiClient } from '../../lib/api.ts';
@@ -52,21 +52,6 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
   const [duplicateInfo, setDuplicateInfo] = useState<DuplicateStudentCheckResponse | null>(null);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
-  // Cálculo de maioridade reativo — atualiza a cada mudança da data de nascimento
-  const isMaiorDeIdade = useMemo(() => {
-    if (!formData.minorBirthDate) return false;
-    return calcularIdade(formData.minorBirthDate, new Date()) >= 18;
-  }, [formData.minorBirthDate]);
-
-  // Auto-seleção do vínculo: maior de idade → "Próprio Estudante", menor → limpar seleção automática
-  useEffect(() => {
-    if (isMaiorDeIdade) {
-      setFormData((prev) => ({ ...prev, signerRelationship: 'Próprio Estudante (Maior de Idade)' }));
-    } else if (formData.signerRelationship === 'Próprio Estudante (Maior de Idade)') {
-      setFormData((prev) => ({ ...prev, signerRelationship: '' }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMaiorDeIdade]);
 
   const formatCpf = (value: string) => {
     return value
@@ -126,8 +111,8 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
       newErrors.signerCpf = 'CPF inválido. Confira os 11 dígitos digitados.';
     }
 
-    // 3. Vínculo com o Menor (obrigatório apenas para menores de idade)
-    if (!isMaiorDeIdade && !formData.signerRelationship) {
+    // 3. Vínculo com o Responsável (sempre obrigatório)
+    if (!formData.signerRelationship) {
       newErrors.signerRelationship = 'Selecione o seu vínculo ou grau de parentesco com o estudante.';
     }
 
@@ -243,24 +228,18 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
           <h1 className="text-sm sm:text-base font-bold uppercase tracking-wide text-slate-900 m-0">
             1. IDENTIFICAÇÃO DO RESPONSÁVEL E DO ESTUDANTE
           </h1>
-          {/* Texto explicativo dinâmico de acordo com a maioridade */}
-          {isMaiorDeIdade ? (
-            <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-3 leading-relaxed">
-              ✅ <strong>Estudante maior de idade:</strong> O(a) próprio(a) estudante pode preencher e assinar este documento diretamente, sem necessidade de um responsável legal. Preencha os seus dados nos campos abaixo.
-            </div>
-          ) : (
-            <div className="text-xs text-slate-500 mt-1.5 space-y-1 leading-relaxed">
-              <p className="m-0">
-                <strong>Quem deve preencher:</strong> Este formulário deve ser preenchido pelo <strong>responsável legal</strong> (mãe, pai, tutor ou guardião judicial) que irá assinar eletronicamente o termo.
-              </p>
-              <p className="m-0">
-                 <strong>Como funciona a verificação:</strong> As informações fornecidas serão conferidas automaticamente com o cadastro escolar do <strong>SESI-DF</strong> para confirmar o seu vínculo com o(a) estudante. Se a confirmação automática não for possível, a plataforma pedirá que você envie uma foto do seu documento de identidade e da certidão de nascimento do(a) estudante na próxima etapa. Essa verificação é feita de forma manual pela equipe responsável, com segurança e sigilo.
-               </p>
-              <p className="m-0 text-sesi-primary font-medium">
-                🔒 <strong>Privacidade Garantida:</strong> Todo o tratamento de dados pessoais é criptografado e segue estritamente as diretrizes da LGPD (Lei nº 13.709/2018).
-              </p>
-            </div>
-          )}
+          {/* Texto explicativo padrão — sempre o mesmo independente da idade do estudante */}
+          <div className="text-xs text-slate-500 mt-1.5 space-y-1 leading-relaxed">
+            <p className="m-0">
+              <strong>Quem deve preencher:</strong> Este formulário deve ser preenchido pelo <strong>responsável legal</strong> (mãe, pai, tutor ou guardião judicial) que irá assinar eletronicamente o termo.
+            </p>
+            <p className="m-0">
+               <strong>Como funciona a verificação:</strong> As informações fornecidas serão conferidas automaticamente com o cadastro escolar do <strong>SESI-DF</strong> para confirmar o seu vínculo com o(a) estudante. Se a confirmação automática não for possível, a plataforma pedirá que você envie uma foto do seu documento de identidade e da certidão de nascimento do(a) estudante na próxima etapa. Essa verificação é feita de forma manual pela equipe responsável, com segurança e sigilo.
+             </p>
+            <p className="m-0 text-sesi-primary font-medium">
+              🔒 <strong>Privacidade Garantida:</strong> Todo o tratamento de dados pessoais é criptografado e segue estritamente as diretrizes da LGPD (Lei nº 13.709/2018).
+            </p>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
@@ -268,9 +247,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
           {/* Bloco: Dados do Responsável Legal / Estudante */}
           <div className="space-y-4">
             <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-2">
-              {isMaiorDeIdade
-                ? 'DADOS DO(A) ESTUDANTE (Signatário(a) Maior de Idade)'
-                : 'DADOS DO RESPONSÁVEL LEGAL (Quem autoriza)'}
+              DADOS DO RESPONSÁVEL LEGAL (Quem autoriza)
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
@@ -322,7 +299,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
 
               <div className="flex flex-col gap-1">
                 <label htmlFor="field-signerRelationship" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
-                  {isMaiorDeIdade ? 'Qualidade com que assina' : 'Vínculo com o menor'}{!isMaiorDeIdade && <span className="text-red-500"> *</span>}
+                  Vínculo com o menor <span className="text-red-500">*</span>
                 </label>
                 <select
                   id="field-signerRelationship"
@@ -332,19 +309,13 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none bg-white cursor-pointer transition-colors ${errors.signerRelationship ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                 >
                   <option value="">Selecione...</option>
-                  {isMaiorDeIdade
-                    ? <option value="Próprio Estudante (Maior de Idade)">Próprio Estudante (Maior de Idade)</option>
-                    : (
-                      <>
-                        <option value="Mãe">Mãe</option>
-                        <option value="Pai">Pai</option>
-                        <option value="Tutor(a) Legal">Tutor(a) Legal</option>
-                        <option value="Responsável por Guarda Judicial">Responsável por Guarda Judicial</option>
-                        <option value="Avô/Avó">Avô/Avó</option>
-                        <option value="Tio/Tia">Tio/Tia</option>
-                      </>
-                    )
-                  }
+                  <option value="Mãe">Mãe</option>
+                  <option value="Pai">Pai</option>
+                  <option value="Tutor(a) Legal">Tutor(a) Legal</option>
+                  <option value="Responsável por Guarda Judicial">Responsável por Guarda Judicial</option>
+                  <option value="Avô/Avó">Avô/Avó</option>
+                  <option value="Tio/Tia">Tio/Tia</option>
+                  <option value="Próprio Estudante (Maior de Idade)">Próprio Estudante (Maior de Idade)</option>
                 </select>
                 {errors.signerRelationship && (
                   <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">

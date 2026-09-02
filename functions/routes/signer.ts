@@ -1132,6 +1132,32 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     }, 500);
   }
 
+  // --- INÕCIO DA INTEGRA«√O COM SMS-MEDCO ---
+  try {
+    if ((c.env as any).SUPABASE_URL && (c.env as any).SUPABASE_SECRET_KEY && parsed.data.minor_cpf) {
+      const cleanCpf = parsed.data.minor_cpf.replace(/\D/g, '');
+      
+      const response = await fetch(`${(c.env as any).SUPABASE_URL}/rest/v1/patients?cpf=eq.${cleanCpf}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': (c.env as any).SUPABASE_SECRET_KEY,
+          'Authorization': `Bearer ${(c.env as any).SUPABASE_SECRET_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ tcle_accepted_at: new Date().toISOString() })
+      });
+
+      if (!response.ok) {
+        console.warn('[Catraki] Falha ao sincronizar com sms-medco:', await response.text());
+      } else {
+        console.log(`[Catraki] Consentimento sincronizado no sms-medco para o CPF ${cleanCpf}`);
+      }
+    }
+  } catch (syncError) {
+    console.error('[Catraki] Erro ao sincronizar com sms-medco:', syncError);
+  }
+  // --- FIM DA INTEGRA«√O ---
   const validationCode = `CATRAKI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`;
 
   // Disparo do E-mail Oficial de Comprovante de Assinatura (Resend API)
@@ -1525,3 +1551,5 @@ signerRouter.post('/revoke', async (c) => {
       : 'Consentimento revogado com sucesso. A equipe m√©dica e a administra√ß√£o da plataforma Catraki foram notificadas.',
   });
 });
+
+

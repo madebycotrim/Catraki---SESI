@@ -30,7 +30,9 @@ app.use('*', cors({
       origin === 'https://www.catraki.com.br' ||
       origin.endsWith('.catraki.com.br') ||
       origin === 'https://catraki-sesi.pages.dev' ||
-      origin === 'https://catraki.pages.dev'
+      origin === 'https://catraki.pages.dev' ||
+      origin.includes('sms-medco') ||
+      origin.endsWith('.vercel.app')
     ) {
       return origin;
     }

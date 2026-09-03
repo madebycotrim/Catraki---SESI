@@ -94,7 +94,7 @@
     signer_cpf_masked TEXT NOT NULL,
     signer_relationship TEXT NOT NULL,
     guardianship_doc_r2_key TEXT,
-    identity_method TEXT CHECK(identity_method IN ('matricula_sesi','manual_review')) NOT NULL DEFAULT 'matricula_sesi',
+    identity_method TEXT CHECK(identity_method IN ('matricula_sesi','declaracao_responsavel')) NOT NULL DEFAULT 'declaracao_responsavel',
     signature_png_encrypted TEXT NOT NULL,
     signature_png_sha256 TEXT NOT NULL CHECK(LENGTH(signature_png_sha256) = 64),
     key_version INTEGER NOT NULL DEFAULT 1,
@@ -116,27 +116,7 @@
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- 5. Fila de Revisão Manual de Vínculos Familiares
-  CREATE TABLE IF NOT EXISTS manual_review_queue (
-    id TEXT PRIMARY KEY,
-    document_id TEXT NOT NULL REFERENCES documents(id),
-    signer_name TEXT NOT NULL,
-    signer_cpf_masked TEXT NOT NULL,
-    signer_cpf_encrypted TEXT NOT NULL,
-    signer_relationship TEXT NOT NULL,
-    identity_doc_r2_key TEXT NOT NULL,
-    selfie_doc_r2_key TEXT NOT NULL,
-    guardianship_doc_r2_key TEXT,
-    identity_doc_sha256 TEXT,                  -- Hash SHA-256 da imagem de identidade (preservação pericial pós-expurgo R2)
-    selfie_doc_sha256 TEXT,                    -- Hash SHA-256 da selfie do responsável
-    status TEXT CHECK(status IN ('pending','approved','rejected')) DEFAULT 'pending',
-    reviewed_by TEXT,
-    review_notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  -- 6. Gestão de Usuários Administrativos com RBAC
+  -- 5. Gestão de Usuários Administrativos com RBAC
   CREATE TABLE IF NOT EXISTS admin_users (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -192,16 +172,16 @@
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- 10. Trilha de Auditoria de Ações Administrativas e de Segurança (Append-Only)
+  -- 9. Trilha de Auditoria de Ações Administrativas e de Segurança (Append-Only)
   CREATE TABLE IF NOT EXISTS admin_audit_logs (
     id TEXT PRIMARY KEY,                       -- Ex: 'ADM-20260825-103000-A1B2'
-    event_type TEXT NOT NULL,                  -- 'LOGIN_SUCCESS', 'LOGIN_FAILED', 'MANUAL_REVIEW_ACTION', 'LGPD_RESPONSE', 'INSTITUTION_ACTION', 'TEMPLATE_CREATE', 'DATA_EXPORT'
+    event_type TEXT NOT NULL,                  -- 'LOGIN_SUCCESS', 'LOGIN_FAILED', 'LGPD_RESPONSE', 'INSTITUTION_ACTION', 'TEMPLATE_CREATE', 'DATA_EXPORT'
     actor_user_id TEXT NOT NULL,               -- ID do operador
     actor_user_email TEXT NOT NULL,            -- E-mail do operador
     actor_user_role TEXT NOT NULL,             -- Perfil RBAC
     ip_address TEXT NOT NULL,                  -- IP de origem (Art. 15 Marco Civil)
     user_agent TEXT NOT NULL,
-    target_resource TEXT NOT NULL,             -- Recurso afetado (ex: 'manual_review:REV-123')
+    target_resource TEXT NOT NULL,             -- Recurso afetado (ex: 'document:DOC-123')
     action_details TEXT NOT NULL,              -- JSON ou texto com diff/motivo/contagem
     log_row_hash TEXT NOT NULL CHECK(LENGTH(log_row_hash) = 64),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP

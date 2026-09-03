@@ -81,48 +81,7 @@ export async function handleScheduled(
     console.error('[CRON] Erro na ancoragem da raiz de Merkle:', err);
   }
 
-  // 4. Expurgo de Documentos Biométricos (Fotos/Selfies em R2) de Revisões Concluídas há mais de 30 dias (LGPD Art. 16)
-  const bucket = env.BUCKET_DOCS;
-  if (bucket) {
-    try {
-      const resolvedReviews = await db.prepare(
-        `SELECT id, identity_doc_r2_key, selfie_doc_r2_key, guardianship_doc_r2_key 
-         FROM manual_review_queue 
-         WHERE status IN ('approved', 'rejected') 
-           AND updated_at < datetime('now', '-30 days')
-           AND identity_doc_r2_key NOT LIKE 'EXPURGADO%'`
-      ).all<any>();
-
-      const reviewsToPurge = resolvedReviews.results || [];
-      for (const rev of reviewsToPurge) {
-        if (rev.identity_doc_r2_key && !rev.identity_doc_r2_key.startsWith('EXPURGADO')) {
-          try { await bucket.delete(rev.identity_doc_r2_key); } catch {}
-        }
-        if (rev.selfie_doc_r2_key && !rev.selfie_doc_r2_key.startsWith('EXPURGADO')) {
-          try { await bucket.delete(rev.selfie_doc_r2_key); } catch {}
-        }
-        if (rev.guardianship_doc_r2_key && !rev.guardianship_doc_r2_key.startsWith('EXPURGADO')) {
-          try { await bucket.delete(rev.guardianship_doc_r2_key); } catch {}
-        }
-
-        await db.prepare(
-          `UPDATE manual_review_queue 
-           SET identity_doc_r2_key = 'EXPURGADO_LGPD', 
-               selfie_doc_r2_key = 'EXPURGADO_LGPD', 
-               guardianship_doc_r2_key = NULL 
-           WHERE id = ?`
-        ).bind(rev.id).run();
-      }
-
-      if (reviewsToPurge.length > 0) {
-        console.log(`[CRON] Revisões manuais com fotos biométricas expurgadas do R2: ${reviewsToPurge.length}`);
-      }
-    } catch (err) {
-      console.error('[CRON] Erro no expurgo de mídias R2:', err);
-    }
-  }
-
-  // 5. Expurgo Seguro de Registros de Acesso com mais de 180 dias (Marco Civil da Internet Art. 15)
+  // 4. Expurgo Seguro de Registros de Acesso com mais de 180 dias (Marco Civil da Internet Art. 15)
   try {
     const purgeLogsResult = await db.prepare(
       `DELETE FROM application_access_logs WHERE retention_until < datetime('now')`

@@ -19,11 +19,9 @@ export type SignerRelationship =
   | 'Outro Responsável Legal'
   | 'Próprio Estudante (Maior de Idade)'; // CC/2002 Art. 5º — plena capacidade civil aos 18 anos
 
-export type IdentityMethod = 'matricula_sesi' | 'manual_review';
+export type IdentityMethod = 'matricula_sesi' | 'declaracao_responsavel';
 
 export type AdminRole = 'operador' | 'dpo' | 'admin_master';
-
-export type ManualReviewStatus = 'pending' | 'approved' | 'rejected';
 
 export type LgpdRequestType = 'access' | 'rectification' | 'deletion' | 'revocation_appeal';
 
@@ -154,23 +152,6 @@ export interface AuditLogRowInput {
   otp_email_message_id?: string | null;
   doc_parent_hash_sha256?: string | null;
   device_metadata?: string | null;
-}
-
-export interface ManualReviewRecord {
-  id: string;
-  document_id: string;
-  signer_name: string;
-  signer_cpf_masked: string;
-  signer_cpf_encrypted: string;
-  signer_relationship: SignerRelationship;
-  identity_doc_r2_key: string;
-  selfie_doc_r2_key: string;
-  guardianship_doc_r2_key?: string | null;
-  status: ManualReviewStatus;
-  reviewed_by?: string | null;
-  review_notes?: string | null;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface LgpdRequestRecord {

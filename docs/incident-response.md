@@ -63,7 +63,7 @@
    - Rotacionar o segredo `JWT_ADMIN_SECRET` no Cloudflare Secrets para invalidar instantaneamente todos os tokens JWT ativos.
    - Desativar a conta afetada no banco D1 (`UPDATE admin_users SET is_active = 0 WHERE id = ?`).
 2. **Auditoria de Ações:**
-   - Consultar a tabela `admin_audit_logs` para rastrear todos os termos emitidos ou revisões manuais aprovadas pelo usuário comprometido no período suspeito.
+   - Consultar a tabela `admin_audit_logs` para rastrear todos os termos emitidos ou ações executadas pelo usuário comprometido no período suspeito.
    - Reverter termos emitidos fraudulentamente alterando o status para `revoked` e comunicando a equipe médica responsável.
 
 ---

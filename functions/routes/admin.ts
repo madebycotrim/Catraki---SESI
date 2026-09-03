@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import {
   CreateTemplateSchema,
   CreateDocumentSchema,
-  ManualReviewActionSchema,
   CancelDocumentErrorSchema,
   LogAdminExportSchema,
   generateUniqueDocId,
@@ -34,7 +33,6 @@ import type {
   DocumentTemplate,
   DocumentRecord,
   AuditLogRow,
-  ManualReviewRecord,
   LgpdRequestRecord,
   AdminRole,
 } from '../../src/lib/types.ts';
@@ -1370,77 +1368,6 @@ adminRouter.get('/cancellation-audits', requireAuth(['admin_master', 'dpo', 'ope
   ).all<any>();
 
   return c.json({ success: true, cancellation_audits: list.results || [] });
-});
-
-// ============================================================================
-// FILA DE REVISÃO MANUAL
-// ============================================================================
-
-adminRouter.get('/manual-reviews', requireAuth(['admin_master', 'operador']), async (c) => {
-  const db = c.env.DB;
-  const reviews = await db.prepare(
-    `SELECT r.*, d.minor_name, d.minor_birth_date, t.title as template_title, t.procedure_description
-     FROM manual_review_queue r
-     JOIN documents d ON r.document_id = d.id
-     JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-     ORDER BY r.created_at DESC`
-  ).all<any>();
-
-  return c.json({ success: true, reviews: reviews.results || [] });
-});
-
-adminRouter.post('/manual-reviews/:id/action', requireAuth(['admin_master']), async (c) => {
-  const user = c.get('user');
-  const reviewId = c.req.param('id');
-  const body = await c.req.json();
-  const parsed = ManualReviewActionSchema.safeParse({ review_id: reviewId, ...body });
-  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
-  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
-
-  if (!parsed.success) {
-    return c.json({ success: false, error: parsed.error.errors[0]?.message }, 400);
-  }
-
-  const { action, notes } = parsed.data;
-  const db = c.env.DB;
-
-  const review = await db.prepare('SELECT * FROM manual_review_queue WHERE id = ?').bind(reviewId).first<ManualReviewRecord>();
-  if (!review) {
-    return c.json({ success: false, error: 'Registro de revisão não encontrado.' }, 404);
-  }
-
-  const newStatus = action === 'approve' ? 'approved' : 'rejected';
-  await db.prepare(
-    `UPDATE manual_review_queue 
-     SET status = ?, reviewed_by = ?, review_notes = ?, updated_at = datetime('now') 
-     WHERE id = ?`
-  ).bind(newStatus, user.email, notes || `Revisão ${action === 'approve' ? 'aprovada' : 'rejeitada'} por ${user.name}`, reviewId).run();
-
-  // Trilha de auditoria imutável (admin_audit_logs)
-  await logAdminAction(
-    db,
-    user,
-    'MANUAL_REVIEW_ACTION',
-    `manual_review:${reviewId}`,
-    JSON.stringify({
-      action,
-      notes: notes || null,
-      previous_status: review.status,
-      new_status: newStatus,
-      signer_name: review.signer_name,
-      signer_cpf_masked: review.signer_cpf_masked,
-      document_id: review.document_id,
-    }),
-    clientIp,
-    userAgent
-  );
-
-  return c.json({
-    success: true,
-    review_id: reviewId,
-    status: newStatus,
-    message: `Vínculo de responsabilidade legal ${action === 'approve' ? 'aprovado' : 'rejeitado'} com sucesso.`,
-  });
 });
 
 // ============================================================================

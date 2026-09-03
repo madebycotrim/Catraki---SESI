@@ -51,15 +51,7 @@ sequenceDiagram
     Admin->>Worker: Emite Termo de Procedimento (Template Versionado)
     Worker->>D1: Grava Termo com PII Encriptada (AES-GCM-256)
     Worker-->>Resp: Notificação com Link Seguro (/assinar/:token)
-    Resp->>Worker: Leitura Obrigatória (Scroll Lock) + Informa CPF
-    Worker->>SESI_DB: Consulta Vínculo Aluno ↔ Responsável
-    alt Vínculo Confirmado
-        Worker-->>Resp: Libera 2FA (OTP)
-    else Vínculo Divergente
-        Resp->>Worker: Upload RG/CNH + Selfie (EXIF Sanitizado)
-        Worker->>D1: Insere na Fila de Revisão Manual
-        Admin->>Worker: Aprovação Humana do Vínculo
-    end
+    Resp->>Worker: Preenchimento do Formulário (Dados do Aluno e Responsável)
     Resp->>Worker: Digita OTP + Rubrica em Canvas + Aceite LGPD Art. 11/14
     Worker->>D1: Insere Audit Log (Hash Chain) + Atualiza Documento para 'signed'
     Worker->>R2: Grava Manifesto JSON e PDF Assinado com QR Code
@@ -75,11 +67,10 @@ sequenceDiagram
 - **Probabilidade:** Média
 - **Impacto:** Autorização indevida de procedimento médico em menor.
 - **Mitigações Implementadas:**
-  1. Verificação automatizada contra a base de matrícula presencial do SESI;
-  2. Bloqueio automático para revisão manual por operador caso o CPF não conste na matrícula;
-  3. Upload de documento com foto e selfie com sanitização de metadados;
-  4. Autenticação 2FA/OTP vinculada aos canais previamente cadastrados;
-  5. Declaração expressa de responsabilidade civil e penal nos termos do Art. 299 do Código Penal.
+  1. Validação de formato de CPF com algoritmo oficial e prevenção de duplicidades;
+  2. Autenticação 2FA/OTP vinculada aos canais de contato;
+  3. Declaração expressa de responsabilidade civil e penal nos termos do Art. 299 do Código Penal;
+  4. Trilha de auditoria pericial imutável com carimbo de tempo, IP e geolocalização.
 
 ### Risco 2: Vazamento de Dados Pessoais Sensíveis (PII / Saúde)
 - **Severidade:** Alta

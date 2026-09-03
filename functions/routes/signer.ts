@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import {
   VerifyMatriculaSchema,
-  ManualReviewUploadSchema,
   OtpRequestSchema,
   OtpVerifySchema,
   SignDocumentSchema,
@@ -23,7 +22,6 @@ import {
   encryptAesGcm,
   decryptAesGcm,
   bytesToBase64,
-  stripExifFromBase64Image,
   canonicalJson,
 } from '../../src/lib/crypto.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
@@ -147,14 +145,6 @@ signerRouter.get('/doc/:token', async (c) => {
       };
     }
 
-    // 4. Se for documento emitido com revisão manual
-    let manualReview: any = null;
-    if (doc.id && !doc.id.startsWith('DOC-AUTO-')) {
-      manualReview = await db.prepare(
-        `SELECT status, review_notes, created_at FROM manual_review_queue WHERE document_id = ? ORDER BY created_at DESC LIMIT 1`
-      ).bind(doc.id).first<any>().catch(() => null);
-    }
-
     const now = new Date().toISOString();
 
     // ── Verificação de TTL de 3 dias para links enviados por e-mail/WhatsApp ────────
@@ -199,8 +189,6 @@ signerRouter.get('/doc/:token', async (c) => {
         expires_at: doc.expires_at,
         revoked_at: doc.revoked_at,
         revoked_reason: doc.revoked_reason,
-        manual_review_status: manualReview?.status || null,
-        manual_review_notes: manualReview?.review_notes || null,
         legal_notice: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020; Código Civil (Arts. 104 e 107); CPC (Arts. 411 e 441); LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP',
       },
     });
@@ -257,11 +245,11 @@ signerRouter.post('/verify-matricula', async (c) => {
     success: true,
     hasValidEnrollment: result.hasValidEnrollment,
     guardianType: result.guardianType,
-    identityMethod: result.hasValidEnrollment ? 'matricula_sesi' : 'manual_review',
+    identityMethod: result.hasValidEnrollment ? 'matricula_sesi' : 'declaracao_responsavel',
     verifiedAt: result.verifiedAt,
     message: result.hasValidEnrollment
       ? 'Vínculo com a base de matrícula SESI confirmado com sucesso.'
-      : 'Vínculo direto não localizado na base de matrícula. É necessário envio de documentação para revisão da equipe.',
+      : 'Vínculo por declaração do responsável preenchido com sucesso.',
   });
 });
 
@@ -480,94 +468,6 @@ signerRouter.post('/check-bulk', async (c) => {
   }
 });
 
-/**
- * POST /api/signer/manual-review
- * Envio de documentos comprobatórios com remoção de metadados EXIF
- */
-signerRouter.post('/manual-review', async (c) => {
-  const body = await c.req.json();
-  const parsed = ManualReviewUploadSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Dados inválidos.', code: 'VALIDATION_ERROR' }, 400);
-  }
-
-  const { token, signer_name, signer_cpf, signer_relationship, identity_doc_base64, selfie_base64, guardianship_doc_base64, notes } = parsed.data;
-  const db = c.env.DB;
-  const bucket = c.env.BUCKET_DOCS;
-  const masterKey = c.env.ENCRYPTION_KEY_V1;
-
-  if (!masterKey) {
-    return c.json({ success: false, error: 'Configuração criptográfica do servidor incompleta (ENCRYPTION_KEY_V1).', code: 'KEY_CONFIG_ERROR' }, 500);
-  }
-
-  let doc = await db.prepare("SELECT * FROM documents WHERE (access_token = ? OR id = ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1").bind(token, token).first<DocumentRecord>();
-  if (!doc) {
-    const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
-    if (template) {
-      const newDocId = generateUniqueDocId('DOC');
-      await db.prepare(
-        `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+24 hours'))`
-      ).bind(newDocId, template.id, template.version, template.content_sha256, 'Estudante', '2010-01-01', signer_name, 'ENC_INITIAL', 'ENC_INITIAL', token).run();
-      doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(newDocId).first<DocumentRecord>();
-    }
-  }
-  if (!doc || doc.status !== 'pending') {
-    return c.json({ success: false, error: 'Documento indisponível.', code: 'INVALID_STATUS' }, 400);
-  }
-
-  const cleanIdDoc = stripExifFromBase64Image(identity_doc_base64);
-  const cleanSelfie = stripExifFromBase64Image(selfie_base64);
-  const cleanGuardianship = guardianship_doc_base64 ? stripExifFromBase64Image(guardianship_doc_base64) : null;
-
-  const reviewId = `REV-${Date.now()}-${doc.id.substring(0, 8)}`;
-  const idDocKey = `reviews/${reviewId}/identity.jpg`;
-  const selfieKey = `reviews/${reviewId}/selfie.jpg`;
-  const guardianshipKey = cleanGuardianship ? `reviews/${reviewId}/guardianship.pdf` : null;
-
-  const idDocSha256 = await sha256(cleanIdDoc);
-  const selfieDocSha256 = await sha256(cleanSelfie);
-
-  if (bucket) {
-    await bucket.put(idDocKey, cleanIdDoc);
-    await bucket.put(selfieKey, cleanSelfie);
-    if (guardianshipKey && cleanGuardianship) {
-      await bucket.put(guardianshipKey, cleanGuardianship);
-    }
-  }
-
-  const cpfEncrypted = await encryptAesGcm(signer_cpf, masterKey, 1);
-  const cpfMasked = maskCPF(signer_cpf);
-
-  await db.prepare(
-    `INSERT INTO manual_review_queue 
-      (id, document_id, signer_name, signer_cpf_masked, signer_cpf_encrypted, signer_relationship,
-       identity_doc_r2_key, selfie_doc_r2_key, guardianship_doc_r2_key, identity_doc_sha256, selfie_doc_sha256,
-       status, review_notes, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, datetime('now'), datetime('now'))`
-  ).bind(
-    reviewId,
-    doc.id,
-    signer_name,
-    cpfMasked,
-    cpfEncrypted,
-    signer_relationship,
-    idDocKey,
-    selfieKey,
-    guardianshipKey,
-    idDocSha256,
-    selfieDocSha256,
-    notes || 'Aguardando validação de documento por operador SESI'
-  ).run();
-
-  return c.json({
-    success: true,
-    reviewId,
-    status: 'pending',
-    message: 'Documentos recebidos com sucesso. A equipe do SESI fará a análise do vínculo legal antes da liberação do link de assinatura.',
-  });
-});
 /**
  * POST /api/signer/otp/request
  * Solicitação de OTP com HMAC Pepper e limite de reenvios
@@ -941,7 +841,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     return c.json({ success: false, error: 'Código de autenticação 2FA inválido ou expirado.', code: 'OTP_INVALID' }, 400);
   }
 
-  let identityMethod: 'matricula_sesi' | 'manual_review' = 'manual_review';
   const sesiCheck = await querySesiMatricula({
     minorName: doc.minor_name,
     minorBirthDate: doc.minor_birth_date,
@@ -949,11 +848,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     signerName: signer_name,
   });
 
-  if (sesiCheck.hasValidEnrollment) {
-    identityMethod = 'matricula_sesi';
-  } else {
-    identityMethod = 'manual_review';
-  }
+  const identityMethod: 'matricula_sesi' | 'declaracao_responsavel' = sesiCheck.hasValidEnrollment
+    ? 'matricula_sesi'
+    : 'declaracao_responsavel';
 
   const cfData = extractCloudflareClientData(c);
   const ipAddress = cfData.ip;

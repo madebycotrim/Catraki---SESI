@@ -11,7 +11,6 @@ import type {
   DocumentRecord,
   DocumentTemplate,
   AuditLogRow,
-  ManualReviewRecord,
   PublicValidationResponse,
   ChainVerificationResult,
   Institution,
@@ -186,9 +185,6 @@ const setDocuments = (d: any[]) => setStorage('catraki_docs', d);
 const getAuditLogs = () => getStorage<AuditLogRow[]>('catraki_audit', []);
 const setAuditLogs = (d: any[]) => setStorage('catraki_audit', d);
 
-const getManualReviews = () => getStorage<ManualReviewRecord[]>('catraki_reviews', []);
-const setManualReviews = (d: any[]) => setStorage('catraki_reviews', d);
-
 const getLgpdRequests = () => getStorage<any[]>('catraki_lgpd', []);
 const setLgpdRequests = (d: any[]) => setStorage('catraki_lgpd', d);
 
@@ -303,9 +299,6 @@ export const apiClient = {
       doc.id = activeDocId;
     }
 
-    const reviews = getManualReviews();
-    const review = reviews.find((r) => r.document_id === doc.id);
-
     return {
       success: true,
       document: {
@@ -323,8 +316,6 @@ export const apiClient = {
         expires_at: doc.expires_at,
         revoked_at: doc.revoked_at,
         revoked_reason: doc.revoked_reason,
-        manual_review_status: review?.status || null,
-        manual_review_notes: review?.review_notes || null,
         legal_notice: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020; Código Civil (Arts. 104 e 107); CPC (Arts. 411 e 441); LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP',
       },
     };
@@ -358,11 +349,11 @@ export const apiClient = {
       success: true,
       hasValidEnrollment: check.hasValidEnrollment,
       guardianType: check.guardianType,
-      identityMethod: check.hasValidEnrollment ? 'matricula_sesi' : 'manual_review',
+      identityMethod: check.hasValidEnrollment ? 'matricula_sesi' : 'declaracao_responsavel',
       verifiedAt: check.verifiedAt,
       message: check.hasValidEnrollment
         ? 'Vínculo com a base de matrícula SESI confirmado com sucesso.'
-        : 'Vínculo direto não localizado na base de matrícula. É necessário envio de documentação para revisão da equipe.',
+        : 'Vínculo por declaração do responsável preenchido com sucesso.',
     };
   },
 
@@ -437,59 +428,6 @@ export const apiClient = {
 
   /**
    * Envia documentos para revisão manual
-   */
-  async submitManualReview(payload: {
-    token: string;
-    signer_name: string;
-    signer_cpf: string;
-    signer_relationship: any;
-    identity_doc_base64: string;
-    selfie_base64: string;
-    guardianship_doc_base64?: string;
-    notes?: string;
-  }): Promise<any> {
-    try {
-      const resp = await fetch(`${API_BASE}/signer/manual-review`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (resp.ok) return await resp.json();
-    } catch {}
-
-    const docs = getDocuments();
-    const doc = docs.find((d) => d.access_token === payload.token);
-    if (!doc) return { success: false, error: 'Documento indisponível.' };
-
-    const reviewId = `REV-${Date.now()}`;
-    const newReview: ManualReviewRecord = {
-      id: reviewId,
-      document_id: doc.id,
-      signer_name: payload.signer_name,
-      signer_cpf_masked: maskCPF(payload.signer_cpf),
-      signer_cpf_encrypted: 'ENC_PAYLOAD',
-      signer_relationship: payload.signer_relationship,
-      identity_doc_r2_key: payload.identity_doc_base64,
-      selfie_doc_r2_key: payload.selfie_base64,
-      guardianship_doc_r2_key: payload.guardianship_doc_base64 || null,
-      status: 'pending',
-      review_notes: payload.notes || 'Aguardando validação por operador SESI',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    const reviews = getManualReviews();
-    reviews.unshift(newReview);
-    setManualReviews(reviews);
-
-    return {
-      success: true,
-      reviewId,
-      status: 'pending',
-      message: 'Documentos recebidos com sucesso. A equipe do SESI fará a análise do vínculo legal antes da liberação do link de assinatura.',
-    };
-  },
-
   /**
    * Solicita envio de OTP por e-mail com código real e verificação anti-bot Turnstile
    */
@@ -582,7 +520,7 @@ export const apiClient = {
     ip_address?: string;
     geolocation?: string;
     user_agent?: string;
-    identity_method?: 'matricula_sesi' | 'manual_review';
+    identity_method?: 'matricula_sesi' | 'declaracao_responsavel';
     termos_versao?: string;
     device_fingerprint_data?: any;
   }): Promise<any> {
@@ -677,8 +615,8 @@ export const apiClient = {
     const otpMsgId = (doc as any).otp_email_message_id || 'mock-message-id';
 
     // Determina o método de identidade real — nunca hardcode
-    const resolvedIdentityMethod: 'matricula_sesi' | 'manual_review' =
-      payload.identity_method || ((doc as any).identity_method === 'manual_review' ? 'manual_review' : 'matricula_sesi');
+    const resolvedIdentityMethod: 'matricula_sesi' | 'declaracao_responsavel' =
+      payload.identity_method || 'declaracao_responsavel';
 
     const logRowHash = await computeLogRowHash({
       id: auditId,
@@ -1486,43 +1424,6 @@ export const apiClient = {
       },
       message: 'Termo de autorização emitido com sucesso.',
     };
-  },
-
-  async getAdminManualReviews(): Promise<any> {
-    try {
-      const resp = await fetch(`${API_BASE}/admin/manual-reviews`, {
-        headers: this.getAuthHeaders(),
-      });
-      if (resp.ok) return (await resp.json()) as any;
-      if (resp.status === 401 && this.getAdminToken()) {
-        this.logoutAdmin();
-      }
-    } catch {}
-    return { success: true, reviews: getManualReviews() };
-  },
-
-  async actionManualReview(reviewId: string, action: 'approve' | 'reject', notes?: string): Promise<any> {
-    try {
-      const resp = await fetch(`${API_BASE}/admin/manual-reviews/${reviewId}/action`, {
-        method: 'POST',
-        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ action, notes }),
-      });
-      if (resp.ok) return (await resp.json()) as any;
-      if (resp.status === 401 && this.getAdminToken()) {
-        this.logoutAdmin();
-      }
-    } catch {}
-
-    const reviews = getManualReviews();
-    const rev = reviews.find((r) => r.id === reviewId);
-    if (rev) {
-      rev.status = action === 'approve' ? 'approved' : 'rejected';
-      rev.review_notes = notes || `Revisão ${action === 'approve' ? 'aprovada' : 'rejeitada'}`;
-      rev.updated_at = new Date().toISOString();
-      setManualReviews(reviews);
-    }
-    return { success: true, message: `Revisão ${action === 'approve' ? 'aprovada' : 'rejeitada'} com sucesso.` };
   },
 
   async verifyAuditChain(): Promise<{ success: boolean; verification: ChainVerificationResult; total_blocks_audited: number }> {

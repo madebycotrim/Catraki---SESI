@@ -368,17 +368,6 @@ export const VerifyMatriculaSchema = z.object({
   signer_relationship: RelationshipSchema,
 });
 
-export const ManualReviewUploadSchema = z.object({
-  token: z.string().min(16),
-  signer_name: FullNameSchema,
-  signer_cpf: CPFSchema,
-  signer_relationship: RelationshipSchema,
-  identity_doc_base64: z.string().min(100, 'Documento de identidade é obrigatório'),
-  selfie_base64: z.string().min(100, 'Selfie com documento é obrigatória'),
-  guardianship_doc_base64: z.string().optional(),
-  notes: z.string().max(500).optional(),
-});
-
 export const OtpRequestSchema = z.object({
   token: z.string().min(16),
   channel: z.enum(['email']).default('email'),
@@ -466,12 +455,6 @@ export const LgpdRequestPublicSchema = z.object({
   requester_email: z.string().email(),
   request_type: z.enum(['access', 'rectification', 'deletion', 'revocation_appeal']),
   details: z.string().min(15, 'Forneça detalhes suficientes sobre a sua solicitação').max(2000),
-});
-
-export const ManualReviewActionSchema = z.object({
-  review_id: z.string().min(1),
-  action: z.enum(['approve', 'reject']),
-  notes: z.string().max(500).optional(),
 });
 
 export const CancelDocumentErrorSchema = z.object({

@@ -334,6 +334,7 @@ export const RelationshipSchema = z.enum([
   'Tio/Tia',
   'Tio / Tia',
   'Próprio Estudante',
+  'Próprio Estudante (Maior de Idade)',
   'Próprio(a) Estudante (Maior de Idade)',
   'Outro',
   'Outro Responsável Legal'

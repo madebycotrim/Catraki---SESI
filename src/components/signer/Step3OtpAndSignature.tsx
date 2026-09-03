@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   AlertTriangle,
+  AlertCircle,
   Loader2,
   ChevronLeft,
   Mail,
@@ -12,7 +13,6 @@ import {
   Fingerprint,
   ShieldCheck,
 } from 'lucide-react';
-import { StatusAlertScreen } from '../common/StatusAlertScreen.tsx';
 import { apiClient, captureDeviceFingerprint } from '../../lib/api.ts';
 import { calcularIdade, maskCPF } from '../../lib/schemas.ts';
 import type { SignerRelationship } from '../../lib/types.ts';
@@ -306,44 +306,81 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 </p>
                 <p>
                   {isMaiorDeIdade
-                    ? <>Ao assinar, você declara, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas e a identidade declarada são verdadeiras. O registro é feito de forma eletrônica pela plataforma Catraki, constituindo <strong>Assinatura Eletrônica Avançada</strong> nos termos do <strong>Art. 4º, II, da Lei nº 14.063/2020</strong>, do <strong>Art. 10, §2º, da MP 2.200-2/2001</strong> e dos <strong>Arts. 11, I e 18 da LGPD (Lei nº 13.709/2018)</strong>, com respaldo da jurisprudência do STJ (REsp 2.205.708/PR).</>
-                    : <>Ao assinar, você declara, sob as penas da lei (Art. 299 do Código Penal), que é o(a) responsável legal pelo(a) menor e que as informações prestadas são verdadeiras. O registro é feito de forma eletrônica pela plataforma Catraki, constituindo <strong>Assinatura Eletrônica Avançada</strong> nos termos do <strong>Art. 4º, II, da Lei nº 14.063/2020</strong>, do <strong>Art. 10, §2º, da MP 2.200-2/2001</strong>, da <strong>LGPD (Lei nº 13.709/2018)</strong> e do <strong>ECA (Art. 17 — Lei nº 8.069/1990)</strong>, com respaldo da jurisprudência do STJ (REsp 2.205.708/PR).</>
+                    ? <>Ao assinar, você declara, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas e a identidade declarada são verdadeiras. Além disso, concorda expressamente com a utilização e validade deste método de assinatura eletrônica (Art. 10, § 2º, da MP nº 2.200-2/2001). O registro do consentimento é feito de forma eletrônica pela plataforma Catraki.</>
+                    : <>Ao assinar, você declara, sob as penas da lei (Art. 299 do Código Penal), que é o(a) responsável legal pelo(a) menor e que as informações prestadas são verdadeiras. Além disso, concorda expressamente com a utilização e validade deste método de assinatura eletrônica (Art. 10, § 2º, da MP nº 2.200-2/2001). O registro do consentimento é feito de forma eletrônica pela plataforma Catraki.</>
                   }
                 </p>
               </div>
             </div>
 
             {/* Painel de Aceites Granulares (4 Campos) */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 space-y-3.5 mt-4">
-              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 m-0 border-b border-slate-200 pb-2">
-                Opções de Consentimento e Declaração
-              </h3>
+            {/* Painel de Aceites Granulares (4 Campos) */}
+            <div className="bg-white border border-slate-200 rounded-xl mt-6 overflow-hidden shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]">
+              <div className="px-4 sm:px-5 py-3.5 border-b border-slate-200 bg-slate-50/50">
+                <h3 className="text-[13px] sm:text-sm font-bold uppercase tracking-wider text-slate-900 m-0">
+                  Opções de Consentimento e Declaração
+                </h3>
+              </div>
               
-              <div className="space-y-3">
+              <div className="flex flex-col divide-y divide-slate-100">
                 {/* Campo 1: Atendimento de Saúde com Granularidade */}
-                <div className="space-y-2">
-                  <label className="flex items-start gap-3 cursor-pointer select-none">
+                <label className="flex items-start gap-3.5 cursor-pointer select-none group p-4 sm:p-5 hover:bg-slate-50/80 transition-colors">
+                  <div className="relative pt-0.5 shrink-0">
                     <input
                       type="checkbox"
                       checked={authHealth}
                       onChange={(e) => setAuthHealth(e.target.checked)}
-                      className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
+                      className="sr-only"
                     />
-                    <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                       <strong>SIM, AUTORIZO</strong> o atendimento preventivo de saúde do(a) estudante nas unidades móveis do projeto, incluindo as especialidades de <strong>Oftalmologia (exame de vista)</strong>, <strong>Odontologia (saúde bucal)</strong>, <strong>Fonoaudiologia (audiometria)</strong>, <strong>Terapia Comunitária Integrativa</strong> e <strong>Nutrição (alimentação saudável)</strong>, durante o período escolar. <span className="text-red-500 font-bold">* (Obrigatório)</span>
-                    </span>
-                  </label>
-                </div>
+                    <div className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors ${authHealth ? 'border-[#004b8d]' : 'border-slate-300 bg-white group-hover:border-[#004b8d]'}`}>
+                      {authHealth && (
+                        <svg
+                          className="absolute w-7 h-7 text-[#004b8d] pointer-events-none z-10 drop-shadow-sm"
+                          style={{ top: '-7px', left: '-3px', transform: 'rotate(-5deg)' }}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M4 13l4 4c4-7.5 8-10 12-12" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-xs sm:text-[13px] text-slate-800 font-medium leading-relaxed">
+                     <strong>SIM, AUTORIZO</strong> o atendimento preventivo de saúde do(a) estudante nas unidades móveis do projeto, incluindo as especialidades de <strong>Oftalmologia (exame de vista)</strong>, <strong>Odontologia (saúde bucal)</strong>, <strong>Fonoaudiologia (audiometria)</strong>, <strong>Terapia Comunitária Integrativa</strong> e <strong>Nutrição (alimentação saudável)</strong>, durante o período escolar. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                  </span>
+                </label>
 
                 {/* Campo 2: Tratamento de Dados (Art. 11/18 vs Art. 14/18) */}
-                <label className="flex items-start gap-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={authData}
-                    onChange={(e) => setAuthData(e.target.checked)}
-                    className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
-                  />
-                  <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
+                <label className="flex items-start gap-3.5 cursor-pointer select-none group p-4 sm:p-5 hover:bg-slate-50/80 transition-colors">
+                  <div className="relative pt-0.5 shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={authData}
+                      onChange={(e) => setAuthData(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors ${authData ? 'border-[#004b8d]' : 'border-slate-300 bg-white group-hover:border-[#004b8d]'}`}>
+                      {authData && (
+                        <svg
+                          className="absolute w-7 h-7 text-[#004b8d] pointer-events-none z-10 drop-shadow-sm"
+                          style={{ top: '-7px', left: '-3px', transform: 'rotate(-5deg)' }}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M4 13l4 4c4-7.5 8-10 12-12" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-xs sm:text-[13px] text-slate-800 font-medium leading-relaxed">
                     {isMaiorDeIdade
                       ? <><strong>SIM, AUTORIZO</strong> o tratamento dos meus dados pessoais e dados de saúde exclusivamente para fins de identificação e validação legal da permissão de atendimento (Art. 11, I e Art. 18 da LGPD). <span className="text-red-500 font-bold">* (Obrigatório)</span></>
                       : <><strong>SIM, AUTORIZO</strong> o tratamento dos dados pessoais informados exclusivamente para registrar a autorização do menor com segurança, nos termos do Art. 14 e Art. 18 da LGPD. <span className="text-red-500 font-bold">* (Obrigatório)</span></>
@@ -352,28 +389,64 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                 </label>
 
                 {/* Campo 3: Uso de Imagem e Voz (Art. 20 CC vs Art. 17 ECA) */}
-                <label className="flex items-start gap-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={authImage}
-                    onChange={(e) => setAuthImage(e.target.checked)}
-                    className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
-                  />
-                  <span className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
+                <label className="flex items-start gap-3.5 cursor-pointer select-none group p-4 sm:p-5 hover:bg-slate-50/80 transition-colors">
+                  <div className="relative pt-0.5 shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={authImage}
+                      onChange={(e) => setAuthImage(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors ${authImage ? 'border-[#004b8d]' : 'border-slate-300 bg-white group-hover:border-[#004b8d]'}`}>
+                      {authImage && (
+                        <svg
+                          className="absolute w-7 h-7 text-[#004b8d] pointer-events-none z-10 drop-shadow-sm"
+                          style={{ top: '-7px', left: '-3px', transform: 'rotate(-5deg)' }}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M4 13l4 4c4-7.5 8-10 12-12" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-xs sm:text-[13px] text-slate-800 font-medium leading-relaxed">
                     <strong>SIM, AUTORIZO</strong> o registro fotográfico e/ou audiovisual do(a) estudante para fins institucionais e de divulgação oficial do projeto Escola Cidadã — Saúde em Movimento ({isMaiorDeIdade ? 'Art. 20 do Código Civil' : 'Art. 17 do ECA'}), em materiais produzidos pelo SESI-DF e pela UnB. <span className="text-slate-500 font-normal">(Opcional — a recusa não impede a participação.)</span>
                   </span>
                 </label>
 
                 {/* Campo 4: Declaração Geral de Aceite */}
-                <label className="flex items-start gap-3 cursor-pointer select-none pt-2 border-t border-slate-200">
-                  <input
-                    type="checkbox"
-                    checked={readAndAccept}
-                    onChange={(e) => setReadAndAccept(e.target.checked)}
-                    className="mt-0.5 w-4.5 h-4.5 text-sesi-primary focus:ring-sesi-primary border-slate-300 rounded cursor-pointer"
-                  />
-                   <span className="text-xs sm:text-sm text-slate-900 font-bold leading-relaxed">
-                     <strong>Declaro que li e compreendi</strong> todas as informações deste Termo de Consentimento e concordo em assinar eletronicamente, confirmando a veracidade de todas as declarações prestadas sob as penas da lei (Art. 299 do Código Penal). <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                <label className="flex items-start gap-3.5 cursor-pointer select-none p-4 sm:p-5 bg-slate-50/50 hover:bg-slate-50 transition-colors group">
+                  <div className="relative pt-0.5 shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={readAndAccept}
+                      onChange={(e) => setReadAndAccept(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors ${readAndAccept ? 'border-[#004b8d]' : 'border-slate-300 bg-white group-hover:border-[#004b8d]'}`}>
+                      {readAndAccept && (
+                        <svg
+                          className="absolute w-7 h-7 text-[#004b8d] pointer-events-none z-10 drop-shadow-sm"
+                          style={{ top: '-7px', left: '-3px', transform: 'rotate(-5deg)' }}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M4 13l4 4c4-7.5 8-10 12-12" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                   <span className="text-xs sm:text-[13px] text-slate-900 font-bold leading-relaxed">
+                     <strong>Declaro que li e compreendi</strong> todas as informações deste Termo de Consentimento e concordo expressamente com a utilização deste método de assinatura eletrônica (Art. 10, § 2º, da MP nº 2.200-2/2001), confirmando a veracidade de todas as declarações prestadas sob as penas da lei (Art. 299 do Código Penal). <span className="text-red-500 font-bold">* (Obrigatório)</span>
                    </span>
                 </label>
               </div>
@@ -585,12 +658,9 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               {/* Corpo do Documento A5 */}
               <div className="space-y-4">
                 
-                {/* Instrução com email destacado em pill */}
-                <p className="text-xs sm:text-sm text-slate-600 m-0 leading-relaxed text-justify">
-                  Para assinar a autorização do(a) estudante <strong>{minorName}</strong>, enviamos um código de 6 dígitos para o e-mail:
-                  <span className="inline-block bg-blue-50 text-sesi-primary border border-blue-100 font-mono font-bold text-xs px-2 py-0.5 rounded ml-1 select-all break-all">
-                    {identityData.signerEmail}
-                  </span>.
+                <p className="text-[11.5px] sm:text-xs text-slate-500 m-0 leading-relaxed text-center">
+                  Para confirmar a assinatura de <strong>{minorName}</strong>, enviamos um código de 6 dígitos para o e-mail:<br />
+                  <strong className="text-slate-700">{identityData.signerEmail}</strong>
                 </p>
 
                 {/* 1. Código OTP de Segurança */}
@@ -654,41 +724,65 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
 
                 {/* 3. Declaração de Responsabilidade e Veracidade (Art. 299 do Código Penal) */}
                 <div className="pt-1.5">
-                  <label htmlFor="field-declarationLegalResponsibility" className="flex items-start gap-2.5 p-3 border border-slate-200 hover:border-blue-200 rounded-xl bg-slate-50/50 hover:bg-blue-50/10 cursor-pointer select-none transition-all">
-                    <input
-                      id="field-declarationLegalResponsibility"
-                      name="declarationLegalResponsibility"
-                      type="checkbox"
-                      checked={declarationLegalResponsibility}
-                      onChange={(e) => setDeclarationLegalResponsibility(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 text-[#004b8d] border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
-                    />
+                  <label htmlFor="field-declarationLegalResponsibility" className="flex items-start gap-2.5 p-3 border border-slate-200 hover:border-blue-200 rounded-xl bg-slate-50/50 hover:bg-blue-50/10 cursor-pointer select-none transition-all group">
+                    <div className="relative shrink-0 pt-0.5">
+                      <input
+                        id="field-declarationLegalResponsibility"
+                        name="declarationLegalResponsibility"
+                        type="checkbox"
+                        checked={declarationLegalResponsibility}
+                        onChange={(e) => setDeclarationLegalResponsibility(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`flex h-4 w-4 border-2 rounded items-center justify-center transition-colors ${declarationLegalResponsibility ? 'border-[#004b8d]' : 'border-slate-300 bg-white group-hover:border-[#004b8d]'}`}>
+                        {declarationLegalResponsibility && (
+                          <svg
+                            className="absolute w-6 h-6 text-[#004b8d] pointer-events-none z-10 drop-shadow-sm"
+                            style={{ top: '-6px', left: '-2px', transform: 'rotate(-5deg)' }}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M4 13l4 4c4-7.5 8-10 12-12" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
                     <span className="text-[11px] font-semibold text-slate-700 leading-normal text-justify select-none">
                       {isMaiorDeIdade
-                        ? <>Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas e a identidade declarada são verdadeiras, e autorizo a emissão deste documento digital através da plataforma Catraki. <span className="text-red-500 font-bold">*</span></>
-                        : <>Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras, que sou o(a) responsável legal do menor e autorizo a emissão deste documento digital através da plataforma Catraki. <span className="text-red-500 font-bold">*</span></>
+                        ? <>Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras e concordo expressamente com a validade deste método de assinatura eletrônica, autorizando a emissão deste documento digital através da plataforma Catraki. <span className="text-red-500 font-bold">*</span></>
+                        : <>Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras, sou responsável legal do menor e concordo expressamente com a validade deste método de assinatura eletrônica, autorizando a emissão do documento através da plataforma Catraki. <span className="text-red-500 font-bold">*</span></>
                       }
                     </span>
                   </label>
                 </div>
 
-                {/* Mensagem de Erro do OTP com UX Copy Oficial */}
+                {/* Mensagem de Erro do OTP */}
                 {otpError && (
-                  <StatusAlertScreen
-                    scenario="otp_auth_failed"
-                    customReason={otpError}
-                    primaryActionLabel="Reenviar código de segurança"
-                    onPrimaryAction={dispararEnvioOtpEmail}
-                  />
+                  <div className="bg-red-50 text-red-600 p-2.5 rounded-lg text-[11px] font-medium flex items-start gap-2 border border-red-100 shadow-sm animate-in fade-in zoom-in-95 duration-200">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-red-500" />
+                    <span className="leading-snug">{otpError}</span>
+                  </div>
                 )}
 
                 {/* Botões de Ação na Folha A5 */}
-                <div className="pt-2 space-y-2">
+                <div className="pt-3 flex flex-col-reverse sm:flex-row items-center justify-between gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowOtpModal(false)}
+                    className="w-full sm:w-auto px-5 py-3 sm:py-2.5 text-xs font-bold text-slate-500 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl transition-all cursor-pointer text-center whitespace-nowrap"
+                  >
+                    Voltar
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleVerifyAndFinalizeSign}
                     disabled={otpCode.length < 6 || !declarationLegalResponsibility || !signaturePngBase64 || submittingSign}
-                    className="w-full py-3 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none cursor-pointer active:scale-[0.99]"
+                    className="w-full sm:flex-1 py-3 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none cursor-pointer active:scale-[0.99]"
                   >
                     {submittingSign ? (
                       <>
@@ -698,17 +792,9 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     ) : (
                       <>
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Confirmar e Concluir Assinatura</span>
+                        <span>Confirmar e Concluir</span>
                       </>
                     )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowOtpModal(false)}
-                    className="w-full py-1 text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors cursor-pointer text-center"
-                  >
-                    Cancelar e Voltar ao Termo
                   </button>
                 </div>
               </div>
@@ -738,17 +824,31 @@ interface SignaturePadProps {
 
 const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Ajusta o tamanho real do canvas para coincidir com o tamanho visível (responsivo)
+  // Ajusta o tamanho do canvas
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = 120; // altura fixa desejada
-  }, []);
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+    
+    // Define o tamanho real do canvas com base no container atual
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+  }, [isFullscreen]);
+
+  // Trava o scroll da página no modo tela cheia
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isFullscreen]);
 
   const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
@@ -778,7 +878,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear }) => {
     if (!ctx) return;
 
     ctx.strokeStyle = '#034b7f';
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = isFullscreen ? 3.5 : 2.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -818,45 +918,103 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear }) => {
     onClear();
   };
 
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+    handleClear(); // Limpa ao redimensionar para evitar distorções
+  };
+
+  const padContent = (
+    <div
+      ref={containerRef}
+      className={`border-dashed border-slate-300 rounded-lg overflow-hidden bg-slate-50 relative group select-none ${
+        isFullscreen ? 'w-full h-full border-0 rounded-none' : 'h-[120px] w-full border-2'
+      }`}
+    >
+      {/* Marca d'água */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none opacity-25 text-[8.5px] sm:text-[9.5px] font-bold uppercase tracking-widest text-slate-400 rotate-[-6deg] space-y-1">
+        <span>ASSINATURA ELETRÔNICA</span>
+        <span>USO EXCLUSIVO NESTE TERMO • NÃO COPIAR</span>
+      </div>
+
+      <canvas
+        ref={canvasRef}
+        onMouseDown={startDrawing}
+        onMouseMove={draw}
+        onMouseUp={stopDrawing}
+        onMouseLeave={stopDrawing}
+        onTouchStart={startDrawing}
+        onTouchMove={draw}
+        onTouchEnd={stopDrawing}
+        onContextMenu={(e) => e.preventDefault()}
+        className="w-full h-full block cursor-crosshair touch-none relative z-10 select-none"
+      />
+      {!hasDrawn && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-500 text-[11px] font-semibold font-sans z-20 bg-slate-50/40">
+          Desenhe sua assinatura aqui
+        </div>
+      )}
+    </div>
+  );
+
+  if (isFullscreen) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-white flex flex-col">
+        {/* Header da Tela Cheia */}
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50 shadow-sm z-50">
+           <span className="font-bold text-sm text-[#004b8d] uppercase tracking-wider">
+             Assinatura Manual
+           </span>
+           <div className="flex items-center gap-3">
+             <button
+               type="button"
+               onClick={handleClear}
+               className="text-[11px] font-bold text-red-500 uppercase px-3 py-2 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+             >
+               Limpar
+             </button>
+             <button
+               type="button"
+               onClick={() => setIsFullscreen(false)}
+               className="text-[11px] font-bold text-white uppercase px-4 py-2 bg-[#004b8d] rounded-lg hover:bg-blue-800 transition-colors"
+             >
+               Confirmar
+             </button>
+           </div>
+        </div>
+        
+        {/* Área de Desenho Expandida */}
+        <div className="flex-1 relative bg-slate-100">
+           {padContent}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-1 text-left">
       <div className="flex items-center justify-between min-h-[16px]">
-        <div />
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className="text-[10px] text-[#004b8d] hover:text-blue-800 font-bold uppercase transition-colors flex items-center gap-1 cursor-pointer"
+          title="Abrir em tela cheia"
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+          Tela Cheia
+        </button>
         {hasDrawn && (
           <button
             type="button"
             onClick={handleClear}
-            className="text-[10px] text-red-500 hover:text-red-700 font-bold uppercase transition-colors"
+            className="text-[10px] text-red-500 hover:text-red-700 font-bold uppercase transition-colors cursor-pointer"
           >
             Limpar
           </button>
         )}
       </div>
-      <div className="border-2 border-dashed border-slate-300 rounded-lg overflow-hidden bg-slate-50 relative group select-none">
-        {/* Marca d'água de proteção no fundo do quadro */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none opacity-25 text-[8.5px] sm:text-[9.5px] font-bold uppercase tracking-widest text-slate-400 rotate-[-6deg] space-y-1">
-          <span>ASSINATURA ELETRÔNICA</span>
-          <span>USO EXCLUSIVO NESTE TERMO • NÃO COPIAR</span>
-        </div>
-
-        <canvas
-          ref={canvasRef}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
-          onContextMenu={(e) => e.preventDefault()}
-          className="w-full h-[120px] block cursor-crosshair touch-none relative z-10 select-none"
-        />
-        {!hasDrawn && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-500 text-[11px] font-semibold font-sans z-20 bg-slate-50/40">
-            Desenhe sua assinatura aqui
-          </div>
-        )}
-      </div>
+      {padContent}
     </div>
   );
 };

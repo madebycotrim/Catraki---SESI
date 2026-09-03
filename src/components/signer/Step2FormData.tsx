@@ -258,23 +258,43 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           
           {/* Toggle Maior de Idade */}
-          <div 
-            className="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 flex items-start sm:items-center gap-3 cursor-pointer hover:bg-slate-100 transition-colors"
-            onClick={() => {
-              setIsAdultStudent(!isAdultStudent);
-              if (!isAdultStudent) {
-                setFormData(prev => ({ ...prev, signerRelationship: 'Próprio Estudante (Maior de Idade)' }));
-              } else {
-                setFormData(prev => ({ ...prev, signerRelationship: '' }));
-              }
-            }}
-          >
-            <div className={`mt-0.5 sm:mt-0 flex shrink-0 h-5 w-5 border rounded overflow-hidden items-center justify-center transition-colors ${isAdultStudent ? 'bg-sesi-primary border-sesi-primary' : 'border-slate-300 bg-white'}`}>
-              {isAdultStudent && <div className="w-2.5 h-2.5 bg-white rounded-sm" />}
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-800 m-0">Sou o estudante e já sou maior de idade (18+)</p>
-              <p className="text-xs text-slate-500 m-0 mt-0.5">Marque esta opção se você for o próprio estudante realizando a assinatura.</p>
+          <div className="flex items-start gap-2 text-[11px] sm:text-xs text-slate-500 mb-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIsAdultStudent(!isAdultStudent);
+                if (!isAdultStudent) {
+                  setFormData(prev => ({ ...prev, signerRelationship: 'Próprio Estudante (Maior de Idade)' }));
+                } else {
+                  setFormData(prev => ({ ...prev, signerRelationship: '' }));
+                }
+              }}
+              className="mt-0.5 flex shrink-0 h-4 w-4 border rounded-[4px] items-center justify-center transition-colors outline-none cursor-pointer"
+              style={{
+                backgroundColor: isAdultStudent ? '#004b8d' : '#ffffff',
+                borderColor: isAdultStudent ? '#004b8d' : '#cbd5e1'
+              }}
+            >
+              {isAdultStudent && <div className="w-1.5 h-1.5 bg-white rounded-sm" />}
+            </button>
+            <div className="flex flex-col text-left">
+              <button 
+                type="button"
+                onClick={() => {
+                  setIsAdultStudent(!isAdultStudent);
+                  if (!isAdultStudent) {
+                    setFormData(prev => ({ ...prev, signerRelationship: 'Próprio Estudante (Maior de Idade)' }));
+                  } else {
+                    setFormData(prev => ({ ...prev, signerRelationship: '' }));
+                  }
+                }}
+                className="text-[#004b8d] font-semibold cursor-pointer transition-colors hover:underline text-left outline-none"
+              >
+                Sou o estudante e já sou maior de idade (18+)
+              </button>
+              <span className="text-slate-500">
+                Marque esta opção se você for o próprio estudante assinando.
+              </span>
             </div>
           </div>
           
@@ -503,19 +523,25 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                 />
               </div>
 
-              {/* Série / Ano e Turma lado a lado */}
-              <div className="grid grid-cols-2 gap-2">
+              {/* Série/Ano, Turma e Turno organizados */}
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
                 <div className="flex flex-col gap-1">
                   <label htmlFor="field-minorSeries" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">Série / Ano</label>
-                  <input
+                  <select
                     id="field-minorSeries"
-                    type="text"
                     name="minorSeries"
                     value={formData.minorSeries}
                     onChange={handleChange}
-                    className="w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary"
-                    placeholder="Ex: 2º Ano"
-                  />
+                    className="w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary bg-white"
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="7º Ano do Ensino Fundamental">7º Ano</option>
+                    <option value="8º Ano do Ensino Fundamental">8º Ano</option>
+                    <option value="9º Ano do Ensino Fundamental">9º Ano</option>
+                    <option value="1ª Série do Ensino Médio">1ª Série do Ens. Médio</option>
+                    <option value="2ª Série do Ensino Médio">2ª Série do Ens. Médio</option>
+                    <option value="3ª Série do Ensino Médio">3ª Série do Ens. Médio</option>
+                  </select>
                 </div>
 
                 <div className="flex flex-col gap-1">
@@ -527,26 +553,26 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                     value={formData.minorClass}
                     onChange={handleChange}
                     className="w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary"
-                    placeholder="Ex: A"
+                    placeholder="Ex: A, B, C..."
                   />
                 </div>
-              </div>
 
-              <div className="flex flex-col gap-1">
-                <label htmlFor="field-minorTurn" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">Turno</label>
-                <select
-                  id="field-minorTurn"
-                  name="minorTurn"
-                  value={formData.minorTurn}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary bg-white"
-                >
-                  <option value="">Selecione...</option>
-                  <option value="Matutino">Matutino</option>
-                  <option value="Vespertino">Vespertino</option>
-                  <option value="Noturno">Noturno</option>
-                  <option value="Integral">Integral</option>
-                </select>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="field-minorTurn" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">Turno</label>
+                  <select
+                    id="field-minorTurn"
+                    name="minorTurn"
+                    value={formData.minorTurn}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary bg-white"
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="Matutino">Matutino</option>
+                    <option value="Vespertino">Vespertino</option>
+                    <option value="Noturno">Noturno</option>
+                    <option value="Integral">Integral</option>
+                  </select>
+                </div>
               </div>
             </div>
 

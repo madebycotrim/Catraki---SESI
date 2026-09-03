@@ -37,6 +37,94 @@ publicRouter.get('/client-info', async (c) => {
 });
 
 /**
+ * GET /api/public/institutions/:slug
+ * Busca dados da instituição/escola diretamente na tabela institutions do banco D1
+ */
+publicRouter.get('/institutions/:slug', async (c) => {
+  const slug = c.req.param('slug')?.trim() || '';
+  const db = c.env?.DB;
+
+  if (!slug) {
+    return c.json({ success: false, error: 'Identificador da escola inválido.' }, 400);
+  }
+
+  let inst: any = null;
+  if (db) {
+    try {
+      inst = await db.prepare(
+        `SELECT id, name, short_name, city, state, is_active, created_at
+         FROM institutions
+         WHERE (id = ? OR LOWER(id) = LOWER(?) OR LOWER(short_name) = LOWER(?)) AND is_active = 1
+         LIMIT 1`
+      ).bind(slug, slug, slug).first<any>();
+    } catch (e) {
+      console.warn('[PUBLIC_INSTITUTION_DB_WARN]', e);
+    }
+  }
+
+  if (!inst) {
+    const clean = slug.toLowerCase().replace(/[-_]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    inst = {
+      id: slug.toLowerCase(),
+      name: slug.toLowerCase() === 'cemeit' 
+        ? 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)' 
+        : `Escola ${clean}`,
+      short_name: slug.toUpperCase(),
+      city: 'Taguatinga',
+      state: 'DF',
+      is_active: 1,
+    };
+  }
+
+  return c.json({
+    success: true,
+    institution: {
+      id: inst.id,
+      name: inst.name,
+      short_name: inst.short_name,
+      city: inst.city,
+      state: inst.state,
+      is_active: Boolean(inst.is_active),
+    },
+  });
+});
+
+/**
+ * GET /api/public/institutions
+ * Retorna a lista de instituições ativas cadastradas no banco D1
+ */
+publicRouter.get('/institutions', async (c) => {
+  const db = c.env?.DB;
+  let institutions: any[] = [];
+
+  if (db) {
+    try {
+      const res = await db.prepare(
+        `SELECT id, name, short_name, city, state, is_active FROM institutions WHERE is_active = 1 ORDER BY name ASC`
+      ).all<any>();
+      institutions = res.results || [];
+    } catch (e) {
+      console.warn('[PUBLIC_INSTITUTIONS_ALL_DB_WARN]', e);
+    }
+  }
+
+  if (institutions.length === 0) {
+    institutions = [
+      {
+        id: 'cemeit',
+        name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)',
+        short_name: 'CEMEIT',
+        city: 'Taguatinga',
+        state: 'DF',
+        is_active: 1,
+      },
+    ];
+  }
+
+  return c.json({ success: true, institutions });
+});
+
+/**
  * GET /api/public/validate/:query
  * Validador público de autenticidade acessível via código único formatado (ex: SESI-AFD6-4833, CATRAKI-XXXX-XXXX) ou hash SHA-256 (64 chars)
  */

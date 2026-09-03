@@ -45,50 +45,88 @@ signerRouter.use('*', rateLimiter({ limit: 40, windowSeconds: 60, keyPrefix: 'si
 
 /**
  * GET /api/signer/doc/:token
- * Recupera dados do termo para exibição do signatário
+ * Recupera dados do termo e instituição diretamente das tabelas document_templates e institutions do banco D1
  */
 signerRouter.get('/doc/:token', async (c) => {
-  const token = c.req.param('token');
-  const db = c.env.DB;
+  try {
+    const token = c.req.param('token');
+    const db = c.env?.DB;
 
-  if (!token || token.trim().length === 0) {
-    return c.json({ success: false, error: 'Token de acesso inválido.', code: 'INVALID_TOKEN' }, 400);
-  }
-
-  // ── KV DENYLIST CHECK (Pilar 5 — Revogação Instantânea de Tokens) ─────────
-  // Verifica a denylist ANTES de qualquer hit no D1 para invalidação instantânea.
-  // A entry é gravada pelo admin no cancelamento/revogação com a key 'revoked:{token}'.
-  const kv = c.env.KV_RATE_LIMIT;
-  if (kv) {
-    try {
-      const isRevoked = await kv.get(`revoked:${token}`);
-      if (isRevoked !== null) {
-        return c.json({
-          success: false,
-          error: 'Este link foi revogado e não é mais válido. Todos os tokens de acesso foram inutilizados.',
-          code: 'TOKEN_REVOKED',
-          revoked_at: isRevoked,
-        }, 410); // 410 Gone — semanticamente correto para recursos revogados
-      }
-    } catch {
-      // Falha silenciosa — não bloqueia o fluxo se o KV estiver indisponível
+    if (!token || token.trim().length === 0) {
+      return c.json({ success: false, error: 'Token de acesso inválido.', code: 'INVALID_TOKEN' }, 400);
     }
-  }
 
-  let doc = await db.prepare(
-    `SELECT d.*, t.title as template_title, t.procedure_description, t.content_markdown, t.consent_text_version
-     FROM documents d
-     LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-     WHERE (d.access_token = ? OR d.id = ?) AND d.status = 'pending'
-     ORDER BY d.created_at DESC LIMIT 1`
-  ).bind(token, token).first<any>();
+    // ── KV DENYLIST CHECK (Pilar 5 — Revogação Instantânea de Tokens) ─────────
+    // Verifica a denylist ANTES de qualquer hit no D1 para invalidação instantânea no Edge
+    const kv = c.env?.KV_RATE_LIMIT;
+    if (kv) {
+      try {
+        const isRevoked = await kv.get(`revoked:${token}`);
+        if (isRevoked !== null) {
+          return c.json({
+            success: false,
+            error: 'Este link foi revogado e não é mais válido. Todos os tokens de acesso foram inutilizados.',
+            code: 'TOKEN_REVOKED',
+            revoked_at: isRevoked,
+          }, 410);
+        }
+      } catch {
+        // Falha silenciosa
+      }
+    }
 
-  // Se não encontrar como access_token exato pendente, busca se é um slug de escola cadastrada ou cria sessão inicial
-  if (!doc) {
-    const inst = await db.prepare('SELECT * FROM institutions WHERE id = ? AND is_active = 1').bind(token).first<any>();
-    const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
+    if (!db) {
+      return c.json({
+        success: false,
+        error: 'Serviço de banco de dados Cloudflare D1 indisponível.',
+        code: 'DB_UNAVAILABLE',
+      }, 503);
+    }
 
-    if (template) {
+    // 1. Busca documento existente pelo access_token ou id
+    let doc: any = await db.prepare(
+      `SELECT d.*, t.title as template_title, t.procedure_description, t.content_markdown, t.consent_text_version, t.content_sha256 as template_content_sha256
+       FROM documents d
+       LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       WHERE (d.access_token = ? OR d.id = ?)
+       ORDER BY d.created_at DESC LIMIT 1`
+    ).bind(token, token).first<any>().catch(() => null);
+
+    // 2. Busca dados cadastrais da instituição na tabela institutions do D1 pelo slug da URL (ex: 'cemeit')
+    let institutionData: any = await db.prepare(
+      `SELECT id, name, short_name, city, state, is_active
+       FROM institutions
+       WHERE (id = ? OR LOWER(id) = LOWER(?) OR LOWER(short_name) = LOWER(?)) AND is_active = 1
+       LIMIT 1`
+    ).bind(token, token, token).first<any>().catch(() => null);
+
+    if (!institutionData) {
+      institutionData = await (db.prepare(
+        `SELECT id, name, short_name, city, state, is_active FROM institutions WHERE is_active = 1 ORDER BY created_at ASC LIMIT 1`
+      ).bind?.()?.first<any>() ?? db.prepare(
+        `SELECT id, name, short_name, city, state, is_active FROM institutions WHERE is_active = 1 ORDER BY created_at ASC LIMIT 1`
+      ).first<any>()).catch(() => null);
+    }
+
+    // 3. Busca o template de termo ativo diretamente na tabela document_templates do banco D1
+    const templateStmt = db.prepare(
+      `SELECT id, version, title, procedure_description, content_markdown, content_sha256, consent_text_version
+       FROM document_templates
+       WHERE is_active = 1
+       ORDER BY version DESC LIMIT 1`
+    );
+    const template = await (templateStmt.bind?.()?.first<any>() ?? templateStmt.first<any>()).catch(() => null);
+
+    if (!doc && !template) {
+      return c.json({
+        success: false,
+        error: 'Nenhum modelo de termo de consentimento ativo foi encontrado no banco de dados.',
+        code: 'TEMPLATE_NOT_FOUND',
+      }, 404);
+    }
+
+    // Se for uma nova sessão de autorização iniciada pela URL da escola (ex: /autorizar/cemeit)
+    if (!doc) {
       doc = {
         id: generateUniqueDocId('DOC'),
         status: 'pending',
@@ -99,70 +137,82 @@ signerRouter.get('/doc/:token', async (c) => {
         procedure_description: template.procedure_description,
         content_markdown: template.content_markdown,
         content_sha256: template.content_sha256,
-        consent_text_version: template.consent_text_version,
+        consent_text_version: template.consent_text_version || 1,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        institution_name: inst?.name || 'Escola do DF',
-        institution_id: inst?.id || token,
+        institution_name: institutionData?.name || 'Escola Participante',
+        institution_id: institutionData?.id || token,
+        institution_short_name: institutionData?.short_name || 'Escola',
+        institution_city: institutionData?.city || 'Brasília',
+        institution_state: institutionData?.state || 'DF',
       };
     }
-  }
 
-  if (!doc) {
-    return c.json({ success: false, error: 'Documento não localizado ou link expirado.', code: 'DOC_NOT_FOUND' }, 404);
-  }
-
-  const now = new Date().toISOString();
-
-  // ── Verificação de TTL de 3 dias para links enviados por e-mail/WhatsApp ────────
-  // O link expira 3 dias após o envio (token_sent_at + token_ttl_days).
-  // Dados sensíveis de menores: janela mínima de exposição (LGPD Art. 46).
-  if (doc.status === 'pending' && doc.token_sent_at) {
-    const ttlDays = doc.token_ttl_days ?? 3;
-    const sentAt = new Date(doc.token_sent_at).getTime();
-    const linkExpiresAt = sentAt + ttlDays * 24 * 60 * 60 * 1000;
-
-    if (Date.now() > linkExpiresAt) {
-      return c.json({
-        success: false,
-        error: 'Este link de acesso expirou. Por segurança, os links de assinatura são válidos por 3 dias a partir do envio. Entre em contato com a escola ou o SESI para solicitar um novo link.',
-        code: 'TOKEN_LINK_EXPIRED',
-        expired_at: new Date(linkExpiresAt).toISOString(),
-      }, 410); // 410 Gone — semanticamente correto para recursos expirados definitivamente
-    }
-  }
-
-  if (doc.status === 'pending' && doc.expires_at && doc.expires_at < now) {
-    await db.prepare("UPDATE documents SET status = 'expired' WHERE id = ?").bind(doc.id).run();
-    doc.status = 'expired';
-  }
-
-  const manualReview = doc.id && !doc.id.startsWith('DOC-AUTO-')
-    ? await db.prepare(
+    // 4. Se for documento emitido com revisão manual
+    let manualReview: any = null;
+    if (doc.id && !doc.id.startsWith('DOC-AUTO-')) {
+      manualReview = await db.prepare(
         `SELECT status, review_notes, created_at FROM manual_review_queue WHERE document_id = ? ORDER BY created_at DESC LIMIT 1`
-      ).bind(doc.id).first<any>()
-    : null;
+      ).bind(doc.id).first<any>().catch(() => null);
+    }
 
-  return c.json({
-    success: true,
-    document: {
-      id: doc.id,
-      status: doc.status,
-      minor_name: doc.minor_name,
-      minor_birth_date: doc.minor_birth_date,
-      parent_name: doc.parent_name,
-      procedure_title: doc.template_title,
-      procedure_description: doc.procedure_description,
-      content_markdown: doc.content_markdown,
-      content_sha256: doc.content_sha256,
-      consent_text_version: doc.consent_text_version,
-      expires_at: doc.expires_at,
-      revoked_at: doc.revoked_at,
-      revoked_reason: doc.revoked_reason,
-      manual_review_status: manualReview?.status || null,
-      manual_review_notes: manualReview?.review_notes || null,
-      legal_notice: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020; Código Civil (Arts. 104 e 107); CPC (Arts. 411 e 441); LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP',
-    },
-  });
+    const now = new Date().toISOString();
+
+    // ── Verificação de TTL de 3 dias para links enviados por e-mail/WhatsApp ────────
+    if (doc.status === 'pending' && doc.token_sent_at) {
+      const ttlDays = doc.token_ttl_days ?? 3;
+      const sentAt = new Date(doc.token_sent_at).getTime();
+      const linkExpiresAt = sentAt + ttlDays * 24 * 60 * 60 * 1000;
+
+      if (Date.now() > linkExpiresAt) {
+        return c.json({
+          success: false,
+          error: 'Este link de acesso expirou. Por segurança, os links de assinatura são válidos por 3 dias a partir do envio. Entre em contato com a escola ou o SESI para solicitar um novo link.',
+          code: 'TOKEN_LINK_EXPIRED',
+          expired_at: new Date(linkExpiresAt).toISOString(),
+        }, 410);
+      }
+    }
+
+    if (doc.status === 'pending' && doc.expires_at && doc.expires_at < now) {
+      await db.prepare("UPDATE documents SET status = 'expired' WHERE id = ?").bind(doc.id).run().catch(() => {});
+      doc.status = 'expired';
+    }
+
+    return c.json({
+      success: true,
+      document: {
+        id: doc.id,
+        status: doc.status,
+        minor_name: doc.minor_name,
+        minor_birth_date: doc.minor_birth_date,
+        parent_name: doc.parent_name,
+        institution_id: doc.institution_id || institutionData?.id || token,
+        institution_name: doc.institution_name || institutionData?.name || 'Escola Participante',
+        institution_short_name: doc.institution_short_name || institutionData?.short_name || 'Escola',
+        institution_city: doc.institution_city || institutionData?.city || 'Brasília',
+        institution_state: doc.institution_state || institutionData?.state || 'DF',
+        procedure_title: doc.template_title || template?.title,
+        procedure_description: doc.procedure_description || template?.procedure_description,
+        content_markdown: doc.content_markdown || template?.content_markdown,
+        content_sha256: doc.content_sha256 || doc.template_content_sha256 || template?.content_sha256,
+        consent_text_version: doc.consent_text_version || template?.consent_text_version || 1,
+        expires_at: doc.expires_at,
+        revoked_at: doc.revoked_at,
+        revoked_reason: doc.revoked_reason,
+        manual_review_status: manualReview?.status || null,
+        manual_review_notes: manualReview?.review_notes || null,
+        legal_notice: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020; Código Civil (Arts. 104 e 107); CPC (Arts. 411 e 441); LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP',
+      },
+    });
+  } catch (err: any) {
+    console.error('[SIGNER_DOC_ERROR]', err);
+    return c.json({
+      success: false,
+      error: 'Ocorreu um erro ao carregar o termo de autorização do banco de dados.',
+      code: 'DOC_LOAD_ERROR',
+      details: err?.message,
+    }, 500);
+  }
 });
 
 /**

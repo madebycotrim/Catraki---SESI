@@ -168,6 +168,7 @@ publicRouter.get('/validate/:query', async (c) => {
         try {
           record = await db.prepare(
             `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
+                    d.auth_image, d.auth_health, d.auth_data,
                     d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason, d.cancelled_by_admin_id,
                     t.title as template_title, t.procedure_description
              FROM audit_logs a
@@ -190,6 +191,7 @@ publicRouter.get('/validate/:query', async (c) => {
         try {
           record = await db.prepare(
             `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
+                    d.auth_image, d.auth_health, d.auth_data,
                     d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason, d.cancelled_by_admin_id,
                     t.title as template_title, t.procedure_description
              FROM audit_logs a
@@ -226,6 +228,7 @@ publicRouter.get('/validate/:query', async (c) => {
         try {
           record = await db.prepare(
             `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
+                    d.auth_image, d.auth_health, d.auth_data,
                     d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason, d.cancelled_by_admin_id,
                     t.title as template_title, t.procedure_description
              FROM audit_logs a
@@ -380,6 +383,9 @@ publicRouter.get('/validate/:query', async (c) => {
             record.cancelled_by_admin_id = record.cancelled_by_admin_id || docRow.cancelled_by_admin_id;
             record.template_title = record.template_title || docRow.template_title || 'Autorização SESI Escola Cidadã';
             record.procedure_description = record.procedure_description || docRow.procedure_description || 'Autorização clínica escolar.';
+            record.auth_image = record.auth_image !== undefined ? record.auth_image : docRow.auth_image;
+            record.auth_health = record.auth_health !== undefined ? record.auth_health : docRow.auth_health;
+            record.auth_data = record.auth_data !== undefined ? record.auth_data : docRow.auth_data;
           }
         } catch {}
       }
@@ -455,6 +461,9 @@ publicRouter.get('/validate/:query', async (c) => {
       document_status: record.doc_status || 'signed',
       chain_position: chainPos,
       prev_log_hash: record.prev_log_hash || 'GENESIS-HASH',
+      auth_image: record.auth_image === 'yes' || record.auth_image === true ? 'yes' : record.auth_image === 'no' || record.auth_image === false ? 'no' : null,
+      auth_health: record.auth_health === 'yes' || record.auth_health === true ? 'yes' : record.auth_health === 'no' || record.auth_health === false ? 'no' : null,
+      auth_data: record.auth_data === 'yes' || record.auth_data === true ? 'yes' : record.auth_data === 'no' || record.auth_data === false ? 'no' : null,
       revocation_info: record.doc_status === 'revoked' ? {
         revoked_at: record.revoked_at,
         revoked_reason: record.revoked_reason || 'Revogado a pedido do titular / responsável legal',

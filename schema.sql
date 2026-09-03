@@ -48,6 +48,12 @@
     parent_email_encrypted TEXT,
     parent_phone_encrypted TEXT,
     parent_email_bindex_sha256 TEXT, -- Blind index SHA-256 para buscas seguras e sigilosas (LGPD)
+    auth_image TEXT,
+    auth_health TEXT,
+    auth_data TEXT,
+    terms_version TEXT NOT NULL DEFAULT '1.0',
+    token_sent_at DATETIME,
+    token_ttl_days INTEGER NOT NULL DEFAULT 3,
     key_version INTEGER NOT NULL DEFAULT 1,
     access_token TEXT UNIQUE NOT NULL,
     status TEXT CHECK(status IN ('draft','pending','signed','revoked','expired','CANCELADO_POR_ERRO','cancelled_error')) DEFAULT 'pending',
@@ -212,6 +218,18 @@
     session_token_hash TEXT,
     retention_until DATETIME DEFAULT (datetime('now', '+180 days')), -- 6 meses regulatórios
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- 12. Gestão e Ciclo de Vida de Chaves Criptográficas (AES-GCM-256)
+  CREATE TABLE IF NOT EXISTS encryption_key_versions (
+    version INTEGER PRIMARY KEY,
+    key_sha256_fingerprint TEXT NOT NULL,
+    algorithm TEXT NOT NULL DEFAULT 'AES-GCM-256',
+    status TEXT CHECK(status IN ('active','retired','compromised')) NOT NULL DEFAULT 'active',
+    activated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    retired_at DATETIME,
+    created_by TEXT NOT NULL,
+    notes TEXT
   );
 
   -- ============================================================================

@@ -771,12 +771,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return count;
   }, [anomalyFlags]);
 
-  const totalStale = useMemo(() => {
-    let count = 0;
-    anomalyFlags.forEach((flags) => { if (flags.some(f => f.startsWith('STALE_PENDING'))) count++; });
-    return count;
-  }, [anomalyFlags]);
-
   const totalIncomplete = useMemo(() => {
     let count = 0;
     anomalyFlags.forEach((flags) => { if (flags.includes('MISSING_EMAIL')) count++; });
@@ -1098,77 +1092,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
-      {/* ━━ PAINEL DE ALERTAS INTELIGENTES ━━ */}
-      {(totalDuplicates > 0 || totalStale > 0 || totalIncomplete > 0 || totalConflicts > 0) && (
-        <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-4 space-y-2 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="w-4 h-4 text-orange-600 shrink-0" />
-            <span className="text-xs font-black text-orange-900 uppercase tracking-wide">Alertas do Sistema — {totalDuplicates + totalStale + totalIncomplete + totalConflicts} ocorrências detectadas</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {totalConflicts > 0 && (
-              <button
-                type="button"
-                onClick={() => { setAlertFilter(alertFilter === 'conflict' ? 'all' : 'conflict'); setCurrentPage(1); }}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${alertFilter === 'conflict' ? 'bg-rose-600 border-rose-700 text-white' : 'bg-rose-100 hover:bg-rose-200 border-rose-300 text-rose-900'}`}
-                title="Conflitos cadastrais graves (ex: mesmo CPF com nomes diferentes ou responsável igual ao aluno)"
-              >
-                <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${alertFilter === 'conflict' ? 'bg-rose-100 text-rose-900' : 'bg-rose-500 text-white'}`}>{totalConflicts}</span>
-                🚨 Inconsistências
-              </button>
-            )}
-            {totalDuplicates > 0 && (
-              <button
-                type="button"
-                onClick={() => { setAlertFilter(alertFilter === 'duplicate' ? 'all' : 'duplicate'); setCurrentPage(1); }}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${alertFilter === 'duplicate' ? 'bg-orange-600 border-orange-700 text-white' : 'bg-orange-100 hover:bg-orange-200 border-orange-300 text-orange-900'}`}
-                title="Registros com o mesmo CPF de aluno cadastrados mais de uma vez"
-              >
-                <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${alertFilter === 'duplicate' ? 'bg-orange-100 text-orange-900' : 'bg-orange-500 text-white'}`}>{totalDuplicates}</span>
-                ⚠️ Alunos com registro duplicado
-              </button>
-            )}
-            {totalStale > 0 && (
-              <div className="inline-flex items-center gap-1.5 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => { setAlertFilter(alertFilter === 'stale' ? 'all' : 'stale'); setCurrentPage(1); }}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${alertFilter === 'stale' ? 'bg-amber-600 border-amber-700 text-white' : 'bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-900'}`}
-                  title="Documentos pendentes ou rascunhos há mais de 24 horas sem assinatura"
-                >
-                  <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${alertFilter === 'stale' ? 'bg-amber-100 text-amber-900' : 'bg-amber-500 text-white'}`}>{totalStale}</span>
-                  🕐 Pendentes (&gt;24h)
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCleanupPending}
-                  disabled={isCleaningPending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
-                  title="Expirar rascunhos abandonados com mais de 24 horas em conformidade com a LGPD"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>{isCleaningPending ? 'Expirando...' : 'Limpar Pendentes (>24h)'}</span>
-                </button>
-              </div>
-            )}
-            {totalIncomplete > 0 && (
-              <button
-                type="button"
-                onClick={() => { setAlertFilter(alertFilter === 'incomplete' ? 'all' : 'incomplete'); setCurrentPage(1); }}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${alertFilter === 'incomplete' ? 'bg-slate-700 border-slate-800 text-white' : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'}`}
-                title="Registros pendentes sem e-mail do responsável cadastrado"
-              >
-                <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${alertFilter === 'incomplete' ? 'bg-slate-200 text-slate-900' : 'bg-slate-500 text-white'}`}>{totalIncomplete}</span>
-                📋 Sem e-mail cadastrado
-              </button>
-            )}
-          </div>
-          <p className="text-[10px] text-orange-700 m-0 leading-relaxed">
-            Os registros afetados estão destacados com borda colorida e badges na coluna “Paciente / Aluno”. Passe o mouse sobre o badge para ver o detalhe.
-          </p>
-        </div>
-      )}
-
       {/* ━━ 3. TABS PRINCIPAIS E AÇÕES ━━ */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
         
@@ -1435,8 +1358,55 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
 
-              {/* Informações e Botão de Limpar Filtros */}
-              <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-slate-500 flex-wrap">
+              {/* Micro-filtros de Auditoria & Botões de Ação */}
+              <div className="flex items-center justify-between sm:justify-end gap-2 text-xs text-slate-500 flex-wrap">
+                {totalDuplicates > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setAlertFilter(alertFilter === 'duplicate' ? 'all' : 'duplicate'); setCurrentPage(1); }}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      alertFilter === 'duplicate'
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'bg-amber-50/90 text-amber-900 hover:bg-amber-100 border border-amber-200'
+                    }`}
+                    title="Alunos com mesmo CPF ou nome cadastrados mais de uma vez"
+                  >
+                    <span>⚠️ Duplicados</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${alertFilter === 'duplicate' ? 'bg-amber-800 text-white' : 'bg-amber-200 text-amber-900'}`}>{totalDuplicates}</span>
+                  </button>
+                )}
+
+                {totalIncomplete > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setAlertFilter(alertFilter === 'incomplete' ? 'all' : 'incomplete'); setCurrentPage(1); }}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      alertFilter === 'incomplete'
+                        ? 'bg-slate-800 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                    }`}
+                    title="Pendentes sem e-mail cadastrado"
+                  >
+                    <span>📋 Sem e-mail</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${alertFilter === 'incomplete' ? 'bg-slate-950 text-white' : 'bg-slate-200 text-slate-800'}`}>{totalIncomplete}</span>
+                  </button>
+                )}
+
+                {totalConflicts > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setAlertFilter(alertFilter === 'conflict' ? 'all' : 'conflict'); setCurrentPage(1); }}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      alertFilter === 'conflict'
+                        ? 'bg-rose-600 text-white shadow-xs'
+                        : 'bg-rose-50/90 text-rose-900 hover:bg-rose-100 border border-rose-200'
+                    }`}
+                  >
+                    <span>🚨 Inconsistências</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${alertFilter === 'conflict' ? 'bg-rose-800 text-white' : 'bg-rose-200 text-rose-900'}`}>{totalConflicts}</span>
+                  </button>
+                )}
+
                 {(subTab === 'pending' || selectedStatus === 'pending') && (
                   <button
                     type="button"
@@ -1453,16 +1423,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {isFiltered && (
                   <button
                     onClick={handleResetFilters}
-                    className="inline-flex items-center gap-1 text-slate-600 hover:text-blue-700 font-bold hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold hover:text-slate-900 transition-all cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Limpar Filtros</span>
                   </button>
                 )}
-
-                <div className="font-semibold">
-                  Exibindo <strong className="text-slate-900 font-black">{filteredAuths.length}</strong> de <strong className="text-slate-900 font-black">{authorizations.length}</strong> registros
-                </div>
               </div>
 
             </div>

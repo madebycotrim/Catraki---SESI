@@ -18,7 +18,7 @@ export interface IDadosTermoPdf {
   hashManifesto?: string;
   dataAssinatura?: Date;
   assinaturaPngBase64?: string;
-  tipoAssinatura?: 'ICP_BRASIL_A1' | 'ELETRONICA_AVANCADA';
+  tipoAssinatura?: 'ELETRONICA';
   ipAddress?: string;
   userAgent?: string;
   geoCidade?: string;
@@ -522,7 +522,7 @@ export class GeradorPdfTermoSesi {
     // ========================================================================
     // PÁGINA 2: REGISTRO DE AUDITORIA E CUSTÓDIA DIGITAL (EVIDÊNCIAS DIGITAIS)
     // ========================================================================
-    if (dados.tipoAssinatura === 'ELETRONICA_AVANCADA' || dados.ipAddress) {
+    if (dados.tipoAssinatura === 'ELETRONICA' || dados.ipAddress) {
       const page2 = pdfDoc.addPage([595.28, 841.89]);
       let y2 = height - 40;
 

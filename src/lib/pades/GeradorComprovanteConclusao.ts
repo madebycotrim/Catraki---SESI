@@ -3,12 +3,12 @@ import QRCode from 'qrcode';
 import { formatBrasiliaDateTime } from '../schemas';
 
 // ============================================================================
-// GERADOR DE CERTIFICADO DE CONCLUSÃO — RELATÓRIO FINAL DE LINHA DO TEMPO
+// GERADOR DE COMPROVANTE DE CONCLUSÃO — RELATÓRIO FINAL DE AUDITORIA FORENSE
 // Conformidade: MP nº 2.200-2/2001 (Art. 10, § 2º); Lei nº 14.063/2020; Código Civil; CPC; LGPD Art. 46
-// Chancelado com hash SHA-256 original — qualquer adulteração invalida o PDF
+// Chancelado com hash SHA-256 original — qualquer adulteração invalida o documento
 // ============================================================================
 
-export interface EventoCertificado {
+export interface EventoComprovante {
   timestamp: string;              // ISO 8601 UTC
   tipo: 'CRIACAO' | 'VISUALIZACAO' | 'OTP_SOLICITADO' | 'OTP_VERIFICADO' | 'ASSINADO' | 'REVOGADO' | 'CANCELADO_POR_ERRO';
   descricao: string;
@@ -18,7 +18,10 @@ export interface EventoCertificado {
   ntp_source?: string | null;
 }
 
-export interface IDadosCertificadoConclusao {
+// Alias de retrocompatibilidade
+export type EventoCertificado = EventoComprovante;
+
+export interface IDadosComprovanteConclusao {
   // Identificadores
   documentId: string;
   validationCode: string;
@@ -35,10 +38,8 @@ export interface IDadosCertificadoConclusao {
   logRowHash: string;             // Hash da linha de auditoria (encadeamento)
   prevLogHash?: string | null;    // Hash da linha anterior (prova de encadeamento)
   merkleRoot?: string | null;     // Raiz de Merkle da cadeia completa
-  tsaToken?: string | null;       // Token TSA do carimbo do tempo
-  tsaAuthority?: string | null;   // Nome da autoridade TSA
   // Linha do Tempo
-  eventos: EventoCertificado[];
+  eventos: EventoComprovante[];
   // Status final
   documentStatus: string;
   signedAt?: string | null;
@@ -50,6 +51,9 @@ export interface IDadosCertificadoConclusao {
   // URL de validação pública
   validationBaseUrl?: string;
 }
+
+// Alias de retrocompatibilidade
+export type IDadosCertificadoConclusao = IDadosComprovanteConclusao;
 
 const COR_AZUL_SESI = rgb(3 / 255, 75 / 255, 127 / 255);   // #034b7f
 const COR_PRETO = rgb(0.04, 0.04, 0.04);
@@ -67,15 +71,15 @@ function formatarDataBr(isoDate?: string | null): string {
   }
 }
 
-function labelEvento(tipo: EventoCertificado['tipo']): string {
-  const labels: Record<EventoCertificado['tipo'], string> = {
-    'CRIACAO': '[CRIACAO] Documento Criado',
-    'VISUALIZACAO': '[VISUALIZACAO] Documento Visualizado',
-    'OTP_SOLICITADO': '[OTP 2FA] Codigo de Verificacao Solicitado',
-    'OTP_VERIFICADO': '[OTP 2FA] Codigo de Verificacao Confirmado',
-    'ASSINADO': '[ASSINATURA] Assinatura Eletronica Registrada',
-    'REVOGADO': '[REVOGACAO] Consentimento Revogado (LGPD Art. 18)',
-    'CANCELADO_POR_ERRO': '[CANCELADO] Documento Cancelado por Erro Operacional',
+function labelEvento(tipo: EventoComprovante['tipo']): string {
+  const labels: Record<EventoComprovante['tipo'], string> = {
+    'CRIACAO': '[CRIAÇÃO] Documento Criado no Sistema',
+    'VISUALIZACAO': '[VISUALIZAÇÃO] Documento Aberto pelo Signatário',
+    'OTP_SOLICITADO': '[OTP E-MAIL] Código de Confirmação Solicitado',
+    'OTP_VERIFICADO': '[OTP E-MAIL] Código de Confirmação Validado com Sucesso',
+    'ASSINADO': '[ASSINATURA] Assinatura Eletrônica Registrada',
+    'REVOGADO': '[REVOGAÇÃO] Consentimento Revogado (LGPD Art. 18)',
+    'CANCELADO_POR_ERRO': '[CANCELAMENTO] Documento Cancelado por Erro Operacional',
   };
   return labels[tipo] || tipo;
 }
@@ -99,18 +103,18 @@ function quebrarTexto(texto: string, maxCaracteres: number): string[] {
 }
 
 /**
- * Gerador do Certificado de Conclusão em PDF — Relatório Final de Linha do Tempo
- * Produz documento forense com toda a cadeia de custódia digital do termo de consentimento
+ * Gerador do Comprovante de Conclusão em PDF — Relatório Final de Linha do Tempo e Auditoria
+ * Produz documento forense com toda a cadeia de custódia digital do termo de consentimento eletrônico.
  */
-export class GeradorCertificadoConclusao {
-  public static async gerarCertificado(dados: IDadosCertificadoConclusao): Promise<Uint8Array> {
+export class GeradorComprovanteConclusao {
+  public static async gerarComprovante(dados: IDadosComprovanteConclusao): Promise<Uint8Array> {
     const pdfDoc = await PDFDocument.create();
 
     // Metadados PDF
-    pdfDoc.setTitle(`Certificado de Conclusão — ${dados.validationCode}`);
+    pdfDoc.setTitle(`Comprovante de Conclusão — ${dados.validationCode}`);
     pdfDoc.setAuthor('Plataforma Catraki');
     pdfDoc.setSubject(`Relatório Forense de Linha do Tempo — Documento ${dados.documentId}`);
-    pdfDoc.setKeywords(['LGPD', 'Lei 14.063/2020', 'Catraki', 'Assinatura Eletrônica', 'Auditoria']);
+    pdfDoc.setKeywords(['LGPD', 'Lei 14.063/2020', 'Catraki', 'Assinatura Eletrônica', 'Auditoria', 'Comprovante']);
     pdfDoc.setCreationDate(new Date());
     pdfDoc.setModificationDate(new Date());
 
@@ -134,7 +138,7 @@ export class GeradorCertificadoConclusao {
         y = PAGE_H - MARGIN;
         // Cabeçalho mini nas páginas subsequentes
         page.drawRectangle({ x: 0, y: PAGE_H - 28, width: PAGE_W, height: 28, color: COR_AZUL_SESI });
-        page.drawText('CATRAKI — CERTIFICADO DE CONCLUSÃO (CONTINUAÇÃO)', {
+        page.drawText('CATRAKI — COMPROVANTE DE CONCLUSÃO (CONTINUAÇÃO)', {
           x: MARGIN, y: PAGE_H - 20, size: 7, font: fontBold, color: rgb(1, 1, 1),
         });
         y = PAGE_H - 42;
@@ -151,10 +155,10 @@ export class GeradorCertificadoConclusao {
     page.drawText('PLATAFORMA CATRAKI', {
       x: MARGIN, y: PAGE_H - 28, size: 9, font: fontBold, color: rgb(1, 1, 1),
     });
-    page.drawText('CERTIFICADO DE CONCLUSÃO DE ASSINATURA ELETRÔNICA', {
+    page.drawText('COMPROVANTE DE CONCLUSÃO DE ASSINATURA ELETRÔNICA', {
       x: MARGIN, y: PAGE_H - 44, size: 8, font: fontBold, color: rgb(0.85, 0.92, 1),
     });
-    page.drawText('As assinaturas eletrônicas realizadas neste documento possuem validade legal em conformidade com a Medida Provisória nº 2.200-2/2001 e a Lei nº 14.063/2020.', {
+    page.drawText('As assinaturas eletrônicas realizadas neste documento possuem validade legal em conformidade com a Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º) e a Lei nº 14.063/2020.', {
       x: MARGIN, y: PAGE_H - 58, size: 6, font: fontRegular, color: rgb(0.75, 0.85, 1),
     });
 
@@ -172,7 +176,7 @@ export class GeradorCertificadoConclusao {
     y = PAGE_H - 80 - 16;
 
     // ── STATUS DO DOCUMENTO E HASH SHA-256 ──────────────────────────────────
-    const statusLabel = dados.documentStatus === 'signed' ? 'ASSINADO (CONCLUIDO)'
+    const statusLabel = dados.documentStatus === 'signed' ? 'ASSINADO (CONCLUÍDO)'
       : dados.documentStatus === 'revoked' ? 'REVOGADO'
       : dados.documentStatus === 'CANCELADO_POR_ERRO' ? 'CANCELADO POR ERRO'
       : dados.documentStatus.toUpperCase();
@@ -199,14 +203,14 @@ export class GeradorCertificadoConclusao {
       ? formatBrasiliaDateTime(dados.signedAt) + ' UTC-3'
       : 'Pendente';
 
-    // CPF completo na página de certificado para prova jurídica irrefutável
+    // CPF completo na página de comprovante para prova jurídica irrefutável
     const cpfDisplay = dados.signerCpfFull || dados.signerCpfMasked;
     const userAgentVal = dados.signerUserAgent || dados.eventos.find(e => e.user_agent)?.user_agent || 'Navegador Web / Dispositivo Seguro';
 
     const fields: Array<[string, string | string[]]> = [
       ['Nome do Signatário', dados.signerName],
       ['CPF do Signatário (Completo)', cpfDisplay],
-      ['E-mail do Signatário', dados.signerEmail || 'Não informado'],
+      ['E-mail de Confirmação (OTP)', dados.signerEmail || 'Não informado'],
       ['IP do Acesso', dados.signerIp || dados.eventos.find(e => e.ip)?.ip || 'Não coletado'],
       ['Navegador / Dispositivo', quebrarTexto(userAgentVal, 60)],
       ['Data e Hora Exata', formattedSignDate],
@@ -233,7 +237,7 @@ export class GeradorCertificadoConclusao {
 
     // ── HASHES CRIPTOGRÁFICOS ──────────────────────────────────────────────
     checkPage(120);
-    page.drawText('REGISTRO CRIPTOGRÁFICO (SHA-256 — MP 2.200-2/2001 e Lei 14.063/2020)', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
+    page.drawText('REGISTRO CRIPTOGRÁFICO DE INTEGRIDADE (SHA-256 — MP 2.200-2/2001 E LEI 14.063/2020)', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
     novaLinha(12);
     drawLine(MARGIN, y, PAGE_W - MARGIN, y);
     novaLinha(10);
@@ -244,7 +248,6 @@ export class GeradorCertificadoConclusao {
       ['Hash da Linha de Auditoria', dados.logRowHash],
       ['Hash do Bloco Anterior', dados.prevLogHash || 'GÊNESIS (Primeiro Registro)'],
       ['Raiz de Merkle da Cadeia', dados.merkleRoot || '(calculada no próximo cron)'],
-      ['Autoridade de Carimbo do Tempo', dados.tsaAuthority || 'Catraki TSA Interno'],
     ];
 
     for (const [label, value] of hashFields) {
@@ -362,8 +365,8 @@ export class GeradorCertificadoConclusao {
     novaLinha(11);
 
     const disclaimer = [
-      'Este Certificado de Conclusão é um documento digital imutável gerado automaticamente pela Plataforma Catraki,',
-      'chancelado com o Hash SHA-256 do manifesto criptográfico registrado no momento da assinatura eletrônica.',
+      'Este Comprovante de Conclusão e Registro de Assinatura Eletrônica é um documento digital imutável gerado automaticamente pela Plataforma Catraki,',
+      'chancelado com o Hash SHA-256 do manifesto criptográfico registrado no momento da confirmação da assinatura eletrônica por e-mail (OTP).',
       'Qualquer alteração posterior a este documento — incluindo a modificação de um único bit — invalida sua prova jurídica.',
       '',
       'BASE LEGAL: MP nº 2.200-2/2001 (Art. 10, § 2º); Lei nº 14.063/2020; Código Civil (Arts. 104, 107 e 225);',
@@ -387,4 +390,12 @@ export class GeradorCertificadoConclusao {
 
     return await pdfDoc.save();
   }
+
+  // Alias estático para manter retrocompatibilidade
+  public static async gerarCertificado(dados: IDadosComprovanteConclusao): Promise<Uint8Array> {
+    return this.gerarComprovante(dados);
+  }
 }
+
+// Alias de retrocompatibilidade
+export const GeradorCertificadoConclusao = GeradorComprovanteConclusao;

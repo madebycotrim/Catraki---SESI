@@ -116,7 +116,7 @@ export const LgpdManager: React.FC = () => {
                         onClick={() => {
                           setSelectedReq(req);
                           if (!req.response_notes && req.request_type === 'deletion') {
-                            setResponseNotes("Sua conta foi desativada. Por exigência legal (Art. 16 da LGPD e normas de assinatura digital), os registros técnicos (logs) vinculados a documentos já assinados serão mantidos armazenados com segurança, exclusivamente para fins de proteção legal.");
+                            setResponseNotes("Sua conta foi desativada. Por exigência legal (Art. 16 da LGPD e normas de assinatura eletrônica), os registros técnicos (logs) vinculados a documentos já assinados serão mantidos armazenados com segurança, exclusivamente para fins de proteção legal.");
                           } else {
                             setResponseNotes(req.response_notes || '');
                           }
@@ -169,7 +169,7 @@ export const LgpdManager: React.FC = () => {
                   {selectedReq.request_type === 'deletion' && (
                     <button
                       type="button"
-                      onClick={() => setResponseNotes("Sua solicitação foi processada! Sua conta de acesso foi desativada e seus dados foram removidos de nossas listas de comunicação. Por exigência legal (Art. 16 da LGPD e cumprimento de normas de assinatura digital), os registros técnicos e de identificação vinculados a documentos que você já assinou no passado serão mantidos armazenados com segurança, exclusivamente para fins de auditoria e proteção legal de todas as partes envolvidas.")}
+                      onClick={() => setResponseNotes("Sua solicitação foi processada! Sua conta de acesso foi desativada e seus dados foram removidos de nossas listas de comunicação. Por exigência legal (Art. 16 da LGPD e cumprimento de normas de assinatura eletrônica), os registros técnicos e de identificação vinculados a documentos que você já assinou no passado serão mantidos armazenados com segurança, exclusivamente para fins de auditoria e proteção legal de todas as partes envolvidas.")}
                       className="text-[10px] text-purple-400 hover:text-purple-300 underline cursor-pointer"
                     >
                       Preencher com Resposta Padrão (Art. 16 LGPD)

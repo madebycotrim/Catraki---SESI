@@ -21,7 +21,6 @@ describe('Cadeia de Auditoria Criptográfica (audit-chain.ts)', () => {
       content_sha256_at_signing: 'c1d2e3f4a5b678901234567890abcdef1234567890abcdef1234567890abcdef',
       consent_text_version: 1,
       manifest_sha256: 'f1e2d3c4b5a678901234567890abcdef1234567890abcdef1234567890abcdef',
-      tsa_timestamp_token: 'tsa_token_mock',
     };
 
     const hash1 = await computeLogRowHash(input);

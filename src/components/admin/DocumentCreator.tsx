@@ -176,7 +176,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onDocumentCrea
 
             <div>
               <label htmlFor="create-parent-phone" className="block font-semibold text-slate-300 mb-1">
-                Celular para SMS (Opcional):
+                Telefone / Celular de Contato (Opcional):
               </label>
               <input
                 id="create-parent-phone"

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { PDFDocument } from 'pdf-lib';
 import { GeradorPdfTermoSesi } from '../src/lib/pades/GeradorPdfTermoSesi.ts';
-import { GeradorCertificadoConclusao } from '../src/lib/pades/GeradorCertificadoConclusao.ts';
+import { GeradorCertificadoConclusao } from '../src/lib/pades/GeradorComprovanteConclusao.ts';
 
 describe('Validação de Conformidade do Gerador de PDF (Páginas 1 e 2)', () => {
   it('deve gerar PDF com regras de Maioridade (>= 18 anos) omitindo menções ao ECA e qualificando o próprio estudante', async () => {
@@ -25,7 +25,7 @@ describe('Validação de Conformidade do Gerador de PDF (Páginas 1 e 2)', () =>
       instituicao2Cnpj: '03.777.341/0001-08',
       hashManifesto: 'a1b2c3d4e5f678901234567890abcdefa1b2c3d4e5f678901234567890abcdef',
       dataAssinatura: new Date('2026-08-26T14:30:00Z'),
-      tipoAssinatura: 'ELETRONICA_AVANCADA',
+      tipoAssinatura: 'ELETRONICA',
       ipAddress: '200.189.112.45',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
       signerEmail: 'carlos.oliveira@unb.br',
@@ -62,7 +62,7 @@ describe('Validação de Conformidade do Gerador de PDF (Páginas 1 e 2)', () =>
       instituicao2Cnpj: '03.777.341/0001-08',
       hashManifesto: 'f9e8d7c6b5a43210f9e8d7c6b5a43210f9e8d7c6b5a43210f9e8d7c6b5a43210',
       dataAssinatura: new Date('2026-08-26T14:30:00Z'),
-      tipoAssinatura: 'ELETRONICA_AVANCADA',
+      tipoAssinatura: 'ELETRONICA',
       ipAddress: '177.100.50.20',
       userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15',
       signerEmail: 'anapaula@gmail.com',

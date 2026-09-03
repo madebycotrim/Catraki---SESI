@@ -27,7 +27,7 @@ interface Step4SuccessProps {
     tsa_authority?: string;
     validation_url: string;
     message: string;
-    otp_channel?: 'email' | 'sms';
+    otp_channel?: string;
   };
   signerName: string;
   signerRelationship?: string;
@@ -238,7 +238,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                         <MailCheck className="w-3.5 h-3.5 text-sesi-primary" /> Método de Autenticação:
                       </span>
                       <span className="font-semibold text-xs text-slate-800">
-                        Código de Segurança OTP por {signResult.otp_channel === 'sms' ? 'SMS' : 'E-mail'}
+                        Código de Segurança (2FA OTP por E-mail)
                       </span>
                     </div>
                     <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
@@ -302,7 +302,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                 {signResult.manifest_sha256}
               </span>
               <span className="text-[10px] text-slate-400 block mt-1 leading-snug">
-                🔒 <strong>Código de Integridade Digital:</strong> funciona como um selo de segurança que comprova que este comprovante é autêntico e não foi alterado após a sua assinatura.
+                🔒 <strong>Código de Integridade (SHA-256):</strong> resumo criptográfico que comprova que este comprovante é autêntico e não foi alterado após a sua assinatura eletrônica.
               </span>
             </div>
           </div>
@@ -367,7 +367,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                 <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
                 <div>
                   <span className="text-slate-500 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Tempestividade</span>
-                  <span className="text-slate-700 font-semibold">Carimbo NTP sincronizado (Observatório Nacional)</span>
+                  <span className="text-slate-700 font-semibold">Data e hora registradas pelo servidor (UTC)</span>
                 </div>
               </div>
               <div className="bg-white p-2.5 border border-slate-200 rounded-lg flex items-start gap-2 sm:col-span-2 lg:col-span-2">

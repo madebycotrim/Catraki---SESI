@@ -28,7 +28,7 @@ import {
 import { verifyAuditChain, computeMerkleRoot } from '../../src/lib/audit-chain.ts';
 import { requireAuth, signJwt, JwtPayload } from '../middleware/auth.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
-import { GeradorCertificadoConclusao, EventoCertificado } from '../../src/lib/pades/GeradorCertificadoConclusao.ts';
+import { GeradorCertificadoConclusao, EventoCertificado } from '../../src/lib/pades/GeradorComprovanteConclusao.ts';
 import type {
   Env,
   DocumentTemplate,
@@ -1057,8 +1057,6 @@ adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'oper
       logRowHash: auditLog?.log_row_hash || '',
       prevLogHash: auditLog?.prev_log_hash || null,
       merkleRoot: null,
-      tsaToken: auditLog?.tsa_timestamp_token || null,
-      tsaAuthority: 'Catraki TSA Interno',
       eventos,
       documentStatus: doc.status || 'pending',
       signedAt: auditLog?.signed_at || doc.revoked_at || null,

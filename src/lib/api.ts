@@ -1,6 +1,5 @@
 import {
   sha256,
-  generateTsaTimestampToken,
   canonicalJson,
   generatePkceVerifier,
   generatePkceChallenge,
@@ -492,9 +491,9 @@ export const apiClient = {
   },
 
   /**
-   * Solicita envio de OTP por e-mail/SMS com código real e verificação anti-bot Turnstile
+   * Solicita envio de OTP por e-mail com código real e verificação anti-bot Turnstile
    */
-  async requestOtp(token: string, channel: 'sms' | 'email', email?: string, minor_name?: string, turnstile_token?: string, phone?: string): Promise<any> {
+  async requestOtp(token: string, channel: 'email' = 'email', email?: string, minor_name?: string, turnstile_token?: string, phone?: string): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/signer/otp/request`, {
         method: 'POST',
@@ -520,10 +519,10 @@ export const apiClient = {
 
     return {
       success: true,
-      channel,
+      channel: 'email',
       expires_in_seconds: 300,
       simulated_otp: devOtp,
-      message: `Código de verificação enviado para o ${channel === 'sms' ? 'celular' : 'e-mail'} do responsável legal.`,
+      message: 'Código de verificação de 6 dígitos enviado para o e-mail do responsável legal.',
     };
   },
 
@@ -671,7 +670,6 @@ export const apiClient = {
     };
 
     const manifestSha256 = await sha256(canonicalJson(manifestData));
-    const tsa = await generateTsaTimestampToken(manifestSha256);
 
     const auditId = `AUD-${Date.now()}`;
     const otpRequestedTime = (doc as any).otp_requested_at || new Date(Date.now() - 60000).toISOString();
@@ -698,7 +696,7 @@ export const apiClient = {
       content_sha256_at_signing: doc.content_sha256,
       consent_text_version: doc.consent_text_version,
       manifest_sha256: manifestSha256,
-      tsa_timestamp_token: tsa.token,
+      tsa_timestamp_token: null,
       otp_requested_at: otpRequestedTime,
       otp_verified_at: signedAt,
       otp_email_message_id: otpMsgId,
@@ -731,7 +729,7 @@ export const apiClient = {
       content_sha256_at_signing: doc.content_sha256,
       consent_text_version: doc.consent_text_version,
       manifest_sha256: manifestSha256,
-      tsa_timestamp_token: tsa.token,
+      tsa_timestamp_token: null,
       otp_requested_at: otpRequestedTime,
       otp_verified_at: signedAt,
       otp_email_message_id: otpMsgId,

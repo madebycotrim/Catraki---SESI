@@ -246,7 +246,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
         {validationResult && (
           <div className="space-y-3 sm:space-y-4 pb-6">
             
-            {/* Status do Documento e Selo Jurídico */}
+            {/* Status do Documento */}
             <div className="text-center pb-2 border-b border-slate-200 space-y-1">
               <div className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${
                 validationResult.document_status === 'signed'

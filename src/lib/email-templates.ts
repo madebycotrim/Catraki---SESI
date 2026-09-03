@@ -533,7 +533,7 @@ export function getTransactionalCompletionEmailHtml(params: CompletionEmailParam
       <strong>📎 DOCUMENTO ORIGINAL ANEXADO A ESTE E-MAIL (PDF):</strong><br>
       Em anexo a esta mensagem, você encontra o arquivo <strong>PDF oficial</strong> contendo:<br>
       • A via do <strong>Termo de Consentimento Livre e Esclarecido (TCLE)</strong> com sua assinatura digitalizada e marca d'água de proteção;<br>
-      • O <strong>Certificado de Conclusão e Auditoria Digital</strong>, com carimbo de tempo oficial sincronizado pelo Observatório Nacional (NTP.br), endereço IP, User-Agent, resumo SHA-256 e QR Code para validação pública.
+      • O <strong>Comprovante de Conclusão e Trilha de Auditoria</strong>, com endereço IP, User-Agent, resumo SHA-256 e código de validação pública.
     </div>
 
     <div class="btn-container">
@@ -674,16 +674,6 @@ export function getRevocationEmailHtml(params: RevocationEmailParams): string {
         <td class="label">Motivo Informado</td>
         <td class="value" style="font-style:italic;color:#475569;">"${reason}"</td>
       </tr>
-      ${ntpTimestamp ? `
-      <tr>
-        <td class="label">Carimbo do Tempo (NTP)</td>
-        <td class="value" style="font-family:monospace;font-size:11px;">${ntpTimestamp}</td>
-      </tr>` : ''}
-      ${ntpSource ? `
-      <tr>
-        <td class="label">Fonte Temporal Oficial</td>
-        <td class="value" style="font-size:11.5px;color:#64748b;">${ntpSource}</td>
-      </tr>` : ''}
     </table>
 
     ${documentHashSha256 ? `
@@ -742,7 +732,7 @@ DADOS DA REVOGAÇÃO:
 - Data da Revogação: ${revokedAtFormatted}
 - Situação: CONSENTIMENTO REVOGADO (LGPD Art. 18)
 - Motivo: ${reason}
-${ntpTimestamp ? `- Carimbo do Tempo (NTP): ${ntpTimestamp}\n` : ''}${ntpSource ? `- Fonte NTP: ${ntpSource}\n` : ''}${documentHashSha256 ? `\nHASH SHA-256 DO DOCUMENTO:\n${documentHashSha256}\n` : ''}
+${documentHashSha256 ? `\nHASH SHA-256 DO DOCUMENTO:\n${documentHashSha256}\n` : ''}
 O QUE ACONTECE AGORA:
 Os links de acesso foram desativados. Os dados históricos foram preservados em ambiente seguro conforme o Art. 16 da LGPD para fins de auditoria legal.
 

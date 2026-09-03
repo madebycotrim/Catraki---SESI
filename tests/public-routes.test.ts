@@ -63,7 +63,6 @@ describe('Rotas Públicas e Validação de Autenticidade (publicRouter)', () => 
       doc_status: 'signed',
       template_title: 'Autorização Oftalmológica SESI',
       procedure_description: 'Exame de acuidade visual',
-      tsa_timestamp_token: 'tsa_valid_token',
     };
 
     const mockDb = {

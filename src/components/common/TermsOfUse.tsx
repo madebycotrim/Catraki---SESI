@@ -109,7 +109,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
             <div className="ml-7 bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200">
               <ul className="space-y-1.5 text-xs text-slate-600 list-disc list-inside m-0">
                 <li>Verificação em dois passos por código numérico de uso único enviado ao seu e-mail (OTP de 6 dígitos);</li>
-                <li>Registro de carimbo de tempo (Timestamp NTP.br) e geolocalização IP;</li>
+                <li>Registro de data e hora exato (servidor UTC) e geolocalização IP;</li>
                 <li>Assinatura grafativa digitalizada em tela de alta resolução;</li>
                 <li>Cadeia criptográfica encadeada (Hash Chain SHA-256) e imutabilidade de banco de dados.</li>
               </ul>
@@ -166,7 +166,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
                 Os dados de saúde, triagens clínicas e autorizações são geridos e controlados exclusivamente pelas entidades promotoras e realizadoras do projeto (<strong>Serviço Social da Indústria — SESI-DF</strong> e <strong>Universidade de Brasília — FS/UnB</strong>), na qualidade de Controladoras do tratamento de dados pessoais (Art. 5º, VI da LGPD).
               </p>
               <p className="m-0 font-semibold text-slate-900">
-                A Plataforma Catraki atua como <strong>testemunha tecnológica</strong>: registra o momento exato da assinatura, gera selos de autenticidade digitais e garante que o documento não foi alterado. A Catraki <strong>não possui CNPJ</strong>, não acessa os dados de saúde dos estudantes e não interfere no conteúdo acordado entre as partes — essa responsabilidade é dos Controladores do projeto: o <strong>SESI-DF</strong> e a <strong>FS/UnB</strong>.
+                A Plataforma Catraki atua como <strong>testemunha tecnológica</strong>: registra o momento exato da assinatura, gera o resumo criptográfico (hash SHA-256) e garante que o documento não foi alterado após a confirmação. A Catraki <strong>não possui CNPJ</strong>, não acessa os dados de saúde dos estudantes e não interfere no conteúdo acordado entre as partes — essa responsabilidade é dos Controladores do projeto: o <strong>SESI-DF</strong> e a <strong>FS/UnB</strong>.
               </p>
             </div>
           </section>

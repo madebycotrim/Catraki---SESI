@@ -10,7 +10,6 @@ import {
   formatCPF,
   maskName,
   maskEmail,
-  maskPhone,
   calcularIdade,
   generateUniqueDocId,
   formatUserAgent,
@@ -24,11 +23,9 @@ import {
   encryptAesGcm,
   decryptAesGcm,
   bytesToBase64,
-  generateTsaTimestampToken,
   stripExifFromBase64Image,
   canonicalJson,
 } from '../../src/lib/crypto.ts';
-import { getSyncedTimestamp } from '../../src/lib/ntp-sync.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
 import { GeradorPdfTermoSesi } from '../../src/lib/pades/GeradorPdfTermoSesi.ts';
 import { computeLogRowHash } from '../../src/lib/audit-chain.ts';
@@ -43,78 +40,6 @@ import { rateLimiter, checkOtpBruteForceBlock, setOtpBruteForceBlock, clearOtpBr
 import type { Env, AuditLogRowInput, DocumentRecord } from '../../src/lib/types.ts';
 
 export const signerRouter = new Hono<{ Bindings: Env }>();
-
-function formatToE164(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length === 11 || digits.length === 10) {
-    return `+55${digits}`;
-  }
-  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
-    return `+${digits}`;
-  }
-  return `+${digits}`;
-}
-
-async function sendTwilioMessage(
-  to: string,
-  body: string,
-  env: {
-    TWILIO_ACCOUNT_SID?: string;
-    TWILIO_AUTH_TOKEN?: string;
-    TWILIO_FROM_PHONE?: string;
-    TWILIO_WHATSAPP_FROM?: string;
-  },
-  useWhatsapp = false
-): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const sid = env.TWILIO_ACCOUNT_SID;
-  const token = env.TWILIO_AUTH_TOKEN;
-  if (!sid || !token) {
-    return { success: false, error: 'Twilio credentials not configured' };
-  }
-
-  const from = useWhatsapp
-    ? env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886'
-    : env.TWILIO_FROM_PHONE;
-
-  if (!from) {
-    return { success: false, error: 'Twilio source number/sender not configured' };
-  }
-
-  const formattedTo = useWhatsapp
-    ? (to.startsWith('whatsapp:') ? to : `whatsapp:${to}`)
-    : to;
-
-  const formData = new URLSearchParams();
-  formData.append('To', formattedTo);
-  formData.append('From', from);
-  formData.append('Body', body);
-
-  const authHeader = 'Basic ' + btoa(`${sid}:${token}`);
-
-  try {
-    const resp = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData.toString(),
-      }
-    );
-
-    if (resp.ok) {
-      const data = await resp.json() as any;
-      return { success: true, messageId: data.sid };
-    } else {
-      const errText = await resp.text();
-      return { success: false, error: `Twilio API error: ${errText}` };
-    }
-  } catch (err: any) {
-    return { success: false, error: err.message };
-  }
-}
 
 signerRouter.use('*', rateLimiter({ limit: 40, windowSeconds: 60, keyPrefix: 'signer_gen' }));
 
@@ -605,7 +530,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Parâmetros inválidos.', code: 'VALIDATION_ERROR' }, 400);
   }
 
-  const { token, channel, email: providedEmail, phone: providedPhone, minor_name: providedMinorName } = parsed.data;
+  const { token, email: providedEmail, minor_name: providedMinorName } = parsed.data;
 
   const db = c.env.DB;
   const pepper = c.env.OTP_PEPPER;
@@ -653,118 +578,83 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   let emailError = '';
   let resendMessageId = '';
 
-  let smsSent = false;
-  let smsMessageId = '';
-  let smsError = '';
+  const targetEmail = providedEmail || (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' ? await decryptAesGcm(doc.parent_email_encrypted, masterKey) : null);
+  if (targetEmail) {
+    const resendApiKey = (c.env as any).RESEND_API_KEY;
+    const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
 
-  if (channel === 'email') {
-    const targetEmail = providedEmail || (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' ? await decryptAesGcm(doc.parent_email_encrypted, masterKey) : null);
-    if (targetEmail) {
-      const resendApiKey = (c.env as any).RESEND_API_KEY;
-      const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
+    const otpHtml = getTransactionalOtpEmailHtml({ studentName, otpCode });
 
-      const otpHtml = getTransactionalOtpEmailHtml({ studentName, otpCode });
-
-      if (resendApiKey && resendApiKey !== 're_sua_chave_aqui') {
-        try {
-          const resendResp = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${resendApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              from: fromAddress,
-              to: [targetEmail],
-              subject: `Escola Cidadã — Código de Confirmação: ${otpCode}`,
-              html: otpHtml,
-            }),
-          });
-
-          if (resendResp.ok) {
-            emailSent = true;
-            const resendData = await resendResp.json() as any;
-            resendMessageId = resendData.id;
-          } else {
-            const resendErr = await resendResp.text();
-            emailError = `Falha Resend: ${resendErr}`;
-          }
-        } catch (err: any) {
-          emailError = `Erro conexão Resend: ${err.message}`;
-        }
-      }
-
-      if (!emailSent) {
-        try {
-          const mcResp = await fetch('https://api.mailchannels.net/tx/v1/send', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-              personalizations: [{ to: [{ email: targetEmail }] }],
-              from: {
-                email: 'autorizacoes@catraki.com.br',
-                name: 'Escola Cidadã — Saúde em Movimento',
-              },
-              subject: `Escola Cidadã — Código de Confirmação: ${otpCode}`,
-              content: [{
-                type: 'text/html',
-                value: otpHtml,
-              }],
-            }),
-          });
-
-          if (mcResp.ok) {
-            emailSent = true;
-            emailError = '';
-            resendMessageId = 'mailchannels-sent';
-          } else {
-            const mcErr = await mcResp.text();
-            emailError = `${emailError ? emailError + ' | ' : ''}Falha MailChannels: ${mcErr}`;
-          }
-        } catch (err: any) {
-          emailError = `${emailError ? emailError + ' | ' : ''}Erro conexão MailChannels: ${err.message}`;
-        }
-      }
-    }
-  } else if (channel === 'sms') {
-    let targetPhone = providedPhone;
-    if (!targetPhone && doc.parent_phone_encrypted && doc.parent_phone_encrypted !== 'ENC_INITIAL') {
+    if (resendApiKey && resendApiKey !== 're_sua_chave_aqui') {
       try {
-        targetPhone = await decryptAesGcm(doc.parent_phone_encrypted, masterKey);
+        const resendResp = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromAddress,
+            to: [targetEmail],
+            subject: `Escola Cidadã — Código de Confirmação: ${otpCode}`,
+            html: otpHtml,
+          }),
+        });
+
+        if (resendResp.ok) {
+          emailSent = true;
+          const resendData = await resendResp.json() as any;
+          resendMessageId = resendData.id;
+        } else {
+          const resendErr = await resendResp.text();
+          emailError = `Falha Resend: ${resendErr}`;
+        }
       } catch (err: any) {
-        console.error('Erro decodificação telefone:', err);
+        emailError = `Erro conexão Resend: ${err.message}`;
       }
     }
-    if (targetPhone) {
-      const otpMessage = `Catraki - SESI: Seu código de confirmação para a autorização do(a) estudante ${studentName} é: ${otpCode}. Válido por 5 minutos.`;
-      const formattedPhone = formatToE164(targetPhone);
-      const useWhatsapp = !!c.env.TWILIO_WHATSAPP_FROM;
-      const twilioResult = await sendTwilioMessage(formattedPhone, otpMessage, c.env, useWhatsapp);
-      if (twilioResult.success) {
-        smsSent = true;
-        smsMessageId = twilioResult.messageId || 'twilio-sent';
-      } else {
-        smsError = twilioResult.error || 'Erro desconhecido Twilio';
-        console.error('Twilio Send Error:', smsError);
+
+    if (!emailSent) {
+      try {
+        const mcResp = await fetch('https://api.mailchannels.net/tx/v1/send', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            personalizations: [{ to: [{ email: targetEmail }] }],
+            from: {
+              email: 'autorizacoes@catraki.com.br',
+              name: 'Escola Cidadã — Saúde em Movimento',
+            },
+            subject: `Escola Cidadã — Código de Confirmação: ${otpCode}`,
+            content: [{
+              type: 'text/html',
+              value: otpHtml,
+            }],
+          }),
+        });
+
+        if (mcResp.ok) {
+          emailSent = true;
+          emailError = '';
+          resendMessageId = 'mailchannels-sent';
+        } else {
+          const mcErr = await mcResp.text();
+          emailError = `${emailError ? emailError + ' | ' : ''}Falha MailChannels: ${mcErr}`;
+        }
+      } catch (err: any) {
+        emailError = `${emailError ? emailError + ' | ' : ''}Erro conexão MailChannels: ${err.message}`;
       }
     }
   }
 
   const targetEmailForMask = providedEmail || (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' ? await decryptAesGcm(doc.parent_email_encrypted, masterKey).catch(() => '') : '');
-  const targetPhoneForMask = providedPhone || (doc.parent_phone_encrypted && doc.parent_phone_encrypted !== 'ENC_INITIAL' ? await decryptAesGcm(doc.parent_phone_encrypted, masterKey).catch(() => '') : '');
+  const maskedDestination = maskEmail(targetEmailForMask);
 
-  const maskedDestination = channel === 'email'
-    ? maskEmail(targetEmailForMask)
-    : maskPhone(targetPhoneForMask);
-
-  let messageId = `Enviado para ${maskedDestination || 'contato do responsável'} (simulated)`;
+  let messageId = `Enviado para ${maskedDestination || 'e-mail do responsável'} (simulated)`;
   let deliveryStatus = 'simulated';
 
-  if (channel === 'email' && emailSent) {
+  if (emailSent) {
     messageId = `Enviado para ${maskedDestination} (ID: ${resendMessageId || 'mailchannels-sent'})`;
-    deliveryStatus = 'sent';
-  } else if (channel === 'sms' && smsSent) {
-    messageId = `Enviado para ${maskedDestination} (ID: ${smsMessageId})`;
     deliveryStatus = 'sent';
   }
 
@@ -780,10 +670,10 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
      WHERE id = ?`
   ).bind(otpHash, expiresAtIso, new Date().toISOString(), messageId, deliveryStatus, doc.id).run();
 
-  if (!emailSent && !smsSent) {
+  if (!emailSent) {
     console.info(`[SIMULATION_OTP] Código OTP gerado para o documento ${doc.id}: ${otpCode}`);
   } else {
-    console.log(`[SECURE_OTP] Código OTP enviado com sucesso.`);
+    console.log(`[SECURE_OTP] Código OTP enviado por e-mail com sucesso.`);
   }
 
   const requestUrl = new URL(c.req.url);
@@ -791,12 +681,12 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
 
   return c.json({
     success: true,
-    channel,
-    email_sent: emailSent || smsSent,
-    email_error: emailError || smsError || undefined,
+    channel: 'email',
+    email_sent: emailSent,
+    email_error: emailError || undefined,
     expires_in_seconds: 300,
     simulated_otp: isLocalhost ? otpCode : undefined,
-    message: `Código de verificação de 6 dígitos enviado para o ${channel === 'sms' ? 'celular (SMS/WhatsApp)' : 'e-mail'} do responsável legal.`,
+    message: 'Código de verificação de 6 dígitos enviado para o e-mail do responsável legal.',
   });
 });
 
@@ -1022,12 +912,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const geoRegion = cfData.region;
   const geoCountry = cfData.country;
 
-  // ── NTP SYNC (Pilar 3 — Observatório Nacional Brasileiro) ────────────────────────
-  // Usa timestamp certificado NTP para impossibilitar fraude com datas retroativas.
-  const ntpTs = await getSyncedTimestamp(c.env.KV_RATE_LIMIT).catch(() => ({
-    iso: new Date().toISOString(), source: 'system' as const, synced: false, offset_ms: 0, queried_at_local: new Date().toISOString()
-  }));
-  const signedAtIso = ntpTs.iso;
+  const signedAtIso = new Date().toISOString();
 
   const signaturePngSha256 = await sha256(signature_png_base64);
   const contentSha256AtSigning = doc.content_sha256 || doc.template_content_sha256;
@@ -1077,15 +962,10 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       ? 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020; Código Civil (Arts. 104, 107 e 225); CPC (Arts. 411 e 441); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; Art. 299 CP; REsp 2.205.708/PR (STJ)'
       : 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020; Código Civil (Arts. 104, 107 e 225); CPC (Arts. 411 e 441); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
     consent_text_version: doc.consent_text_version,
-    // Pilar 3: Carimbo do Tempo NTP certificado pelo Observatório Nacional Brasileiro
-    ntp_synced_at: ntpTs.iso,
-    ntp_source: ntpTs.source,
-    ntp_synced: ntpTs.synced,
-    ntp_offset_ms: ntpTs.offset_ms,
   };
 
   const manifestSha256 = await sha256(canonicalJson(manifestData));
-  const tsa = await generateTsaTimestampToken(manifestSha256, c.env.TSA_ENDPOINT);
+
   const auditLogId = `AUD-${Date.now()}-${doc.id.substring(0, 8)}`;
 
   // Cálculo do Fingerprint do Termo + Dados do Pai (SHA-256)
@@ -1108,7 +988,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     content_sha256_at_signing: contentSha256AtSigning,
     consent_text_version: doc.consent_text_version,
     manifest_sha256: manifestSha256,
-    tsa_timestamp_token: tsa.token,
+    tsa_timestamp_token: null,
     otp_requested_at: doc.otp_requested_at,
     otp_verified_at: signedAtIso,
     otp_email_message_id: doc.otp_email_message_id,
@@ -1169,7 +1049,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     autorizacaoImagem: parsed.data.auth_image === 'yes',
     hashManifesto: manifestSha256,
     dataAssinatura: new Date(signedAtIso),
-    tipoAssinatura: 'ELETRONICA_AVANCADA',
+    tipoAssinatura: 'ELETRONICA',
     ipAddress: ipAddress,
     userAgent: userAgent,
     geoCidade: geoCity,
@@ -1220,10 +1100,10 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
           signer_cpf_encrypted, signer_cpf_masked, signer_relationship, identity_method,
           signature_png_encrypted, signature_png_sha256, key_version, ip_address, user_agent,
           geo_city, geo_region, geo_country, client_fingerprint,
-          content_sha256_at_signing, consent_text_version, manifest_sha256, tsa_timestamp_token,
+          content_sha256_at_signing, consent_text_version, manifest_sha256,
           otp_requested_at, otp_verified_at, otp_email_message_id, doc_parent_hash_sha256, device_metadata,
           log_row_hash, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
       ).bind(
         auditLogId,
         doc.id,
@@ -1245,7 +1125,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         contentSha256AtSigning,
         doc.consent_text_version,
         manifestSha256,
-        tsa.token,
         doc.otp_requested_at,
         signedAtIso,
         doc.otp_email_message_id,

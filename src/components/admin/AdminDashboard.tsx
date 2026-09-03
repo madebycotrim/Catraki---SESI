@@ -930,7 +930,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           autorizacaoImagem: auth.authImage,
           hashManifesto: auth.hash,
           dataAssinatura: auth.signedAtDate,
-          tipoAssinatura: 'ELETRONICA_AVANCADA',
+          tipoAssinatura: 'ELETRONICA',
         });
 
         const sanitizedName = auth.studentName.replace(/[^a-zA-Z0-9_-]/g, '_');

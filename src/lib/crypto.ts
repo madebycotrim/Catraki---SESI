@@ -247,64 +247,7 @@ export function canonicalJson(obj: any): string {
   return '{' + pairs.join(',') + '}';
 }
 
-/**
- * Simulação e Integração com Autoridade de Carimbo do Tempo (RFC 3161 TSA)
- */
-export async function generateTsaTimestampToken(
-  manifestHash: string,
-  tsaEndpoint?: string
-): Promise<{ token: string; tsaName: string; timestamp: string; verified: boolean }> {
-  const timestampIso = new Date().toISOString();
-  // Nome correto: TSA interno Catraki — não confundir com ICP-Brasil
-  const tsaAuthority = 'Catraki TSA Interno (Sincronizado NTP.br / RFC 3161-Like — Não-ICP)';
 
-  if (tsaEndpoint && !tsaEndpoint.includes('localhost')) {
-    try {
-      const resp = await fetch(tsaEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/timestamp-query' },
-        body: JSON.stringify({ hash: manifestHash, algorithm: 'SHA-256' }),
-      });
-      if (resp.ok) {
-        const data = (await resp.json()) as any;
-        return {
-          token: data.token || data.tsa_token,
-          tsaName: data.authority || tsaAuthority,
-          timestamp: data.timestamp || timestampIso,
-          verified: true,
-        };
-      }
-    } catch {}
-  }
-
-  const tokenPayload = {
-    version: 1,
-    // OID próprio Catraki (não-ICP) — evita confusão com OID ICP-Brasil 2.16.76.1.4.1
-    policy: '1.3.6.1.4.1.99999.1 (Catraki Internal TSA — Non-ICP)',
-    imprint: {
-      hashAlgorithm: 'SHA-256',
-      hashedMessage: manifestHash,
-    },
-    serialNumber: generateSecureToken(16),
-    genTime: timestampIso,
-    tsaName: tsaAuthority,
-  };
-
-  const canonicalPayload = canonicalJson(tokenPayload);
-  const tokenSignature = await sha256(canonicalPayload + ':SESI_TSA_SIGNING_KEY');
-
-  const fullToken = JSON.stringify({
-    ...tokenPayload,
-    signature: tokenSignature,
-  });
-
-  return {
-    token: bytesToBase64(new TextEncoder().encode(fullToken)),
-    tsaName: tsaAuthority,
-    timestamp: timestampIso,
-    verified: true,
-  };
-}
 
 /**
  * Sanitização de metadados EXIF de imagens (JPEG/PNG) para proteger geolocalização e PII

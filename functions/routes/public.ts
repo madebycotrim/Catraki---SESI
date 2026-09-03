@@ -265,7 +265,6 @@ publicRouter.get('/validate/:query', async (c) => {
             cancelled_by_admin_id: docRecord.cancelled_by_admin_id,
             template_title: docRecord.template_title || 'Autorização SESI Escola Cidadã',
             procedure_description: docRecord.procedure_description || 'Autorização clínica escolar.',
-            tsa_timestamp_token: matchedAudit?.tsa_timestamp_token || 'tsa_internal_token',
           };
         }
       }
@@ -368,8 +367,6 @@ publicRouter.get('/validate/:query', async (c) => {
       document_status: record.doc_status || 'signed',
       chain_position: chainPos,
       prev_log_hash: record.prev_log_hash || 'GENESIS-HASH',
-      tsa_verified: Boolean(record.tsa_timestamp_token),
-      tsa_authority: 'Catraki TSA Interno (Sincronizado NTP.br / RFC 3161-Like — Não-ICP)',
       revocation_info: record.doc_status === 'revoked' ? {
         revoked_at: record.revoked_at,
         revoked_reason: record.revoked_reason || 'Revogado a pedido do titular / responsável legal',
@@ -591,7 +588,6 @@ publicRouter.get('/dossier/:query', async (c) => {
         signed_at: record.signed_at,
         audit_log_row_hash: record.log_row_hash || record.manifest_sha256,
         prev_log_hash: record.prev_log_hash || 'GENESIS-HASH',
-        tsa_timestamp_present: Boolean(record.tsa_timestamp_token),
         ip_masked: maskIpAddress(record.ip_address || '127.0.0.1'),
         geolocation: [record.geo_city || 'Brasília', record.geo_region || 'DF', record.geo_country || 'Brasil'].filter(Boolean).join(', '),
         user_agent: record.user_agent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',

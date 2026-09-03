@@ -56,7 +56,6 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const [authData, setAuthData] = useState(false);
   const [authImage, setAuthImage] = useState(false);
   const [readAndAccept, setReadAndAccept] = useState(false);
-  const [otpChannel] = useState<'email' | 'sms'>('email');
   const [declarationLegalResponsibility, setDeclarationLegalResponsibility] = useState(false);
 
   const [submittingSign, setSubmittingSign] = useState(false);
@@ -113,7 +112,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
     try {
       const resp = await apiClient.requestOtp(
         token, 
-        otpChannel, 
+        'email', 
         identityData.signerEmail || undefined, 
         minorName || undefined,
         undefined,
@@ -237,7 +236,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
       if (resp.success) {
         setOtpSent(false);
         setShowOtpModal(false);
-        onSuccess({ ...resp, otp_channel: otpChannel });
+        onSuccess({ ...resp, otp_channel: 'email' });
       } else {
         const errMsg = resp.error || 'Não foi possível registrar a assinatura neste momento. Por favor, tente novamente. Se o problema persistir, entre em contato com a equipe em suporte@catraki.com.br.';
         setOtpError(errMsg);

@@ -381,7 +381,7 @@ export const ManualReviewUploadSchema = z.object({
 
 export const OtpRequestSchema = z.object({
   token: z.string().min(16),
-  channel: z.enum(['sms', 'email']).default('email'),
+  channel: z.enum(['email']).default('email'),
   email: z.string().email().optional(),
   phone: z.string().optional(),
   minor_name: z.string().optional(),

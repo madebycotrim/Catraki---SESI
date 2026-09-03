@@ -8,7 +8,6 @@ import {
   encryptAesGcm,
   decryptAesGcm,
   canonicalJson,
-  generateTsaTimestampToken,
   generatePkceVerifier,
   generatePkceChallenge,
   hashPasswordPbkdf2,
@@ -93,15 +92,6 @@ describe('Núcleo Criptográfico SESI Saúde (crypto.ts)', () => {
 
     expect(jsonA).toBe(jsonB);
     expect(jsonA).toBe('{"a":2,"m":{"b":20,"y":10},"z":1}');
-  });
-
-  it('deve gerar token de carimbo do tempo RFC 3161 assinado', async () => {
-    const manifestHash = 'a1b2c3d4e5f678901234567890abcdef1234567890abcdef1234567890abcdef';
-    const tsa = await generateTsaTimestampToken(manifestHash);
-
-    expect(tsa.token).toBeDefined();
-    expect(tsa.verified).toBe(true);
-    expect(tsa.tsaName).toContain('Catraki TSA Interno');
   });
 
   it('deve gerar Code Verifier e Code Challenge PKCE conforme RFC 7636 (Base64URL SHA-256 de 43 caracteres)', async () => {

@@ -583,6 +583,7 @@ export const apiClient = {
     geolocation?: string;
     user_agent?: string;
     identity_method?: 'matricula_sesi' | 'manual_review';
+    termos_versao?: string;
     device_fingerprint_data?: any;
   }): Promise<any> {
     // Função auxiliar: persiste auth_image/health/data no localStorage

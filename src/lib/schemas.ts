@@ -435,6 +435,7 @@ export const SignDocumentSchema = z.object({
     errorMap: () => ({ message: 'É obrigatório declarar que é o responsável legal e confirmar o aceite da autorização' })
   }),
   client_fingerprint: z.string().max(256).optional(),
+  termos_versao: z.string().max(32).optional(),
   device_fingerprint_data: z.object({
     screen_resolution: z.string().optional(),
     os_name: z.string().optional(),

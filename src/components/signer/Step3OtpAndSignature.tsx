@@ -231,6 +231,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         geolocation: clientGeo.location || undefined,
         user_agent: navigator.userAgent,
         identity_method: identityData.identityMethod,
+        termos_versao: '1.0.2026',
       });
 
       if (resp.success) {
@@ -523,13 +524,18 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   <Mail className="w-4 h-4 text-sesi-primary shrink-0 mt-0.5" />
                   <div className="space-y-1 text-justify">
                     <strong className="text-slate-800 block">Confirmação de Segurança por E-mail:</strong>
-                    <p className="m-0 text-xs text-slate-500">
-                      Para concluir a assinatura e garantir a integridade do processo, um código temporário de 6 dígitos será enviado para <span className="text-slate-900 font-bold select-all break-all">{identityData.signerEmail}</span>.
+                    <p className="m-0 text-[11px] text-slate-500 pt-1">
+                      Ao assinar este documento, você declara ter lido e concordar com os nossos{' '}
+                      <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] font-bold underline hover:text-blue-900">
+                        Termos de Uso
+                      </a>{' '}
+                      e com a nossa{' '}
+                      <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] font-bold underline hover:text-blue-900">
+                        Política de Privacidade
+                      </a>.
                     </p>
                   </div>
                 </div>
-                
-
               </div>
 
             </div>
@@ -752,8 +758,8 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     </div>
                     <span className="text-[11px] font-semibold text-slate-700 leading-normal text-justify select-none">
                       {isMaiorDeIdade
-                        ? <>Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras e concordo expressamente com a validade deste método de assinatura eletrônica, autorizando a emissão deste documento digital através da plataforma Catraki. <span className="text-red-500 font-bold">*</span></>
-                        : <>Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras, sou responsável legal do menor e concordo expressamente com a validade deste método de assinatura eletrônica, autorizando a emissão do documento através da plataforma Catraki. <span className="text-red-500 font-bold">*</span></>
+                        ? <>Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras e concordo com os <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] font-bold underline hover:text-blue-900" onClick={(e) => e.stopPropagation()}>Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] font-bold underline hover:text-blue-900" onClick={(e) => e.stopPropagation()}>Política de Privacidade</a>, autorizando a emissão digital. <span className="text-red-500 font-bold">*</span></>
+                        : <>Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras, sou responsável legal do menor e concordo com os <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] font-bold underline hover:text-blue-900" onClick={(e) => e.stopPropagation()}>Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] font-bold underline hover:text-blue-900" onClick={(e) => e.stopPropagation()}>Política de Privacidade</a>, autorizando a emissão digital. <span className="text-red-500 font-bold">*</span></>
                       }
                     </span>
                   </label>

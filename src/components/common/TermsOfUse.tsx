@@ -70,13 +70,13 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
         <div className="text-center mb-6 sm:mb-8 pb-3 border-b border-slate-100">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-sesi-primary border border-blue-200 rounded-full text-[11px] sm:text-xs font-bold uppercase tracking-wider mb-2.5">
             <Scale className="w-3.5 h-3.5 text-sesi-primary" />
-            <span>Termos Gerais de Uso e Validade Jurídica</span>
+            <span>Termos Gerais de Uso e Aceite Eletrônico</span>
           </div>
           <h1 className="text-sm sm:text-base md:text-[13pt] font-extrabold uppercase text-slate-900 tracking-tight m-0">
             TERMOS E CONDIÇÕES GERAIS DE USO DA PLATAFORMA
           </h1>
           <p className="text-xs text-slate-500 mt-1.5 m-0">
-            Regulamento do Sistema Tecnológico • Resguardo Legal e Responsabilidade
+            Regulamento do Sistema Tecnológico • Resguardo Institucional e Responsabilidade
           </p>
         </div>
 
@@ -98,7 +98,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
           <section className="space-y-2">
             <h2 className="text-xs sm:text-sm font-bold uppercase text-slate-900 flex items-center gap-2 m-0">
               <span className="w-5 h-5 rounded-full bg-blue-100 text-[#034b7f] font-extrabold flex items-center justify-center text-xs shrink-0">2</span>
-              <span>Validade Jurídica da Assinatura Eletrônica</span>
+              <span>Assinatura Eletrônica Simples e Consentimento</span>
             </h2>
             <p className="m-0 pl-7">
               Ao utilizar este ambiente para firmar termos de consentimento, o signatário e a entidade controladora concordam expressamente com a utilização do meio eletrônico como prova de manifestação da vontade, nos termos do <strong>Artigo 10, § 2º da Medida Provisória nº 2.200-2/2001</strong>, da <strong>Lei Federal nº 14.063/2020</strong>, dos <strong>Arts. 104 e 107 do Código Civil</strong> e dos <strong>Arts. 411 e 441 do Código de Processo Civil</strong>.

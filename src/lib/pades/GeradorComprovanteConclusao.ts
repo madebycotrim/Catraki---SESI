@@ -361,19 +361,18 @@ export class GeradorComprovanteConclusao {
     drawLine(MARGIN, y, PAGE_W - MARGIN, y);
     novaLinha(14);
 
-    page.drawText('DECLARAÇÃO DE AUTENTICIDADE E RESPONSABILIDADE', { x: MARGIN, y, size: 7.5, font: fontBold, color: COR_PRETO });
+    page.drawText('REGISTRO DE ACEITE E HISTÓRICO DE AUDITORIA', { x: MARGIN, y, size: 7.5, font: fontBold, color: COR_PRETO });
     novaLinha(11);
 
     const disclaimer = [
-      'Este Comprovante de Conclusão e Registro de Assinatura Eletrônica é um documento digital imutável gerado automaticamente pela Plataforma Catraki,',
-      'chancelado com o Hash SHA-256 do manifesto criptográfico registrado no momento da confirmação da assinatura eletrônica por e-mail (OTP).',
-      'Qualquer alteração posterior a este documento — incluindo a modificação de um único bit — invalida sua prova jurídica.',
+      'Este Comprovante de Conclusão e Registro de Assinatura Eletrônica Simples é gerado automaticamente pela Plataforma Catraki,',
+      'contendo o identificador SHA-256 e o histórico temporal registrado no momento da confirmação do aceite eletrônico por e-mail (OTP).',
+      'O presente registro atesta a manifestação da vontade para os devidos fins de controle institucional e conformidade.',
       '',
-      'BASE LEGAL: MP nº 2.200-2/2001 (Art. 10, § 2º); Lei nº 14.063/2020; Código Civil (Arts. 104, 107 e 225);',
-      'CPC — Código de Processo Civil (Arts. 411 e 441); LGPD — Lei nº 13.709/2018 (Arts. 46, 47 e 48);',
-      'Marco Civil da Internet — Lei nº 12.965/2014 (Art. 15); STJ — REsp 2.205.708/PR (validade jurídica).',
+      'BASE LEGAL: Lei Federal nº 14.063/2020 (Assinatura Eletrônica Simples); MP nº 2.200-2/2001 (Art. 10, § 2º);',
+      'Código Civil (Arts. 104 e 107); LGPD — Lei nº 13.709/2018 (Arts. 11 e 14); Marco Civil da Internet (Lei nº 12.965/2014).',
       '',
-      'A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash,',
+      'A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de logs e emissão de comprovantes,',
       'não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.',
     ];
 

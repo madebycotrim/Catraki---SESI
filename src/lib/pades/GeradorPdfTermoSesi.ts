@@ -538,7 +538,7 @@ export class GeradorPdfTermoSesi {
 
       const xCabecalho2 = logoCatrakiImg ? margemEsquerda + 85 : margemEsquerda;
 
-      page2.drawText('CERTIFICADO DE CONCLUSÃO DE ASSINATURA ELETRÔNICA', {
+      page2.drawText('COMPROVANTE DE REGISTRO DE ASSINATURA ELETRÔNICA', {
         x: xCabecalho2,
         y: y2 - 5,
         size: 10.5,
@@ -546,7 +546,7 @@ export class GeradorPdfTermoSesi {
         color: corAzulSesi,
       });
 
-      page2.drawText('As assinaturas eletrônicas realizadas possuem validade jurídica nos termos do Art. 10, § 2º da MP nº 2.200-2/2001, Lei nº 14.063/2020, CC e CPC.', {
+      page2.drawText('Assinatura eletrônica simples realizada nos termos da Lei Federal nº 14.063/2020 e Art. 10, § 2º da MP nº 2.200-2/2001.', {
         x: xCabecalho2,
         y: y2 - 17,
         size: 5.8,

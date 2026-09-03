@@ -255,7 +255,7 @@ export interface PublicValidationResponse {
   document_status: DocumentStatus;
   chain_position: number;
   prev_log_hash: string | null;
-  tsa_verified: boolean;
+  tsa_verified?: boolean;
   tsa_authority?: string;
   auth_image?: 'yes' | 'no' | boolean | null;
   auth_health?: 'yes' | 'no' | boolean | null;

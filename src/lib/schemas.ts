@@ -432,7 +432,7 @@ export const SignDocumentSchema = z.object({
     errorMap: () => ({ message: 'É obrigatório firmar a declaração de veracidade sob as penas do Art. 299 do Código Penal' })
   }),
   declaration_legal_responsibility: z.literal(true, {
-    errorMap: () => ({ message: 'É obrigatório declarar que é o responsável legal e reconhecer a validade jurídica da assinatura' })
+    errorMap: () => ({ message: 'É obrigatório declarar que é o responsável legal e confirmar o aceite da autorização' })
   }),
   client_fingerprint: z.string().max(256).optional(),
   device_fingerprint_data: z.object({

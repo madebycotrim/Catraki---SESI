@@ -192,7 +192,7 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
             <div className="space-y-2">
               <h3 className="text-base sm:text-lg font-bold text-slate-900 uppercase">Autorização Revogada com Sucesso</h3>
               <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-                Sua revogação foi registrada com segurança e validade jurídica. A autorização anterior não é mais válida e a participação do(a) estudante em novos atendimentos foi suspensa. A coordenação da escola e as equipes de saúde já foram notificadas.
+                Sua revogação foi registrada com sucesso no sistema. A autorização anterior não é mais válida e a participação do(a) estudante em novos atendimentos foi suspensa. A coordenação da escola e as equipes de saúde já foram notificadas.
               </p>
             </div>
             <div className="pt-4">

@@ -1071,7 +1071,7 @@ adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'oper
     return new Response(pdfBytes.buffer as ArrayBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="certificado-conclusao-${validationCode}.pdf"`,
+        'Content-Disposition': `attachment; filename="comprovante-aceite-${validationCode}.pdf"`,
         'Cache-Control': 'no-store, no-cache',
         'X-Document-Id': doc.id,
         'X-Validation-Code': validationCode,
@@ -1081,7 +1081,7 @@ adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'oper
   } catch (err: any) {
     return c.json({
       success: false,
-      error: `Erro ao gerar Certificado de Conclusão: ${err?.message || 'Erro interno'}`,
+      error: `Erro ao gerar Comprovante de Aceite: ${err?.message || 'Erro interno'}`,
       code: 'CERTIFICATE_GENERATION_FAILED',
     }, 500);
   }

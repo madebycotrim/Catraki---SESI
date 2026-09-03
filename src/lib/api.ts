@@ -696,7 +696,6 @@ export const apiClient = {
       content_sha256_at_signing: doc.content_sha256,
       consent_text_version: doc.consent_text_version,
       manifest_sha256: manifestSha256,
-      tsa_timestamp_token: null,
       otp_requested_at: otpRequestedTime,
       otp_verified_at: signedAt,
       otp_email_message_id: otpMsgId,
@@ -729,7 +728,6 @@ export const apiClient = {
       content_sha256_at_signing: doc.content_sha256,
       consent_text_version: doc.consent_text_version,
       manifest_sha256: manifestSha256,
-      tsa_timestamp_token: null,
       otp_requested_at: otpRequestedTime,
       otp_verified_at: signedAt,
       otp_email_message_id: otpMsgId,
@@ -771,9 +769,9 @@ export const apiClient = {
       manifest_sha256: manifestSha256,
       log_row_hash: logRowHash,
       signed_at_utc: signedAt,
-      tsa_authority: tsa.tsaName,
+      tsa_authority: 'Servidor UTC Catraki',
       validation_url: `/validar/${validationCode}`,
-      message: 'Autorização médica assinada eletronicamente com sucesso e registrada na cadeia de custódia.',
+      message: 'Autorização registrada eletronicamente com sucesso.',
     };
   },
 
@@ -1353,7 +1351,7 @@ export const apiClient = {
   },
 
   /**
-   * Baixa o Certificado de Conclusão / Relatório de Linha do Tempo em PDF (Lei 14.063/2020)
+   * Baixa o Comprovante de Aceite / Relatório de Linha do Tempo em PDF (Lei 14.063/2020)
    */
   async downloadDocumentCertificate(docId: string): Promise<boolean> {
     try {
@@ -1368,7 +1366,7 @@ export const apiClient = {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `certificado-conclusao-${docId.slice(-8)}.pdf`;
+      a.download = `comprovante-aceite-${docId.slice(-8)}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

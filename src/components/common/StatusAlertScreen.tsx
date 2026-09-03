@@ -183,12 +183,12 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
               Tudo certo por aqui!
             </h2>
             <p className="text-xs sm:text-sm font-semibold text-emerald-900 leading-relaxed bg-emerald-50/80 p-3.5 rounded-xl border border-emerald-200/60">
-              Sua assinatura eletrônica foi registrada com sucesso e possui validade jurídica.
+              Sua autorização eletrônica foi registrada com sucesso.
             </p>
           </div>
 
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-justify sm:text-center px-1">
-            Uma cópia completa do comprovante já foi enviada para o seu e-mail. Você pode baixar a sua via agora ou acessar o validador público a qualquer momento usando o código de autenticidade.
+            Uma cópia completa do comprovante foi disponibilizada. Você pode baixar a sua via agora ou consultar o registro a qualquer momento usando o código de protocolo.
           </p>
 
           {documentTitle && (

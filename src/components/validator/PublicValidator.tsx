@@ -131,7 +131,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
               className="text-xs sm:text-sm font-bold bg-sesi-primary hover:bg-blue-900 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>Imprimir Certificado / Salvar PDF</span>
+              <span>Imprimir Comprovante / Salvar PDF</span>
             </button>
           </div>
         </div>
@@ -150,10 +150,10 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
           </div>
           <div className="text-left sm:text-right">
             <p className="text-[10px] sm:text-[8.5pt] text-slate-500 m-0 uppercase tracking-wider font-semibold">
-              Sistema de Auditoria Pública
+              Sistema de Registro e Consulta
             </p>
             <p className="text-xs sm:text-[9pt] text-slate-800 m-0 font-bold">
-              Validação de Autenticidade
+              Comprovante de Aceite Eletrônico
             </p>
             <p className="text-[10px] sm:text-[8pt] text-slate-500 m-0">
               {dataHoje}
@@ -164,10 +164,10 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
         {/* Título Oficial do Atestado */}
         <div className="text-center mb-5 pb-2">
           <h1 className="text-sm sm:text-base font-bold uppercase tracking-wide text-slate-900 m-0">
-            CERTIFICADO DE AUTENTICIDADE E VALIDADE JURÍDICA
+            COMPROVANTE DE ACEITE ELETRÔNICO
           </h1>
           <p className="text-xs text-slate-500 mt-1 mb-0">
-            Verificação de Autenticidade e Integridade Digital (Art. 10, § 2º da MP 2.200-2/2001, Lei nº 14.063/2020, Código Civil, CPC e STJ REsp 2.205.708/PR)
+            Registro de Assinatura Eletrônica Simples (Lei Federal nº 14.063/2020)
           </p>
         </div>
 
@@ -179,10 +179,10 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                 <Search className="w-6 h-6" />
               </div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900 m-0">
-                Validador de Autenticidade Catraki
+                Consulta de Registro de Aceite Catraki
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto mt-1 leading-relaxed">
-                Verifique se um documento assinado pela plataforma é autêntico, está íntegro e foi realmente emitido pelo Catraki.
+                Consulte o comprovante de aceite e os registros de autorização emitidos pela plataforma.
               </p>
             </div>
 
@@ -254,14 +254,14 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                   : 'bg-amber-50 text-amber-800 border-amber-200'
               }`}>
                 {validationResult.document_status === 'signed' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />}
-                <span>{validationResult.document_status === 'signed' ? 'Assinatura Verificada e Autêntica' : 'Status: ' + validationResult.document_status}</span>
+                <span>{validationResult.document_status === 'signed' ? 'Aceite Registrado com Sucesso' : 'Status: ' + validationResult.document_status}</span>
               </div>
               
               <h2 className="text-xs sm:text-sm md:text-base font-extrabold text-slate-900 uppercase tracking-wide m-0">
-                {validationResult.document_status === 'signed' ? 'DOCUMENTO ÍNTEGRO E VÁLIDO' : 'DOCUMENTO REVOGADO / EXPIRADO'}
+                {validationResult.document_status === 'signed' ? 'AUTORIZAÇÃO CONFIRMADA' : 'DOCUMENTO REVOGADO / EXPIRADO'}
               </h2>
               <p className="text-[11px] sm:text-xs text-slate-600 m-0">
-                Posição na Cadeia de Auditoria Digital: Bloco #{validationResult.chain_position} • {validationResult.legal_notice}
+                Registro de Auditoria Digital: Bloco #{validationResult.chain_position} • {validationResult.legal_notice}
               </p>
             </div>
 
@@ -269,7 +269,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
             <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-2.5 sm:p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-xs">
               <div>
                 <span className="block text-[9px] sm:text-[10px] font-bold text-blue-900 uppercase tracking-wider">
-                  Código Único de Autenticidade
+                  Código de Protocolo do Aceite
                 </span>
                 <strong className="text-sm sm:text-lg font-mono font-extrabold text-sesi-primary tracking-wider break-all block mt-0.5">
                   {validationCode}
@@ -277,7 +277,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
               </div>
               <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg shrink-0">
                 <Sparkles className="w-3 h-3 text-emerald-700" />
-                <span>Autenticado Eletronicamente</span>
+                <span>Aceite Registrado Eletronicamente</span>
               </span>
             </div>
 
@@ -533,10 +533,10 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                 <div className="bg-white border border-slate-200 rounded-xl p-2.5 flex flex-col items-center justify-between text-center space-y-1.5 shadow-xs">
                   <div className="w-full">
                     <span className="block text-[9.5px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 flex items-center justify-center gap-1">
-                      <QrCode className="w-3 h-3 text-sesi-primary" /> Validação Pública
+                      <QrCode className="w-3 h-3 text-sesi-primary" /> Consulta do Aceite
                     </span>
                     <p className="text-[9px] text-slate-500 m-0 leading-tight">
-                      Aponte a câmera para auditar online:
+                      Aponte a câmera para consultar online:
                     </p>
                   </div>
 
@@ -544,7 +544,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                     {qrCodeDataUrl ? (
                       <img
                         src={qrCodeDataUrl}
-                        alt="QR Code de Validação Pública"
+                        alt="QR Code de Consulta do Aceite"
                         className="w-20 h-20 sm:w-24 sm:h-24 block mx-auto rounded"
                       />
                     ) : (

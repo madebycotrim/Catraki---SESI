@@ -1665,7 +1665,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     await apiClient.downloadDocumentCertificate(auth.id);
                                   }}
                                   className="inline-flex items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-600 text-xs font-bold transition-all cursor-pointer active:scale-95"
-                                  title="Baixar Certificado PDF com Hash"
+                                  title="Baixar Comprovante de Aceite PDF"
                                 >
                                   <FileCheck className="w-3.5 h-3.5 text-blue-600" />
                                 </button>

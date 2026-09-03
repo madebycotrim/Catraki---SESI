@@ -114,7 +114,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
                 <strong className="text-slate-950">Atendimento e Participação (Obrigatório):</strong> Autorização para que o(a) aluno(a) participe das ações do projeto e passe pelas triagens clínicas nas unidades móveis.
               </li>
               <li>
-                <strong className="text-slate-950">Tratamento de Dados (Obrigatório):</strong> Autorização para que seus dados pessoais e os do(a) estudante sejam registrados e protegidos na plataforma. Esses dados são usados exclusivamente para garantir a validade jurídica desta assinatura e para que você possa revogar a autorização a qualquer momento, se necessário.
+                <strong className="text-slate-950">Tratamento de Dados (Obrigatório):</strong> Autorização para que seus dados pessoais e os do(a) estudante sejam registrados e protegidos na plataforma. Esses dados são usados exclusivamente para a correta identificação deste aceite e para que você possa revogar a autorização a qualquer momento, se necessário.
               </li>
               <li>
                 <strong className="text-slate-950">Uso de Imagem (Opcional):</strong> Autorização para o registro de fotos institucionais do evento. A recusa desta opção não impede a participação do(a) estudante.

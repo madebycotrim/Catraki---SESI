@@ -988,7 +988,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     content_sha256_at_signing: contentSha256AtSigning,
     consent_text_version: doc.consent_text_version,
     manifest_sha256: manifestSha256,
-    tsa_timestamp_token: null,
     otp_requested_at: doc.otp_requested_at,
     otp_verified_at: signedAtIso,
     otp_email_message_id: doc.otp_email_message_id,

@@ -486,7 +486,7 @@ export function getTransactionalCompletionEmailHtml(params: CompletionEmailParam
         ✅ Tudo pronto! Sua autorização eletrônica foi registrada com sucesso.
       </p>
       <p style="margin: 4px 0 0 0; font-size: 12.5px; color: #15803d;">
-        O documento foi chancelado criptograficamente e possui plena validade jurídica e eficácia probatória.
+        O aceite eletrônico foi registrado e o comprovante com as informações da autorização está disponível.
       </p>
     </div>
 
@@ -590,19 +590,19 @@ export function getTransactionalCompletionEmailText(params: CompletionEmailParam
 Olá, ${signerName}!
 
 Sua autorização eletrônica foi registrada com sucesso.
-Em anexo a este e-mail, você encontra o arquivo PDF oficial contendo o Termo de Consentimento e o Certificado de Conclusão com o resumo criptográfico SHA-256 e a trilha de auditoria digital.
+Em anexo a este e-mail, você encontra o arquivo PDF oficial contendo o Termo de Consentimento e o Comprovante de Conclusão com o resumo e o registro de auditoria.
 
 RESUMO DO DOCUMENTO:
 - Documento: ${documentTitle}
 ${minorName ? `- Estudante: ${minorName}\n` : ''}- Responsável Signatário: ${signerName}
 - Código de Autenticidade: ${docCode}
-${manifestSha256 ? `- Hash SHA-256: ${manifestSha256}\n` : ''}- Situação: ASSINADO E VÁLIDO
+${manifestSha256 ? `- Hash SHA-256: ${manifestSha256}\n` : ''}- Situação: ASSINADO E REGISTRADO
 
-Link para validação pública e download online:
+Link para consulta e download online:
 ${downloadUrl}
 
 BASE LEGAL:
-Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º), Lei Federal nº 14.063/2020, Código Civil (Arts. 104 e 107), Código de Processo Civil (Arts. 411 e 441), LGPD (Lei nº 13.709/2018) e STJ (REsp nº 2.205.708/PR).
+Lei Federal nº 14.063/2020 (Assinatura Eletrônica Simples), Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º) e LGPD (Lei nº 13.709/2018).
 
 Atenciosamente,
 Equipe ${companyName}
@@ -628,8 +628,6 @@ export function getRevocationEmailHtml(params: RevocationEmailParams): string {
     supportEmail = 'suporte@catraki.com.br',
     dpoContact = 'suporte@catraki.com.br',
     documentHashSha256,
-    ntpTimestamp,
-    ntpSource,
   } = params;
 
   const docCode = validationCode || `CATRAKI-${documentId.substring(0, 4).toUpperCase()}-${documentId.substring(Math.max(0, documentId.length - 4)).toUpperCase()}`;
@@ -714,7 +712,7 @@ export function getRevocationEmailText(params: RevocationEmailParams): string {
   const {
     parentName, minorName, documentId, validationCode, revokedAtFormatted,
     institutionName, reason, supportEmail = 'suporte@catraki.com.br',
-    dpoContact = 'suporte@catraki.com.br', documentHashSha256, ntpTimestamp, ntpSource,
+    dpoContact = 'suporte@catraki.com.br', documentHashSha256,
   } = params;
   const docCode = validationCode || `CATRAKI-${documentId.substring(0, 4).toUpperCase()}-${documentId.substring(Math.max(0, documentId.length - 4)).toUpperCase()}`;
 

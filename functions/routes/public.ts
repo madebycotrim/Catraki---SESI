@@ -1,13 +1,14 @@
 import { Hono } from 'hono';
 import { LgpdRequestPublicSchema, maskCPF, getInitials } from '../../src/lib/schemas.ts';
-import { encryptAesGcm, maskIpAddress } from '../../src/lib/crypto.ts';
+import { encryptAesGcm, maskIpAddress, hmacSha256 } from '../../src/lib/crypto.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
 import type { Env, PublicValidationResponse } from '../../src/lib/types.ts';
 
 export const publicRouter = new Hono<{ Bindings: Env }>();
 
-publicRouter.use('*', rateLimiter({ limit: 60, windowSeconds: 60, keyPrefix: 'pub_val' }));
+// Rate limit expandido para suportar integrações de clínicas/escolas em lote (SMS-MEDCO)
+publicRouter.use('*', rateLimiter({ limit: 300, windowSeconds: 60, keyPrefix: 'pub_val' }));
 
 /**
  * GET /api/public/client-info
@@ -197,13 +198,31 @@ publicRouter.get('/validate/:query', async (c) => {
         }
 
         if (!docRecord && clean.length >= 4) {
-          docRecord = await db.prepare(
-            `SELECT d.*, t.title as template_title, t.procedure_description
-             FROM documents d
-             LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-             WHERE d.id = ? OR d.access_token = ? OR d.id LIKE ? OR d.access_token LIKE ?
-             LIMIT 1`
-          ).bind(clean, clean, `%${clean}%`, `%${clean}%`).first<any>().catch(() => null);
+          const cleanCpfDigits = clean.replace(/\D/g, '');
+          if (cleanCpfDigits.length === 11) {
+            try {
+              const pepper = c.env?.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD_98765';
+              const minorCpfBindex = await hmacSha256(cleanCpfDigits, pepper);
+              docRecord = await db.prepare(
+                `SELECT d.*, t.title as template_title, t.procedure_description
+                 FROM documents d
+                 LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+                 WHERE (d.minor_cpf = ? OR d.minor_cpf_bindex_sha256 = ?)
+                   AND d.status = 'signed'
+                 ORDER BY d.created_at DESC LIMIT 1`
+              ).bind(maskCPF(cleanCpfDigits), minorCpfBindex).first<any>().catch(() => null);
+            } catch {}
+          }
+
+          if (!docRecord) {
+            docRecord = await db.prepare(
+              `SELECT d.*, t.title as template_title, t.procedure_description
+               FROM documents d
+               LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+               WHERE d.id = ? OR d.access_token = ? OR d.id LIKE ? OR d.access_token LIKE ?
+               LIMIT 1`
+            ).bind(clean, clean, `%${clean}%`, `%${clean}%`).first<any>().catch(() => null);
+          }
 
           if (!docRecord) {
             docRecord = await db.prepare(
@@ -582,5 +601,73 @@ publicRouter.get('/dossier/:query', async (c) => {
     return c.json({ success: true, dossier });
   } catch (err: any) {
     return c.json({ success: false, error: 'Erro ao gerar dossiê forense.', details: err?.message }, 500);
+  }
+});
+
+/**
+ * POST /api/public/batch-check
+ * Validação de consentimento / TCLE em lote de alta performance para o SMS-MEDCO
+ */
+publicRouter.post('/batch-check', async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const cpfs: string[] = Array.isArray(body.cpfs) ? body.cpfs : [];
+    const db = c.env?.DB;
+
+    if (!db || cpfs.length === 0) {
+      return c.json({ success: true, results: {}, total: 0 });
+    }
+
+    const pepper = c.env?.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD_98765';
+    const results: Record<string, {
+      authorized: boolean;
+      status: string;
+      validation_code?: string;
+      signed_at?: string;
+      minor_name?: string;
+      document_id?: string;
+    }> = {};
+
+    for (const rawCpf of cpfs.slice(0, 500)) {
+      const cleanCpf = (rawCpf || '').replace(/\D/g, '');
+      if (cleanCpf.length !== 11) {
+        results[rawCpf] = { authorized: false, status: 'invalid_cpf' };
+        continue;
+      }
+
+      const minorCpfBindex = await hmacSha256(cleanCpf, pepper);
+      const existing = await db.prepare(
+        `SELECT d.id, d.status, d.minor_name, d.parent_name, a.manifest_sha256, a.signed_at
+         FROM documents d
+         LEFT JOIN audit_logs a ON d.id = a.document_id
+         WHERE d.status = 'signed' 
+           AND (d.minor_cpf = ? OR d.minor_cpf_bindex_sha256 = ?)
+         ORDER BY a.signed_at DESC LIMIT 1`
+      ).bind(maskCPF(cleanCpf), minorCpfBindex).first<any>().catch(() => null);
+
+      if (existing) {
+        const validationCode = existing.manifest_sha256
+          ? `CATRAKI-${existing.manifest_sha256.substring(0, 4).toUpperCase()}-${existing.manifest_sha256.substring(existing.manifest_sha256.length - 4).toUpperCase()}`
+          : `CATRAKI-${existing.id.slice(-8).toUpperCase()}`;
+
+        results[rawCpf] = {
+          authorized: true,
+          status: 'signed',
+          validation_code: validationCode,
+          signed_at: existing.signed_at || new Date().toISOString(),
+          minor_name: existing.minor_name,
+          document_id: existing.id,
+        };
+      } else {
+        results[rawCpf] = {
+          authorized: false,
+          status: 'not_found_or_pending',
+        };
+      }
+    }
+
+    return c.json({ success: true, results, count: Object.keys(results).length });
+  } catch (err: any) {
+    return c.json({ success: false, error: 'Erro ao processar validação em lote.', details: err?.message }, 500);
   }
 });

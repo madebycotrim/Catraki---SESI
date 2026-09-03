@@ -294,11 +294,11 @@ signerRouter.post('/verify-matricula', async (c) => {
  * Verifica se o estudante já possui uma autorização ativa e assinada
  */
 signerRouter.post('/check-student', async (c) => {
-  const body = await c.req.json();
-  const { minor_cpf, minor_name, minor_birth_date } = body;
+  const body = await c.req.json().catch(() => ({}));
+  const { minor_cpf, cpf, minor_name, minor_birth_date } = body;
   const db = c.env.DB;
 
-  const cleanCpf = (minor_cpf || '').replace(/\D/g, '');
+  const cleanCpf = (minor_cpf || cpf || '').replace(/\D/g, '');
   const cleanName = (minor_name || '').trim();
 
   let query = "SELECT d.id, d.status, d.minor_name, d.parent_name, a.manifest_sha256, a.signed_at FROM documents d LEFT JOIN audit_logs a ON d.id = a.document_id WHERE d.status = 'signed' AND (";
@@ -313,7 +313,7 @@ signerRouter.post('/check-student', async (c) => {
     query += "LOWER(d.minor_name) = LOWER(?) AND d.minor_birth_date = ?";
     params.push(cleanName, minor_birth_date);
   } else {
-    return c.json({ hasExistingSignature: false });
+    return c.json({ authorized: false, hasExistingSignature: false });
   }
 
   query += ") ORDER BY a.signed_at DESC LIMIT 1";
@@ -326,7 +326,10 @@ signerRouter.post('/check-student', async (c) => {
         : `CATRAKI-${existing.id.slice(-8).toUpperCase()}`;
 
       return c.json({
+        authorized: true,
         hasExistingSignature: true,
+        status: 'signed',
+        validationCode,
         existingValidationCode: validationCode,
         signedAt: existing.signed_at,
         signerNameMasked: existing.parent_name ? maskName(existing.parent_name) : 'Responsável Legal',
@@ -338,7 +341,7 @@ signerRouter.post('/check-student', async (c) => {
     console.error('Erro ao verificar duplicidade de estudante:', e);
   }
 
-  return c.json({ hasExistingSignature: false });
+  return c.json({ authorized: false, hasExistingSignature: false });
 });
 
 /**

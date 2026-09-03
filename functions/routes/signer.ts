@@ -14,6 +14,7 @@ import {
   calcularIdade,
   generateUniqueDocId,
   formatUserAgent,
+  formatBrasiliaDateTime,
 } from '../../src/lib/schemas.ts';
 import {
   sha256,
@@ -1381,6 +1382,11 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     signerName: signer_name,
     documentTitle: docTitle,
     downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
+    minorName: doc.minor_name,
+    institutionName: (doc as any).school_name || (doc as any).institution_name || 'Serviço Social da Indústria (SESI-DF)',
+    validationCode,
+    manifestSha256,
+    signedAtFormatted: formatBrasiliaDateTime(new Date()),
     companyName: 'Plataforma Catraki',
     supportEmail: 'suporte@catraki.com.br',
   });
@@ -1388,6 +1394,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     signerName: signer_name,
     documentTitle: docTitle,
     downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
+    minorName: doc.minor_name,
+    validationCode,
+    manifestSha256,
     companyName: 'Plataforma Catraki',
     supportEmail: 'suporte@catraki.com.br',
   });

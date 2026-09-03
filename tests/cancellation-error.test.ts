@@ -95,7 +95,7 @@ describe('Funcionalidade: Revogação e Cancelamento por Erro Operacional (LGPD 
       institutionName: 'Plataforma Catraki',
       reason: 'Inconsistência cadastral na data de nascimento do estudante',
       supportEmail: 'suporte@catraki.com.br',
-      dpoContact: 'privacidade@catraki.com.br',
+      dpoContact: 'suporte@catraki.com.br',
     };
 
     it('deve gerar assunto padronizado para o e-mail de cancelamento', () => {
@@ -106,16 +106,16 @@ describe('Funcionalidade: Revogação e Cancelamento por Erro Operacional (LGPD 
     it('deve gerar template HTML com modelo oficial, hash de autenticidade, menção à LGPD e próximos passos', () => {
       const html = getTransactionalCancellationEmailHtml(mockParams);
 
-      expect(html).toContain('Olá, Maria Silva Santos,');
+      expect(html).toContain('Maria Silva Santos');
       expect(html).toContain('Termo de Consentimento - Lucas Silva Santos');
       expect(html).toContain('CATRAKI-8661-7A48');
       expect(html).toContain('CANCELADO POR ERRO');
       expect(html).toContain('Plataforma Catraki');
       expect(html).toContain('Inconsistência cadastral na data de nascimento');
       expect(html).toContain('O que acontece agora?');
-      expect(html).toContain('Os links de acesso que você recebeu para este documento foram desativados.');
+      expect(html).toContain('Os links de acesso gerados para este documento foram desativados');
       expect(html).toContain('LGPD');
-      expect(html).toContain('privacidade@catraki.com.br');
+      expect(html).toContain('suporte@catraki.com.br');
     });
 
     it('deve gerar template em texto puro contendo todos os elementos do modelo oficial', () => {
@@ -125,7 +125,7 @@ describe('Funcionalidade: Revogação e Cancelamento por Erro Operacional (LGPD 
       expect(text).toContain('Olá, Maria Silva Santos.');
       expect(text).toContain('Código de Autenticidade: CATRAKI-8661-7A48');
       expect(text).toContain('Justificativa: "Inconsistência cadastral na data de nascimento do estudante"');
-      expect(text).toContain('Os links de acesso que você recebeu para este documento foram desativados.');
+      expect(text).toContain('Os links de acesso foram desativados');
     });
   });
 

@@ -7,6 +7,7 @@ import {
   LogAdminExportSchema,
   generateUniqueDocId,
   formatCPF,
+  formatBrasiliaDateTime,
 } from '../../src/lib/schemas.ts';
 import {
   sha256,
@@ -1249,6 +1250,11 @@ adminRouter.post('/documents/:id/resend-signed-email', requireAuth(['admin_maste
     signerName,
     documentTitle: docTitle,
     downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
+    minorName: doc.minor_name,
+    institutionName: (doc as any).school_name || (doc as any).institution_name || 'Serviço Social da Indústria (SESI-DF)',
+    validationCode,
+    manifestSha256,
+    signedAtFormatted: formatBrasiliaDateTime(auditLog?.signed_at || doc.created_at || new Date()),
     companyName: 'Plataforma Catraki',
     supportEmail: 'suporte@catraki.com.br',
   });
@@ -1256,6 +1262,9 @@ adminRouter.post('/documents/:id/resend-signed-email', requireAuth(['admin_maste
     signerName,
     documentTitle: docTitle,
     downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
+    minorName: doc.minor_name,
+    validationCode,
+    manifestSha256,
     companyName: 'Plataforma Catraki',
     supportEmail: 'suporte@catraki.com.br',
   });

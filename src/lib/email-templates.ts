@@ -1,43 +1,46 @@
 /**
  * ============================================================================
  * TEMPLATES DE E-MAIL TRANSACIONAL — PLATAFORMA CATRAKI
- * Design padronizado: folha A4, logo Catraki à esquerda, divisa azul
- * Conformidade: LGPD (Lei nº 13.709/2018 - Arts. 6º, VI e 18) e Marco Civil
+ * Design padronizado: folha A4 digital, logo Catraki, cabeçalho institucional,
+ * tabelas de metadados, caixas de destaque e bases legais completas.
+ * Conformidade: MP nº 2.200-2/2001 (Art. 10, § 2º), Lei nº 14.063/2020,
+ * Código Civil (Arts. 104 e 107), CPC (Arts. 411 e 441), LGPD (Lei nº 13.709/2018),
+ * Marco Civil da Internet (Lei nº 12.965/2014) e STJ (REsp nº 2.205.708/PR).
  * ============================================================================
  */
 
 // ---------------------------------------------------------------------------
-// DESIGN SYSTEM — CSS compartilhado por todos os templates
+// DESIGN SYSTEM — CSS compartilhado e compatível com clientes de e-mail
 // ---------------------------------------------------------------------------
 
 const EMAIL_BASE_CSS = `
   body {
     margin: 0;
     padding: 0;
-    background-color: #e8edf4;
+    background-color: #eef2f7;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     color: #1e293b;
     -webkit-font-smoothing: antialiased;
   }
   .wrapper {
     width: 100%;
-    background-color: #e8edf4;
-    padding: 36px 12px;
+    background-color: #eef2f7;
+    padding: 32px 12px;
   }
-  /* Folha A4 */
+  /* Folha A4 Digital */
   .sheet {
     max-width: 600px;
     margin: 0 auto;
     background-color: #ffffff;
     border: 1px solid #cbd5e1;
-    border-radius: 4px;
-    box-shadow: 0 4px 18px -2px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+    border-radius: 6px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08), 0 4px 10px -2px rgba(0,0,0,0.04);
     overflow: hidden;
   }
-  /* Cabeçalho: logo esquerda, título direita */
+  /* Cabeçalho: logo à esquerda, identificador à direita */
   .sheet-header {
     padding: 24px 28px 18px 28px;
-    display: block;
+    background-color: #ffffff;
   }
   .sheet-header-table {
     width: 100%;
@@ -45,7 +48,7 @@ const EMAIL_BASE_CSS = `
   }
   .logo-cell {
     vertical-align: middle;
-    width: 48px;
+    width: 52px;
     padding-right: 16px;
     text-align: left;
   }
@@ -64,28 +67,29 @@ const EMAIL_BASE_CSS = `
     margin: 0;
     font-size: 10px;
     font-weight: 700;
-    color: #64748b;
+    color: #034b7f;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
     line-height: 1.2;
   }
   .doc-title {
     margin: 3px 0 0 0;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 800;
-    color: #034b7f;
+    color: #0f172a;
     line-height: 1.3;
   }
   .doc-date {
     display: block;
     margin-top: 3px;
-    font-size: 10px;
-    color: #94a3b8;
+    font-size: 10.5px;
+    color: #64748b;
+    font-weight: 500;
   }
   .header-divider {
-    height: 2.5px;
+    height: 3px;
     background-color: #034b7f;
-    margin: 0 28px;
+    margin: 0;
   }
   /* Corpo do documento */
   .sheet-body {
@@ -97,13 +101,13 @@ const EMAIL_BASE_CSS = `
   .sheet-body p {
     margin: 0 0 14px 0;
   }
-  /* Tabela de detalhes */
+  /* Tabela de detalhes / metadados */
   .details-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 20px 0;
+    margin: 18px 0;
     background-color: #f8fafc;
-    border-radius: 6px;
+    border-radius: 8px;
     overflow: hidden;
     border: 1px solid #e2e8f0;
     font-size: 13px;
@@ -119,35 +123,58 @@ const EMAIL_BASE_CSS = `
   .details-table .label {
     font-weight: 700;
     color: #475569;
-    width: 42%;
+    width: 40%;
+    background-color: #f1f5f9;
   }
   .details-table .value {
     color: #0f172a;
-    font-weight: 500;
+    font-weight: 600;
   }
-  /* Caixa de destaque */
+  /* Caixa de destaque / informação */
   .highlight-box {
     background: #f0f9ff;
     border: 1.5px solid #bae6fd;
     border-radius: 8px;
-    padding: 18px 20px;
+    padding: 16px 18px;
     margin: 18px 0;
-    color: #0c4a6e;
-    font-size: 13px;
+    color: #0369a1;
+    font-size: 12.5px;
     line-height: 1.6;
   }
-  /* Caixa de alerta/aviso */
-  .alert-box {
-    background-color: #fffbeb;
-    border-left: 4px solid #d97706;
+  /* Caixa de anexo do documento */
+  .attachment-box {
+    background: #f8fafc;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin: 18px 0;
+    color: #1e293b;
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+  /* Caixa de conformidade legal */
+  .legal-box {
+    background-color: #f8fafc;
+    border-left: 4px solid #034b7f;
     padding: 14px 16px;
     border-radius: 4px;
     margin: 18px 0;
-    color: #92400e;
-    font-size: 13px;
+    color: #334155;
+    font-size: 11.5px;
     line-height: 1.6;
   }
-  /* Badge de status */
+  /* Caixa de alerta / cancelamento */
+  .alert-box {
+    background-color: #fef2f2;
+    border-left: 4px solid #ef4444;
+    padding: 14px 16px;
+    border-radius: 4px;
+    margin: 18px 0;
+    color: #991b1b;
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+  /* Badges */
   .badge {
     display: inline-block;
     padding: 3px 9px;
@@ -167,7 +194,7 @@ const EMAIL_BASE_CSS = `
     padding: 12px 14px;
     font-size: 11px;
     font-family: monospace;
-    color: #475569;
+    color: #334155;
     margin: 14px 0;
     word-break: break-all;
   }
@@ -178,19 +205,19 @@ const EMAIL_BASE_CSS = `
   }
   .btn {
     display: inline-block;
-    padding: 11px 22px;
+    padding: 12px 24px;
     background-color: #034b7f;
     color: #ffffff !important;
     font-weight: 700;
     font-size: 13px;
     text-decoration: none;
     border-radius: 6px;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
   }
   /* Bloco OTP */
   .otp-box {
     background: #f0f9ff;
-    border: 2px solid #bae6fd;
+    border: 2px solid #0284c7;
     border-radius: 10px;
     padding: 22px;
     text-align: center;
@@ -207,23 +234,25 @@ const EMAIL_BASE_CSS = `
   .sheet-footer {
     border-top: 1px solid #e2e8f0;
     background-color: #f8fafc;
-    padding: 16px 28px;
+    padding: 18px 28px;
     text-align: center;
     font-size: 10.5px;
-    color: #94a3b8;
+    color: #64748b;
     line-height: 1.6;
   }
   .sheet-footer a {
     color: #034b7f;
     text-decoration: underline;
+    font-weight: 600;
   }
 `;
 
 /**
- * Envolve o conteúdo no shell padrão de e-mail com design A4 e cabeçalho alinhado à direita.
+ * Envolve o conteúdo no shell padrão de e-mail com design de folha A4 e cabeçalho institucional.
  * @param emailTitle Título principal (ex: "Comprovante de Assinatura Eletrônica")
  * @param body       HTML interno do corpo do e-mail
  * @param footerExtra Texto opcional adicional no rodapé
+ * @param projectOwners Entidades controladoras do projeto
  */
 function buildEmailShell(
   emailTitle: string,
@@ -254,7 +283,7 @@ function buildEmailShell(
   <div class="wrapper">
     <div class="sheet">
 
-      <!-- Cabeçalho -->
+      <!-- Cabeçalho Oficial -->
       <div class="sheet-header">
         <table class="sheet-header-table">
           <tr>
@@ -262,30 +291,31 @@ function buildEmailShell(
               <img src="https://www.catraki.com.br/catraki.png" alt="Logo Catraki" class="logo-img" width="48" height="48" />
             </td>
             <td class="title-cell">
-              <p class="platform-tag">PLATAFORMA CATRAKI</p>
+              <p class="platform-tag">PLATAFORMA CATRAKI — ASSINATURA ELETRÔNICA</p>
               <h1 class="doc-title">${emailTitle}</h1>
-              <span class="doc-date">${dataHoje}</span>
+              <span class="doc-date">${dataHoje} • Horário de Brasília</span>
             </td>
           </tr>
         </table>
       </div>
       <div class="header-divider"></div>
 
-      <!-- Corpo -->
+      <!-- Corpo do E-mail -->
       <div class="sheet-body">
         ${body}
       </div>
 
-      <!-- Rodapé -->
+      <!-- Rodapé Institucional e Legal -->
       <div class="sheet-footer">
-        ${footer}Assinatura Eletrônica &bull; MP nº 2.200-2/2001 (Art. 10, § 2º) &bull; Lei nº 14.063/2020 &bull; Código Civil &bull; Plataforma Catraki<br>
-        <span style="font-size: 9.5px; color: #64748b; display: block; margin: 6px 0;">
-          A Plataforma Catraki atua como testemunha tecnológica: registra e autentica as assinaturas, mas não possui CNPJ, não acessa dados de saúde e não tem ingerência sobre o conteúdo dos documentos. A responsabilidade legal pelos dados deste projeto é de: ${projectOwners}.
+        ${footer}<strong>Assinatura Eletrônica</strong> &bull; MP nº 2.200-2/2001 (Art. 10, § 2º) &bull; Lei Federal nº 14.063/2020 &bull; Código Civil (Arts. 104 e 107) &bull; Plataforma Catraki<br>
+        <span style="font-size: 9.5px; color: #64748b; display: block; margin: 8px 0; line-height: 1.5;">
+          A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash probatório (sem CNPJ e sem acesso a dados de saúde). A responsabilidade legal e clínica pelos dados do projeto é dos Controladores: ${projectOwners}.
         </span>
-        Para mais informações sobre governança de dados, consulte nossa
-        <a href="https://www.catraki.com.br/privacidade">Política de Privacidade e Termos de Uso</a>.
+        Para mais informações sobre governança e segurança, consulte nossa
+        <a href="https://www.catraki.com.br/privacidade">Política de Privacidade</a> e nossos
+        <a href="https://www.catraki.com.br/termos">Termos de Uso</a>.
       </div>
-      <!-- Barra institucional azul (Padronizada) -->
+      <!-- Barra institucional azul sólida -->
       <div style="height: 10px; background-color: #034b7f; line-height: 10px; font-size: 1px;">&nbsp;</div>
     </div>
   </div>
@@ -318,10 +348,6 @@ export interface CancellationEmailParams {
   ntpSource?: string;
 }
 
-export function getRevocationEmailSubject(_minorName?: string): string {
-  return `Escola Cidadã — Consentimento Revogado`;
-}
-
 export interface RevocationEmailParams {
   parentName: string;
   minorName: string;
@@ -341,30 +367,398 @@ export interface CompletionEmailParams {
   signerName: string;
   documentTitle: string;
   downloadUrl: string;
+  minorName?: string;
+  parentName?: string;
+  institutionName?: string;
+  validationCode?: string;
+  manifestSha256?: string;
+  signedAtFormatted?: string;
   companyName?: string;
   companyWebsite?: string;
   supportEmail?: string;
   supportPhone?: string;
+  dpoContact?: string;
 }
 
 // ---------------------------------------------------------------------------
-// ASSUNTOS
+// ASSUNTOS PADRONIZADOS
 // ---------------------------------------------------------------------------
 
 export function getCancellationEmailSubject(): string {
   return `Escola Cidadã — Autorização Cancelada`;
 }
 
+export function getRevocationEmailSubject(_minorName?: string): string {
+  return `Escola Cidadã — Consentimento Revogado`;
+}
+
 export function getCompletionEmailSubject(_documentTitle: string): string {
   return `Escola Cidadã — Autorização Concluída`;
 }
 
-// ---------------------------------------------------------------------------
-// CANCELAMENTO ADMINISTRATIVO
-// ---------------------------------------------------------------------------
+// ============================================================================
+// 1. SOLICITAÇÃO DE CÓDIGO DE SEGURANÇA (OTP 2FA)
+// ============================================================================
 
 /**
- * Gera o template HTML padronizado (design A4) para notificação de cancelamento de documento.
+ * Gera o template HTML padronizado para e-mail de envio de código OTP 2FA.
+ */
+export function getTransactionalOtpEmailHtml(params: { studentName: string; otpCode: string }): string {
+  const { studentName, otpCode } = params;
+  const body = `
+    <p>Olá,</p>
+    <p>
+      Para autenticar e concluir com segurança a assinatura eletrônica do Termo de Consentimento do(a)
+      estudante <strong>${studentName}</strong>, utilize o código de uso único (2FA OTP) abaixo:
+    </p>
+
+    <div class="otp-box">
+      <span class="otp-code">${otpCode}</span>
+    </div>
+
+    <div class="highlight-box">
+      ⏱️ <strong>Instruções de Segurança:</strong><br>
+      • Este código é <strong>pessoal, intransferível e expira em 5 minutos</strong>.<br>
+      • A Plataforma Catraki e o SESI-DF <strong>nunca solicitarão este código por telefone, WhatsApp ou SMS</strong>.<br>
+      • Se você não solicitou este acesso, desconsidere este e-mail imediatamente.
+    </div>
+
+    <div class="legal-box">
+      <strong>Base Legal:</strong> Validação de autoria e integridade por duplo fator de autenticação eletrônica (2FA), em conformidade com o <strong>Art. 10, § 2º da Medida Provisória nº 2.200-2/2001</strong>, a <strong>Lei Federal nº 14.063/2020</strong> e a <strong>LGPD (Lei nº 13.709/2018)</strong>.
+    </div>
+  `;
+
+  return buildEmailShell(
+    'Código de Confirmação (2FA)',
+    body,
+    'Este é um e-mail transacional automático emitido para validação de autoria por código eletrônico de uso único.',
+  );
+}
+
+/**
+ * Versão texto puro do e-mail de OTP.
+ */
+export function getTransactionalOtpEmailText(params: { studentName: string; otpCode: string }): string {
+  const { studentName, otpCode } = params;
+  return `Assunto: Código de Confirmação: ${otpCode}
+
+Olá,
+
+Para confirmar e concluir a assinatura eletrônica do Termo de Consentimento do(a) estudante ${studentName}, utilize o código de segurança (2FA OTP) abaixo:
+
+${otpCode}
+
+Este código expira em 5 minutos. Não o compartilhe com terceiros.
+Plataforma Catraki • MP nº 2.200-2/2001 e Lei nº 14.063/2020`;
+}
+
+// ============================================================================
+// 2. CONCLUSÃO DE PROCESSO DE ASSINATURA (COMPROVANTE + PDF ANEXO)
+// ============================================================================
+
+/**
+ * Gera o template HTML padronizado para e-mail de conclusão de assinatura.
+ */
+export function getTransactionalCompletionEmailHtml(params: CompletionEmailParams): string {
+  const {
+    signerName,
+    documentTitle,
+    downloadUrl,
+    minorName,
+    institutionName,
+    validationCode,
+    manifestSha256,
+    signedAtFormatted,
+    companyName = 'Plataforma Catraki',
+    companyWebsite = 'www.catraki.com.br',
+    supportEmail = 'suporte@catraki.com.br',
+    supportPhone = '',
+  } = params;
+
+  const websiteUrl = companyWebsite.startsWith('http') ? companyWebsite : `https://${companyWebsite}`;
+  const docCode = validationCode || 'CATRAKI-VALID';
+
+  const body = `
+    <p>Olá, <strong>${signerName}</strong>!</p>
+
+    <div style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 14px 18px; margin: 16px 0; color: #166534;">
+      <p style="margin: 0; font-size: 14px; font-weight: 700;">
+        ✅ Tudo pronto! Sua autorização eletrônica foi registrada com sucesso.
+      </p>
+      <p style="margin: 4px 0 0 0; font-size: 12.5px; color: #15803d;">
+        O documento foi chancelado criptograficamente e possui plena validade jurídica e eficácia probatória.
+      </p>
+    </div>
+
+    <table class="details-table">
+      <tr>
+        <td class="label">Documento</td>
+        <td class="value">${documentTitle}</td>
+      </tr>
+      ${minorName ? `
+      <tr>
+        <td class="label">Estudante / Aluno(a)</td>
+        <td class="value">${minorName}</td>
+      </tr>` : ''}
+      <tr>
+        <td class="label">Responsável Signatário</td>
+        <td class="value">${signerName}</td>
+      </tr>
+      ${institutionName ? `
+      <tr>
+        <td class="label">Escola / Unidade</td>
+        <td class="value">${institutionName}</td>
+      </tr>` : ''}
+      <tr>
+        <td class="label">Código de Autenticidade</td>
+        <td class="value"><span style="font-family:monospace;font-weight:800;color:#034b7f;">${docCode}</span></td>
+      </tr>
+      ${signedAtFormatted ? `
+      <tr>
+        <td class="label">Data de Registro</td>
+        <td class="value">${signedAtFormatted}</td>
+      </tr>` : ''}
+      ${manifestSha256 ? `
+      <tr>
+        <td class="label">Resumo Criptográfico</td>
+        <td class="value" style="font-family:monospace;font-size:10.5px;word-break:break-all;">${manifestSha256}</td>
+      </tr>` : ''}
+      <tr>
+        <td class="label">Situação</td>
+        <td class="value"><span class="badge badge-green">ASSINADO E VÁLIDO</span></td>
+      </tr>
+    </table>
+
+    <div class="attachment-box">
+      <strong>📎 DOCUMENTO ORIGINAL ANEXADO A ESTE E-MAIL (PDF):</strong><br>
+      Em anexo a esta mensagem, você encontra o arquivo <strong>PDF oficial</strong> contendo:<br>
+      • A via do <strong>Termo de Consentimento Livre e Esclarecido (TCLE)</strong> com sua assinatura digitalizada e marca d'água de proteção;<br>
+      • O <strong>Certificado de Conclusão e Auditoria Digital</strong>, com carimbo de tempo oficial sincronizado pelo Observatório Nacional (NTP.br), endereço IP, User-Agent, resumo SHA-256 e QR Code para validação pública.
+    </div>
+
+    <div class="btn-container">
+      <a href="${downloadUrl}" target="_blank" class="btn">⬇ Validar e Acessar Documento Online</a>
+    </div>
+
+    <div class="legal-box">
+      <strong>⚖️ Enquadramento Jurídico e Conformidade Normativa:</strong><br>
+      Este ato foi firmado em estrita conformidade com o <strong>Art. 10, § 2º da Medida Provisória nº 2.200-2/2001</strong>, a <strong>Lei Federal nº 14.063/2020</strong>, o <strong>Código Civil (Arts. 104 e 107)</strong>, o <strong>Código de Processo Civil (Arts. 411 e 441)</strong>, a <strong>LGPD (Lei nº 13.709/2018 - Arts. 7º, 11 e 14)</strong> e a jurisprudência consolidada do <strong>Superior Tribunal de Justiça (STJ — REsp nº 2.205.708/PR)</strong>.
+    </div>
+
+    <p style="margin-top:20px;font-size:12.5px;color:#64748b;">
+      Dúvidas sobre o projeto ou sobre o documento? Entre em contato pelo e-mail:
+      <a href="mailto:${supportEmail}" style="color:#034b7f;font-weight:bold;">${supportEmail}</a>${supportPhone ? ` ou telefone ${supportPhone}` : ''}.
+    </p>
+
+    <p style="margin-top:20px;font-size:13px;color:#334155;">
+      Atenciosamente,<br><br>
+      <strong>Equipe ${companyName}</strong><br>
+      <span style="font-size:11.5px;color:#64748b;">
+        <a href="${websiteUrl}" style="color:#034b7f;text-decoration:none;">${companyWebsite}</a>
+      </span>
+    </p>
+  `;
+
+  return buildEmailShell(
+    'Comprovante de Assinatura Eletrônica',
+    body,
+    'Este é um e-mail transacional automático emitido em conformidade com a legislação brasileira de assinaturas eletrônicas.',
+  );
+}
+
+/**
+ * Versão texto puro do e-mail de conclusão de assinatura.
+ */
+export function getTransactionalCompletionEmailText(params: CompletionEmailParams): string {
+  const {
+    signerName,
+    documentTitle,
+    downloadUrl,
+    minorName,
+    validationCode,
+    manifestSha256,
+    companyName = 'Plataforma Catraki',
+    companyWebsite = 'www.catraki.com.br',
+    supportEmail = 'suporte@catraki.com.br',
+    supportPhone = '',
+  } = params;
+
+  const docCode = validationCode || 'CATRAKI-VALID';
+
+  return `Assunto: ✅ Documento finalizado: "${documentTitle}"
+
+Olá, ${signerName}!
+
+Sua autorização eletrônica foi registrada com sucesso.
+Em anexo a este e-mail, você encontra o arquivo PDF oficial contendo o Termo de Consentimento e o Certificado de Conclusão com o resumo criptográfico SHA-256 e a trilha de auditoria digital.
+
+RESUMO DO DOCUMENTO:
+- Documento: ${documentTitle}
+${minorName ? `- Estudante: ${minorName}\n` : ''}- Responsável Signatário: ${signerName}
+- Código de Autenticidade: ${docCode}
+${manifestSha256 ? `- Hash SHA-256: ${manifestSha256}\n` : ''}- Situação: ASSINADO E VÁLIDO
+
+Link para validação pública e download online:
+${downloadUrl}
+
+BASE LEGAL:
+Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º), Lei Federal nº 14.063/2020, Código Civil (Arts. 104 e 107), Código de Processo Civil (Arts. 411 e 441), LGPD (Lei nº 13.709/2018) e STJ (REsp nº 2.205.708/PR).
+
+Atenciosamente,
+Equipe ${companyName}
+${companyWebsite} | ${supportPhone ? `${supportPhone} | ` : ''}${supportEmail}`;
+}
+
+// ============================================================================
+// 3. REVOGAÇÃO DE CONSENTIMENTO (LGPD Art. 18 — Iniciado pelo Titular)
+// ============================================================================
+
+/**
+ * Gera o template HTML padronizado para revogação voluntária de consentimento.
+ */
+export function getRevocationEmailHtml(params: RevocationEmailParams): string {
+  const {
+    parentName,
+    minorName,
+    documentId,
+    validationCode,
+    revokedAtFormatted,
+    institutionName,
+    reason,
+    supportEmail = 'suporte@catraki.com.br',
+    dpoContact = 'suporte@catraki.com.br',
+    documentHashSha256,
+    ntpTimestamp,
+    ntpSource,
+  } = params;
+
+  const docCode = validationCode || `CATRAKI-${documentId.substring(0, 4).toUpperCase()}-${documentId.substring(Math.max(0, documentId.length - 4)).toUpperCase()}`;
+
+  const body = `
+    <p>Prezado(a) <strong>${parentName || 'Responsável Legal'}</strong>,</p>
+
+    <p>
+      Confirmamos que você exerceu o seu <strong>direito de revogação de consentimento</strong>,
+      em estrita observância ao <strong>Artigo 18, inciso VIII da Lei Geral de Proteção de Dados
+      (LGPD — Lei nº 13.709/2018)</strong> e ao <strong>Artigo 8º, § 5º da mesma lei</strong>.
+    </p>
+
+    <p>
+      A autorização de atendimento vinculada ao(à) estudante <strong>${minorName}</strong>
+      na instituição <strong>${institutionName}</strong> foi
+      <strong>revogada com sucesso</strong>.
+    </p>
+
+    <table class="details-table">
+      <tr>
+        <td class="label">Código do Documento</td>
+        <td class="value"><span style="font-family:monospace;font-weight:800;color:#034b7f;">${docCode}</span></td>
+      </tr>
+      <tr>
+        <td class="label">Estudante</td>
+        <td class="value">${minorName}</td>
+      </tr>
+      <tr>
+        <td class="label">Escola / Unidade</td>
+        <td class="value">${institutionName}</td>
+      </tr>
+      <tr>
+        <td class="label">Data da Revogação</td>
+        <td class="value">${revokedAtFormatted}</td>
+      </tr>
+      <tr>
+        <td class="label">Situação</td>
+        <td class="value"><span class="badge badge-blue">CONSENTIMENTO REVOGADO</span></td>
+      </tr>
+      <tr>
+        <td class="label">Motivo Informado</td>
+        <td class="value" style="font-style:italic;color:#475569;">"${reason}"</td>
+      </tr>
+      ${ntpTimestamp ? `
+      <tr>
+        <td class="label">Carimbo do Tempo (NTP)</td>
+        <td class="value" style="font-family:monospace;font-size:11px;">${ntpTimestamp}</td>
+      </tr>` : ''}
+      ${ntpSource ? `
+      <tr>
+        <td class="label">Fonte Temporal Oficial</td>
+        <td class="value" style="font-size:11.5px;color:#64748b;">${ntpSource}</td>
+      </tr>` : ''}
+    </table>
+
+    ${documentHashSha256 ? `
+    <div class="hash-box">
+      <strong>🔐 Resumo Criptográfico SHA-256 do Documento:</strong><br>
+      ${documentHashSha256}<br>
+      <span style="font-size:10px;color:#64748b;">Este código constitui a impressão digital imutável da trilha de auditoria.</span>
+    </div>` : ''}
+
+    <div class="highlight-box">
+      ℹ️ <strong>Efeitos e Guarda de Registros:</strong><br>
+      • Os links de acesso ao formulário foram desativados e nenhum novo atendimento clínico será realizado com base nesta autorização.<br>
+      • Os registros históricos das ações realizadas até o momento da revogação permanecem guardados em ambiente seguro e sigiloso, conforme exige o <strong>Art. 16 da LGPD</strong>, para cumprimento de obrigação legal e auditoria.
+    </div>
+
+    <p style="font-size:12.5px;color:#64748b;">
+      Para dúvidas sobre seus dados ou atendimento de privacidade:<br>
+      Encarregado de Dados (DPO) e Suporte: <a href="mailto:${dpoContact || supportEmail}" style="color:#034b7f;font-weight:bold;">${dpoContact || supportEmail}</a>
+    </p>
+
+    <p style="margin-top:20px;font-size:13px;color:#334155;">
+      Atenciosamente,<br><br>
+      <strong>Equipe Plataforma Catraki</strong>
+    </p>
+  `;
+
+  return buildEmailShell(
+    'Revogação de Consentimento',
+    body,
+    'E-mail transacional imutável emitido pela Plataforma Catraki em conformidade com a LGPD (Lei nº 13.709/2018, Art. 18) e Marco Civil da Internet (Lei nº 12.965/2014).',
+  );
+}
+
+/**
+ * Versão texto puro do e-mail de revogação voluntária de consentimento.
+ */
+export function getRevocationEmailText(params: RevocationEmailParams): string {
+  const {
+    parentName, minorName, documentId, validationCode, revokedAtFormatted,
+    institutionName, reason, supportEmail = 'suporte@catraki.com.br',
+    dpoContact = 'suporte@catraki.com.br', documentHashSha256, ntpTimestamp, ntpSource,
+  } = params;
+  const docCode = validationCode || `CATRAKI-${documentId.substring(0, 4).toUpperCase()}-${documentId.substring(Math.max(0, documentId.length - 4)).toUpperCase()}`;
+
+  return `[Plataforma Catraki] Confirmação de Revogação de Consentimento — LGPD Art. 18
+
+Prezado(a) ${parentName || 'Responsável Legal'},
+
+Confirmamos que você exerceu o direito de revogação de consentimento (LGPD Art. 18, VIII e Art. 8º, § 5º).
+A autorização de atendimento vinculada ao(à) estudante ${minorName} na instituição "${institutionName}" foi REVOGADA COM SUCESSO.
+
+DADOS DA REVOGAÇÃO:
+- Código do Documento: ${docCode}
+- Estudante: ${minorName}
+- Escola / Unidade: ${institutionName}
+- Data da Revogação: ${revokedAtFormatted}
+- Situação: CONSENTIMENTO REVOGADO (LGPD Art. 18)
+- Motivo: ${reason}
+${ntpTimestamp ? `- Carimbo do Tempo (NTP): ${ntpTimestamp}\n` : ''}${ntpSource ? `- Fonte NTP: ${ntpSource}\n` : ''}${documentHashSha256 ? `\nHASH SHA-256 DO DOCUMENTO:\n${documentHashSha256}\n` : ''}
+O QUE ACONTECE AGORA:
+Os links de acesso foram desativados. Os dados históricos foram preservados em ambiente seguro conforme o Art. 16 da LGPD para fins de auditoria legal.
+
+Canal de Atendimento:
+- DPO e Suporte do Projeto: ${dpoContact || supportEmail}
+
+Atenciosamente,
+Equipe Plataforma Catraki`;
+}
+
+// ============================================================================
+// 4. CANCELAMENTO ADMINISTRATIVO POR ERRO OU INCONSISTÊNCIA
+// ============================================================================
+
+/**
+ * Gera o template HTML padronizado para notificação de cancelamento de documento.
  */
 export function getTransactionalCancellationEmailHtml(params: CancellationEmailParams): string {
   const {
@@ -379,7 +773,7 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
     supportEmail = 'suporte@catraki.com.br',
     supportPhone = '',
     dpoContact = 'suporte@catraki.com.br',
-    companyName,
+    companyName = 'Plataforma Catraki',
     companyWebsite = 'www.catraki.com.br',
     documentHashSha256,
     revokedByName,
@@ -388,27 +782,24 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
 
   const docTitle = documentTitle || (minorName ? `Termo de Consentimento - ${minorName}` : 'Termo de Consentimento');
   const signerName = parentName || 'Responsável Legal';
-  const authHash = documentHashSha256 || validationCode || `DOC-${documentId.substring(0, 8).toUpperCase()}`;
-  const company = companyName || 'Plataforma Catraki';
-  const cancelledBy = revokedByName || (revokedByEmail ? revokedByEmail : null) || company;
+  const authHash = validationCode || documentHashSha256 || `CATRAKI-${documentId.substring(0, 4).toUpperCase()}-${documentId.substring(Math.max(0, documentId.length - 4)).toUpperCase()}`;
+  const cancelledBy = revokedByName || (revokedByEmail ? revokedByEmail : null) || companyName;
   const reasonText = reason || 'Inconsistência cadastral ou operacional detectada no sistema';
   const websiteUrl = companyWebsite.startsWith('http') ? companyWebsite : `https://${companyWebsite}`;
 
   const body = `
-    <p>Olá, ${signerName},</p>
+    <p>Olá, <strong>${signerName}</strong>,</p>
 
-    <p>Informamos que o processo de assinatura do documento <strong>«${docTitle}»</strong> foi cancelado administrativamente.</p>
+    <p>Informamos que o processo de assinatura do documento <strong>«${docTitle}»</strong> foi cancelado administrativamente pela equipe do projeto.</p>
 
-    <p>
-      Para garantir total transparência, conforme exigido pela
-      <strong>Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)</strong>,
-      compartilhamos abaixo os detalhes deste cancelamento:
-    </p>
+    <div class="alert-box">
+      <strong>Aviso de Cancelamento:</strong> Os links de acesso gerados para este documento foram desativados por motivo de inconsistência ou duplicidade cadastral.
+    </div>
 
     <table class="details-table">
       <tr>
         <td class="label">Documento</td>
-        <td class="value"><strong>${docTitle}</strong></td>
+        <td class="value">${docTitle}</td>
       </tr>
       ${minorName ? `
       <tr>
@@ -417,12 +808,12 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
       </tr>` : ''}
       ${institutionName ? `
       <tr>
-        <td class="label">Escola / Instituição</td>
+        <td class="label">Escola / Unidade</td>
         <td class="value">${institutionName}</td>
       </tr>` : ''}
       <tr>
         <td class="label">Código de Autenticidade</td>
-        <td class="value"><span style="font-family:monospace;font-weight:bold;">${authHash}</span></td>
+        <td class="value"><span style="font-family:monospace;font-weight:bold;color:#034b7f;">${authHash}</span></td>
       </tr>
       <tr>
         <td class="label">Cancelado por</td>
@@ -438,25 +829,27 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
       </tr>
       <tr>
         <td class="label">Justificativa</td>
-        <td class="value" style="font-style:italic;font-weight:bold;color:#0f172a;">"${reasonText}"</td>
+        <td class="value" style="font-style:italic;color:#0f172a;">"${reasonText}"</td>
       </tr>
     </table>
 
     <div class="highlight-box">
       ℹ️ <strong>O que acontece agora?</strong><br>
-      Os links de acesso que você recebeu para este documento foram desativados. <strong>Nenhuma ação é necessária da sua parte.</strong> Se o processo precisar continuar, a equipe responsável enviará um novo documento. Seus dados continuam protegidos conforme a Lei Geral de Proteção de Dados (LGPD).
+      • <strong>Nenhuma ação é necessária da sua parte.</strong><br>
+      • Caso a participação do(a) estudante no projeto deva continuar, a coordenação escolar ou a equipe do SESI enviará um novo link de autorização com os dados corrigidos.<br>
+      • Seus dados continuam protegidos em estrita conformidade com a <strong>LGPD (Lei nº 13.709/2018)</strong>.
     </div>
 
-    <p style="font-size:13px;color:#64748b;">
-      Dúvidas? Responda este e-mail ou entre em contato:<br>
-      Suporte: <a href="mailto:${supportEmail}" style="color:#034b7f;">${supportEmail}</a>${supportPhone ? ` &bull; Tel: ${supportPhone}` : ''}<br>
-      Encarregado de Dados (DPO): <a href="mailto:${dpoContact}" style="color:#034b7f;">${dpoContact}</a>
+    <p style="font-size:12.5px;color:#64748b;">
+      Dúvidas? Entre em contato pelos canais oficiais:<br>
+      Suporte: <a href="mailto:${supportEmail}" style="color:#034b7f;font-weight:bold;">${supportEmail}</a>${supportPhone ? ` &bull; Tel: ${supportPhone}` : ''}<br>
+      Encarregado de Dados (DPO): <a href="mailto:${dpoContact}" style="color:#034b7f;font-weight:bold;">${dpoContact}</a>
     </p>
 
-    <p style="margin-top:24px;font-size:13px;color:#334155;">
+    <p style="margin-top:20px;font-size:13px;color:#334155;">
       Atenciosamente,<br><br>
-      <strong>Equipe ${company}</strong><br>
-      <span style="font-size:12px;color:#64748b;">
+      <strong>Equipe ${companyName}</strong><br>
+      <span style="font-size:11.5px;color:#64748b;">
         <a href="${websiteUrl}" style="color:#034b7f;text-decoration:none;">${companyWebsite}</a>
       </span>
     </p>
@@ -481,7 +874,7 @@ export function getTransactionalCancellationEmailText(params: CancellationEmailP
     validationCode,
     cancelledAtFormatted,
     reason,
-    companyName,
+    companyName = 'Plataforma Catraki',
     documentHashSha256,
     revokedByName,
     revokedByEmail,
@@ -489,9 +882,8 @@ export function getTransactionalCancellationEmailText(params: CancellationEmailP
 
   const docTitle = documentTitle || (minorName ? `Termo de Consentimento - ${minorName}` : 'Termo de Consentimento');
   const signerName = parentName || 'Signatário';
-  const authHash = documentHashSha256 || validationCode || `DOC-${documentId.substring(0, 8).toUpperCase()}`;
-  const company = companyName || 'Plataforma Catraki';
-  const cancelledBy = revokedByName || (revokedByEmail ? revokedByEmail : null) || company;
+  const authHash = validationCode || documentHashSha256 || `CATRAKI-${documentId.substring(0, 4).toUpperCase()}-${documentId.substring(Math.max(0, documentId.length - 4)).toUpperCase()}`;
+  const cancelledBy = revokedByName || (revokedByEmail ? revokedByEmail : null) || companyName;
   const reasonText = reason || 'Inconsistência cadastral ou operacional detectada no sistema';
 
   return `Assunto: Aviso: O documento "${docTitle}" foi cancelado
@@ -500,292 +892,17 @@ Olá, ${signerName}.
 
 Informamos que o processo de assinatura do documento '${docTitle}' foi cancelado administrativamente.
 
-Para garantir total transparência (LGPD), compartilhamos abaixo os detalhes:
+DETALHES DO CANCELAMENTO:
 - Documento: ${docTitle}
 - Código de Autenticidade: ${authHash}
 - Cancelado por: ${cancelledBy}
 - Data: ${cancelledAtFormatted}
+- Situação: CANCELADO POR ERRO
 - Justificativa: "${reasonText}"
 
 O que acontece agora?
-Os links de acesso que você recebeu para este documento foram desativados. Nenhuma ação é necessária da sua parte. Seus dados continuam protegidos conforme a LGPD.`;
-}
-
-// ============================================================================
-// REVOGAÇÃO DE CONSENTIMENTO (LGPD Art. 18 — Iniciado pelo Titular)
-// ============================================================================
-
-/**
- * Gera o template HTML padronizado (design A4) para revogação voluntária de consentimento.
- * LGPD Art. 18, VIII — Direito de revogação do consentimento a qualquer momento.
- */
-export function getRevocationEmailHtml(params: RevocationEmailParams): string {
-  const {
-    parentName,
-    minorName,
-    documentId,
-    validationCode,
-    revokedAtFormatted,
-    institutionName,
-    reason,
-    supportEmail = 'suporte@catraki.com.br',
-    dpoContact = 'suporte@catraki.com.br',
-    documentHashSha256,
-    ntpTimestamp,
-    ntpSource,
-  } = params;
-
-  const docCode = validationCode || `DOC-${documentId.substring(0, 8).toUpperCase()}`;
-
-  const body = `
-    <p>Prezado(a) <strong>${parentName || 'Responsável Legal'}</strong>,</p>
-
-    <p>
-      Confirmamos que você exerceu seu <strong>direito de revogação do consentimento</strong>
-      nos termos do <strong>Art. 18, VIII, da Lei Geral de Proteção de Dados
-      (LGPD — Lei nº 13.709/2018)</strong>.
-    </p>
-
-    <p>
-      A autorização de atendimento vinculada ao(à) estudante <strong>${minorName}</strong>
-      na instituição <strong>${institutionName}</strong> foi
-      <strong>revogada com sucesso</strong>.
-    </p>
-
-    <table class="details-table">
-      <tr>
-        <td class="label">Código do Documento</td>
-        <td class="value" style="font-family:monospace;font-weight:bold;">${docCode}</td>
-      </tr>
-      <tr>
-        <td class="label">Estudante</td>
-        <td class="value">${minorName}</td>
-      </tr>
-      <tr>
-        <td class="label">Escola / Instituição</td>
-        <td class="value">${institutionName}</td>
-      </tr>
-      <tr>
-        <td class="label">Data da Revogação</td>
-        <td class="value">${revokedAtFormatted}</td>
-      </tr>
-      <tr>
-        <td class="label">Situação</td>
-        <td class="value"><span class="badge badge-blue">CONSENTIMENTO REVOGADO</span></td>
-      </tr>
-      <tr>
-        <td class="label">Motivo Informado</td>
-        <td class="value" style="font-style:italic;color:#475569;">${reason}</td>
-      </tr>
-      ${ntpTimestamp ? `
-      <tr>
-        <td class="label">Carimbo do Tempo (NTP)</td>
-        <td class="value" style="font-family:monospace;font-size:12px;">${ntpTimestamp}</td>
-      </tr>` : ''}
-      ${ntpSource ? `
-      <tr>
-        <td class="label">Fonte Temporal</td>
-        <td class="value" style="font-size:12px;color:#64748b;">${ntpSource}</td>
-      </tr>` : ''}
-    </table>
-
-    ${documentHashSha256 ? `
-    <div class="hash-box">
-      <strong>🔐 Hash SHA-256 do Documento (MP 2.200-2/2001 e Lei 14.063/2020):</strong><br>
-      ${documentHashSha256}<br>
-      <span style="font-size:10px;color:#64748b;">Este código é a impressão digital criptográfica única deste documento.</span>
-    </div>` : ''}
-
-    <div class="highlight-box">
-      <strong>O que acontece agora?</strong><br>
-      A autorização foi revogada com sucesso. Os links de acesso ao formulário foram desativados e nenhum novo atendimento poderá ser realizado com base nesta autorização. Seus dados foram preservados de forma segura, conforme exigido por lei, para fins de registro histórico e auditoria.
-    </div>
-
-    <p style="font-size:13px;color:#64748b;">
-      Para dúvidas, acesse nosso DPO: <a href="mailto:${dpoContact}" style="color:#034b7f;">${dpoContact}</a><br>
-      Suporte do projeto: <a href="mailto:${supportEmail}" style="color:#034b7f;">${supportEmail}</a>
-    </p>
-
-    <p style="margin-top:24px;font-size:13px;color:#334155;">
-      Atenciosamente,<br><br>
-      <strong>Equipe Plataforma Catraki</strong>
-    </p>
-  `;
-
-  return buildEmailShell(
-    'Revogação de Consentimento',
-    body,
-    'E-mail transacional imutável emitido pela Plataforma Catraki em conformidade com a LGPD (Lei nº 13.709/2018, Art. 18) e Marco Civil da Internet (Lei nº 12.965/2014).',
-  );
-}
-
-/**
- * Versão texto puro do e-mail de revogação voluntária de consentimento.
- */
-export function getRevocationEmailText(params: RevocationEmailParams): string {
-  const {
-    parentName, minorName, documentId, validationCode, revokedAtFormatted,
-    institutionName, reason, supportEmail = 'suporte@catraki.com.br',
-    dpoContact = 'suporte@catraki.com.br', documentHashSha256, ntpTimestamp, ntpSource,
-  } = params;
-  const docCode = validationCode || `DOC-${documentId.substring(0, 8).toUpperCase()}`;
-
-  return `[Plataforma Catraki] Confirmação de Revogação de Consentimento — LGPD Art. 18
-
-Prezado(a) ${parentName || 'Responsável Legal'},
-
-Confirmamos que você exerceu seu direito de revogação do consentimento (LGPD Art. 18, VIII).
-A autorização de atendimento vinculada ao(à) estudante ${minorName} na instituição "${institutionName}" foi REVOGADA COM SUCESSO.
-
-DADOS DA REVOGAÇÃO:
-- Código do Documento: ${docCode}
-- Estudante: ${minorName}
-- Escola / Unidade: ${institutionName}
-- Data da Revogação: ${revokedAtFormatted}
-- Situação: CONSENTIMENTO REVOGADO (LGPD Art. 18)
-- Motivo: ${reason}
-${ntpTimestamp ? `- Carimbo do Tempo (NTP): ${ntpTimestamp}\n` : ''}${ntpSource ? `- Fonte NTP: ${ntpSource}\n` : ''}${documentHashSha256 ? `\nHASH SHA-256 DO DOCUMENTO (MP 2.200-2/2001 e Lei 14.063/2020):\n${documentHashSha256}\n` : ''}
-O QUE ACONTECE AGORA:
-Todos os links de acesso ao formulário foram desativados imediatamente. Os dados foram
-preservados em ambiente seguro conforme o Art. 16 da LGPD exclusivamente para fins de auditoria.
-
-Canais de Atendimento:
-- Encarregado de Dados (DPO): ${dpoContact}
-- Suporte do Projeto: ${supportEmail}
+Os links de acesso foram desativados. Nenhuma ação é necessária da sua parte. Seus dados continuam protegidos conforme a LGPD.
 
 Atenciosamente,
-Equipe Plataforma Catraki`;
-}
-
-// ---------------------------------------------------------------------------
-// CONCLUSÃO DE PROCESSO DE ASSINATURA
-// ---------------------------------------------------------------------------
-
-/**
- * Gera o template HTML padronizado (design A4) para e-mail de conclusão de processo de assinatura.
- */
-export function getTransactionalCompletionEmailHtml(params: CompletionEmailParams): string {
-  const {
-    signerName,
-    documentTitle,
-    downloadUrl,
-    companyName = 'Plataforma Catraki',
-    companyWebsite = 'www.catraki.com.br',
-    supportEmail = 'suporte@catraki.com.br',
-    supportPhone = '',
-  } = params;
-
-  const websiteUrl = companyWebsite.startsWith('http') ? companyWebsite : `https://${companyWebsite}`;
-
-  const body = `
-    <p>Olá, <strong>${signerName}</strong>!</p>
-
-    <p style="font-size:14px;color:#166534;font-weight:bold;background:#dcfce7;padding:10px 14px;border-radius:6px;border:1px solid #86efac;">
-      Tudo pronto! Sua autorização eletrônica foi registrada com sucesso. Em anexo, você encontra a cópia do comprovante assinado e o certificado de autenticidade com o histórico completo da operação.
-    </p>
-
-    <p>
-      O documento "<strong>${documentTitle}</strong>" foi assinado eletronicamente com eficácia probatória e validade jurídica, em conformidade com o <strong>Art. 10, § 2º da Medida Provisória nº 2.200-2/2001</strong>, a <strong>Lei nº 14.063/2020</strong>, o <strong>Código Civil (Arts. 104 e 107)</strong>, o <strong>CPC (Arts. 411 e 441)</strong>, a <strong>LGPD (Lei nº 13.709/2018)</strong> e a jurisprudência consolidada do <strong>STJ (REsp 2.205.708/PR)</strong>.
-    </p>
-
-    <div class="btn-container">
-      <a href="${downloadUrl}" target="_blank" class="btn">⬇ Baixar Documento Assinado</a>
-    </div>
-
-    <div class="highlight-box">
-      🔒 <strong>Aviso de Segurança:</strong><br>
-      Este arquivo PDF anexado é o documento original e imutável chancelado com resumo criptográfico SHA-256. Recomendamos que você
-      faça o download e guarde este e-mail para seus registros.
-    </div>
-
-    <p style="margin-top:24px;font-size:13px;color:#334155;">
-      Atenciosamente,<br><br>
-      <strong>Equipe ${companyName}</strong><br>
-      <span style="font-size:12px;color:#64748b;">
-        <a href="${websiteUrl}" style="color:#034b7f;text-decoration:none;">${companyWebsite}</a>
-        ${supportPhone ? ` &bull; ${supportPhone}` : ''} &bull; ${supportEmail}
-      </span>
-    </p>
-  `;
-
-  return buildEmailShell(
-    'Comprovante de Assinatura Eletrônica',
-    body,
-    'Este é um e-mail transacional automático emitido em conformidade com o Art. 10, § 2º da MP 2.200-2/2001, a Lei 14.063/2020, o Código Civil e a LGPD (Lei nº 13.709/2018).',
-  );
-}
-
-/**
- * Versão texto puro do e-mail de conclusão de processo de assinatura.
- */
-export function getTransactionalCompletionEmailText(params: CompletionEmailParams): string {
-  const {
-    signerName,
-    documentTitle,
-    downloadUrl,
-    companyName = 'Plataforma Catraki',
-    companyWebsite = 'www.catraki.com.br',
-    supportEmail = 'suporte@catraki.com.br',
-    supportPhone = '',
-  } = params;
-
-  return `Assunto: ✅ Documento finalizado: "${documentTitle}"
-
-Olá, ${signerName}!
-O processo foi finalizado com sucesso. Em anexo, você encontra a via original do documento e o Certificado de Conclusão contendo a trilha de auditoria e chancela criptográfica SHA-256 (Art. 10, § 2º da MP nº 2.200-2/2001, Lei nº 14.063/2020, Código Civil Arts. 104 e 107, CPC Arts. 411 e 441).
-
-Link para download e validação pública:
-${downloadUrl}
-
-Atenciosamente,
-
-Equipe ${companyName}
-${companyWebsite} | ${supportPhone ? `${supportPhone} | ` : ''}${supportEmail}`;
-}
-
-// ---------------------------------------------------------------------------
-// SOLICITAÇÃO DE CÓDIGO DE SEGURANÇA (OTP)
-// ---------------------------------------------------------------------------
-
-/**
- * Gera o template HTML padronizado para e-mail de envio de OTP.
- */
-export function getTransactionalOtpEmailHtml(params: { studentName: string; otpCode: string }): string {
-  const { studentName, otpCode } = params;
-  const body = `
-    <p>Olá,</p>
-    <p>
-      Para confirmar e concluir a assinatura do Termo de Consentimento do(a)
-      estudante <strong>${studentName}</strong>, use o código de segurança abaixo:
-    </p>
-
-    <div class="otp-box">
-      <span class="otp-code">${otpCode}</span>
-    </div>
-
-    <p style="color:#64748b;font-size:11.5px;line-height:1.5;margin:20px 0 0 0;">
-      ⏱️ <strong>Este código expira em 5 minutos.</strong><br>
-      Não o compartilhe com ninguém. A Plataforma Catraki nunca solicitará este código por telefone, WhatsApp ou SMS. Se você não solicitou este acesso, ignore este e-mail.
-    </p>
-  `;
-
-  return buildEmailShell(
-    'Código de Confirmação',
-    body,
-    'Este é um e-mail transacional automático para validação de autoria por código de segurança de uso único (2FA) em conformidade com o Art. 10, § 2º da MP nº 2.200-2/2001 e a Lei nº 14.063/2020.',
-  );
-}
-
-/**
- * Versão texto puro do e-mail de OTP.
- */
-export function getTransactionalOtpEmailText(params: { studentName: string; otpCode: string }): string {
-  const { studentName, otpCode } = params;
-  return `Assunto: Código de Confirmação: ${otpCode}
-
-Olá, para confirmar e concluir a assinatura do Termo de Consentimento do(a) estudante ${studentName}, use o código de segurança abaixo:
-
-${otpCode}
-
-Este código expira em 5 minutos.`;
+Equipe ${companyName}`;
 }

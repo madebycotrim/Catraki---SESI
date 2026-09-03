@@ -16,10 +16,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <span>Conformidade Jurídica & Regulatória</span>
           </div>
           <p className="leading-relaxed text-slate-400">
-            Sistema desenvolvido em estrita conformidade com o <strong>Art. 4º, II da Lei Federal nº 14.063/2020</strong> (Assinatura Eletrônica Avançada), a <strong>MP 2.200-2/2001 (Art. 10, § 2º)</strong>, a <strong>LGPD (Lei 13.709/2018)</strong>, o <strong>ECA (Lei 8.069/1990)</strong>, o <strong>Marco Civil da Internet (Lei 12.965/2014)</strong> e o <strong>Art. 299 do Código Penal</strong>.
+            Sistema desenvolvido em estrita conformidade com o <strong>Art. 10, § 2º da MP nº 2.200-2/2001</strong>, a <strong>Lei nº 14.063/2020</strong>, o <strong>Código Civil (Arts. 104, 107 e 225)</strong>, o <strong>CPC (Arts. 411 e 441)</strong>, a <strong>LGPD (Lei 13.709/2018)</strong>, o <strong>ECA (Lei 8.069/1990)</strong>, o <strong>Marco Civil da Internet (Lei 12.965/2014)</strong> e o <strong>Art. 299 do Código Penal</strong>.
           </p>
           <div className="p-2.5 rounded-lg bg-blue-950/40 border border-blue-900/40 text-[11px] text-blue-300/90 leading-relaxed">
-            <strong>Aviso de Validade:</strong> As assinaturas geradas nesta plataforma constituem assinaturas eletrônicas avançadas válidas mediante autenticação 2FA, manifestação de vontade expressa e registro de integridade em cadeia criptográfica, com plena eficácia probatória conforme o Art. 4º, II da Lei 14.063/2020, o Art. 10, § 2º da MP 2.200-2/2001 e a jurisprudência pacificada do STJ (REsp 2.205.708/PR).
+            <strong>Aviso de Validade:</strong> As assinaturas geradas nesta plataforma constituem assinaturas eletrônicas com autenticidade e integridade comprovadas, mediante autenticação 2FA, manifestação de vontade expressa e registro de integridade em cadeia criptográfica, com eficácia probatória conforme o Art. 10, § 2º da MP 2.200-2/2001, a Lei 14.063/2020, os Arts. 104 e 107 do Código Civil, os Arts. 411 e 441 do CPC e a jurisprudência consolidada do STJ (REsp 2.205.708/PR).
           </div>
         </div>
 

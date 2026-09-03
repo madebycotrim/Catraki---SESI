@@ -514,7 +514,7 @@
 
   Declaro, sob as penas da lei (**Art. 299 do Código Penal — Falsidade Ideológica**, reclusão de 1 a 3 anos), que sou o(a) legítimo(a) responsável legal do(a) menor acima qualificado(a) e que as informações por mim inseridas nesta plataforma são verdadeiras.
 
-  As partes (SESI Saúde e o signatário) concordam expressamente em assinar este termo por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de **eficácia probatória e validade jurídica**, nos termos do **Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001**, da **Lei nº 14.063/2020** e da jurisprudência consolidada do Superior Tribunal de Justiça (**STJ - REsp 2.205.708/PR**).
+  As partes (entidades promotoras e o signatário) concordam expressamente em assinar este termo por meio eletrônico através da plataforma Catraki, reconhecendo mutuamente este método como dotado de **eficácia probatória e validade jurídica**, nos termos do **Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001**, da **Lei nº 14.063/2020**, dos **Arts. 104 e 107 do Código Civil**, dos **Arts. 411 e 441 do Código de Processo Civil** e da jurisprudência consolidada do Superior Tribunal de Justiça (**STJ - REsp 2.205.708/PR**).
 
   Estou ciente e concordo que a plataforma registrará e armazenará, de forma segura, os seguintes dados para fins de comprovação de autoria e auditoria da integridade da minha assinatura:
 

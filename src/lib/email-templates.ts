@@ -278,7 +278,7 @@ function buildEmailShell(
 
       <!-- Rodapé -->
       <div class="sheet-footer">
-        ${footer}Assinatura Eletrônica Avançada &bull; Lei Federal nº&nbsp;14.063/2020 &bull; Plataforma Catraki<br>
+        ${footer}Assinatura Eletrônica &bull; MP nº 2.200-2/2001 (Art. 10, § 2º) &bull; Lei nº 14.063/2020 &bull; Código Civil &bull; Plataforma Catraki<br>
         <span style="font-size: 9.5px; color: #64748b; display: block; margin: 6px 0;">
           A Plataforma Catraki atua como testemunha tecnológica: registra e autentica as assinaturas, mas não possui CNPJ, não acessa dados de saúde e não tem ingerência sobre o conteúdo dos documentos. A responsabilidade legal pelos dados deste projeto é de: ${projectOwners}.
         </span>
@@ -378,7 +378,7 @@ export function getTransactionalCancellationEmailHtml(params: CancellationEmailP
     reason,
     supportEmail = 'suporte@catraki.com.br',
     supportPhone = '',
-    dpoContact = 'privacidade@catraki.com.br',
+    dpoContact = 'suporte@catraki.com.br',
     companyName,
     companyWebsite = 'www.catraki.com.br',
     documentHashSha256,
@@ -529,7 +529,7 @@ export function getRevocationEmailHtml(params: RevocationEmailParams): string {
     institutionName,
     reason,
     supportEmail = 'suporte@catraki.com.br',
-    dpoContact = 'privacidade@catraki.com.br',
+    dpoContact = 'suporte@catraki.com.br',
     documentHashSha256,
     ntpTimestamp,
     ntpSource,
@@ -591,7 +591,7 @@ export function getRevocationEmailHtml(params: RevocationEmailParams): string {
 
     ${documentHashSha256 ? `
     <div class="hash-box">
-      <strong>🔐 Hash SHA-256 do Documento (Lei 14.063/2020):</strong><br>
+      <strong>🔐 Hash SHA-256 do Documento (MP 2.200-2/2001 e Lei 14.063/2020):</strong><br>
       ${documentHashSha256}<br>
       <span style="font-size:10px;color:#64748b;">Este código é a impressão digital criptográfica única deste documento.</span>
     </div>` : ''}
@@ -626,7 +626,7 @@ export function getRevocationEmailText(params: RevocationEmailParams): string {
   const {
     parentName, minorName, documentId, validationCode, revokedAtFormatted,
     institutionName, reason, supportEmail = 'suporte@catraki.com.br',
-    dpoContact = 'privacidade@catraki.com.br', documentHashSha256, ntpTimestamp, ntpSource,
+    dpoContact = 'suporte@catraki.com.br', documentHashSha256, ntpTimestamp, ntpSource,
   } = params;
   const docCode = validationCode || `DOC-${documentId.substring(0, 8).toUpperCase()}`;
 
@@ -644,7 +644,7 @@ DADOS DA REVOGAÇÃO:
 - Data da Revogação: ${revokedAtFormatted}
 - Situação: CONSENTIMENTO REVOGADO (LGPD Art. 18)
 - Motivo: ${reason}
-${ntpTimestamp ? `- Carimbo do Tempo (NTP): ${ntpTimestamp}\n` : ''}${ntpSource ? `- Fonte NTP: ${ntpSource}\n` : ''}${documentHashSha256 ? `\nHASH SHA-256 DO DOCUMENTO (Lei 14.063/2020):\n${documentHashSha256}\n` : ''}
+${ntpTimestamp ? `- Carimbo do Tempo (NTP): ${ntpTimestamp}\n` : ''}${ntpSource ? `- Fonte NTP: ${ntpSource}\n` : ''}${documentHashSha256 ? `\nHASH SHA-256 DO DOCUMENTO (MP 2.200-2/2001 e Lei 14.063/2020):\n${documentHashSha256}\n` : ''}
 O QUE ACONTECE AGORA:
 Todos os links de acesso ao formulário foram desativados imediatamente. Os dados foram
 preservados em ambiente seguro conforme o Art. 16 da LGPD exclusivamente para fins de auditoria.
@@ -685,7 +685,7 @@ export function getTransactionalCompletionEmailHtml(params: CompletionEmailParam
     </p>
 
     <p>
-      O documento "<strong>${documentTitle}</strong>" foi assinado com plena eficácia probatória em conformidade com a Lei nº 14.063/2020 e a LGPD.
+      O documento "<strong>${documentTitle}</strong>" foi assinado eletronicamente com eficácia probatória e validade jurídica, em conformidade com o <strong>Art. 10, § 2º da Medida Provisória nº 2.200-2/2001</strong>, a <strong>Lei nº 14.063/2020</strong>, o <strong>Código Civil (Arts. 104 e 107)</strong>, o <strong>CPC (Arts. 411 e 441)</strong>, a <strong>LGPD (Lei nº 13.709/2018)</strong> e a jurisprudência consolidada do <strong>STJ (REsp 2.205.708/PR)</strong>.
     </p>
 
     <div class="btn-container">
@@ -711,7 +711,7 @@ export function getTransactionalCompletionEmailHtml(params: CompletionEmailParam
   return buildEmailShell(
     'Comprovante de Assinatura Eletrônica',
     body,
-    'Este é um e-mail transacional automático emitido em conformidade com o MP 2.200-2/2001, Lei 14.063/2020 e LGPD (Lei nº 13.709/2018).',
+    'Este é um e-mail transacional automático emitido em conformidade com o Art. 10, § 2º da MP 2.200-2/2001, a Lei 14.063/2020, o Código Civil e a LGPD (Lei nº 13.709/2018).',
   );
 }
 
@@ -732,7 +732,7 @@ export function getTransactionalCompletionEmailText(params: CompletionEmailParam
   return `Assunto: ✅ Documento finalizado: "${documentTitle}"
 
 Olá, ${signerName}!
-O processo foi finalizado com sucesso. Em anexo, você encontra a via original do documento e o Certificado de Conclusão contendo a trilha de auditoria.
+O processo foi finalizado com sucesso. Em anexo, você encontra a via original do documento e o Certificado de Conclusão contendo a trilha de auditoria e chancela criptográfica SHA-256 (Art. 10, § 2º da MP nº 2.200-2/2001, Lei nº 14.063/2020, Código Civil Arts. 104 e 107, CPC Arts. 411 e 441).
 
 Link para download e validação pública:
 ${downloadUrl}
@@ -772,7 +772,7 @@ export function getTransactionalOtpEmailHtml(params: { studentName: string; otpC
   return buildEmailShell(
     'Código de Confirmação',
     body,
-    'Este é um e-mail transacional automático para validação de autoria por código eletrônico (2FA) em conformidade com a Lei 14.063/2020.',
+    'Este é um e-mail transacional automático para validação de autoria por código de segurança de uso único (2FA) em conformidade com o Art. 10, § 2º da MP nº 2.200-2/2001 e a Lei nº 14.063/2020.',
   );
 }
 

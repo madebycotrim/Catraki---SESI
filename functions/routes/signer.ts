@@ -234,7 +234,7 @@ signerRouter.get('/doc/:token', async (c) => {
       revoked_reason: doc.revoked_reason,
       manual_review_status: manualReview?.status || null,
       manual_review_notes: manualReview?.review_notes || null,
-      legal_notice: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020 c/c Art. 10, §2º, MP nº 2.200-2/2001; LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP',
+      legal_notice: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020; Código Civil (Arts. 104 e 107); CPC (Arts. 411 e 441); LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP',
     },
   });
 });
@@ -1073,8 +1073,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       tls_version: cfData.tlsVersion,
     },
     legal_basis: isMaiorDeIdade
-      ? 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020 Art. 4º, II (Assinatura Eletrônica Avançada); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; Art. 299 CP; REsp 2.205.708/PR (STJ)'
-      : 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020 Art. 4º, II (Assinatura Eletrônica Avançada); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
+      ? 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020; Código Civil (Arts. 104, 107 e 225); CPC (Arts. 411 e 441); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; Art. 299 CP; REsp 2.205.708/PR (STJ)'
+      : 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020; Código Civil (Arts. 104, 107 e 225); CPC (Arts. 411 e 441); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
     consent_text_version: doc.consent_text_version,
     // Pilar 3: Carimbo do Tempo NTP certificado pelo Observatório Nacional Brasileiro
     ntp_synced_at: ntpTs.iso,

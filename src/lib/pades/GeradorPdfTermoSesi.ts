@@ -42,7 +42,8 @@ export interface IDadosTermoPdf {
 /**
  * Gerador de PDF A4 Oficial para Termos de Consentimento (TCLE) SESI Saúde / Catraki
  * Formatado rigorosamente de acordo com as normas ABNT e os preceitos da LGPD (Lei nº 13.709/2018),
- * Lei nº 14.063/2020, Código Civil (Lei nº 10.406/2002), Código Penal (Art. 299) e ECA (Lei nº 8.069/1990).
+ * Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º), Lei nº 14.063/2020, Código Civil (Arts. 104, 107 e 225),
+ * Código de Processo Civil (Arts. 411 e 441), Código Penal (Art. 299) e ECA (Lei nº 8.069/1990).
  */
 export class GeradorPdfTermoSesi {
   public static async gerarPdfOriginal(dados: IDadosTermoPdf): Promise<Uint8Array> {
@@ -52,7 +53,7 @@ export class GeradorPdfTermoSesi {
     pdfDoc.setTitle(`Termo de Consentimento — ${dados.nomeMenor}`);
     pdfDoc.setAuthor('Plataforma Catraki');
     pdfDoc.setSubject('Termo de Consentimento Livre e Esclarecido (TCLE) — Escola Cidadã');
-    pdfDoc.setKeywords(['LGPD', 'Lei 14.063/2020', 'Catraki', 'SESI-DF', 'UnB', 'Assinatura Eletrônica']);
+    pdfDoc.setKeywords(['LGPD', 'MP 2.200-2/2001', 'Lei 14.063/2020', 'Código Civil', 'CPC', 'Catraki', 'SESI-DF', 'UnB', 'Assinatura Eletrônica']);
     pdfDoc.setCreationDate(dados.dataAssinatura || new Date());
     pdfDoc.setModificationDate(dados.dataAssinatura || new Date());
 
@@ -343,9 +344,9 @@ export class GeradorPdfTermoSesi {
       y -= 9.5;
     }
 
-    // 5. Seção 3: DECLARAÇÃO DE VERACIDADE E ASSINATURA ELETRÔNICA AVANÇADA
+    // 5. Seção 3: DECLARAÇÃO DE VERACIDADE E ASSINATURA ELETRÔNICA
     y -= 12;
-    page1.drawText('3. DECLARAÇÃO E ASSINATURA ELETRÔNICA AVANÇADA', {
+    page1.drawText('3. DECLARAÇÃO E ASSINATURA ELETRÔNICA', {
       x: margemEsquerda,
       y,
       size: 9.5,
@@ -367,7 +368,7 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 9.5;
-    page1.drawText('Registro eletrônico com plena eficácia probatória nos termos do Art. 4º, II da Lei nº 14.063/2020 e Art. 10, §2º da MP 2.200-2/2001.', {
+    page1.drawText('Registro eletrônico com eficácia probatória nos termos do Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020 e Arts. 104 e 107 do CC.', {
       x: margemEsquerda,
       y,
       size: 7.5,
@@ -416,7 +417,7 @@ export class GeradorPdfTermoSesi {
       color: corMarcaDaguaFundo,
       rotate: degrees(6),
     });
-    page1.drawText('DOCUMENTO ASSINADO DIGITALMENTE • ART. 4º, II, LEI 14.063/2020', {
+    page1.drawText('DOCUMENTO ASSINADO ELETRONICAMENTE • ART. 10, § 2º, MP 2.200-2/2001', {
       x: margemEsquerda + 12,
       y: y + 6,
       size: 5,
@@ -472,7 +473,7 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 9.5;
-    page1.drawText('Assinatura Eletrônica Avançada — Plataforma Catraki (Art. 4º, II, Lei 14.063/2020 e MP 2.200-2/2001)', {
+    page1.drawText('Assinatura Eletrônica — Plataforma Catraki (Art. 10, § 2º, MP 2.200-2/2001 c/c Lei nº 14.063/2020)', {
       x: margemEsquerda,
       y,
       size: 7,
@@ -502,7 +503,7 @@ export class GeradorPdfTermoSesi {
     }
 
     // Rodapé da Página 1
-    page1.drawText('Autorização registrada eletronicamente via plataforma Catraki | Art. 4º, II, Lei 14.063/2020, MP 2.200-2/2001 e LGPD.', {
+    page1.drawText('Autorização registrada eletronicamente via plataforma Catraki | Art. 10, § 2º, MP 2.200-2/2001, Lei 14.063/2020, CC e LGPD.', {
       x: margemEsquerda,
       y: 24,
       size: 6.5,
@@ -545,7 +546,7 @@ export class GeradorPdfTermoSesi {
         color: corAzulSesi,
       });
 
-      page2.drawText('As assinaturas eletrônicas realizadas neste documento possuem validade legal em conformidade com a Medida Provisória nº 2.200-2/2001 e a Lei nº 14.063/2020.', {
+      page2.drawText('As assinaturas eletrônicas realizadas possuem validade jurídica nos termos do Art. 10, § 2º da MP nº 2.200-2/2001, Lei nº 14.063/2020, CC e CPC.', {
         x: xCabecalho2,
         y: y2 - 17,
         size: 5.8,
@@ -781,8 +782,8 @@ export class GeradorPdfTermoSesi {
 
       y2 -= 10;
       const textoIntegridadeLegal = isMaior
-        ? 'Em conformidade com o Art. 4º, II da Lei 14.063/2020, Art. 10, §2º da MP 2.200-2/2001, Arts. 7º, 11, I e 18 da LGPD, e Art. 20 da Lei nº 10.406/2002 (Código Civil).'
-        : 'Em conformidade com o Art. 4º, II da Lei 14.063/2020, Art. 10, §2º da MP 2.200-2/2001, Arts. 7º, 11, 14 e 18 da LGPD, e Art. 17 do ECA (Lei nº 8.069/1990).';
+        ? 'Em conformidade com o Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020, Arts. 104 e 107 do CC, Arts. 411 e 441 do CPC, Arts. 7º, 11, I e 18 da LGPD, e Art. 20 do CC.'
+        : 'Em conformidade com o Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020, Arts. 104 e 107 do CC, Arts. 411 e 441 do CPC, Arts. 7º, 11, 14 e 18 da LGPD, e Art. 17 do ECA.';
 
       page2.drawText(textoIntegridadeLegal, {
         x: margemEsquerda,

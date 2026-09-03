@@ -84,12 +84,12 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               <span>3. Medidas de Segurança e Criptografia da Plataforma</span>
             </h2>
             <p>
-              A plataforma Catraki emprega padrões bancários de segurança da informação:
+              A plataforma Catraki emprega padrões rigorosos de segurança da informação, em conformidade com as melhores práticas do mercado:
             </p>
             <ul className="list-disc pl-5 space-y-1 text-slate-600">
               <li><strong>Criptografia em Repouso:</strong> Dados confidenciais (CPFs, contatos e assinaturas) são armazenados cifrados com algoritmo padrão <strong>AES-GCM de 256 bits</strong> com chaves derivadas por PBKDF2.</li>
               <li><strong>Criptografia em Trânsito:</strong> Toda a comunicação é protegida via protocolo seguro <strong>TLS 1.3</strong> com cabeçalhos HSTS rígidos.</li>
-              <li><strong>Autenticidade e Rastreabilidade:</strong> Cada assinatura gera um código de integridade único (SHA-256) e uma trilha de auditoria digital imutável, com plena validade jurídica nos termos do <strong>Art. 4º, II da Lei nº 14.063/2020</strong>, da <strong>MP 2.200-2/2001</strong> e da jurisprudência consolidada do STJ.</li>
+              <li><strong>Autenticidade e Rastreabilidade:</strong> Cada assinatura gera um código de integridade único (SHA-256) e uma trilha de auditoria digital imutável, com validade jurídica nos termos do <strong>Art. 10, § 2º da MP nº 2.200-2/2001</strong>, da <strong>Lei nº 14.063/2020</strong>, dos <strong>Arts. 104 e 107 do Código Civil</strong>, dos <strong>Arts. 411 e 441 do CPC</strong> e da jurisprudência consolidada do STJ (REsp 2.205.708/PR).</li>
             </ul>
           </section>
 
@@ -112,7 +112,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 sm:p-4 space-y-2 mt-2 text-xs sm:text-sm text-slate-700">
               <p className="font-bold text-slate-900 m-0">Canais de Atendimento para Exercício de Direitos:</p>
               <ul className="space-y-1 text-xs text-slate-600 m-0 list-disc list-inside">
-                <li><strong>E-mail de Contato para Privacidade:</strong> <a href="mailto:dpo@catraki.com.br" className="text-sesi-primary font-bold underline">dpo@catraki.com.br</a></li>
+                <li><strong>E-mail de Contato para Privacidade:</strong> <a href="mailto:suporte@catraki.com.br" className="text-sesi-primary font-bold underline">suporte@catraki.com.br</a></li>
                 <li><strong>Portal de Autoatendimento do Titular:</strong> Acesse a seção de privacidade disponível no validador público da plataforma para consultar, corrigir ou solicitar a exclusão dos seus dados.</li>
                 <li><strong>Prazos de Atendimento:</strong> Conforme os prazos regulamentares da Autoridade Nacional de Proteção de Dados (ANPD)</li>
               </ul>

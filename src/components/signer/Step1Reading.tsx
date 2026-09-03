@@ -147,7 +147,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
               Ao clicar em <strong className="text-slate-700">Continuar</strong>, você declara que leu e concorda com os{' '}
               <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Termos de Uso</a>{' '}e a{' '}
               <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Política de Privacidade</a>{' '}
-              da Plataforma Catraki, <strong className="text-slate-600">consente com o uso de Assinatura Eletrônica Avançada</strong> para este documento (Art. 4º, II, da Lei nº 14.063/2020 e Art. 10, §2º, da MP nº 2.200-2/2001), e autoriza o registro dos dados técnicos desta sessão (endereço IP, e-mail e dispositivo) para fins de autenticação, em conformidade com a LGPD (Lei nº 13.709/2018).
+              da Plataforma Catraki, <strong className="text-slate-600">consente com o uso de Assinatura Eletrônica</strong> para este documento (Art. 10, §2º, da MP nº 2.200-2/2001 c/c Lei nº 14.063/2020, Arts. 104 e 107 do Código Civil), e autoriza o registro dos dados técnicos desta sessão (endereço IP, e-mail e dispositivo) para fins de autenticação, em conformidade com a LGPD (Lei nº 13.709/2018).
             </p>
             <div className="flex justify-end">
               <button

@@ -50,20 +50,20 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
               Objeto e Finalidade da Plataforma
             </h2>
             <p>
-              A <strong>Plataforma Catraki</strong> é um sistema tecnológico especializado em registrar, validar e guardar de forma segura as autorizações e assinaturas eletrônicas avançadas realizadas pelos responsáveis legais dos estudantes. Ela opera a serviço de instituições educacionais e entidades parceiras, com destaque para as ações do programa <strong>Escola Cidadã — Saúde em Movimento</strong> (cooperação técnica entre o SESI-DF e a Universidade de Brasília — UnB).
+              A <strong>Plataforma Catraki</strong> é um sistema tecnológico especializado em registrar, validar e guardar de forma segura as autorizações e assinaturas eletrônicas realizadas pelos responsáveis legais dos estudantes. Ela opera a serviço de instituições educacionais e entidades parceiras, com destaque para as ações do programa <strong>Escola Cidadã — Saúde em Movimento</strong> (cooperação técnica entre o SESI-DF e a Universidade de Brasília — UnB).
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-xs sm:text-sm font-bold uppercase text-slate-900 flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-blue-100 text-[#034b7f] flex items-center justify-center text-xs">2</span>
-              Validade Jurídica da Assinatura Eletrônica Avançada
+              Validade Jurídica da Assinatura Eletrônica
             </h2>
             <p>
-              Ao utilizar este ambiente para firmar termos de consentimento, o signatário e a entidade controladora concordam expressamente com a utilização do meio eletrônico como prova de manifestação da vontade, nos termos do <strong>Artigo 4º, Inciso II da Lei Federal nº 14.063/2020</strong> e do <strong>Artigo 10, § 2º da Medida Provisória nº 2.200-2/2001</strong>.
+              Ao utilizar este ambiente para firmar termos de consentimento, o signatário e a entidade controladora concordam expressamente com a utilização do meio eletrônico como prova de manifestação da vontade, nos termos do <strong>Artigo 10, § 2º da Medida Provisória nº 2.200-2/2001</strong>, da <strong>Lei Federal nº 14.063/2020</strong>, dos <strong>Arts. 104 e 107 do Código Civil</strong> e dos <strong>Arts. 411 e 441 do Código de Processo Civil</strong>.
             </p>
             <p>
-              As assinaturas emitidas nesta plataforma são dotadas de plena eficácia probatória e presunção de veracidade, respaldadas pela jurisprudência pacificada do Superior Tribunal de Justiça (<strong>STJ — REsp nº 2.205.708/PR</strong>), sendo vinculadas ao signatário através de:
+              As assinaturas emitidas nesta plataforma são dotadas de eficácia probatória e presunção de veracidade, respaldadas pela jurisprudência consolidada do Superior Tribunal de Justiça (<strong>STJ — REsp nº 2.205.708/PR</strong>), sendo vinculadas ao signatário através de:
             </p>
             <ul className="space-y-1 text-xs text-slate-600 list-disc list-inside bg-slate-50 p-3 rounded-xl border border-slate-200">
               <li>Verificação em dois passos por código numérico de uso único enviado ao seu e-mail (OTP de 6 dígitos);</li>

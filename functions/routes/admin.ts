@@ -1009,7 +1009,7 @@ adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'oper
     eventos.push({
       timestamp: auditLog.signed_at,
       tipo: 'ASSINADO',
-      descricao: `Assinatura eletrônica avançada registrada por ${auditLog.signer_name || 'Responsável'}. Método: ${auditLog.identity_method || 'eletrônica avançada'}.`,
+      descricao: `Assinatura eletrônica registrada por ${auditLog.signer_name || 'Responsável'}. Método: ${auditLog.identity_method || 'eletrônica'}.`,
       ip: auditLog.ip_address,
       user_agent: auditLog.user_agent,
       geo: [auditLog.geo_city, auditLog.geo_region, auditLog.geo_country].filter(Boolean).join('/') || null,

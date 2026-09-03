@@ -138,7 +138,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
             COMPROVANTE DE ASSINATURA ELETRÔNICA
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Comprovante de manifestação de consentimento e aceite eletrônico — Art. 4º, II, Lei nº 14.063/2020.
+            Comprovante de manifestação de consentimento e aceite eletrônico — Art. 10, § 2º, da MP nº 2.200-2/2001 c/c Lei nº 14.063/2020.
           </p>
         </div>
 
@@ -323,7 +323,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                   Para consultar este comprovante a qualquer momento, acesse <span className="text-sesi-primary font-bold">https://www.catraki.com.br/validar</span> e informe o código <strong className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">{validationCode}</strong> ou aponte a câmera para o QR Code.
                 </div>
                 <div className="text-slate-500 text-[10px] sm:text-xs leading-normal">
-                  Documento digital com plena validade jurídica emitido nos termos da <strong>Lei Federal nº 14.063/2020 (Art. 4º, II)</strong>, da <strong>Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º)</strong>, da <strong>LGPD (Lei nº 13.709/2018)</strong> e da jurisprudência consolidada do <strong>STJ (REsp 2.205.708/PR)</strong>.
+                  Documento eletrônico emitido em conformidade com a <strong>MP nº 2.200-2/2001 (Art. 10, § 2º)</strong>, a <strong>Lei nº 14.063/2020</strong>, o <strong>Código Civil (Arts. 104, 107 e 225)</strong>, o <strong>CPC (Arts. 411 e 441)</strong>, a <strong>LGPD (Lei nº 13.709/2018)</strong> e a jurisprudência consolidada do <strong>STJ (REsp 2.205.708/PR)</strong>.
                 </div>
                 <div className="text-slate-400 text-[9.5px] sm:text-[10px] leading-relaxed pt-1">
                   A Plataforma Catraki atua como <strong>testemunha tecnológica</strong> deste ato: registra e autentica a assinatura, mas não acessa dados de saúde e não possui CNPJ. A responsabilidade pelo conteúdo e pelos dados do projeto é do <strong>SESI-DF</strong> e da <strong>FS/UnB</strong>.
@@ -332,6 +332,51 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
             </div>
             <div className="pt-2 border-t border-dashed border-slate-200 text-[10px] sm:text-[11px] text-slate-500 text-left leading-relaxed">
               🔒 <strong>Comprovante de autorização:</strong> Este registro confirma a autorização <strong className="text-slate-700">{validationCode}</strong> e pode ser consultado a qualquer momento no validador público da plataforma Catraki.
+            </div>
+          </div>
+
+          {/* 5 Pilares de Validade da Assinatura Eletrônica */}
+          <div className="border border-slate-200 rounded-xl p-3.5 sm:p-4 bg-slate-50/50 space-y-3">
+            <h3 className="font-bold text-xs sm:text-sm uppercase tracking-wider text-slate-800 flex items-center gap-2 m-0 border-b border-slate-200 pb-2">
+              <ShieldCheck className="w-4 h-4 text-sesi-primary" /> 
+              <span>Pilares de Validade da Assinatura</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+              <div className="bg-white p-2.5 border border-slate-200 rounded-lg flex items-start gap-2">
+                <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
+                <div>
+                  <span className="text-slate-500 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Autenticidade</span>
+                  <span className="text-slate-700 font-semibold">Código OTP 6 dígitos por e-mail confirmado</span>
+                </div>
+              </div>
+              <div className="bg-white p-2.5 border border-slate-200 rounded-lg flex items-start gap-2">
+                <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
+                <div>
+                  <span className="text-slate-500 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Integridade</span>
+                  <span className="text-slate-700 font-semibold">Hash SHA-256 do manifesto criptográfico</span>
+                </div>
+              </div>
+              <div className="bg-white p-2.5 border border-slate-200 rounded-lg flex items-start gap-2">
+                <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
+                <div>
+                  <span className="text-slate-500 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Não-Repúdio</span>
+                  <span className="text-slate-700 font-semibold">Assinatura manuscrita + IP + Geolocalização</span>
+                </div>
+              </div>
+              <div className="bg-white p-2.5 border border-slate-200 rounded-lg flex items-start gap-2">
+                <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
+                <div>
+                  <span className="text-slate-500 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Tempestividade</span>
+                  <span className="text-slate-700 font-semibold">Carimbo NTP sincronizado (Observatório Nacional)</span>
+                </div>
+              </div>
+              <div className="bg-white p-2.5 border border-slate-200 rounded-lg flex items-start gap-2 sm:col-span-2 lg:col-span-2">
+                <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
+                <div>
+                  <span className="text-slate-500 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Confidencialidade</span>
+                  <span className="text-slate-700 font-semibold">Criptografia AES-GCM-256 em repouso + TLS 1.3 em trânsito</span>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -446,7 +446,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     </div>
                   </div>
                    <span className="text-xs sm:text-[13px] text-slate-900 font-bold leading-relaxed">
-                     <strong>Declaro que li e compreendi</strong> todas as informações deste Termo de Consentimento e concordo expressamente com a utilização deste método de assinatura eletrônica (Art. 10, § 2º, da MP nº 2.200-2/2001), confirmando a veracidade de todas as declarações prestadas sob as penas da lei (Art. 299 do Código Penal). <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                     <strong>Declaro que li e compreendi</strong> todas as informações deste Termo de Consentimento e concordo expressamente com a utilização deste método de assinatura eletrônica — incluindo o código de verificação por e-mail, a assinatura manuscrita digital e os registros de segurança — como forma válida e vinculante de manifestação de vontade, nos termos do Art. 10, § 2º, da MP nº 2.200-2/2001, Art. 107 do Código Civil e Art. 441 do CPC, confirmando a veracidade de todas as declarações prestadas sob as penas da lei (Art. 299 do Código Penal). <span className="text-red-500 font-bold">* (Obrigatório)</span>
                    </span>
                 </label>
               </div>
@@ -461,7 +461,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               </h3>
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50/50 text-[#004b8d] text-[10px] font-bold border border-blue-100/60 shadow-3xs">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                <span>Resguardo Legal: Art. 4º, II, Lei 14.063/2020 | MP 2.200-2 | LGPD</span>
+                <span>Resguardo Legal: Art. 10, § 2º, MP 2.200-2 | Lei 14.063/2020 | LGPD</span>
               </span>
             </div>
 

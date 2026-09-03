@@ -49,7 +49,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
 
   useEffect(() => {
     if (validationResult) {
-      const code = validationResult.validation_code || (validationResult.manifest_sha256 ? `SESI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}` : '');
+      const code = validationResult.validation_code || (validationResult.manifest_sha256 ? `CATRAKI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}` : '');
       const url = `${window.location.origin}/validar/${code}`;
       QRCode.toDataURL(url, {
         width: 160,
@@ -69,7 +69,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
     cleanHash = cleanHash.replace(/^[/#]+/, '').trim();
 
     if (!cleanHash) {
-       setErrorMessage('Por favor, digite ou cole o código de autenticidade (ex: SESI-XXXX-XXXX ou CATRAKI-XXXX-XXXX) ou o hash SHA-256.');
+       setErrorMessage('Por favor, digite ou cole o código de autenticidade (ex: CATRAKI-XXXX-XXXX) ou o hash SHA-256.');
       return;
     }
 
@@ -108,7 +108,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
   }).format(new Date());
 
   const validationCode = validationResult
-    ? (validationResult.validation_code || (validationResult.manifest_sha256 ? `SESI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}` : ''))
+    ? (validationResult.validation_code || (validationResult.manifest_sha256 ? `CATRAKI-${validationResult.manifest_sha256.substring(0, 4).toUpperCase()}-${validationResult.manifest_sha256.substring(validationResult.manifest_sha256.length - 4).toUpperCase()}` : ''))
     : '';
 
   return (
@@ -167,7 +167,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
             CERTIFICADO DE AUTENTICIDADE E VALIDADE JURÍDICA
           </h1>
           <p className="text-xs text-slate-500 mt-1 mb-0">
-            Verificação de Autenticidade e Integridade Digital (Art. 10, § 2º da MP 2.200-2/2001, Lei nº 14.063/2020 e STJ REsp 2.205.708/PR)
+            Verificação de Autenticidade e Integridade Digital (Art. 10, § 2º da MP 2.200-2/2001, Lei nº 14.063/2020, Código Civil, CPC e STJ REsp 2.205.708/PR)
           </p>
         </div>
 
@@ -204,7 +204,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                     type="text"
                     value={hashInput}
                     onChange={(e) => setHashInput(e.target.value)}
-                    placeholder="Digite ou cole o código de autenticidade (ex: SESI-0AD2-2A49) ou hash SHA-256..."
+                    placeholder="Digite ou cole o código de autenticidade (ex: CATRAKI-0AD2-2A49) ou hash SHA-256..."
                     autoCapitalize="characters"
                     className="w-full px-3.5 sm:px-4 py-3 bg-white border border-slate-300 rounded-xl font-mono text-xs sm:text-base uppercase text-slate-900 tracking-wider focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20 transition-all shadow-xs"
                   />

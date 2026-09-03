@@ -127,7 +127,7 @@ A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que 
 
 Declaro, sob as penas da lei (**Art. 299 do Código Penal — Falsidade Ideológica**, reclusão de 1 a 3 anos), que sou o(a) legítimo(a) responsável legal do(a) menor acima qualificado(a) e que as informações por mim inseridas nesta plataforma são verdadeiras.
 
-As partes (SESI Saúde e o signatário) concordam expressamente em assinar este termo por meio eletrônico através da plataforma Catraki, constituindo **Assinatura Eletrônica Avançada**, nos termos do **Art. 4º, II, da Lei nº 14.063/2020** e do **Art. 10, §2º, da Medida Provisória nº 2.200-2/2001**, reconhecendo mutuamente este método como plenamente válido, íntegro e dotado de **eficácia probatória e validade jurídica**, com respaldo da jurisprudência consolidada do Superior Tribunal de Justiça (**STJ — REsp 2.205.708/PR**).
+As partes (entidades promotoras e o signatário) concordam expressamente em firmar este termo por meio eletrônico através da plataforma Catraki, constituindo **Assinatura Eletrônica com Autenticidade e Integridade Comprovadas**, nos termos do **Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001**, da **Lei Federal nº 14.063/2020**, dos **Arts. 104 e 107 do Código Civil** e dos **Arts. 411 e 441 do Código de Processo Civil**, reconhecendo mutuamente este método como dotado de **eficácia probatória e validade jurídica**, com respaldo da jurisprudência consolidada do Superior Tribunal de Justiça (**STJ — REsp 2.205.708/PR**).
 
 Estou ciente e concordo que a plataforma registrará e armazenará, de forma segura, os seguintes dados para fins de comprovação de autoria e auditoria da integridade da minha assinatura:
 
@@ -326,7 +326,7 @@ export const apiClient = {
         revoked_reason: doc.revoked_reason,
         manual_review_status: review?.status || null,
         manual_review_notes: review?.review_notes || null,
-        legal_notice: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020 c/c Art. 10, §2º, MP nº 2.200-2/2001; LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP',
+        legal_notice: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020; Código Civil (Arts. 104 e 107); CPC (Arts. 411 e 441); LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP',
       },
     };
   },
@@ -667,7 +667,7 @@ export const apiClient = {
         relationship: payload.signer_relationship,
       },
       signature_png_sha256: signaturePngSha256,
-      legal_basis: 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020 Art. 4º, II (Assinatura Eletrônica Avançada); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
+      legal_basis: 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020; Código Civil (Arts. 104, 107 e 225); CPC (Arts. 411 e 441); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
     };
 
     const manifestSha256 = await sha256(canonicalJson(manifestData));
@@ -840,7 +840,7 @@ export const apiClient = {
   },
 
   /**
-   * Validador público de autenticidade (aceita token curto SESI-XXXX-XXXX, CATRAKI-XXXX-XXXX, URLs, ID ou hash SHA-256)
+   * Validador público de autenticidade (aceita token curto CATRAKI-XXXX-XXXX, SESI-XXXX-XXXX (legado), URLs, ID ou hash SHA-256)
    */
   async validatePublic(query: string): Promise<{ success: boolean; validation?: PublicValidationResponse; error?: string }> {
     if (!query || typeof query !== 'string' || !query.trim()) {
@@ -954,8 +954,8 @@ export const apiClient = {
           validation: {
             valid: doc.status !== 'CANCELADO_POR_ERRO' && (doc.status as any) !== 'cancelled_error' && doc.status !== 'revoked',
             validation_code: validationCode,
-            legal_notice: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020 c/c Art. 10, §2º, MP nº 2.200-2/2001; LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
-            signature_type: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020',
+            legal_notice: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020; Código Civil (Arts. 104 e 107); CPC (Arts. 411 e 441); LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
+            signature_type: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020',
             document_id: doc.id,
             manifest_sha256: manifest,
             content_sha256: doc.content_sha256 || 'SHA256-PENDING',
@@ -997,7 +997,7 @@ export const apiClient = {
     }
 
     if (!audit) {
-      return { success: false, error: 'Código de validação ou manifesto não localizado na base de registros da plataforma. Verifique se digitou o código completo (Ex: CATRAKI-XXXX-XXXX ou SESI-XXXX-XXXX).' };
+      return { success: false, error: 'Código de validação ou manifesto não localizado na base de registros da plataforma. Verifique se digitou o código completo (Ex: CATRAKI-XXXX-XXXX).' };
     }
 
     const codePrefix = clean.startsWith('CATRAKI') ? 'CATRAKI' : 'SESI';
@@ -1023,9 +1023,9 @@ export const apiClient = {
       validation: {
         valid: doc?.status !== 'CANCELADO_POR_ERRO' && (doc?.status as any) !== 'cancelled_error' && doc?.status !== 'revoked',
         validation_code: validationCode,
-        // Classificação correta: Assinatura Eletrônica Avançada (Art. 4º, II, Lei 14.063/2020)
-        legal_notice: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020 c/c Art. 10, §2º, MP nº 2.200-2/2001; LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
-        signature_type: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020',
+        // Classificação legal: Assinatura Eletrônica (Art. 10, § 2º, MP 2.200-2/2001 c/c Lei 14.063/2020)
+        legal_notice: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020; Código Civil (Arts. 104 e 107); CPC (Arts. 411 e 441); LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
+        signature_type: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020',
         document_id: audit.document_id,
         manifest_sha256: audit.manifest_sha256,
         content_sha256: audit.content_sha256_at_signing,

@@ -4,7 +4,7 @@ import { formatBrasiliaDateTime } from '../schemas';
 
 // ============================================================================
 // GERADOR DE CERTIFICADO DE CONCLUSÃO — RELATÓRIO FINAL DE LINHA DO TEMPO
-// Conformidade: Lei 14.063/2020 Art. 4º, II; LGPD Art. 46; MP 2.200-2/2001
+// Conformidade: MP nº 2.200-2/2001 (Art. 10, § 2º); Lei nº 14.063/2020; Código Civil; CPC; LGPD Art. 46
 // Chancelado com hash SHA-256 original — qualquer adulteração invalida o PDF
 // ============================================================================
 
@@ -233,7 +233,7 @@ export class GeradorCertificadoConclusao {
 
     // ── HASHES CRIPTOGRÁFICOS ──────────────────────────────────────────────
     checkPage(120);
-    page.drawText('REGISTRO CRIPTOGRÁFICO (SHA-256 — Lei 14.063/2020 Art. 4º, II)', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
+    page.drawText('REGISTRO CRIPTOGRÁFICO (SHA-256 — MP 2.200-2/2001 e Lei 14.063/2020)', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
     novaLinha(12);
     drawLine(MARGIN, y, PAGE_W - MARGIN, y);
     novaLinha(10);
@@ -366,9 +366,9 @@ export class GeradorCertificadoConclusao {
       'chancelado com o Hash SHA-256 do manifesto criptográfico registrado no momento da assinatura eletrônica.',
       'Qualquer alteração posterior a este documento — incluindo a modificação de um único bit — invalida sua prova jurídica.',
       '',
-      'BASE LEGAL: Lei nº 14.063/2020 (Art. 4º, II — Assinatura Eletrônica Avançada); MP nº 2.200-2/2001 (Art. 10, §2º);',
-      'LGPD — Lei nº 13.709/2018 (Arts. 46, 47 e 48); Marco Civil da Internet — Lei nº 12.965/2014 (Art. 15);',
-      'STJ — REsp 2.205.708/PR (validade jurídica da assinatura eletrônica).',
+      'BASE LEGAL: MP nº 2.200-2/2001 (Art. 10, § 2º); Lei nº 14.063/2020; Código Civil (Arts. 104, 107 e 225);',
+      'CPC — Código de Processo Civil (Arts. 411 e 441); LGPD — Lei nº 13.709/2018 (Arts. 46, 47 e 48);',
+      'Marco Civil da Internet — Lei nº 12.965/2014 (Art. 15); STJ — REsp 2.205.708/PR (validade jurídica).',
       '',
       'A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash,',
       'não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.',

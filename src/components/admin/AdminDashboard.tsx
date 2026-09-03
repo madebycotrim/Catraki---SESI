@@ -58,7 +58,7 @@ interface AdminDashboardProps {
  * - E-mail do responsável
  * - CPF do aluno (com máscara, sem máscara ou apenas dígitos)
  * - CPF do responsável (mascarado ou dígitos)
- * - Código de validação SESI ou protocolo visível (ex: SESI-2E87-9594)
+ * - Código de validação CATRAKI ou protocolo visível (ex: CATRAKI-2E87-9594)
  * - Identificador único do documento (ID) ou token de acesso
  * - Série / Ano escolar, turma e turno
  * - Nome da instituição / escola
@@ -310,8 +310,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           signedAtDate: parseUtcDate(log?.signed_at || doc.created_at || log?.created_at),
           hash: log?.manifest_sha256 || doc.content_sha256,
           validationCode: log?.manifest_sha256
-            ? `SESI-${log.manifest_sha256.substring(0, 4).toUpperCase()}-${log.manifest_sha256.substring(log.manifest_sha256.length - 4).toUpperCase()}`
-            : (doc.id ? `SESI-${doc.id.substring(0, 4).toUpperCase()}` : 'SESI-VALID'),
+            ? `CATRAKI-${log.manifest_sha256.substring(0, 4).toUpperCase()}-${log.manifest_sha256.substring(log.manifest_sha256.length - 4).toUpperCase()}`
+            : (doc.id ? `CATRAKI-${doc.id.substring(0, 4).toUpperCase()}` : 'CATRAKI-VALID'),
         };
       });
       setAuthorizations(auths);
@@ -2427,7 +2427,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between text-slate-500 text-[11px] pt-1 border-t border-slate-200/60">
-                    <span>Base Legal: Assinatura Eletrônica Avançada (Art. 10, §2º da MP 2.200-2/2001)</span>
+                    <span>Base Legal: Assinatura Eletrônica (Art. 10, §2º da MP 2.200-2/2001 c/c Lei 14.063/2020 e Código Civil)</span>
                     <span className="font-semibold text-slate-700">
                       Data de Registro: {formatBrasiliaDateTime(selectedAuthForDetails.dateSent || selectedAuthForDetails.signedAtDate)}
                     </span>

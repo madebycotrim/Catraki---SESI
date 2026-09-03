@@ -183,7 +183,7 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
               Tudo certo por aqui!
             </h2>
             <p className="text-xs sm:text-sm font-semibold text-emerald-900 leading-relaxed bg-emerald-50/80 p-3.5 rounded-xl border border-emerald-200/60">
-              Sua assinatura eletrônica foi registrada com sucesso e possui plena validade jurídica.
+              Sua assinatura eletrônica foi registrada com sucesso e possui validade jurídica.
             </p>
           </div>
 

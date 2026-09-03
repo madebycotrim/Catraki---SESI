@@ -334,7 +334,7 @@ publicRouter.get('/validate/:query', async (c) => {
 
     const isCancelledError = record.doc_status === 'CANCELADO_POR_ERRO' || record.doc_status === 'cancelled_error';
 
-    const codePrefix = cleanUpper.startsWith('CATRAKI') ? 'CATRAKI' : 'SESI';
+    const codePrefix = cleanUpper.startsWith('SESI') ? 'SESI' : 'CATRAKI';
     const manifest = (typeof record.manifest_sha256 === 'string' && record.manifest_sha256.length > 0) ? record.manifest_sha256 : '0'.repeat(64);
     const validationCode = manifest.length >= 8
       ? `${codePrefix}-${manifest.substring(0, 4).toUpperCase()}-${manifest.substring(Math.max(0, manifest.length - 4)).toUpperCase()}`
@@ -343,8 +343,8 @@ publicRouter.get('/validate/:query', async (c) => {
     const response: PublicValidationResponse = {
       valid: !isCancelledError && record.doc_status !== 'revoked',
       validation_code: validationCode,
-      legal_notice: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020 c/c Art. 10, §2º, MP nº 2.200-2/2001; LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
-      signature_type: 'Assinatura Eletrônica Avançada — Art. 4º, II, Lei nº 14.063/2020',
+      legal_notice: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020; Código Civil (Arts. 104 e 107); CPC (Arts. 411 e 441); LGPD (Lei nº 13.709/2018); ECA Art. 17; Art. 299 CP; STJ (REsp 2.205.708/PR)',
+      signature_type: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020',
       document_id: record.document_id || record.id || 'DOC-PENDENTE',
       manifest_sha256: record.manifest_sha256 || manifest,
       content_sha256: record.content_sha256_at_signing || record.content_sha256 || 'SHA256-PENDING',
@@ -564,7 +564,7 @@ publicRouter.get('/dossier/:query', async (c) => {
         institution: 'SESI - Serviço Social da Indústria / Departamento Regional do Distrito Federal',
         platform_operator: 'Catraki Tecnologia e Assinaturas Digitais',
         project: 'Programa Escola Cidadã: Saúde em Movimento',
-        dpo_contact: 'dpo@catraki.com.br',
+        dpo_contact: 'suporte@catraki.com.br',
       },
       document: {
         id: record.document_id || record.id || 'DOC-REGISTRO',

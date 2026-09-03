@@ -342,8 +342,8 @@ publicRouter.get('/validate/:query', async (c) => {
     const response: PublicValidationResponse = {
       valid: !isCancelledError && record.doc_status !== 'revoked',
       validation_code: validationCode,
-      legal_notice: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020; Código Civil (Arts. 104 e 107); CPC (Arts. 411 e 441); LGPD (Lei nº 13.709/2018); ECA Art. 17; Art. 299 CP; STJ (REsp 2.205.708/PR)',
-      signature_type: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020',
+      legal_notice: 'Assinatura Eletrônica Simples — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei Federal nº 14.063/2020 (Art. 4º, I); Código Civil (Arts. 104 e 107); LGPD (Lei nº 13.709/2018); ECA Art. 17; Art. 299 CP',
+      signature_type: 'Assinatura Eletrônica Simples — Art. 10, § 2º da MP nº 2.200-2/2001 e Art. 4º, I da Lei nº 14.063/2020',
       document_id: record.document_id || record.id || 'DOC-PENDENTE',
       manifest_sha256: record.manifest_sha256 || manifest,
       content_sha256: record.content_sha256_at_signing || record.content_sha256 || 'SHA256-PENDING',

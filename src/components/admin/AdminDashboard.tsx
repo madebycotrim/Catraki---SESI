@@ -50,6 +50,93 @@ interface AdminDashboardProps {
   onLogout?: () => void;
 }
 
+/**
+ * Verifica se um registro de autorização corresponde ao termo de busca informado pelo usuário.
+ * Suporta busca abrangente por:
+ * - Nome do aluno / estudante
+ * - Nome do responsável legal
+ * - E-mail do responsável
+ * - CPF do aluno (com máscara, sem máscara ou apenas dígitos)
+ * - CPF do responsável (mascarado ou dígitos)
+ * - Código de validação SESI ou protocolo visível (ex: SESI-2E87-9594)
+ * - Identificador único do documento (ID) ou token de acesso
+ * - Série / Ano escolar, turma e turno
+ * - Nome da instituição / escola
+ *
+ * @param auth - Registro completo da autorização
+ * @param termo - Texto digitado no campo de busca rápida
+ * @returns boolean indicando se há correspondência
+ */
+export const verificarCorrespondenciaBusca = (auth: any, termo: string): boolean => {
+  if (!termo || !termo.trim()) return true;
+
+  const termoLimpo = termo.trim().toLowerCase();
+  const apenasDigitosTermo = termo.replace(/\D/g, '');
+
+  // 1. Busca textual direta nos nomes, e-mail e dados escolares
+  const camposTexto = [
+    auth.studentName,
+    auth.parentName,
+    auth.parentEmail,
+    auth.validationCode,
+    auth.minorSeries,
+    auth.minorClass,
+    auth.minorTurn,
+    auth.institutionName,
+  ];
+
+  for (const campo of camposTexto) {
+    if (typeof campo === 'string' && campo.toLowerCase().includes(termoLimpo)) {
+      return true;
+    }
+  }
+
+  // 2. Busca por Código / Protocolo ou ID do documento
+  if (typeof auth.id === 'string') {
+    const idLower = auth.id.toLowerCase();
+    if (idLower === termoLimpo || idLower.startsWith(termoLimpo)) {
+      return true;
+    }
+    // Evita falsos positivos com números curtos (ex: '058' não deve casar no meio do timestamp do id)
+    if (termoLimpo.length >= 5 && idLower.includes(termoLimpo)) {
+      return true;
+    }
+  }
+
+  if (typeof auth.accessToken === 'string' && auth.accessToken.toLowerCase().includes(termoLimpo)) {
+    return true;
+  }
+
+  // 3. Busca por CPF do Estudante (formatado, mascarado ou apenas dígitos)
+  const cpfEstudante = typeof auth.studentCpf === 'string' ? auth.studentCpf.toLowerCase() : '';
+  const cpfEstudanteMascarado = typeof auth.studentCpfMasked === 'string' ? auth.studentCpfMasked.toLowerCase() : '';
+  const digitosEstudante = (auth.studentCpfRaw || auth.studentCpf || auth.studentCpfMasked || '').replace(/\D/g, '');
+
+  // Correspondência direta no CPF exibido (ex: "058", "058.", "058.***")
+  if (cpfEstudante.includes(termoLimpo) || cpfEstudanteMascarado.includes(termoLimpo)) {
+    return true;
+  }
+
+  // Correspondência numérica por dígitos (ex: digitou "058" ou "058123")
+  if (apenasDigitosTermo.length > 0 && digitosEstudante.includes(apenasDigitosTermo)) {
+    return true;
+  }
+
+  // 4. Busca por CPF do Responsável Legal
+  const cpfResponsavel = typeof auth.parentCpfMasked === 'string' ? auth.parentCpfMasked.toLowerCase() : '';
+  const digitosResponsavel = (auth.parentCpfRaw || auth.parentCpfMasked || '').replace(/\D/g, '');
+
+  if (cpfResponsavel.includes(termoLimpo)) {
+    return true;
+  }
+
+  if (apenasDigitosTermo.length > 0 && digitosResponsavel.includes(apenasDigitosTermo)) {
+    return true;
+  }
+
+  return false;
+};
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onNavigateToSignerToken,
   onNavigateToValidatorHash,
@@ -186,6 +273,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const rawMinorCpf = doc.minor_cpf_raw || (doc.minor_cpf && !doc.minor_cpf.includes('*') ? doc.minor_cpf : '');
         const formattedMinorCpf = rawMinorCpf ? formatCPF(rawMinorCpf) : (doc.minor_cpf ? (doc.minor_cpf.includes('*') ? doc.minor_cpf : formatCPF(doc.minor_cpf)) : '');
         const studentCpf = formattedMinorCpf || (isSigned ? 'CPF não informado' : 'Pendente');
+        const studentCpfDigits = (rawMinorCpf || doc.minor_cpf || doc.cpf || '').replace(/\D/g, '');
+        const parentCpfDigits = (log?.signer_cpf_raw || log?.signer_cpf_masked || log?.signer_cpf || '').replace(/\D/g, '');
 
         return {
           id: doc.id,
@@ -193,10 +282,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           studentName: realStudentName,
           studentCpf,
           studentCpfMasked: studentCpf,
+          studentCpfRaw: studentCpfDigits,
           birthDate: doc.minor_birth_date || '',
           parentName: realParentName,
           parentCpfMasked: log?.signer_cpf_masked || (isSigned ? '***.***.***-**' : 'Pendente'),
-          parentEmail: doc.parent_email || '',
+          parentCpfRaw: parentCpfDigits,
+          parentEmail: doc.parent_email || log?.signer_email || '',
           relationship: log?.signer_relationship || (isSigned ? 'Responsável' : 'Aguardando'),
           activity: doc.template_title || 'Escola Cidadã — Saúde em Movimento',
           institutionId: instMatch ? instMatch.id : (doc.institution_id || 'cemeit'),
@@ -523,16 +614,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const getSubTabCounts = () => {
-    const baseFiltered = authorizations.filter((auth) => {
-      const matchesSearch =
-        auth.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        auth.parentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        auth.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (auth.validationCode && auth.validationCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (auth.minorSeries && auth.minorSeries.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (auth.minorClass && auth.minorClass.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (auth.minorTurn && auth.minorTurn.toLowerCase().includes(searchTerm.toLowerCase()));
+  const baseCriteriaFilteredAuths = useMemo(() => {
+    return authorizations.filter((auth) => {
+      const matchesSearch = verificarCorrespondenciaBusca(auth, searchTerm);
 
       const matchesInstitution =
         selectedInstitution === 'all' ||
@@ -570,84 +654,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       return matchesSearch && matchesInstitution && matchesImage && matchesDate && matchesSeries && matchesTurn;
     });
+  }, [authorizations, searchTerm, selectedInstitution, selectedImageOption, selectedSeries, selectedTurn, selectedDateRange]);
 
-    const activeCount = baseFiltered.filter(a => a.status === 'signed').length;
-    const pendingCount = baseFiltered.filter(a => a.status === 'pending' || a.status === 'draft').length;
-    const cancelledCount = baseFiltered.filter(a => a.status === 'CANCELADO_POR_ERRO' || a.status === 'cancelled_error' || a.status === 'revoked').length;
-    const totalCount = baseFiltered.length;
+  const { activeCount, pendingCount, cancelledCount, totalCount } = useMemo(() => {
+    const activeCount = baseCriteriaFilteredAuths.filter(a => a.status === 'signed').length;
+    const pendingCount = baseCriteriaFilteredAuths.filter(a => a.status === 'pending' || a.status === 'draft').length;
+    const cancelledCount = baseCriteriaFilteredAuths.filter(a => a.status === 'CANCELADO_POR_ERRO' || a.status === 'cancelled_error' || a.status === 'revoked').length;
+    const totalCount = baseCriteriaFilteredAuths.length;
 
     return { activeCount, pendingCount, cancelledCount, totalCount };
-  };
-
-  const { activeCount, pendingCount, cancelledCount, totalCount } = getSubTabCounts();
+  }, [baseCriteriaFilteredAuths]);
 
   const baseFilteredAuths = useMemo(() => {
-    return authorizations.filter((auth) => {
-      const matchesSearch =
-        auth.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        auth.parentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        auth.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (auth.validationCode && auth.validationCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (auth.minorSeries && auth.minorSeries.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (auth.minorClass && auth.minorClass.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (auth.minorTurn && auth.minorTurn.toLowerCase().includes(searchTerm.toLowerCase()));
-
-      const matchesInstitution =
-        selectedInstitution === 'all' ||
-        auth.institutionId === selectedInstitution ||
-        (auth.institutionName && auth.institutionName.toLowerCase().includes(selectedInstitution.toLowerCase()));
-
-      const matchesStatus = (() => {
-        if (subTab === 'active') {
-          const isActive = auth.status === 'signed';
-          if (!isActive) return false;
-        } else if (subTab === 'pending') {
-          const isPending = auth.status === 'pending' || auth.status === 'draft';
-          if (!isPending) return false;
-        } else if (subTab === 'cancelled') {
-          const isCancelOrRevoke = auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error' || auth.status === 'revoked';
-          if (!isCancelOrRevoke) return false;
-        }
-
-        if (selectedStatus === 'all') return true;
-        return (
-          auth.status === selectedStatus ||
-          (selectedStatus === 'CANCELADO_POR_ERRO' && (auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error'))
-        );
-      })();
-
-      const matchesImage =
-        selectedImageOption === 'all' ||
-        (selectedImageOption === 'authorized' && auth.authImage === true) ||
-        (selectedImageOption === 'not_authorized' && auth.authImage === false);
-
-      const matchesSeries =
-        selectedSeries === 'all' ||
-        (auth.minorSeries && auth.minorSeries.toLowerCase().includes(selectedSeries.toLowerCase()));
-
-      const matchesTurn =
-        selectedTurn === 'all' ||
-        (auth.minorTurn && auth.minorTurn.toLowerCase() === selectedTurn.toLowerCase());
-
-      let matchesDate = true;
-      if (selectedDateRange !== 'all') {
-        const now = new Date();
-        const authDate = new Date(auth.signedAtDate);
-        const diffTime = Math.abs(now.getTime() - authDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (selectedDateRange === 'today') {
-          matchesDate = now.toDateString() === authDate.toDateString();
-        } else if (selectedDateRange === '7days') {
-          matchesDate = diffDays <= 7;
-        } else if (selectedDateRange === '30days') {
-          matchesDate = diffDays <= 30;
-        }
+    return baseCriteriaFilteredAuths.filter((auth) => {
+      if (subTab === 'active') {
+        const isActive = auth.status === 'signed';
+        if (!isActive) return false;
+      } else if (subTab === 'pending') {
+        const isPending = auth.status === 'pending' || auth.status === 'draft';
+        if (!isPending) return false;
+      } else if (subTab === 'cancelled') {
+        const isCancelOrRevoke = auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error' || auth.status === 'revoked';
+        if (!isCancelOrRevoke) return false;
       }
 
-      return matchesSearch && matchesInstitution && matchesStatus && matchesImage && matchesDate && matchesSeries && matchesTurn;
+      if (selectedStatus === 'all') return true;
+      return (
+        auth.status === selectedStatus ||
+        (selectedStatus === 'CANCELADO_POR_ERRO' && (auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error'))
+      );
     });
-  }, [authorizations, searchTerm, selectedInstitution, subTab, selectedStatus, selectedImageOption, selectedSeries, selectedTurn, selectedDateRange]);
+  }, [baseCriteriaFilteredAuths, subTab, selectedStatus]);
 
   const totalSigned = authorizations.filter((a) => a.status === 'signed').length;
   const signedPercentage = authorizations.length > 0 ? ((totalSigned / authorizations.length) * 100).toFixed(1) : '0';
@@ -762,28 +799,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return flags;
   }, [authorizations]);
 
-  // Totais de anomalias para o banner
-  const totalDuplicates = useMemo(() => {
-    let count = 0;
-    anomalyFlags.forEach((flags) => {
-      if (flags.some(f => f.startsWith('DUPLICATE_CPF') || f === 'DUPLICATE_NAME' || f === 'DUPLICATE_PARENT_CHILD')) count++;
-    });
-    return count;
-  }, [anomalyFlags]);
 
-  const totalIncomplete = useMemo(() => {
-    let count = 0;
-    anomalyFlags.forEach((flags) => { if (flags.includes('MISSING_EMAIL')) count++; });
-    return count;
-  }, [anomalyFlags]);
-
-  const totalConflicts = useMemo(() => {
-    let count = 0;
-    anomalyFlags.forEach((flags) => {
-      if (flags.includes('CPF_CONFLICT_NAME') || flags.includes('PARENT_IS_STUDENT')) count++;
-    });
-    return count;
-  }, [anomalyFlags]);
 
   const filteredAuths = useMemo(() => {
     if (alertFilter === 'all') return baseFilteredAuths;
@@ -1171,24 +1187,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* PAINEL DE COMANDO & FILTROS INTELIGENTES */}
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200/90 p-5 space-y-4">
             
-            {/* Linha de Busca + Filtros Dropdown */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              
-              {/* Campo de Busca Rápida */}
-              <div className="relative sm:col-span-2 md:col-span-3 lg:col-span-2">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            {/* Linha 1: Busca e Ações Principais */}
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              {/* Campo de Busca Rápida (Destaque) */}
+              <div className="relative w-full md:flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                 <input
                   id="admin-search-input"
                   name="adminSearchTerm"
                   type="text"
                   aria-label="Buscar por aluno, responsável ou código"
-                  placeholder="Buscar aluno, responsável, CPF..."
+                  placeholder="Buscar aluno, responsável, CPF ou protocolo..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="filter-input-modern w-full pl-10 pr-9 py-2.5 text-xs text-slate-800 font-medium placeholder:text-slate-400"
+                  className="w-full pl-12 pr-10 py-3 text-sm text-slate-800 bg-slate-50/50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-slate-400 font-medium"
                 />
                 {searchTerm && (
                   <button
@@ -1196,105 +1211,55 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       setSearchTerm('');
                       setCurrentPage(1);
                     }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
 
-              {/* Filtro de Status */}
-              <div className="relative">
-                <FileCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => handleStatusFilterChange(e.target.value as any)}
-                  className="filter-input-modern w-full pl-9 pr-7 py-2.5 text-xs text-slate-700 font-medium cursor-pointer appearance-none"
-                >
-                  <option value="all">Status: Todos ({totalCount})</option>
-                  <option value="signed">✅ Autorizadas ({activeCount})</option>
-                  <option value="pending">⏳ Pendentes ({pendingCount})</option>
-                  <option value="revoked">🚫 Negadas</option>
-                  <option value="CANCELADO_POR_ERRO">⚠️ Canceladas</option>
-                </select>
-                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-              </div>
+              {/* Ações (Expirar Rascunhos / Limpar Filtros) */}
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                {(subTab === 'pending' || selectedStatus === 'pending') && (
+                  <button
+                    type="button"
+                    onClick={handleCleanupPending}
+                    disabled={isCleaningPending}
+                    className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                    title="Expirar rascunhos pendentes abandonados (>24 horas sem assinatura)"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>{isCleaningPending ? 'Expirando...' : 'Expirar Rascunhos'}</span>
+                  </button>
+                )}
 
-              {/* Filtro de Escola */}
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-                <select
-                  value={selectedInstitution}
-                  onChange={(e) => {
-                    setSelectedInstitution(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="filter-input-modern w-full pl-9 pr-7 py-2.5 text-xs text-slate-700 font-medium cursor-pointer appearance-none"
-                >
-                  <option value="all">Todas as Escolas</option>
-                  {institutions.map((inst) => (
-                    <option key={inst.id} value={inst.id}>{inst.short_name} - {inst.city}/{inst.state}</option>
-                  ))}
-                </select>
-                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                {isFiltered && (
+                  <button
+                    onClick={handleResetFilters}
+                    className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm hover:text-slate-900 transition-all cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span className="md:hidden xl:inline">Limpar Filtros</span>
+                  </button>
+                )}
               </div>
-
-              {/* Filtro de Série */}
-              <div className="relative">
-                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-                <select
-                  value={selectedSeries}
-                  onChange={(e) => {
-                    setSelectedSeries(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="filter-input-modern w-full pl-9 pr-7 py-2.5 text-xs text-slate-700 font-medium cursor-pointer appearance-none"
-                >
-                  <option value="all">Série: Todas</option>
-                  <option value="1º Ano">1º Ano</option>
-                  <option value="2º Ano">2º Ano</option>
-                  <option value="3º Ano">3º Ano</option>
-                  <option value="4º Ano">4º Ano</option>
-                  <option value="9º Ano">9º Ano</option>
-                </select>
-                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-              </div>
-
-              {/* Filtro de Período */}
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-                <select
-                  value={selectedDateRange}
-                  onChange={(e) => {
-                    setSelectedDateRange(e.target.value as any);
-                    setCurrentPage(1);
-                  }}
-                  className="filter-input-modern w-full pl-9 pr-7 py-2.5 text-xs text-slate-700 font-medium cursor-pointer appearance-none"
-                >
-                  <option value="all">Período: Todo</option>
-                  <option value="today">📅 Hoje</option>
-                  <option value="7days">📅 Últimos 7 dias</option>
-                  <option value="30days">📅 Últimos 30 dias</option>
-                </select>
-                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-              </div>
-
             </div>
 
-            {/* Linha 2: Segmented Tabs & Quick Status Pills */}
-            <div className="pt-3 border-t border-slate-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            {/* Linha 2: Segmented Tabs & Filtros Dropdown */}
+            <div className="pt-4 border-t border-slate-100 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
               
-              <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-2xl w-full sm:w-auto">
+              {/* Tabs de Sub-Status */}
+              <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-100/80 rounded-2xl w-full xl:w-auto overflow-x-auto no-scrollbar">
                 <button
                   type="button"
                   onClick={() => handleSubTabChange('active')}
-                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
                     subTab === 'active'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-200" />
                   <span>Autorizadas</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                     subTab === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
@@ -1306,13 +1271,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSubTabChange('pending')}
-                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
                     subTab === 'pending'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-sm shadow-amber-200" />
                   <span>Pendentes</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                     subTab === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-600'
@@ -1324,14 +1289,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSubTabChange('cancelled')}
-                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
                     subTab === 'cancelled'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-rose-500" />
-                  <span>Canceladas &amp; Negadas</span>
+                  <span className="w-2 h-2 rounded-full bg-rose-500 shadow-sm shadow-rose-200" />
+                  <span>Canceladas & Negadas</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                     subTab === 'cancelled' ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-600'
                   }`}>
@@ -1342,13 +1307,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSubTabChange('all')}
-                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
                     subTab === 'all'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-slate-400" />
+                  <span className="w-2 h-2 rounded-full bg-slate-400 shadow-sm" />
                   <span>Todas</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                     subTab === 'all' ? 'bg-slate-200 text-slate-800' : 'bg-slate-200 text-slate-600'
@@ -1358,79 +1323,86 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
 
-              {/* Micro-filtros de Auditoria & Botões de Ação */}
-              <div className="flex items-center justify-between sm:justify-end gap-2 text-xs text-slate-500 flex-wrap">
-                {totalDuplicates > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => { setAlertFilter(alertFilter === 'duplicate' ? 'all' : 'duplicate'); setCurrentPage(1); }}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      alertFilter === 'duplicate'
-                        ? 'bg-amber-600 text-white shadow-xs'
-                        : 'bg-amber-50/90 text-amber-900 hover:bg-amber-100 border border-amber-200'
-                    }`}
-                    title="Alunos com mesmo CPF ou nome cadastrados mais de uma vez"
+              {/* Filtros Dropdown */}
+              <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 w-full xl:w-auto justify-start xl:justify-end">
+                
+                {/* Filtro de Status */}
+                <div className="relative min-w-[140px] flex-1 lg:flex-none">
+                  <FileCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => handleStatusFilterChange(e.target.value as any)}
+                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none cursor-pointer"
                   >
-                    <span>⚠️ Duplicados</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${alertFilter === 'duplicate' ? 'bg-amber-800 text-white' : 'bg-amber-200 text-amber-900'}`}>{totalDuplicates}</span>
-                  </button>
-                )}
+                    <option value="all">Todos os Status</option>
+                    <option value="signed">✅ Autorizadas</option>
+                    <option value="pending">⏳ Pendentes</option>
+                    <option value="revoked">🚫 Negadas</option>
+                    <option value="CANCELADO_POR_ERRO">⚠️ Canceladas</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                </div>
 
-                {totalIncomplete > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => { setAlertFilter(alertFilter === 'incomplete' ? 'all' : 'incomplete'); setCurrentPage(1); }}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      alertFilter === 'incomplete'
-                        ? 'bg-slate-800 text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-                    }`}
-                    title="Pendentes sem e-mail cadastrado"
+                {/* Filtro de Escola */}
+                <div className="relative min-w-[160px] flex-1 lg:flex-none">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <select
+                    value={selectedInstitution}
+                    onChange={(e) => {
+                      setSelectedInstitution(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none cursor-pointer truncate"
                   >
-                    <span>📋 Sem e-mail</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${alertFilter === 'incomplete' ? 'bg-slate-950 text-white' : 'bg-slate-200 text-slate-800'}`}>{totalIncomplete}</span>
-                  </button>
-                )}
+                    <option value="all">Todas as Escolas</option>
+                    {institutions.map((inst) => (
+                      <option key={inst.id} value={inst.id}>{inst.short_name} - {inst.city}/{inst.state}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                </div>
 
-                {totalConflicts > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => { setAlertFilter(alertFilter === 'conflict' ? 'all' : 'conflict'); setCurrentPage(1); }}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      alertFilter === 'conflict'
-                        ? 'bg-rose-600 text-white shadow-xs'
-                        : 'bg-rose-50/90 text-rose-900 hover:bg-rose-100 border border-rose-200'
-                    }`}
+                {/* Filtro de Série */}
+                <div className="relative min-w-[130px] flex-1 lg:flex-none">
+                  <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <select
+                    value={selectedSeries}
+                    onChange={(e) => {
+                      setSelectedSeries(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none cursor-pointer"
                   >
-                    <span>🚨 Inconsistências</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${alertFilter === 'conflict' ? 'bg-rose-800 text-white' : 'bg-rose-200 text-rose-900'}`}>{totalConflicts}</span>
-                  </button>
-                )}
+                    <option value="all">Série: Todas</option>
+                    <option value="1º Ano">1º Ano</option>
+                    <option value="2º Ano">2º Ano</option>
+                    <option value="3º Ano">3º Ano</option>
+                    <option value="4º Ano">4º Ano</option>
+                    <option value="9º Ano">9º Ano</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                </div>
 
-                {(subTab === 'pending' || selectedStatus === 'pending') && (
-                  <button
-                    type="button"
-                    onClick={handleCleanupPending}
-                    disabled={isCleaningPending}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
-                    title="Expirar rascunhos pendentes abandonados (>24 horas sem assinatura)"
+                {/* Filtro de Período */}
+                <div className="relative min-w-[150px] flex-1 lg:flex-none">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <select
+                    value={selectedDateRange}
+                    onChange={(e) => {
+                      setSelectedDateRange(e.target.value as any);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none cursor-pointer"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>{isCleaningPending ? 'Expirando...' : 'Expirar Rascunhos (>24h)'}</span>
-                  </button>
-                )}
+                    <option value="all">Período: Todo</option>
+                    <option value="today">📅 Hoje</option>
+                    <option value="7days">📅 Últimos 7 dias</option>
+                    <option value="30days">📅 Últimos 30 dias</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                </div>
 
-                {isFiltered && (
-                  <button
-                    onClick={handleResetFilters}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold hover:text-slate-900 transition-all cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Limpar Filtros</span>
-                  </button>
-                )}
               </div>
-
             </div>
 
           </div>

@@ -369,6 +369,142 @@ signerRouter.post('/check-student', async (c) => {
 });
 
 /**
+ * POST /api/signer/check-bulk
+ * Validação de consentimento em massa para o SMS-MEDCO
+ */
+signerRouter.post('/check-bulk', async (c) => {
+  try {
+    const rawBody = await c.req.json().catch(() => ({}));
+    let itemsToCheck: Array<{ id?: string; cpf: string }> = [];
+
+    if (Array.isArray(rawBody)) {
+      itemsToCheck = rawBody.map((item) => typeof item === 'string' ? { cpf: item } : { id: item.id, cpf: item.cpf || item.minor_cpf });
+    } else if (Array.isArray(rawBody.patients)) {
+      itemsToCheck = rawBody.patients.map((item: any) => typeof item === 'string' ? { cpf: item } : { id: item.id, cpf: item.cpf || item.minor_cpf });
+    } else if (Array.isArray(rawBody.cpfs)) {
+      itemsToCheck = rawBody.cpfs.map((cpf: string) => ({ cpf }));
+    } else if (Array.isArray(rawBody.items)) {
+      itemsToCheck = rawBody.items.map((item: any) => typeof item === 'string' ? { cpf: item } : { id: item.id, cpf: item.cpf || item.minor_cpf });
+    }
+
+    const db = c.env.DB;
+    if (!db || itemsToCheck.length === 0) {
+      return c.json({
+        success: true,
+        results: {},
+        items: [],
+        authorizedCpfs: [],
+        revokedCpfs: [],
+        count: 0,
+      });
+    }
+
+    const pepper = c.env.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD_98765';
+    const results: Record<string, any> = {};
+    const itemsResponse: any[] = [];
+    const authorizedCpfs: string[] = [];
+    const revokedCpfs: string[] = [];
+
+    for (const item of itemsToCheck.slice(0, 1000)) {
+      const rawCpf = item.cpf || '';
+      const cleanCpf = rawCpf.replace(/\D/g, '');
+
+      if (cleanCpf.length !== 11) {
+        const res = { id: item.id, cpf: rawCpf, authorized: false, hasExistingSignature: false, isRevoked: false, status: 'invalid_cpf' };
+        results[rawCpf] = res;
+        if (cleanCpf) results[cleanCpf] = res;
+        itemsResponse.push(res);
+        continue;
+      }
+
+      const minorCpfBindex = await hmacSha256(cleanCpf, pepper);
+      const existing = await db.prepare(
+        `SELECT d.id, d.status, d.minor_name, d.parent_name, a.manifest_sha256, a.signed_at
+         FROM documents d
+         LEFT JOIN audit_logs a ON d.id = a.document_id
+         WHERE d.status = 'signed' 
+           AND (d.minor_cpf = ? OR d.minor_cpf_bindex_sha256 = ?)
+         ORDER BY a.signed_at DESC LIMIT 1`
+      ).bind(maskCPF(cleanCpf), minorCpfBindex).first<any>().catch(() => null);
+
+      if (existing) {
+        const validationCode = existing.manifest_sha256
+          ? `CATRAKI-${existing.manifest_sha256.substring(0, 4).toUpperCase()}-${existing.manifest_sha256.substring(existing.manifest_sha256.length - 4).toUpperCase()}`
+          : `CATRAKI-${existing.id.slice(-8).toUpperCase()}`;
+
+        const res = {
+          id: item.id,
+          cpf: rawCpf,
+          authorized: true,
+          hasExistingSignature: true,
+          isRevoked: false,
+          status: 'signed',
+          validationCode,
+          existingValidationCode: validationCode,
+          signedAt: existing.signed_at || new Date().toISOString(),
+          minorName: existing.minor_name,
+          documentId: existing.id,
+        };
+        results[rawCpf] = res;
+        results[cleanCpf] = res;
+        itemsResponse.push(res);
+        authorizedCpfs.push(cleanCpf);
+      } else {
+        const revoked = await db.prepare(
+          `SELECT id, status, minor_name, revoked_at, cancelled_at, revoked_reason, cancellation_reason
+           FROM documents
+           WHERE (minor_cpf = ? OR minor_cpf_bindex_sha256 = ?)
+             AND status IN ('revoked', 'CANCELADO_POR_ERRO', 'cancelled_error')
+           ORDER BY created_at DESC LIMIT 1`
+        ).bind(maskCPF(cleanCpf), minorCpfBindex).first<any>().catch(() => null);
+
+        if (revoked) {
+          const res = {
+            id: item.id,
+            cpf: rawCpf,
+            authorized: false,
+            hasExistingSignature: false,
+            isRevoked: true,
+            status: 'revoked',
+            minorName: revoked.minor_name,
+            documentId: revoked.id,
+            revokedAt: revoked.revoked_at || revoked.cancelled_at,
+            reason: revoked.revoked_reason || revoked.cancellation_reason,
+          };
+          results[rawCpf] = res;
+          results[cleanCpf] = res;
+          itemsResponse.push(res);
+          revokedCpfs.push(cleanCpf);
+        } else {
+          const res = {
+            id: item.id,
+            cpf: rawCpf,
+            authorized: false,
+            hasExistingSignature: false,
+            isRevoked: false,
+            status: 'not_found_or_pending',
+          };
+          results[rawCpf] = res;
+          results[cleanCpf] = res;
+          itemsResponse.push(res);
+        }
+      }
+    }
+
+    return c.json({
+      success: true,
+      results,
+      items: itemsResponse,
+      authorizedCpfs,
+      revokedCpfs,
+      count: itemsResponse.length,
+    });
+  } catch (err: any) {
+    return c.json({ success: false, error: 'Erro ao processar validação em lote.', details: err?.message }, 500);
+  }
+});
+
+/**
  * POST /api/signer/manual-review
  * Envio de documentos comprobatórios com remoção de metadados EXIF
  */

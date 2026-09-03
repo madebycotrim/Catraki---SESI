@@ -239,12 +239,15 @@ adminRouter.get('/documents', async (c) => {
 
   const limitQuery = c.req.query('limit');
   const limit = limitQuery === 'all' ? 100000 : (parseInt(limitQuery || '100', 10) || 100);
+  const includeExpired = c.req.query('include_expired') === 'true';
 
   try {
+    const whereClause = includeExpired ? '' : "WHERE d.status != 'expired'";
     const docs = await db.prepare(
       `SELECT d.*, t.title as template_title, t.procedure_description
        FROM documents d
        LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       ${whereClause}
        ORDER BY d.created_at DESC LIMIT ?`
     ).bind(limit).all<any>();
 
@@ -265,8 +268,9 @@ adminRouter.get('/documents', async (c) => {
     return c.json({ success: true, documents: results });
   } catch (err: any) {
     try {
+      const fallbackWhere = includeExpired ? '' : "WHERE status != 'expired'";
       const fallbackDocs = await db.prepare(
-        `SELECT * FROM documents ORDER BY created_at DESC LIMIT ?`
+        `SELECT * FROM documents ${fallbackWhere} ORDER BY created_at DESC LIMIT ?`
       ).bind(limit).all<any>();
 
       const results = await Promise.all((fallbackDocs.results || []).map(async (doc: any) => {

@@ -90,13 +90,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleSubTabChange = (tab: 'active' | 'pending' | 'cancelled' | 'all') => {
     setSubTab(tab);
     setCurrentPage(1);
-    if (tab === 'active' && (selectedStatus === 'revoked' || selectedStatus === 'CANCELADO_POR_ERRO' || selectedStatus === 'pending')) {
-      setSelectedStatus('all');
-    } else if (tab === 'pending') {
-      setSelectedStatus('all');
-    } else if (tab === 'cancelled' && (selectedStatus === 'signed' || selectedStatus === 'pending')) {
-      setSelectedStatus('all');
-    }
+    setSelectedStatus('all');
   };
 
   const handleResetFilters = () => {
@@ -165,7 +159,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const instList = resInst.success && resInst.institutions ? resInst.institutions : [];
 
     if (resDocs.success && Array.isArray(resDocs.documents)) {
-      const auths = resDocs.documents.map((doc: any) => {
+      const activeDocs = resDocs.documents.filter((doc: any) => doc.status !== 'expired');
+      const auths = activeDocs.map((doc: any) => {
         const log = resLogs?.success && resLogs.logs ? resLogs.logs.find((l: any) => l.document_id === doc.id) : null;
         const instMatch = instList.find((i: any) => 
           i.id === doc.institution_id || 
@@ -1293,9 +1288,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onChange={(e) => handleStatusFilterChange(e.target.value as any)}
                   className="filter-input-modern w-full pl-9 pr-7 py-2.5 text-xs text-slate-700 font-medium cursor-pointer appearance-none"
                 >
-                  <option value="all">Status: Todos</option>
-                  <option value="signed">✅ Autorizadas</option>
-                  <option value="pending">⏳ Pendentes</option>
+                  <option value="all">Status: Todos ({totalCount})</option>
+                  <option value="signed">✅ Autorizadas ({activeCount})</option>
+                  <option value="pending">⏳ Pendentes ({pendingCount})</option>
                   <option value="revoked">🚫 Negadas</option>
                   <option value="CANCELADO_POR_ERRO">⚠️ Canceladas</option>
                 </select>
@@ -1495,7 +1490,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       const isSigned = auth.status === 'signed';
                       const isCancelled = auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error';
                       const isRevoked = auth.status === 'revoked';
-                      const isPending = !isSigned && !isCancelled && !isRevoked;
+                      const isExpired = auth.status === 'expired';
+                      const isPending = !isSigned && !isCancelled && !isRevoked && !isExpired;
                       const birthInfo = formatBirthDateAndAge(auth.birthDate);
                       const seriesClassText = formatStudentSeriesClass(auth.minorSeries, auth.minorClass);
                       const initials = getInitials(auth.studentName);
@@ -1675,9 +1671,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </span>
                               )}
                               {isPending && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold">
-                                  <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
+                                  <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                                   <span>Pendente</span>
+                                </span>
+                              )}
+                              {isExpired && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-300 text-xs font-bold shadow-3xs" title="Rascunho não finalizado expirado em 24h">
+                                  <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  <span>Expirada (&gt;24h)</span>
                                 </span>
                               )}
 

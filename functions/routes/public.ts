@@ -694,3 +694,12 @@ publicRouter.post('/batch-check', async (c) => {
     return c.json({ success: false, error: 'Erro ao processar validação em lote.', details: err?.message }, 500);
   }
 });
+
+// Alias para compatibilidade total com chamadas do SMS-MEDCO
+publicRouter.post('/check-bulk', async (c) => {
+  return publicRouter.fetch(new Request(c.req.url.replace('/check-bulk', '/batch-check'), {
+    method: 'POST',
+    headers: c.req.raw.headers,
+    body: await c.req.raw.clone().blob(),
+  }), c.env, c.executionCtx);
+});

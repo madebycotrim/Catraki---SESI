@@ -105,29 +105,29 @@ O acolhimento dessas assinaturas fundamenta-se nos seguintes cânones:
 
 ## 5. ALINHAMENTO ARQUITETURAL DA PLATAFORMA CATRAKI
 
-A arquitetura da plataforma **Catraki** foi desenvolvida para atingir o mais rigoroso padrão de **Assinatura Eletrônica Avançada**, satisfazendo todos os preceitos do Art. 4º, II, da Lei nº 14.063/2020 e a jurisprudência do STJ:
+A arquitetura da plataforma **Catraki** foi desenvolvida para implementar a **Assinatura Eletrônica Simples** com alto padrão probatório, satisfazendo plenamente os preceitos do Art. 4º, I, da Lei nº 14.063/2020, o Art. 10, § 2º da MP 2.200-2/2001 e a jurisprudência consolidada do STJ:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                             ARQUITETURA DE VALIDAÇÃO FORENSE                             │
+│                          ARQUITETURA DE REGISTRO DE AUDITORIA                            │
 ├──────────────────────────────────────────────────────────────────────────────────────────┤
-│ 1. AUTORIA INEQUÍVOCA        → 2FA/OTP (SMS/E-mail) + Match de Matrícula Institucional   │
-│ 2. INTEGRIDADE CRIPTOGRÁFICA → Resumo Criptográfico SHA-256 + PAdES + Merkle Tree       │
-│ 3. TEMPORALIDADE QUALIFICADA → Carimbo do Tempo (TSA / RFC 3161) Sincronizado            │
-│ 4. NÃO-REPÚDIO & CUSTÓDIA    → Trilha de Auditoria (IP, User-Agent, Geoloc, Timestamp)   │
-│ 5. AUDITABILIDADE PÚBLICA    → QR Code e Código Verificador com Validador Público       │
+│ 1. AUTORIA & IDENTIFICAÇÃO   → Código OTP (E-mail/SMS) + Identificação do Responsável    │
+│ 2. INTEGRIDADE DIGITAL       → Resumo Criptográfico SHA-256 no Manifesto do Documento   │
+│ 3. TEMPORALIDADE             → Timestamp Sincronizado com Horário de Brasília (UTC)      │
+│ 4. NÃO-REPÚDIO & CUSTÓDIA    → Trilha de Auditoria (IP Real, User-Agent, Dispositivo)    │
+│ 5. CONSULTA & COMPROVAÇÃO    → QR Code e Protocolo no Validador / Consulta de Registro   │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 1. **Evidência de Consentimento Válido (Art. 7º, 11 e 14 da LGPD):** Coleta destacada e informada de consentimento de responsáveis legais por menores em termos de saúde/educação do SESI.
-2. **Padrão PAdES com Carimbo de Tempo:** Encapsulamento da assinatura e metadados no corpo do PDF com preservação de longa duração.
-3. **Proteção Anti-Fraude:** Watermark criptográfica e microtexto de segurança sobrepostos à assinatura para impedir recortes ou reutilização em outros documentos.
+2. **Registro no PDF:** Encapsulamento da assinatura e metadados no corpo do PDF com folha de comprovante de registro.
+3. **Proteção Anti-Fraude:** Watermark criptográfica e dados de auditoria sobrepostos à assinatura para impedir recortes ou reutilização em outros documentos.
 
 ---
 
 ## 6. CONCLUSÃO
 
-A arquitetura jurídica brasileira não confere monopólio à ICP-Brasil para a validação de atos e negócios jurídicos. A conjugação entre a MP nº 2.200-2/2001 (art. 10, § 2º), a Lei nº 14.063/2020 e a jurisprudência pacificada do Superior Tribunal de Justiça (destacando-se o REsp 2.205.708/PR) assegura que as **assinaturas eletrônicas avançadas possuem plena validade jurídica, eficácia probante e idoneidade executiva**.
+A arquitetura jurídica brasileira não confere monopólio à ICP-Brasil para a validação de atos e negócios jurídicos. A conjugação entre a MP nº 2.200-2/2001 (art. 10, § 2º), a Lei nº 14.063/2020 (Art. 4º, I) e a jurisprudência pacificada do Superior Tribunal de Justiça (destacando-se o REsp 2.205.708/PR) assegura que as **assinaturas eletrônicas simples dotadas de trilha de evidências digitais possuem plena validade e eficácia probatória para consentimentos e autorizações escolares**.
 
 A segurança jurídica dos atos eletrônicos deslocou-se do monopólio estatal de certificados para o terreno da **comprovação técnica e auditável de autenticidade e integridade**. Plataformas e sistemas que implementam rigorosos mecanismos de rastreabilidade, criptografia e trilhas de auditoria cumprem com primazia as exigências legais vigentes, promovendo desburocratização, agilidade e total respaldo no direito pátrio.
 

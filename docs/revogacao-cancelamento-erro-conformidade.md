@@ -33,7 +33,7 @@ flowchart TD
 - **Guarda de Registros de Acesso a Aplicações (Art. 15):** O provedor de aplicação é obrigado a manter sob sigilo e ambiente controlado os registros de acesso (endereço IP, data e hora com fuso horário) pelo prazo legal. Na operação de cancelamento administrativo, o sistema registra compulsoriamente o IP do operador, o User-Agent, a data/hora UTC e a credencial do funcionário, gerando um hash criptográfico (SHA-256) não-repudiável.
 
 ### 1.3. Lei das Assinaturas Eletrônicas (Lei nº 14.063/2020) e MP nº 2.200-2/2001
-- **Assinatura Eletrônica Avançada (Art. 4º, II):** Requer associação inequívoca ao signatário e garantia de integridade. Qualquer evento superveniente (como revogação ou cancelamento por erro) não destrói o documento primitivo, mas sim apõe uma marca temporal e um registro de cancelamento que invalida seus efeitos prospectivos, mantendo a rastreabilidade pericial íntegra.
+- **Assinatura Eletrônica Simples (Art. 4º, I):** Permite a identificação do signatário e a vinculação de dados a outros dados eletrônicos. Qualquer evento superveniente (como revogação ou cancelamento por erro) não destrói o documento primitivo, mas sim apõe uma marca temporal e um registro de cancelamento que invalida seus efeitos prospectivos, mantendo a rastreabilidade íntegra.
 
 ---
 

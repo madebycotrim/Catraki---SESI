@@ -1,6 +1,6 @@
 # Jurisprudência de Referência Legal — STJ REsp 2.205.708-PR
 
-Este documento registra a decisão do Superior Tribunal de Justiça (STJ) que respalda legalmente a arquitetura de assinaturas eletrônicas avançadas (como a verificação por código OTP e trilha de custódia de rede) adotada pela plataforma Catraki.
+Este documento registra a decisão do Superior Tribunal de Justiça (STJ) que respalda legalmente a arquitetura de assinaturas eletrônicas simples (como a verificação por código OTP e trilha de auditoria de rede) adotada pela plataforma Catraki.
 
 ---
 

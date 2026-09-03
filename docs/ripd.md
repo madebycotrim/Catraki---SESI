@@ -15,12 +15,12 @@
 O **SESI Saúde** realiza procedimentos médicos, odontológicos, exames audiométricos, oftalmológicos e de saúde preventiva em menores de 18 anos matriculados ou atendidos em seus programas educacionais e de qualidade de vida. A realização de qualquer intervenção clínica em incapazes exige autorização prévia, expressa e inequívoca do seu representante legal (pai, mãe, tutor ou responsável por guarda judicial).
 
 ### 1.2 Nível de Assinatura Entregue
-O sistema implementa uma **Assinatura Eletrônica Avançada**, nos termos do **Art. 4º, II do Decreto Federal nº 10.543/2020**, baseada em:
-1. Identificação inequívoca do signatário mediante conferência na base de matrícula institucional ou validação documental com biometria facial/selfie;
-2. Autenticação de dois fatores (2FA/OTP) com hash HMAC-SHA256 e segredo pepper;
-3. Trilha de auditoria criptográfica imutável com encadeamento de hashes (*Hash Chain*) e carimbo do tempo qualificado (RFC 3161 / TSA).
+O sistema implementa uma **Assinatura Eletrônica Simples**, nos termos do **Art. 4º, I da Lei Federal nº 14.063/2020** e **Art. 10, § 2º da MP nº 2.200-2/2001**, baseada em:
+1. Identificação do signatário mediante CPF e confirmação dos dados do responsável legal e do estudante;
+2. Autenticação de dois fatores (2FA/OTP) com código temporário enviado ao e-mail do responsável;
+3. Trilha de auditoria digital com registro de IP, data/hora do servidor e Hash SHA-256 de integridade.
 
-> ⚠️ **Aviso de Validade:** A solução declara expressamente que **não constitui assinatura qualificada ICP-Brasil**, mas cumpre integralmente os requisitos de autoria, integridade e não-repúdio necessários para a autorização médica.
+> ⚠️ **Aviso de Validade:** A solução declara expressamente que **não constitui assinatura qualificada ICP-Brasil**, operando sob o regime de assinatura eletrônica simples admitida pelas partes com plena eficácia para autorizações escolares e consentimento LGPD.
 
 ---
 

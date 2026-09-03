@@ -155,10 +155,10 @@ export class GeradorComprovanteConclusao {
     page.drawText('PLATAFORMA CATRAKI', {
       x: MARGIN, y: PAGE_H - 28, size: 9, font: fontBold, color: rgb(1, 1, 1),
     });
-    page.drawText('COMPROVANTE DE CONCLUSÃO DE ASSINATURA ELETRÔNICA', {
+    page.drawText('COMPROVANTE DE CONCLUSÃO DE ASSINATURA ELETRÔNICA SIMPLES', {
       x: MARGIN, y: PAGE_H - 44, size: 8, font: fontBold, color: rgb(0.85, 0.92, 1),
     });
-    page.drawText('As assinaturas eletrônicas realizadas neste documento possuem validade legal em conformidade com a Medida Provisória nº 2.200-2/2001 (Art. 10, § 2º) e a Lei nº 14.063/2020.', {
+    page.drawText('Assinatura Eletrônica Simples nos termos do Art. 10, § 2º da MP nº 2.200-2/2001 e Art. 4º, I da Lei Federal nº 14.063/2020.', {
       x: MARGIN, y: PAGE_H - 58, size: 6, font: fontRegular, color: rgb(0.75, 0.85, 1),
     });
 

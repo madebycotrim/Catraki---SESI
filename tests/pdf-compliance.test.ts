@@ -103,7 +103,7 @@ describe('Validação de Conformidade do Gerador de PDF (Páginas 1 e 2)', () =>
         {
           timestamp: '2026-08-26T14:03:00Z',
           tipo: 'ASSINADO',
-          descricao: 'Assinatura eletrônica avançada concluída com sucesso.',
+          descricao: 'Assinatura eletrônica simples concluída com sucesso.',
           ip: '200.189.112.45',
           user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
           ntp_source: 'NTP.br (Observatório Nacional UTC-3)',

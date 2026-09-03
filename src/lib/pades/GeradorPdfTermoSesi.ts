@@ -417,7 +417,7 @@ export class GeradorPdfTermoSesi {
       color: corMarcaDaguaFundo,
       rotate: degrees(6),
     });
-    page1.drawText('DOCUMENTO ASSINADO ELETRONICAMENTE • ART. 10, § 2º, MP 2.200-2/2001', {
+    page1.drawText('ASSINATURA ELETRÔNICA SIMPLES • ART. 10, § 2º, MP 2.200-2/2001 E LEI 14.063/2020', {
       x: margemEsquerda + 12,
       y: y + 6,
       size: 5,
@@ -473,7 +473,7 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 9.5;
-    page1.drawText('Assinatura Eletrônica — Plataforma Catraki (Art. 10, § 2º, MP 2.200-2/2001 c/c Lei nº 14.063/2020)', {
+    page1.drawText('Assinatura Eletrônica Simples — Plataforma Catraki (Art. 10, § 2º, MP 2.200-2/2001 e Lei nº 14.063/2020)', {
       x: margemEsquerda,
       y,
       size: 7,
@@ -503,7 +503,7 @@ export class GeradorPdfTermoSesi {
     }
 
     // Rodapé da Página 1
-    page1.drawText('Autorização registrada eletronicamente via plataforma Catraki | Art. 10, § 2º, MP 2.200-2/2001, Lei 14.063/2020, CC e LGPD.', {
+    page1.drawText('Autorização registrada eletronicamente (Assinatura Simples) via Catraki | MP 2.200-2/2001, Lei 14.063/2020 e LGPD.', {
       x: margemEsquerda,
       y: 24,
       size: 6.5,

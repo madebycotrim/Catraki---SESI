@@ -818,6 +818,46 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
     ).bind(cancelledAtIso, doc.id).run().catch(() => {});
   }
 
+  // --- SINCRONIZAÇÃO AUTOMÁTICA DE CANCELAMENTO/REVOGAÇÃO COM SMS-MEDCO (Supabase) ---
+  try {
+    const supabaseUrl = (c.env as any).SUPABASE_URL;
+    const supabaseKey = (c.env as any).SUPABASE_SECRET_KEY || (c.env as any).SUPABASE_SERVICE_ROLE_KEY;
+    const masterKey = c.env.ENCRYPTION_KEY_V1;
+
+    let minorCpfForSync: string | null = null;
+    if (doc.minor_cpf_encrypted && masterKey) {
+      try {
+        minorCpfForSync = await decryptAesGcm(doc.minor_cpf_encrypted, masterKey);
+      } catch {}
+    } else if (doc.minor_cpf && !doc.minor_cpf.includes('*')) {
+      minorCpfForSync = doc.minor_cpf;
+    }
+
+    if (supabaseUrl && supabaseKey && minorCpfForSync) {
+      const cleanCpf = minorCpfForSync.replace(/\D/g, '');
+      const formattedCpf = formatCPF(cleanCpf);
+      const queryParam = `or=(cpf.eq.${encodeURIComponent(cleanCpf)},cpf.eq.${encodeURIComponent(formattedCpf)})`;
+
+      await fetch(`${supabaseUrl}/rest/v1/patients?${queryParam}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({
+          tcle_accepted_at: null,
+          tcle_protocol: null,
+        }),
+      });
+      console.log(`[Catraki Admin] Consentimento cancelado no Supabase do SMS-MEDCO para o CPF ${cleanCpf}`);
+    }
+  } catch (syncErr) {
+    console.error('[Catraki Admin] Erro ao sincronizar cancelamento com SMS-MEDCO:', syncErr);
+  }
+  // --- FIM DA SINCRONIZAÇÃO ---
+
   return c.json({
     success: true,
     document_id: doc.id,

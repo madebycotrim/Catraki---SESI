@@ -328,6 +328,7 @@ signerRouter.post('/check-student', async (c) => {
       return c.json({
         authorized: true,
         hasExistingSignature: true,
+        isRevoked: false,
         status: 'signed',
         validationCode,
         existingValidationCode: validationCode,
@@ -337,11 +338,34 @@ signerRouter.post('/check-student', async (c) => {
         documentId: existing.id,
       });
     }
+
+    // Se não há assinatura ativa, verifica se o consentimento foi formalmente revogado/cancelado
+    const revokedQuery = `
+      SELECT d.id, d.status, d.minor_name, d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason
+      FROM documents d
+      WHERE d.status IN ('revoked', 'CANCELADO_POR_ERRO', 'cancelled_error')
+        AND (${cleanCpf && cleanCpf.length === 11 ? 'd.minor_cpf = ? OR d.minor_cpf_bindex_sha256 = ?' : 'LOWER(d.minor_name) = LOWER(?) AND d.minor_birth_date = ?'})
+      ORDER BY d.created_at DESC LIMIT 1
+    `;
+    const revoked = await db.prepare(revokedQuery).bind(...params).first<any>().catch(() => null);
+
+    if (revoked) {
+      return c.json({
+        authorized: false,
+        hasExistingSignature: false,
+        isRevoked: true,
+        status: 'revoked',
+        minorName: revoked.minor_name,
+        documentId: revoked.id,
+        revokedAt: revoked.revoked_at || revoked.cancelled_at,
+        reason: revoked.revoked_reason || revoked.cancellation_reason || 'Revogado a pedido do responsável / cancelado administrativamente',
+      });
+    }
   } catch (e) {
     console.error('Erro ao verificar duplicidade de estudante:', e);
   }
 
-  return c.json({ authorized: false, hasExistingSignature: false });
+  return c.json({ authorized: false, hasExistingSignature: false, isRevoked: false, status: 'not_found_or_pending' });
 });
 
 /**
@@ -1585,6 +1609,46 @@ signerRouter.post('/revoke', async (c) => {
       }
     } catch {}
   }
+
+  // --- SINCRONIZAÇÃO AUTOMÁTICA DE REVOGAÇÃO COM SMS-MEDCO (Supabase) ---
+  try {
+    const supabaseUrl = (c.env as any).SUPABASE_URL;
+    const supabaseKey = (c.env as any).SUPABASE_SECRET_KEY || (c.env as any).SUPABASE_SERVICE_ROLE_KEY;
+
+    let minorCpfForSync: string | null = null;
+    const docAny = doc as any;
+    if (docAny.minor_cpf_encrypted && masterKey) {
+      try {
+        minorCpfForSync = await decryptAesGcm(docAny.minor_cpf_encrypted, masterKey);
+      } catch {}
+    } else if (docAny.minor_cpf && !docAny.minor_cpf.includes('*')) {
+      minorCpfForSync = docAny.minor_cpf;
+    }
+
+    if (supabaseUrl && supabaseKey && minorCpfForSync) {
+      const cleanCpf = minorCpfForSync.replace(/\D/g, '');
+      const formattedCpf = formatCPF(cleanCpf);
+      const queryParam = `or=(cpf.eq.${encodeURIComponent(cleanCpf)},cpf.eq.${encodeURIComponent(formattedCpf)})`;
+
+      await fetch(`${supabaseUrl}/rest/v1/patients?${queryParam}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({
+          tcle_accepted_at: null,
+          tcle_protocol: null,
+        }),
+      });
+      console.log(`[Catraki] Consentimento revogado no Supabase do SMS-MEDCO para o CPF ${cleanCpf}`);
+    }
+  } catch (syncErr) {
+    console.error('[Catraki] Erro ao sincronizar revogação com SMS-MEDCO:', syncErr);
+  }
+  // --- FIM DA SINCRONIZAÇÃO ---
 
   return c.json({
     success: true,

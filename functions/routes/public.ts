@@ -622,10 +622,12 @@ publicRouter.post('/batch-check', async (c) => {
     const results: Record<string, {
       authorized: boolean;
       status: string;
+      is_revoked?: boolean;
       validation_code?: string;
       signed_at?: string;
       minor_name?: string;
       document_id?: string;
+      revoked_at?: string;
     }> = {};
 
     for (const rawCpf of cpfs.slice(0, 500)) {
@@ -653,16 +655,37 @@ publicRouter.post('/batch-check', async (c) => {
         results[rawCpf] = {
           authorized: true,
           status: 'signed',
+          is_revoked: false,
           validation_code: validationCode,
           signed_at: existing.signed_at || new Date().toISOString(),
           minor_name: existing.minor_name,
           document_id: existing.id,
         };
       } else {
-        results[rawCpf] = {
-          authorized: false,
-          status: 'not_found_or_pending',
-        };
+        const revoked = await db.prepare(
+          `SELECT id, status, minor_name, revoked_at, cancelled_at
+           FROM documents
+           WHERE (minor_cpf = ? OR minor_cpf_bindex_sha256 = ?)
+             AND status IN ('revoked', 'CANCELADO_POR_ERRO', 'cancelled_error')
+           ORDER BY created_at DESC LIMIT 1`
+        ).bind(maskCPF(cleanCpf), minorCpfBindex).first<any>().catch(() => null);
+
+        if (revoked) {
+          results[rawCpf] = {
+            authorized: false,
+            status: 'revoked',
+            is_revoked: true,
+            minor_name: revoked.minor_name,
+            document_id: revoked.id,
+            revoked_at: revoked.revoked_at || revoked.cancelled_at,
+          };
+        } else {
+          results[rawCpf] = {
+            authorized: false,
+            status: 'not_found_or_pending',
+            is_revoked: false,
+          };
+        }
       }
     }
 

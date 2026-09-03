@@ -290,6 +290,37 @@ adminRouter.get('/documents', async (c) => {
   }
 });
 
+adminRouter.post('/documents/cleanup-pending', async (c) => {
+  const db = c.env.DB;
+  if (!db) {
+    return c.json({ success: false, error: 'Banco de dados indisponível.' }, 503);
+  }
+
+  try {
+    const result = await db.prepare(
+      `UPDATE documents 
+       SET status = 'expired'
+       WHERE status = 'pending' 
+         AND (
+           expires_at < datetime('now') 
+           OR created_at < datetime('now', '-24 hours')
+           OR minor_name = 'Estudante'
+           OR minor_name = 'Aguardando preenchimento'
+         )`
+    ).run();
+
+    const count = result.meta?.changes || 0;
+
+    return c.json({
+      success: true,
+      expired_count: count,
+      message: `${count} rascunhos pendentes foram expirados com sucesso em conformidade com a LGPD.`,
+    });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
 adminRouter.get('/documents/:id', async (c) => {
   const id = c.req.param('id');
   const db = c.env.DB;

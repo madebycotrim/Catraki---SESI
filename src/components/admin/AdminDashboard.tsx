@@ -34,7 +34,8 @@ import {
   RotateCcw,
   Sparkles,
   SlidersHorizontal,
-  HelpCircle
+  HelpCircle,
+  Trash2
 } from 'lucide-react';
 import JSZip from 'jszip';
 import { GeradorPdfTermoSesi } from '../../lib/pades/GeradorPdfTermoSesi.ts';
@@ -143,6 +144,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   });
   const [schoolFormError, setSchoolFormError] = useState('');
 
+  const [isCleaningPending, setIsCleaningPending] = useState(false);
+
   const fetchInstitutions = async () => {
     const res = await apiClient.getAdminInstitutions();
     if (res.success && res.institutions) {
@@ -154,81 +157,104 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const resDocs = await apiClient.getAdminDocuments('all');
-      const resLogs = await apiClient.getAdminAuditLogs();
-      const resInst = await apiClient.getAdminInstitutions();
-      
-      const instList = resInst.success && resInst.institutions ? resInst.institutions : [];
+  const fetchData = async () => {
+    const resDocs = await apiClient.getAdminDocuments('all');
+    const resLogs = await apiClient.getAdminAuditLogs();
+    const resInst = await apiClient.getAdminInstitutions();
+    
+    const instList = resInst.success && resInst.institutions ? resInst.institutions : [];
 
-      if (resDocs.success && Array.isArray(resDocs.documents)) {
-        const auths = resDocs.documents.map((doc: any) => {
-          const log = resLogs?.success && resLogs.logs ? resLogs.logs.find((l: any) => l.document_id === doc.id) : null;
-          const instMatch = instList.find((i: any) => 
-            i.id === doc.institution_id || 
-            (doc.access_token && doc.access_token.toLowerCase().includes(i.id))
-          );
+    if (resDocs.success && Array.isArray(resDocs.documents)) {
+      const auths = resDocs.documents.map((doc: any) => {
+        const log = resLogs?.success && resLogs.logs ? resLogs.logs.find((l: any) => l.document_id === doc.id) : null;
+        const instMatch = instList.find((i: any) => 
+          i.id === doc.institution_id || 
+          (doc.access_token && doc.access_token.toLowerCase().includes(i.id))
+        );
 
-          const isSigned = doc.status === 'signed';
-          // null = não registrado (docs antigos); true = autorizado; false = negado explicitamente
-          const authImageGranted: boolean | null = isSigned
-            ? (doc.auth_image === 'yes' || doc.auth_image === true ? true : doc.auth_image === 'no' || doc.auth_image === false ? false : null)
-            : null;
+        const isSigned = doc.status === 'signed';
+        // null = não registrado (docs antigos); true = autorizado; false = negado explicitamente
+        const authImageGranted: boolean | null = isSigned
+          ? (doc.auth_image === 'yes' || doc.auth_image === true ? true : doc.auth_image === 'no' || doc.auth_image === false ? false : null)
+          : null;
 
-          const realParentName = (log?.signer_name && log.signer_name.trim().toLowerCase() !== 'responsável legal')
-            ? log.signer_name
-            : (doc.parent_name && doc.parent_name.trim().toLowerCase() !== 'responsável legal'
-                ? doc.parent_name
-                : (log?.signer_name || doc.parent_name || (isSigned ? 'Responsável Legal' : 'Aguardando preenchimento')));
+        const realParentName = (log?.signer_name && log.signer_name.trim().toLowerCase() !== 'responsável legal')
+          ? log.signer_name
+          : (doc.parent_name && doc.parent_name.trim().toLowerCase() !== 'responsável legal'
+              ? doc.parent_name
+              : (log?.signer_name || doc.parent_name || (isSigned ? 'Responsável Legal' : 'Aguardando preenchimento')));
 
-          const realStudentName = (doc.minor_name && doc.minor_name.trim().toLowerCase() !== 'estudante escola cidadã' && doc.minor_name.trim().toLowerCase() !== 'estudante')
-            ? doc.minor_name
-            : (doc.minor_name || (isSigned ? 'Estudante Cadastrado' : 'Aguardando preenchimento'));
+        const realStudentName = (doc.minor_name && doc.minor_name.trim().toLowerCase() !== 'estudante escola cidadã' && doc.minor_name.trim().toLowerCase() !== 'estudante')
+          ? doc.minor_name
+          : (doc.minor_name || (isSigned ? 'Estudante Cadastrado' : 'Aguardando preenchimento'));
 
-          const rawMinorCpf = doc.minor_cpf_raw || (doc.minor_cpf && !doc.minor_cpf.includes('*') ? doc.minor_cpf : '');
-          const formattedMinorCpf = rawMinorCpf ? formatCPF(rawMinorCpf) : (doc.minor_cpf ? (doc.minor_cpf.includes('*') ? doc.minor_cpf : formatCPF(doc.minor_cpf)) : '');
-          const studentCpf = formattedMinorCpf || (isSigned ? 'CPF não informado' : 'Pendente');
+        const rawMinorCpf = doc.minor_cpf_raw || (doc.minor_cpf && !doc.minor_cpf.includes('*') ? doc.minor_cpf : '');
+        const formattedMinorCpf = rawMinorCpf ? formatCPF(rawMinorCpf) : (doc.minor_cpf ? (doc.minor_cpf.includes('*') ? doc.minor_cpf : formatCPF(doc.minor_cpf)) : '');
+        const studentCpf = formattedMinorCpf || (isSigned ? 'CPF não informado' : 'Pendente');
 
-          return {
-            id: doc.id,
-            accessToken: doc.access_token,
-            studentName: realStudentName,
-            studentCpf,
-            studentCpfMasked: studentCpf,
-            birthDate: doc.minor_birth_date || '',
-            parentName: realParentName,
-            parentCpfMasked: log?.signer_cpf_masked || (isSigned ? '***.***.***-**' : 'Pendente'),
-            parentEmail: doc.parent_email || '',
-            relationship: log?.signer_relationship || (isSigned ? 'Responsável' : 'Aguardando'),
-            activity: doc.template_title || 'Escola Cidadã — Saúde em Movimento',
-            institutionId: instMatch ? instMatch.id : (doc.institution_id || 'cemeit'),
-            institutionName: instMatch ? instMatch.short_name : (doc.institution_name || 'CEMEIT'),
-            status: doc.status || 'pending',
-            authHealth: true,
-            authData: true,
-            authImage: authImageGranted,  // true | false | null
-            optInOftalmo: isSigned,
-            optInAudio: isSigned,
-            optInOdonto: isSigned,
-            optInPsico: isSigned,
-            optInNutri: isSigned,
-            minorSeries: doc.minor_series || '',
-            minorClass: doc.minor_class || '',
-            minorTurn: doc.minor_turn || '',
-            dateSent: (log?.signed_at || doc.created_at || log?.created_at)
-              ? formatBrasiliaDateTime(log?.signed_at || doc.created_at || log?.created_at)
-              : 'Hoje',
-            signedAtDate: parseUtcDate(log?.signed_at || doc.created_at || log?.created_at),
-            hash: log?.manifest_sha256 || doc.content_sha256,
-            validationCode: log?.manifest_sha256
-              ? `SESI-${log.manifest_sha256.substring(0, 4).toUpperCase()}-${log.manifest_sha256.substring(log.manifest_sha256.length - 4).toUpperCase()}`
-              : (doc.id ? `SESI-${doc.id.substring(0, 4).toUpperCase()}` : 'SESI-VALID'),
-          };
-        });
-        setAuthorizations(auths);
+        return {
+          id: doc.id,
+          accessToken: doc.access_token,
+          studentName: realStudentName,
+          studentCpf,
+          studentCpfMasked: studentCpf,
+          birthDate: doc.minor_birth_date || '',
+          parentName: realParentName,
+          parentCpfMasked: log?.signer_cpf_masked || (isSigned ? '***.***.***-**' : 'Pendente'),
+          parentEmail: doc.parent_email || '',
+          relationship: log?.signer_relationship || (isSigned ? 'Responsável' : 'Aguardando'),
+          activity: doc.template_title || 'Escola Cidadã — Saúde em Movimento',
+          institutionId: instMatch ? instMatch.id : (doc.institution_id || 'cemeit'),
+          institutionName: instMatch ? instMatch.short_name : (doc.institution_name || 'CEMEIT'),
+          status: doc.status || 'pending',
+          authHealth: true,
+          authData: true,
+          authImage: authImageGranted,  // true | false | null
+          optInOftalmo: isSigned,
+          optInAudio: isSigned,
+          optInOdonto: isSigned,
+          optInPsico: isSigned,
+          optInNutri: isSigned,
+          minorSeries: doc.minor_series || '',
+          minorClass: doc.minor_class || '',
+          minorTurn: doc.minor_turn || '',
+          dateSent: (log?.signed_at || doc.created_at || log?.created_at)
+            ? formatBrasiliaDateTime(log?.signed_at || doc.created_at || log?.created_at)
+            : 'Hoje',
+          signedAtDate: parseUtcDate(log?.signed_at || doc.created_at || log?.created_at),
+          hash: log?.manifest_sha256 || doc.content_sha256,
+          validationCode: log?.manifest_sha256
+            ? `SESI-${log.manifest_sha256.substring(0, 4).toUpperCase()}-${log.manifest_sha256.substring(log.manifest_sha256.length - 4).toUpperCase()}`
+            : (doc.id ? `SESI-${doc.id.substring(0, 4).toUpperCase()}` : 'SESI-VALID'),
+        };
+      });
+      setAuthorizations(auths);
+    }
+  };
+
+  const handleCleanupPending = async () => {
+    const confirm = window.confirm(
+      'CONFORMIDADE LGPD (Art. 16):\n\nDeseja expirar todos os rascunhos pendentes abandonados (>24 horas sem assinatura)?\n\nEssa ação marcará as tentativas não concluídas como expiradas, liberando a visualização e mantendo a integridade da base.'
+    );
+    if (!confirm) return;
+
+    setIsCleaningPending(true);
+    try {
+      const res = await apiClient.cleanupPendingDocuments();
+      if (res && res.success) {
+        await fetchData();
+        alert(res.message || 'Rascunhos pendentes expirados com sucesso em conformidade com a LGPD.');
+      } else {
+        alert(res?.error || 'Erro ao processar limpeza de rascunhos pendentes.');
       }
-    };
+    } catch (e: any) {
+      alert(`Falha: ${e.message}`);
+    } finally {
+      setIsCleaningPending(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
     fetchInstitutions();
   }, []);
@@ -714,12 +740,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
       }
 
-      // ④ Pendente antigo (> 7 dias sem assinar)
+      // ④ Pendente antigo (> 24h sem assinar)
       if (auth.status === 'pending' || auth.status === 'draft') {
         const signedAt = new Date(auth.signedAtDate);
         if (!isNaN(signedAt.getTime())) {
           const diffDays = (now.getTime() - signedAt.getTime()) / (1000 * 60 * 60 * 24);
-          if (diffDays > 7) alerts.push(`STALE_PENDING:${Math.floor(diffDays)}`);
+          if (diffDays >= 1) alerts.push(`STALE_PENDING:${Math.floor(diffDays)}`);
         }
       }
 
@@ -1108,15 +1134,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
             )}
             {totalStale > 0 && (
-              <button
-                type="button"
-                onClick={() => { setAlertFilter(alertFilter === 'stale' ? 'all' : 'stale'); setCurrentPage(1); }}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${alertFilter === 'stale' ? 'bg-amber-600 border-amber-700 text-white' : 'bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-900'}`}
-                title="Documentos que estão pendentes há mais de 7 dias sem assinatura"
-              >
-                <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${alertFilter === 'stale' ? 'bg-amber-100 text-amber-900' : 'bg-amber-500 text-white'}`}>{totalStale}</span>
-                🕐 Pendentes antigos (&gt;7 dias)
-              </button>
+              <div className="inline-flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => { setAlertFilter(alertFilter === 'stale' ? 'all' : 'stale'); setCurrentPage(1); }}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${alertFilter === 'stale' ? 'bg-amber-600 border-amber-700 text-white' : 'bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-900'}`}
+                  title="Documentos pendentes ou rascunhos há mais de 24 horas sem assinatura"
+                >
+                  <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${alertFilter === 'stale' ? 'bg-amber-100 text-amber-900' : 'bg-amber-500 text-white'}`}>{totalStale}</span>
+                  🕐 Pendentes (&gt;24h)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCleanupPending}
+                  disabled={isCleaningPending}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                  title="Expirar rascunhos abandonados com mais de 24 horas em conformidade com a LGPD"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{isCleaningPending ? 'Expirando...' : 'Limpar Pendentes (>24h)'}</span>
+                </button>
+              </div>
             )}
             {totalIncomplete > 0 && (
               <button
@@ -1403,7 +1441,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {/* Informações e Botão de Limpar Filtros */}
-              <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-slate-500">
+              <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-slate-500 flex-wrap">
+                {(subTab === 'pending' || selectedStatus === 'pending') && (
+                  <button
+                    type="button"
+                    onClick={handleCleanupPending}
+                    disabled={isCleaningPending}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                    title="Expirar rascunhos pendentes abandonados (>24 horas sem assinatura)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{isCleaningPending ? 'Expirando...' : 'Expirar Rascunhos (>24h)'}</span>
+                  </button>
+                )}
+
                 {isFiltered && (
                   <button
                     onClick={handleResetFilters}

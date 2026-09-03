@@ -21,7 +21,8 @@ export async function handleScheduled(
     const expireResult = await db.prepare(
       `UPDATE documents 
        SET status = 'expired' 
-       WHERE status = 'pending' AND expires_at < datetime('now')`
+       WHERE status = 'pending' 
+         AND (expires_at < datetime('now') OR created_at < datetime('now', '-24 hours'))`
     ).run();
 
     console.log(`[CRON] Termos expirados atualizados: ${expireResult.meta?.changes || 0}`);

@@ -123,9 +123,9 @@ describe('Funcionalidade: Revogação e Cancelamento por Erro Operacional (LGPD 
 
       expect(text).toContain('Assunto: Aviso: O documento "Termo de Consentimento - Lucas Silva Santos" foi cancelado');
       expect(text).toContain('Olá, Maria Silva Santos.');
-      expect(text).toContain('Código de Autenticidade (Hash): CATRAKI-8661-7A48');
-      expect(text).toContain("Motivo: 'Inconsistência cadastral na data de nascimento do estudante'");
-      expect(text).toContain('Os links anteriores foram desativados. Seus dados continuam protegidos.');
+      expect(text).toContain('Código de Autenticidade: CATRAKI-8661-7A48');
+      expect(text).toContain('Justificativa: "Inconsistência cadastral na data de nascimento do estudante"');
+      expect(text).toContain('Os links de acesso que você recebeu para este documento foram desativados.');
     });
   });
 

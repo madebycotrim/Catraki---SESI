@@ -285,7 +285,7 @@ export const apiClient = {
         otp_attempts: 0,
         otp_resend_count: 0,
         retention_expires_at: new Date(Date.now() + 3 * 365 * 86400000).toISOString(),
-        expires_at: new Date(Date.now() + 365 * 86400000).toISOString(),
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         created_at: new Date().toISOString(),
       };
       docs.push(doc);
@@ -1224,6 +1224,67 @@ export const apiClient = {
       }
     } catch {}
     return { success: true, documents: getDocuments() };
+  },
+
+  /**
+   * Expira em lote rascunhos pendentes abandonados (>24h) em conformidade com a LGPD
+   */
+  async cleanupPendingDocuments(): Promise<any> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/documents/cleanup-pending`, {
+        method: 'POST',
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
+      });
+      const data = (await resp.json().catch(() => null)) as any;
+      if (data && data.success) {
+        const docs = getDocuments();
+        const now = Date.now();
+        const updated = docs.map((d) => {
+          if (d.status === 'pending') {
+            const createdAt = new Date(d.created_at || 0).getTime();
+            const expiresAt = d.expires_at ? new Date(d.expires_at).getTime() : 0;
+            if (
+              expiresAt < now ||
+              (now - createdAt > 24 * 60 * 60 * 1000) ||
+              d.minor_name === 'Estudante' ||
+              d.minor_name === 'Aguardando preenchimento'
+            ) {
+              return { ...d, status: 'expired' as any };
+            }
+          }
+          return d;
+        });
+        setDocuments(updated);
+        return data;
+      }
+    } catch {}
+
+    // Mock fallback
+    const docs = getDocuments();
+    const now = Date.now();
+    let count = 0;
+    const updated = docs.map((d) => {
+      if (d.status === 'pending') {
+        const createdAt = new Date(d.created_at || 0).getTime();
+        const expiresAt = d.expires_at ? new Date(d.expires_at).getTime() : 0;
+        if (
+          expiresAt < now ||
+          (now - createdAt > 24 * 60 * 60 * 1000) ||
+          d.minor_name === 'Estudante' ||
+          d.minor_name === 'Aguardando preenchimento'
+        ) {
+          count++;
+          return { ...d, status: 'expired' as any };
+        }
+      }
+      return d;
+    });
+    setDocuments(updated);
+    return {
+      success: true,
+      expired_count: count,
+      message: `${count} rascunhos pendentes foram expirados com sucesso em conformidade com a LGPD.`,
+    };
   },
 
   /**

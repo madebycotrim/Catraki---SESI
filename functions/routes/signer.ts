@@ -174,7 +174,7 @@ signerRouter.get('/doc/:token', async (c) => {
         content_markdown: template.content_markdown,
         content_sha256: template.content_sha256,
         consent_text_version: template.consent_text_version,
-        expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         institution_name: inst?.name || 'Escola do DF',
         institution_id: inst?.id || token,
       };
@@ -261,7 +261,7 @@ signerRouter.post('/verify-matricula', async (c) => {
       const newDocId = generateUniqueDocId('DOC');
       await db.prepare(
         `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+1 year'))`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+24 hours'))`
       ).bind(newDocId, template.id, template.version, template.content_sha256, 'Estudante', '2010-01-01', signer_name, 'ENC_INITIAL', 'ENC_INITIAL', token).run();
       doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(newDocId).first<DocumentRecord>();
     }
@@ -369,7 +369,7 @@ signerRouter.post('/manual-review', async (c) => {
       const newDocId = generateUniqueDocId('DOC');
       await db.prepare(
         `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+1 year'))`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+24 hours'))`
       ).bind(newDocId, template.id, template.version, template.content_sha256, 'Estudante', '2010-01-01', signer_name, 'ENC_INITIAL', 'ENC_INITIAL', token).run();
       doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(newDocId).first<DocumentRecord>();
     }
@@ -461,7 +461,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
 
       await db.prepare(
         `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+1 year'))`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+24 hours'))`
       ).bind(newDocId, template.id, template.version, template.content_sha256, providedMinorName || 'Estudante', '2010-01-01', 'Respons√°vel Legal', 'ENC_INITIAL', 'ENC_INITIAL', cleanAccessToken).run();
       doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(newDocId).first<DocumentRecord>();
     }
@@ -1027,6 +1027,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     });
   }
 
+  let minorCpfBindex: string | null = null;
+
   try {
     const parentEmailEncrypted = parsed.data.signer_email && masterKey
       ? await encryptAesGcm(parsed.data.signer_email, masterKey)
@@ -1043,7 +1045,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       ? await encryptAesGcm(rawMinorCpfForEncrypt, masterKey, 1)
       : null;
     // Blind Index HMAC-SHA256 para buscas seguras sem expor o CPF (LGPD)
-    const minorCpfBindex = rawMinorCpfForEncrypt
+    minorCpfBindex = rawMinorCpfForEncrypt
       ? await hmacSha256(rawMinorCpfForEncrypt, c.env.OTP_PEPPER || 'bindex_minor_cpf')
       : null;
 
@@ -1136,33 +1138,69 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     }, 500);
   }
 
-  // --- INÕCIO DA INTEGRA«√O COM SMS-MEDCO ---
+  // Auto-limpeza de rascunhos pendentes residuais para o mesmo estudante/token (LGPD Art. 16)
   try {
-    if ((c.env as any).SUPABASE_URL && (c.env as any).SUPABASE_SECRET_KEY && parsed.data.minor_cpf) {
+    const cleanMinorCpf = parsed.data.minor_cpf ? formatCPF(parsed.data.minor_cpf) : null;
+    if (cleanMinorCpf || minorCpfBindex) {
+      await db.prepare(
+        `UPDATE documents 
+         SET status = 'expired'
+         WHERE status = 'pending' 
+           AND id != ?
+           AND (
+             (minor_cpf IS NOT NULL AND minor_cpf = ?)
+             OR (minor_cpf_bindex_sha256 IS NOT NULL AND minor_cpf_bindex_sha256 = ?)
+             OR (access_token = ? AND created_at < datetime('now', '-5 minutes'))
+           )`
+      ).bind(
+        doc.id,
+        cleanMinorCpf || '___NO_CPF___',
+        minorCpfBindex || '___NO_BINDEX___',
+        doc.access_token
+      ).run();
+    }
+  } catch (cleanupErr) {
+    console.warn('[SIGNER] Aviso ao expirar rascunhos residuais:', cleanupErr);
+  }
+
+  const validationCode = `CATRAKI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`;
+
+  // --- INTEGRA√á√ÉO COM SMS-MEDCO (Supabase) ---
+  try {
+    const supabaseUrl = (c.env as any).SUPABASE_URL;
+    const supabaseKey = (c.env as any).SUPABASE_SECRET_KEY || (c.env as any).SUPABASE_SERVICE_ROLE_KEY;
+
+    if (supabaseUrl && supabaseKey && parsed.data.minor_cpf) {
       const cleanCpf = parsed.data.minor_cpf.replace(/\D/g, '');
+      const formattedCpf = formatCPF(cleanCpf);
       
-      const response = await fetch(`${(c.env as any).SUPABASE_URL}/rest/v1/patients?cpf=eq.${cleanCpf}`, {
+      const queryParam = `or=(cpf.eq.${encodeURIComponent(cleanCpf)},cpf.eq.${encodeURIComponent(formattedCpf)})`;
+      
+      const response = await fetch(`${supabaseUrl}/rest/v1/patients?${queryParam}`, {
         method: 'PATCH',
         headers: {
-          'apikey': (c.env as any).SUPABASE_SECRET_KEY,
-          'Authorization': `Bearer ${(c.env as any).SUPABASE_SECRET_KEY}`,
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
           'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
+          'Prefer': 'return=minimal',
         },
-        body: JSON.stringify({ tcle_accepted_at: new Date().toISOString() })
+        body: JSON.stringify({ 
+          tcle_accepted_at: signedAtIso || new Date().toISOString(),
+          tcle_protocol: validationCode,
+        }),
       });
 
       if (!response.ok) {
-        console.warn('[Catraki] Falha ao sincronizar com sms-medco:', await response.text());
+        const errorText = await response.text();
+        console.warn(`[Catraki] Falha ao sincronizar com sms-medco (Status ${response.status}):`, errorText);
       } else {
-        console.log(`[Catraki] Consentimento sincronizado no sms-medco para o CPF ${cleanCpf}`);
+        console.log(`[Catraki] Consentimento sincronizado no sms-medco com sucesso para o CPF ${cleanCpf} (Protocolo: ${validationCode})`);
       }
     }
   } catch (syncError) {
-    console.error('[Catraki] Erro ao sincronizar com sms-medco:', syncError);
+    console.error('[Catraki] Erro de rede ao sincronizar com sms-medco:', syncError);
   }
-  // --- FIM DA INTEGRA«√O ---
-  const validationCode = `CATRAKI-${manifestSha256.substring(0, 4).toUpperCase()}-${manifestSha256.substring(manifestSha256.length - 4).toUpperCase()}`;
+  // --- FIM DA INTEGRA√á√ÉO ---
 
   // Disparo do E-mail Oficial de Comprovante de Assinatura (Resend API)
   const resendApiKey = (c.env as any).RESEND_API_KEY;

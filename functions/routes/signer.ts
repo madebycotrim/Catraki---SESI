@@ -845,6 +845,10 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       fingerprint: client_fingerprint || null,
       asn: cfData.asnOrg ? `${cfData.asnOrg} (AS${cfData.asnNumber})` : null,
       tls_version: cfData.tlsVersion,
+      tls_cipher: cfData.tlsCipher,
+      cloudflare_ray_id: cfData.rayId,
+      cloudflare_pop: cfData.colo,
+      coordinates: cfData.latitude && cfData.longitude ? { latitude: cfData.latitude, longitude: cfData.longitude } : null,
     },
     legal_basis: isMaiorDeIdade
       ? 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020; Código Civil (Arts. 104, 107 e 225); CPC (Arts. 411 e 441); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; Art. 299 CP; REsp 2.205.708/PR (STJ)'
@@ -883,17 +887,22 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     doc_parent_hash_sha256: docParentHash,
     device_metadata: JSON.stringify({
       user_agent_parsed: formatUserAgent(userAgent),
-      // ── Device Fingerprint Expandido (Art. 10, MP 2.200-2/2001) ──────────────────────
-      // Combina dados do servidor (Cloudflare Edge) com dados do navegador (frontend)
-      // para criar uma "impressão digital" única e irrefutável do dispositivo.
       screen_resolution: device_fingerprint_data?.screen_resolution || null,
       os_name: device_fingerprint_data?.os_name || null,
       browser_language: device_fingerprint_data?.browser_language || null,
-      timezone: device_fingerprint_data?.timezone || null,
+      timezone: device_fingerprint_data?.timezone || cfData.timezone,
       color_depth: device_fingerprint_data?.color_depth || null,
+      cf_ip: cfData.ip,
+      cf_city: cfData.city,
+      cf_region: cfData.region,
+      cf_country: cfData.country,
+      cf_latitude: cfData.latitude,
+      cf_longitude: cfData.longitude,
       cf_asn: cfData.asnOrg ? `${cfData.asnOrg} (AS${cfData.asnNumber})` : null,
       cf_tls: cfData.tlsVersion || null,
+      cf_tls_cipher: cfData.tlsCipher || null,
       cf_colo: cfData.colo || null,
+      cf_ray: cfData.rayId || null,
       captured_at: new Date().toISOString(),
     }),
   };

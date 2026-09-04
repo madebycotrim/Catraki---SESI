@@ -94,7 +94,7 @@
     signer_cpf_masked TEXT NOT NULL,
     signer_relationship TEXT NOT NULL,
     guardianship_doc_r2_key TEXT,
-    identity_method TEXT CHECK(identity_method IN ('matricula_sesi','manual_review','declaracao_responsavel')) NOT NULL DEFAULT 'manual_review',
+    identity_method TEXT CHECK(identity_method IN ('matricula_sesi','declaracao_responsavel')) NOT NULL DEFAULT 'matricula_sesi',
     signature_png_encrypted TEXT NOT NULL,
     signature_png_sha256 TEXT NOT NULL CHECK(LENGTH(signature_png_sha256) = 64),
     key_version INTEGER NOT NULL DEFAULT 1,

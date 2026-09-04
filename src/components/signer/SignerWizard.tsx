@@ -159,7 +159,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
             signerEmail: formData.signerEmail || 'responsavel@email.com',
             signerPhone: formData.signerPhone,
             signerRelationship: formData.signerRelationship,
-            identityMethod: 'manual_review',
+            identityMethod: 'matricula_sesi',
             minorCpf: formData.minorCpf,
             minorSeries: formData.minorSeries,
             minorClass: formData.minorClass,

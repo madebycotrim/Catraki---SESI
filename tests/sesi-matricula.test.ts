@@ -16,7 +16,7 @@ describe('Integração com a Base de Matrícula Catraki (catraki-matricula.ts)',
     expect(result.verifiedAt).toBeDefined();
   });
 
-  it('deve retornar não-localizado para CPF não vinculado (acionando fila de revisão manual)', async () => {
+  it('deve retornar não-localizado para CPF não vinculado na base presencial', async () => {
     const result = await queryCatrakiMatricula({
       minorName: 'Lucas Cotrim Silva',
       minorBirthDate: '2010-05-14',

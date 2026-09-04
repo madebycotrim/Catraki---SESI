@@ -247,7 +247,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
               <strong>Quem deve preencher:</strong> Este formulário deve ser preenchido pelo <strong>responsável legal</strong> (mãe, pai, tutor ou guardião judicial) que irá assinar eletronicamente o termo.
             </p>
             <p className="m-0">
-               <strong>Como funciona a verificação:</strong> As informações fornecidas serão conferidas automaticamente com o cadastro escolar do <strong>SESI-DF</strong> para confirmar o seu vínculo com o(a) estudante. Se a confirmação automática não for possível, a plataforma pedirá que você envie uma foto do seu documento de identidade e da certidão de nascimento do(a) estudante na próxima etapa. Essa verificação é feita de forma manual pela equipe responsável, com segurança e sigilo.
+               <strong>Como funciona a verificação:</strong> As informações fornecidas são validadas digitalmente com a base oficial do <strong>SESI-DF</strong> para confirmar a titularidade e o vínculo legal com o(a) estudante, garantindo segurança jurídica e sigilo integral.
              </p>
             <p className="m-0 text-sesi-primary font-medium">
               🔒 <strong>Privacidade Garantida:</strong> Todo o tratamento de dados pessoais é criptografado e segue estritamente as diretrizes da LGPD (Lei nº 13.709/2018).

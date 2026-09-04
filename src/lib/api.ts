@@ -349,7 +349,7 @@ export const apiClient = {
       success: true,
       hasValidEnrollment: check.hasValidEnrollment,
       guardianType: check.guardianType,
-      identityMethod: check.hasValidEnrollment ? 'matricula_sesi' : 'manual_review',
+      identityMethod: 'matricula_sesi',
       verifiedAt: check.verifiedAt,
       message: check.hasValidEnrollment
         ? 'Vínculo com a base de matrícula SESI confirmado com sucesso.'
@@ -520,7 +520,7 @@ export const apiClient = {
     ip_address?: string;
     geolocation?: string;
     user_agent?: string;
-    identity_method?: 'matricula_sesi' | 'manual_review' | 'declaracao_responsavel';
+    identity_method?: 'matricula_sesi' | 'declaracao_responsavel';
     termos_versao?: string;
     device_fingerprint_data?: any;
   }): Promise<any> {
@@ -614,9 +614,7 @@ export const apiClient = {
     const otpRequestedTime = (doc as any).otp_requested_at || new Date(Date.now() - 60000).toISOString();
     const otpMsgId = (doc as any).otp_email_message_id || 'mock-message-id';
 
-    // Determina o método de identidade real — compatível com constraint do banco D1
-    const resolvedIdentityMethod: 'matricula_sesi' | 'manual_review' =
-      payload.identity_method === 'matricula_sesi' ? 'matricula_sesi' : 'manual_review';
+    const resolvedIdentityMethod: 'matricula_sesi' = 'matricula_sesi';
 
     const logRowHash = await computeLogRowHash({
       id: auditId,

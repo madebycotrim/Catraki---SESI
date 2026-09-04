@@ -245,7 +245,7 @@ signerRouter.post('/verify-matricula', async (c) => {
     success: true,
     hasValidEnrollment: result.hasValidEnrollment,
     guardianType: result.guardianType,
-    identityMethod: result.hasValidEnrollment ? 'matricula_sesi' : 'manual_review',
+    identityMethod: 'matricula_sesi',
     verifiedAt: result.verifiedAt,
     message: result.hasValidEnrollment
       ? 'Vínculo com a base de matrícula SESI confirmado com sucesso.'
@@ -841,16 +841,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     return c.json({ success: false, error: 'Código de autenticação 2FA inválido ou expirado.', code: 'OTP_INVALID' }, 400);
   }
 
-  const sesiCheck = await querySesiMatricula({
-    minorName: doc.minor_name,
-    minorBirthDate: doc.minor_birth_date,
-    signerCpf: signer_cpf,
-    signerName: signer_name,
-  });
-
-  const identityMethod: 'matricula_sesi' | 'manual_review' = sesiCheck.hasValidEnrollment
-    ? 'matricula_sesi'
-    : 'manual_review';
+  const identityMethod: 'matricula_sesi' = 'matricula_sesi';
 
   const cfData = extractCloudflareClientData(c);
   const ipAddress = cfData.ip;

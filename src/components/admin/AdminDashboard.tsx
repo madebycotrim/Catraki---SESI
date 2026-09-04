@@ -1766,14 +1766,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </button>
                               )}
 
-                              {/* Botão Excluir Definitivamente do Banco (Testes / Revogados / Pendentes) */}
-                              <button
-                                onClick={() => handleOpenHardDeleteModal(auth)}
-                                className="inline-flex items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-slate-400 hover:text-rose-600 transition-all cursor-pointer active:scale-95"
-                                title="Excluir Definitivamente do Banco de Dados (Hard Delete)"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                              </button>
+                              {/* Botão Excluir Definitivamente do Banco (Apenas se Pendente, Cancelado ou Revogado) */}
+                              {!isSigned && (
+                                <button
+                                  onClick={() => handleOpenHardDeleteModal(auth)}
+                                  className="inline-flex items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-slate-400 hover:text-rose-600 transition-all cursor-pointer active:scale-95"
+                                  title="Excluir Definitivamente do Banco de Dados (Hard Delete)"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                                </button>
+                              )}
                             </div>
                           </td>
 

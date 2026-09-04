@@ -896,9 +896,17 @@ adminRouter.delete('/documents/:id/hard-delete', requireAuth(['admin_master', 'o
     return c.json({ success: false, error: 'Banco de dados indisponível.' }, 503);
   }
 
-  const doc = await db.prepare('SELECT id, access_token, minor_cpf FROM documents WHERE id = ?').bind(id).first<any>();
+  const doc = await db.prepare('SELECT id, status, access_token, minor_cpf FROM documents WHERE id = ?').bind(id).first<any>();
   if (!doc) {
     return c.json({ success: false, error: 'Documento não localizado para exclusão definitiva.', code: 'DOC_NOT_FOUND' }, 404);
+  }
+
+  if (doc.status === 'signed') {
+    return c.json({
+      success: false,
+      error: 'VIOLAÇÃO DE CUSTÓDIA: Documentos com status AUTORIZADO (signed) não podem ser excluídos diretamente. É obrigatório revogar ou anular o documento antes de efetuar a exclusão.',
+      code: 'CANNOT_DELETE_SIGNED_DOC'
+    }, 400);
   }
 
   try {

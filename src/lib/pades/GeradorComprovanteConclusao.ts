@@ -298,7 +298,8 @@ export class GeradorComprovanteConclusao {
       novaLinha(10);
 
       if (ev.ip) {
-        page.drawText(`IP: ${ev.ip}`, { x: MARGIN + 15, y, size: 6.5, font: fontMono, color: rgb(0.5, 0.5, 0.5) });
+        const ipVer = ev.ip.includes(':') ? ' (IPv6)' : (ev.ip !== 'Não informado' ? ' (IPv4)' : '');
+        page.drawText(`IP: ${ev.ip}${ipVer}`, { x: MARGIN + 15, y, size: 6.5, font: fontMono, color: rgb(0.5, 0.5, 0.5) });
         novaLinha(9);
       }
       if (ev.user_agent) {

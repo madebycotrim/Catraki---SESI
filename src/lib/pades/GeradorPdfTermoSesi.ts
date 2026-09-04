@@ -24,6 +24,9 @@ export interface IDadosTermoPdf {
   geoCidade?: string;
   geoEstado?: string;
   geoPais?: string;
+  geoLocalizacaoCompleta?: string;
+  ipVersion?: 'IPv4' | 'IPv6';
+  provedorAsn?: string;
   otpRequestedAt?: Date;
   otpVerifiedAt?: Date;
   signerEmail?: string;
@@ -618,11 +621,21 @@ export class GeradorPdfTermoSesi {
       const rawUserAgent = dados.userAgent || 'Navegador Web / Dispositivo Seguro';
       const linhasUserAgent = this.quebrarTexto(rawUserAgent, 65);
 
+      const ipFormatado = dados.ipAddress && dados.ipAddress !== 'Não coletado'
+        ? `${dados.ipAddress} (${dados.ipVersion || (dados.ipAddress.includes(':') ? 'IPv6' : 'IPv4')})`
+        : 'Não coletado';
+
+      const localizacaoStr = dados.geoLocalizacaoCompleta
+        || [dados.geoCidade, dados.geoEstado, dados.geoPais].filter(Boolean).join(', ')
+        || 'Brasília, DF, Brasil';
+
       const tableItems: Array<{ label: string; values: string[] }> = [
         { label: 'Nome', values: [nomeSignatarioFolha2] },
         { label: 'CPF (Completo)', values: [cpfCompletoSignatario] },
         { label: 'E-mail', values: [dados.signerEmail || 'Não informado'] },
-        { label: 'IP de Acesso', values: [dados.ipAddress || 'Não coletado'] },
+        { label: 'IP de Acesso', values: [ipFormatado] },
+        { label: 'Geolocalização / Rede', values: [localizacaoStr] },
+        ...(dados.provedorAsn ? [{ label: 'Provedor / ASN', values: [dados.provedorAsn] }] : []),
         { label: 'Navegador / User-Agent', values: linhasUserAgent },
         { label: 'Data e Hora Exata', values: [dataHoraExata] },
       ];

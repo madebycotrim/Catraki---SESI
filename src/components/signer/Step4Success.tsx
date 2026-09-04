@@ -255,7 +255,14 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                   </div>
                   
                   <div className="bg-white p-2.5 border border-slate-200 rounded-lg">
-                    <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Endereço IP:</span>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider">Endereço IP:</span>
+                      {signResult.ip_address && signResult.ip_address !== 'não registrado' && (
+                        <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded border ${signResult.ip_address.includes(':') ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                          {signResult.ip_address.includes(':') ? 'IPv6' : 'IPv4'}
+                        </span>
+                      )}
+                    </div>
                     <span className="font-mono text-xs font-bold text-slate-700 break-all">
                       {signResult.ip_address && signResult.ip_address !== 'não registrado'
                         ? signResult.ip_address
@@ -264,7 +271,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                   </div>
 
                   <div className="bg-white p-2.5 border border-slate-200 rounded-lg">
-                    <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Localização:</span>
+                    <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Localização (Borda):</span>
                     <span className="font-mono text-xs font-bold text-slate-700">
                       {signResult.geo_city
                         ? `${signResult.geo_city}${signResult.geo_region ? `, ${signResult.geo_region}` : ''}`

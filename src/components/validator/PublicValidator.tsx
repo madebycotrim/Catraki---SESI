@@ -510,17 +510,24 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                   {/* IP e Geolocalização */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
                     <div className="bg-white border border-slate-200 rounded-xl p-2">
-                      <span className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Registro de IP</span>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase">Registro de IP</span>
+                        {validationResult.ip_address && (
+                          <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded border ${validationResult.ip_address.includes(':') ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                            {validationResult.ip_address.includes(':') ? 'IPv6' : 'IPv4'}
+                          </span>
+                        )}
+                      </div>
                       <div className="font-mono text-[10.5px] font-bold text-slate-800 break-all">
                         {validationResult.ip_address || 'IP Oculto (Sigilo de Privacidade)'}
                       </div>
                       <span className="text-[9px] text-slate-400 block font-normal leading-tight mt-0.5">
-                        * Exibido de forma parcial para preservação da privacidade.
+                        * Capturado com precisão na borda Cloudflare (LGPD/Marco Civil).
                       </span>
                     </div>
 
                     <div className="bg-white border border-slate-200 rounded-xl p-2">
-                      <span className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Localização Estimada</span>
+                      <span className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Localização (Borda)</span>
                       <div className="font-mono text-[10.5px] font-bold text-slate-800">
                         {validationResult.geolocation || 'Não registrado'}
                       </div>

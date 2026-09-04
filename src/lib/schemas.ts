@@ -361,13 +361,6 @@ export const CreateDocumentSchema = z.object({
   expires_in_days: z.number().int().min(1).max(30).default(7),
 });
 
-export const VerifyMatriculaSchema = z.object({
-  token: z.string().min(16),
-  signer_cpf: CPFSchema,
-  signer_name: FullNameSchema,
-  signer_relationship: RelationshipSchema,
-});
-
 export const OtpRequestSchema = z.object({
   token: z.string().min(16),
   channel: z.enum(['email']).default('email'),

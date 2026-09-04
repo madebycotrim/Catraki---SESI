@@ -5,7 +5,6 @@ import {
   generatePkceChallenge,
 } from './crypto.ts';
 import { computeLogRowHash, verifyAuditChain } from './audit-chain.ts';
-import { querySesiMatricula } from './catraki-matricula.ts';
 import { maskCPF, formatCPF, maskName, getInitials, generateUniqueDocId, formatUserAgent } from './schemas.ts';
 import type {
   DocumentRecord,
@@ -322,42 +321,6 @@ export const apiClient = {
   },
 
   /**
-   * Valida vínculo com a base de matrícula SESI
-   */
-  async verifyMatricula(payload: { token: string; signer_cpf: string; signer_name: string; signer_relationship: string }): Promise<any> {
-    try {
-      const resp = await fetch(`${API_BASE}/signer/verify-matricula`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (resp.ok) return await resp.json();
-    } catch {}
-
-    const docs = getDocuments();
-    const doc = docs.find((d) => d.access_token === payload.token);
-    if (!doc) return { success: false, error: 'Documento indisponível.' };
-
-    const check = await querySesiMatricula({
-      minorName: doc.minor_name,
-      minorBirthDate: doc.minor_birth_date,
-      signerCpf: payload.signer_cpf,
-      signerName: payload.signer_name,
-    });
-
-    return {
-      success: true,
-      hasValidEnrollment: check.hasValidEnrollment,
-      guardianType: check.guardianType,
-      identityMethod: 'matricula_sesi',
-      verifiedAt: check.verifiedAt,
-      message: check.hasValidEnrollment
-        ? 'Vínculo com a base de matrícula SESI confirmado com sucesso.'
-        : 'Vínculo por declaração do responsável validado com sucesso.',
-    };
-  },
-
-  /**
    * Verifica se o estudante já possui uma autorização médica válida e assinada (Prevenção de Duplicidade)
    */
   async checkStudentDuplicate(params: {
@@ -520,7 +483,7 @@ export const apiClient = {
     ip_address?: string;
     geolocation?: string;
     user_agent?: string;
-    identity_method?: 'matricula_sesi' | 'declaracao_responsavel';
+    identity_method?: 'declaracao_responsavel' | 'declaracao_titular';
     termos_versao?: string;
     device_fingerprint_data?: any;
   }): Promise<any> {
@@ -614,7 +577,7 @@ export const apiClient = {
     const otpRequestedTime = (doc as any).otp_requested_at || new Date(Date.now() - 60000).toISOString();
     const otpMsgId = (doc as any).otp_email_message_id || 'mock-message-id';
 
-    const resolvedIdentityMethod: 'matricula_sesi' = 'matricula_sesi';
+    const resolvedIdentityMethod: 'declaracao_responsavel' = 'declaracao_responsavel';
 
     const logRowHash = await computeLogRowHash({
       id: auditId,
@@ -900,7 +863,7 @@ export const apiClient = {
             signer_name: doc.parent_name || 'Responsável Legal',
             signer_cpf_masked: (doc as any).parent_cpf ? maskCPF((doc as any).parent_cpf) : '***.***.***-**',
             signer_relationship: (doc as any).relationship || 'Responsável Legal',
-            identity_method: 'matricula_sesi',
+            identity_method: 'declaracao_responsavel',
             procedure_title: doc.template_title || 'Autorização SESI Escola Cidadã',
             procedure_description: doc.procedure_description || 'Procedimento médico / odontológico registrado.',
             minor_name_initials: getInitials(doc.minor_name || 'Estudante'),

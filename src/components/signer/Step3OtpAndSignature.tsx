@@ -29,7 +29,7 @@ interface Step3OtpAndSignatureProps {
     signerEmail?: string;
     signerPhone?: string;
     signerRelationship: SignerRelationship;
-    identityMethod: 'matricula_sesi' | 'declaracao_responsavel';
+    identityMethod: 'declaracao_responsavel' | 'declaracao_titular';
     minorCpf?: string;
     minorSeries?: string;
     minorClass?: string;

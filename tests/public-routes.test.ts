@@ -55,7 +55,7 @@ describe('Rotas Públicas e Validação de Autenticidade (publicRouter)', () => 
       geo_region: 'DF',
       geo_country: 'BR',
       user_agent: 'Mozilla/5.0',
-      identity_method: 'matricula_sesi',
+      identity_method: 'declaracao_responsavel',
       minor_name: 'Lucas Cotrim Silva',
       minor_series: '3º ano',
       minor_class: 'Turma B',

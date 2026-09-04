@@ -19,7 +19,7 @@ export type SignerRelationship =
   | 'Outro Responsável Legal'
   | 'Próprio Estudante (Maior de Idade)'; // CC/2002 Art. 5º — plena capacidade civil aos 18 anos
 
-export type IdentityMethod = 'matricula_sesi' | 'declaracao_responsavel';
+export type IdentityMethod = 'declaracao_responsavel' | 'declaracao_titular';
 
 export type AdminRole = 'operador' | 'dpo' | 'admin_master';
 

@@ -343,7 +343,7 @@ publicRouter.get('/validate/:query', async (c) => {
             geo_region: matchedAudit?.geo_region || 'DF',
             geo_country: matchedAudit?.geo_country || 'BR',
             user_agent: matchedAudit?.user_agent && matchedAudit.user_agent !== 'Navegador Web Padrão' ? matchedAudit.user_agent : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-            identity_method: matchedAudit?.identity_method || 'matricula_sesi',
+            identity_method: matchedAudit?.identity_method || 'declaracao_responsavel',
             minor_name: docRecord.minor_name || 'Estudante',
             minor_series: docRecord.minor_series,
             minor_class: docRecord.minor_class,
@@ -451,7 +451,7 @@ publicRouter.get('/validate/:query', async (c) => {
       user_agent: record.user_agent && record.user_agent !== 'Navegador Web Padrão' && record.user_agent !== 'Não registrado'
         ? record.user_agent
         : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-      identity_method: record.identity_method || 'matricula_sesi',
+      identity_method: record.identity_method || 'declaracao_responsavel',
       procedure_title: record.template_title || 'Autorização SESI Escola Cidadã',
       procedure_description: record.procedure_description || 'Autorização clínica escolar.',
       minor_name_initials: getInitials(record.minor_name || 'Estudante'),
@@ -677,7 +677,7 @@ publicRouter.get('/dossier/:query', async (c) => {
         name: record.signer_name || 'Responsável Legal',
         cpf_masked: record.signer_cpf_masked || '***.***.***-**',
         relationship: record.signer_relationship || 'Responsável Legal',
-        identity_verification_method: record.identity_method || 'matricula_sesi',
+        identity_verification_method: record.identity_method || 'declaracao_responsavel',
       },
       custody_chain: {
         manifest_sha256: record.manifest_sha256,

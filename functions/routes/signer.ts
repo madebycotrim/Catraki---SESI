@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import {
-  VerifyMatriculaSchema,
   OtpRequestSchema,
   OtpVerifySchema,
   SignDocumentSchema,
@@ -33,7 +32,6 @@ import {
   getCompletionEmailSubject,
   getTransactionalOtpEmailHtml,
 } from '../../src/lib/email-templates.ts';
-import { querySesiMatricula } from '../../src/lib/catraki-matricula.ts';
 import { rateLimiter, checkOtpBruteForceBlock, setOtpBruteForceBlock, clearOtpBruteForceBlock } from '../middleware/ratelimit.ts';
 import type { Env, AuditLogRowInput, DocumentRecord } from '../../src/lib/types.ts';
 
@@ -203,55 +201,7 @@ signerRouter.get('/doc/:token', async (c) => {
   }
 });
 
-/**
- * POST /api/signer/verify-matricula
- * Consulta vínculo na base de matrícula SESI com tempo de resposta constante
- */
-signerRouter.post('/verify-matricula', async (c) => {
-  const body = await c.req.json();
-  const parsed = VerifyMatriculaSchema.safeParse(body);
 
-  if (!parsed.success) {
-    return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Dados inválidos.', code: 'VALIDATION_ERROR' }, 400);
-  }
-
-  const { token, signer_cpf, signer_name } = parsed.data;
-  const db = c.env.DB;
-
-  let doc = await db.prepare("SELECT * FROM documents WHERE (access_token = ? OR id = ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1").bind(token, token).first<DocumentRecord>();
-  if (!doc) {
-    const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
-    if (template) {
-      const newDocId = generateUniqueDocId('DOC');
-      await db.prepare(
-        `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+24 hours'))`
-      ).bind(newDocId, template.id, template.version, template.content_sha256, 'Estudante', '2010-01-01', signer_name, 'ENC_INITIAL', 'ENC_INITIAL', token).run();
-      doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(newDocId).first<DocumentRecord>();
-    }
-  }
-  if (!doc || doc.status !== 'pending') {
-    return c.json({ success: false, error: 'Documento indisponível para assinatura.', code: 'INVALID_STATUS' }, 400);
-  }
-
-  const result = await querySesiMatricula({
-    minorName: doc.minor_name,
-    minorBirthDate: doc.minor_birth_date,
-    signerCpf: signer_cpf,
-    signerName: signer_name,
-  });
-
-  return c.json({
-    success: true,
-    hasValidEnrollment: result.hasValidEnrollment,
-    guardianType: result.guardianType,
-    identityMethod: 'matricula_sesi',
-    verifiedAt: result.verifiedAt,
-    message: result.hasValidEnrollment
-      ? 'Vínculo com a base de matrícula SESI confirmado com sucesso.'
-      : 'Vínculo por declaração do responsável preenchido com sucesso.',
-  });
-});
 
 /**
  * POST /api/signer/check-student
@@ -841,7 +791,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     return c.json({ success: false, error: 'Código de autenticação 2FA inválido ou expirado.', code: 'OTP_INVALID' }, 400);
   }
 
-  const identityMethod: 'matricula_sesi' = 'matricula_sesi';
+  const identityMethod = 'declaracao_responsavel';
 
   const cfData = extractCloudflareClientData(c);
   const ipAddress = cfData.ip;

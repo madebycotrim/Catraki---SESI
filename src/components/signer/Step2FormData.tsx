@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, ChevronLeft, AlertTriangle, AlertCircle, Loader2, FileSearch } from 'lucide-react';
+import { ChevronRight, ChevronLeft, AlertTriangle, AlertCircle, Loader2, FileSearch, Users, GraduationCap } from 'lucide-react';
 import { isValidCPF, isValidFullName, calcularIdade } from '../../lib/schemas.ts';
 import { apiClient } from '../../lib/api.ts';
 import type { SignerRelationship, Institution, DuplicateStudentCheckResponse } from '../../lib/types.ts';
@@ -257,44 +257,56 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           
-          {/* Toggle Maior de Idade */}
-          <div className="flex items-start gap-2 text-[11px] sm:text-xs text-slate-500 mb-2">
-            <button
-              type="button"
-              onClick={() => {
-                setIsAdultStudent(!isAdultStudent);
-                if (!isAdultStudent) {
-                  setFormData(prev => ({ ...prev, signerRelationship: 'Próprio Estudante (Maior de Idade)' }));
-                } else {
-                  setFormData(prev => ({ ...prev, signerRelationship: '' }));
-                }
-              }}
-              className="mt-0.5 flex shrink-0 h-4 w-4 border rounded-[4px] items-center justify-center transition-colors outline-none cursor-pointer"
-              style={{
-                backgroundColor: isAdultStudent ? '#004b8d' : '#ffffff',
-                borderColor: isAdultStudent ? '#004b8d' : '#cbd5e1'
-              }}
-            >
-              {isAdultStudent && <div className="w-1.5 h-1.5 bg-white rounded-sm" />}
-            </button>
-            <div className="flex flex-col text-left">
-              <button 
-                type="button"
-                onClick={() => {
-                  setIsAdultStudent(!isAdultStudent);
-                  if (!isAdultStudent) {
-                    setFormData(prev => ({ ...prev, signerRelationship: 'Próprio Estudante (Maior de Idade)' }));
-                  } else {
-                    setFormData(prev => ({ ...prev, signerRelationship: '' }));
-                  }
-                }}
-                className="text-[#004b8d] font-semibold cursor-pointer transition-colors hover:underline text-left outline-none"
-              >
-                Sou o estudante e já sou maior de idade (18+)
-              </button>
-              <span className="text-slate-500">
-                Marque esta opção se você for o próprio estudante assinando.
-              </span>
+          {/* Seletor de Perfil do Assinante (Responsável Legal vs Próprio Estudante 18+) */}
+          <div className="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-3 sm:p-3.5 mb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="text-left">
+                <span className="text-xs font-bold text-slate-800 block">
+                  Quem está preenchendo este termo?
+                </span>
+                <span className="text-[11px] text-slate-500 block">
+                  {isAdultStudent
+                    ? 'Estudante com 18 anos ou mais assinando por conta própria.'
+                    : 'Pai, mãe ou responsável legal autorizando o atendimento.'}
+                </span>
+              </div>
+
+              <div className="inline-flex p-1 bg-slate-200/80 rounded-xl border border-slate-300/70 shrink-0 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdultStudent(false);
+                    setFormData((prev) => ({ ...prev, signerRelationship: '' }));
+                  }}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    !isAdultStudent
+                      ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-200/50'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>Responsável Legal</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdultStudent(true);
+                    setFormData((prev) => ({
+                      ...prev,
+                      signerRelationship: 'Próprio Estudante (Maior de Idade)',
+                    }));
+                  }}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isAdultStudent
+                      ? 'bg-[#004b8d] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+                  <span>Estudante (18+)</span>
+                </button>
+              </div>
             </div>
           </div>
           

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
   ExternalLink,
-  QrCode,
   FileText,
   Clock,
   Printer,
@@ -200,117 +199,195 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
             </div>
           </div>
 
-          {/* Metadados Técnicos e Segurança */}
-          <div className="border border-slate-200 rounded-xl p-3.5 sm:p-4 bg-slate-50/50 space-y-3">
-            <h3 className="font-bold text-xs sm:text-sm uppercase tracking-wider text-slate-800 flex items-center gap-2 m-0 border-b border-slate-200 pb-2">
-              <FileText className="w-4 h-4 text-sesi-primary" /> 
-              <span>Evidências de Autenticidade</span>
+          {/* Metadados Técnicos e Segurança (Padrão Profissional Padronizado) */}
+          <div className="border border-slate-200 rounded-2xl p-4 sm:p-5 bg-white shadow-xs space-y-4">
+            <h3 className="font-bold text-xs sm:text-sm uppercase tracking-wider text-slate-800 flex items-center justify-between m-0 border-b border-slate-200 pb-2.5">
+              <span className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-sesi-primary" /> 
+                <span>Evidências Digitais e Trilha de Custódia</span>
+              </span>
+              <span className="text-[11px] font-semibold text-slate-500 normal-case">
+                Registro de Assinatura Simples
+              </span>
             </h3>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-stretch">
+            {/* Header do Signatário com Status */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-sesi-primary flex items-center justify-center font-bold text-sm border border-blue-100">
+                  <ShieldCheck className="w-5 h-5 text-sesi-primary" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Signatário Autenticado
+                  </span>
+                  <strong className="text-sm sm:text-base font-extrabold text-slate-900 block leading-tight">
+                    {signerName} {signerRelationship ? `(${signerRelationship})` : ''}
+                  </strong>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold shrink-0">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Assinatura Concluída</span>
+              </span>
+            </div>
+
+            {/* Grid de Metadados Claros */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6 text-xs">
               
-              {/* Dados da assinatura */}
-              <div className="lg:col-span-2 space-y-2.5">
-                
-                {/* TOKEN ÚNICO AMIGÁVEL */}
-                <div className="bg-blue-50/80 p-3 sm:p-3.5 border-2 border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                  <div>
-                    <span className="text-slate-500 block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-0.5">
-                      Código Único de Validação:
-                    </span>
-                    <span className="font-mono text-base sm:text-lg font-extrabold text-sesi-primary tracking-wider break-all">
-                      {validationCode}
-                    </span>
-                  </div>
+              {/* Token do Documento com Copiar */}
+              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
+                <span className="text-slate-500 font-medium">Token do Documento:</span>
+                <div className="flex items-center gap-2">
+                  <strong className="font-mono text-sesi-primary font-bold">{validationCode}</strong>
                   <button
                     onClick={handleCopyCode}
-                    className="px-3.5 py-2 bg-white border border-blue-200 text-xs text-sesi-primary hover:bg-blue-50 font-bold rounded-lg transition-colors flex items-center justify-center gap-1 shadow-xs cursor-pointer active:scale-95"
+                    className="text-[10px] text-sesi-primary hover:underline font-semibold cursor-pointer"
                   >
-                    {copiedCode ? 'Copiado ✓' : 'Copiar Código'}
+                    {copiedCode ? 'Copiado ✓' : 'Copiar'}
                   </button>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div className="bg-white p-2.5 border border-slate-200 rounded-lg sm:col-span-2 flex items-center justify-between">
-                    <div>
-                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                        <MailCheck className="w-3.5 h-3.5 text-sesi-primary" /> Método de Autenticação:
-                      </span>
-                      <span className="font-semibold text-xs text-slate-800">
-                        Código de Segurança (2FA OTP por E-mail)
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                      Confirmado ✓
-                    </span>
-                  </div>
-
-                  <div className="bg-white p-2.5 border border-slate-200 rounded-lg sm:col-span-2">
-                    <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-sesi-primary" /> Data e Hora:
-                    </span>
-                    <span className="font-mono text-xs font-bold text-slate-700">
-                      {formatBrasiliaDateTime(signResult.signed_at_utc || signResult.signed_at || new Date())} (Horário de Brasília)
-                    </span>
-                  </div>
-                  
-                  <div className="bg-white p-2.5 border border-slate-200 rounded-lg">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider">Endereço IP:</span>
-                      {signResult.ip_address && signResult.ip_address !== 'não registrado' && (
-                        <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded border ${signResult.ip_address.includes(':') ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                          {signResult.ip_address.includes(':') ? 'IPv6' : 'IPv4'}
-                        </span>
-                      )}
-                    </div>
-                    <span className="font-mono text-xs font-bold text-slate-700 break-all">
-                      {signResult.ip_address && signResult.ip_address !== 'não registrado'
-                        ? signResult.ip_address
-                        : 'Registrado no sistema'}
-                    </span>
-                  </div>
-
-                  <div className="bg-white p-2.5 border border-slate-200 rounded-lg">
-                    <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Localização (Borda):</span>
-                    <span className="font-mono text-xs font-bold text-slate-700">
-                      {signResult.geo_city
-                        ? `${signResult.geo_city}${signResult.geo_region ? `, ${signResult.geo_region}` : ''}`
-                        : 'Registrada no sistema'}
-                    </span>
-                  </div>
-                </div>
-
               </div>
 
-              {/* QR Code de Validação */}
-              <div className="flex flex-col items-center justify-center p-3.5 bg-white border border-slate-200 rounded-xl text-center h-full">
+              {/* Assinou em */}
+              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
+                <span className="text-slate-500 font-medium flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-sesi-primary" /> Assinou em:
+                </span>
+                <strong className="font-mono text-slate-800 font-bold">
+                  {formatBrasiliaDateTime(signResult.signed_at_utc || signResult.signed_at || new Date())} <span className="text-[10px] font-normal text-slate-400 font-sans">(Horário de Brasília)</span>
+                </strong>
+              </div>
+
+              {/* Localização */}
+              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
+                <span className="text-slate-500 font-medium">Localização (Borda):</span>
+                <strong className="text-slate-800 font-semibold truncate max-w-[240px]">
+                  {signResult.geo_city
+                    ? `${signResult.geo_city}${signResult.geo_region ? `, ${signResult.geo_region}` : ''}`
+                    : 'Brasília, DF, Brasil'}
+                </strong>
+              </div>
+
+              {/* Endereço IP */}
+              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
+                <span className="text-slate-500 font-medium">Endereço IP:</span>
+                <div className="flex items-center gap-1.5 font-mono text-slate-800 font-bold">
+                  <span>
+                    {signResult.ip_address && signResult.ip_address !== 'não registrado'
+                      ? signResult.ip_address
+                      : 'Registrado no sistema'}
+                  </span>
+                  {signResult.ip_address && signResult.ip_address !== 'não registrado' && (
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold font-sans border ${
+                      signResult.ip_address.includes(':')
+                        ? 'bg-purple-50 text-purple-700 border-purple-200'
+                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                    }`}>
+                      {signResult.ip_address.includes(':') ? 'IPv6' : 'IPv4'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* E-mail */}
+              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2 md:col-span-2">
+                <span className="text-slate-500 font-medium flex items-center gap-1">
+                  <MailCheck className="w-3.5 h-3.5 text-sesi-primary" /> E-mail de Notificação:
+                </span>
+                <strong className="font-mono text-slate-800 font-bold">
+                  {signerEmail || 'Informado no fluxo'}
+                </strong>
+              </div>
+
+            </div>
+
+            {/* Pontos de Autenticação em Badges Estilizados */}
+            <div className="pt-2">
+              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                Pontos de Autenticação Registrados:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-lg text-[11px] font-semibold">
+                  <MailCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  E-mail confirmado (Código OTP)
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-lg text-[11px] font-semibold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  Identidade declarada (Art. 299 CP)
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200/80 rounded-lg text-[11px] font-semibold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" />
+                  Integridade criptográfica SHA-256
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-semibold">
+                  <FileText className="w-3.5 h-3.5 text-slate-500" />
+                  Rede de borda Cloudflare
+                </span>
+              </div>
+            </div>
+
+            {/* Quadro de Assinatura Eletrônica */}
+            <div className="p-3.5 bg-blue-50/40 border border-blue-200/70 rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-blue-900 uppercase tracking-wider">
+                  Assinatura Eletrônica Simples
+                </span>
+                <span className="text-[9.5px] font-bold text-slate-500">
+                  Lei Federal nº 14.063/2020 • Art. 10, § 2º MP 2.200-2/2001
+                </span>
+              </div>
+              <div className="p-3 bg-white rounded-lg border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <p className="font-serif italic text-base sm:text-lg text-slate-800 m-0 tracking-wide font-medium">
+                    {signerName}
+                  </p>
+                  <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                    Assinado digitalmente via Catraki • {validationCode}
+                  </span>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                    ✓ Autenticado
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Trilha Técnica de Custódia (Hash SHA-256 & QR Code) */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 pt-2">
+              <div className="lg:col-span-3 space-y-2">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" /> Código Criptográfico de Integridade (Hash SHA-256)
+                  </span>
+                  <div className="font-mono text-[10px] sm:text-[11px] font-bold text-slate-800 break-all select-all leading-relaxed bg-white p-2 rounded-lg border border-slate-200">
+                    {signResult.manifest_sha256}
+                  </div>
+                  <span className="text-[10px] text-slate-400 block mt-1.5 leading-snug">
+                    Resumo criptográfico imutável que comprova que este comprovante é autêntico e não foi alterado após a assinatura eletrônica.
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center text-center">
                 {qrCodeDataUrl ? (
                   <img
                     src={qrCodeDataUrl}
-                    alt="QR Code de Autenticidade"
-                    className="w-24 h-24 sm:w-28 sm:h-28 bg-white p-1 border border-slate-200 mb-2 rounded-lg"
+                    alt="QR Code de Validação"
+                    className="w-20 h-20 sm:w-24 sm:h-24 block mx-auto rounded"
                   />
                 ) : (
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 bg-slate-100 flex items-center justify-center text-black mb-2 border border-slate-200 rounded-lg">
-                    <QrCode className="w-8 h-8 text-black" />
+                  <div className="w-20 h-20 bg-slate-100 flex items-center justify-center text-[10px] text-slate-400">
+                    Gerando QR...
                   </div>
                 )}
-                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mt-1">Validação Online</span>
+                <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider mt-1 block">
+                  Validação Online
+                </span>
               </div>
             </div>
 
-            {/* HASH DO MANIFESTO (SHA-256) ABAIXO DE ENDEREÇO E QR CODE (LARGURA TOTAL) */}
-            <div className="w-full bg-white p-3 border border-slate-200 rounded-lg">
-              <span className="text-slate-400 block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" /> Código de Integridade Digital (Hash SHA-256):
-              </span>
-              <span className="font-mono text-[10px] sm:text-xs font-bold text-slate-700 break-all select-all block leading-relaxed">
-                {signResult.manifest_sha256}
-              </span>
-              <span className="text-[10px] text-slate-400 block mt-1 leading-snug">
-                🔒 <strong>Código de Integridade (SHA-256):</strong> resumo criptográfico que comprova que este comprovante é autêntico e não foi alterado após a sua assinatura eletrônica.
-              </span>
-            </div>
           </div>
 
           {/* Bloco Probatório Oficial Estilo Clicksign com a Marca Catraki */}

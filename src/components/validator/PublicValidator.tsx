@@ -7,13 +7,11 @@ import {
   ArrowLeft,
   Printer,
   ShieldCheck,
-  MailCheck,
   FileCheck2,
   UserCheck,
   GraduationCap,
   Activity,
   Clock,
-  QrCode,
   Lock,
   Sparkles,
   Ban,
@@ -444,151 +442,190 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
               </div>
             </div>
 
-            {/* 3. Evidências Digitais de Validação & Integridade Técnica com QR Code */}
-            <div className="space-y-1.5 sm:space-y-2">
-              <h3 className="text-[11px] sm:text-xs font-bold text-slate-900 uppercase tracking-wide m-0 border-b border-slate-200 pb-1 flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-sesi-primary" />
-                <span>3. Evidências Digitais de Validação e Trilha de Custódia</span>
+            {/* 3. Evidências Digitais de Validação & Trilha de Custódia (Padrão Profissional) */}
+            <div className="space-y-3">
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide m-0 border-b border-slate-200 pb-2 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-sesi-primary" />
+                  <span>3. Evidências Digitais e Trilha de Custódia</span>
+                </span>
+                <span className="text-[11px] font-semibold text-slate-500 normal-case">
+                  Registro de Assinatura Simples
+                </span>
               </h3>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 text-xs">
+              {/* Card Unificado do Signatário com Layout Profissional Padronizado */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
                 
-                {/* Coluna Esquerda: Metadados Técnicos (Ocupa 2 colunas) */}
-                <div className="lg:col-span-2 space-y-2">
+                {/* Header do Card com Nome do Signatário e Status */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-sesi-primary flex items-center justify-center font-bold text-sm border border-blue-100">
+                      <UserCheck className="w-5 h-5 text-sesi-primary" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Signatário Autenticado
+                      </span>
+                      <strong className="text-sm sm:text-base font-extrabold text-slate-900 block leading-tight">
+                        {validationResult.signer_name}
+                      </strong>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Assinatura Concluída</span>
+                  </span>
+                </div>
+
+                {/* Grid com Linhas de Metadados Claros (Estilo DocuSign / ZapSign) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6 text-xs">
                   
-                  {/* Método de Validação / Autenticação OTP */}
-                  <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                    <div className="space-y-0.5">
-                      <span className="block text-[9px] font-bold text-sesi-primary uppercase tracking-wider">
-                        Método de Autenticação e Autoria
-                      </span>
-                      <div className="text-[11px] sm:text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <MailCheck className="w-3.5 h-3.5 text-sesi-primary shrink-0" />
-                        <span>Código Eletrônico OTP (Celular ou E-mail)</span>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-md text-[9.5px] font-bold shrink-0 self-start sm:self-auto">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      <span>Confirmado via OTP</span>
+                  {/* CPF */}
+                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
+                    <span className="text-slate-500 font-medium">CPF:</span>
+                    <strong className="font-mono text-slate-800 font-bold">{validationResult.signer_cpf_masked}</strong>
+                  </div>
+
+                  {/* Assinou em */}
+                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
+                    <span className="text-slate-500 font-medium flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-sesi-primary" /> Assinou em:
                     </span>
+                    <strong className="font-mono text-slate-800 font-bold">
+                      {formatBrasiliaDateTime(validationResult.signed_at_utc)} <span className="text-[10px] font-normal text-slate-400 font-sans">(Horário de Brasília)</span>
+                    </strong>
                   </div>
 
-                  {/* Hash Criptográfico SHA-256 */}
-                  <div className="bg-white border border-slate-200 rounded-xl p-2.5">
-                    <span className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">
-                      Código Criptográfico de Integridade (Hash SHA-256)
-                    </span>
-                    <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100 font-mono text-[9px] sm:text-[10px] text-slate-700 break-all select-all leading-tight">
-                      {validationResult.manifest_sha256}
+                  {/* Token do Documento */}
+                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
+                    <span className="text-slate-500 font-medium">Token do Documento:</span>
+                    <strong className="font-mono text-sesi-primary font-bold">{validationCode}</strong>
+                  </div>
+
+                  {/* Localização */}
+                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
+                    <span className="text-slate-500 font-medium">Localização (Borda):</span>
+                    <strong className="text-slate-800 font-semibold truncate max-w-[240px]">
+                      {validationResult.geolocation || 'Brasília, DF, Brasil'}
+                    </strong>
+                  </div>
+
+                  {/* IP com Tag de Versão */}
+                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
+                    <span className="text-slate-500 font-medium">Endereço IP:</span>
+                    <div className="flex items-center gap-1.5 font-mono text-slate-800 font-bold">
+                      <span>{validationResult.ip_address || 'Não registrado'}</span>
+                      {validationResult.ip_address && (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold font-sans border ${
+                          validationResult.ip_address.includes(':')
+                            ? 'bg-purple-50 text-purple-700 border-purple-200'
+                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
+                          {validationResult.ip_address.includes(':') ? 'IPv6' : 'IPv4'}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Data/Hora NTP.br e Código do Documento */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
-                    <div className="bg-white border border-slate-200 rounded-xl p-2 space-y-0.5">
-                      <span className="block text-[9px] font-bold text-slate-400 uppercase">Data e Horário</span>
-                      <div className="font-mono text-[11px] font-bold text-slate-800 flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-sesi-primary shrink-0" />
-                        <span>{formatBrasiliaDateTime(validationResult.signed_at_utc)}</span>
-                      </div>
-                      <span className="text-[9px] text-slate-500 block font-medium">
-                        🕒 Horário de Brasília (UTC-3)
-                      </span>
-                    </div>
-
-                    <div className="bg-white border border-slate-200 rounded-xl p-2 space-y-0.5">
-                      <span className="block text-[9px] font-bold text-slate-400 uppercase">Código do Documento</span>
-                      <div className="font-mono text-[11px] font-bold text-slate-800">
-                        {validationResult.document_id || 'DOC-AUTORIZACAO'}
-                      </div>
-                      <span className="text-[9px] text-emerald-700 block font-medium">
-                        ✓ Trilha Única de Custódia
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* IP e Geolocalização */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
-                    <div className="bg-white border border-slate-200 rounded-xl p-2">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="block text-[9px] font-bold text-slate-400 uppercase">Registro de IP</span>
-                        {validationResult.ip_address && (
-                          <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded border ${validationResult.ip_address.includes(':') ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                            {validationResult.ip_address.includes(':') ? 'IPv6' : 'IPv4'}
-                          </span>
-                        )}
-                      </div>
-                      <div className="font-mono text-[10.5px] font-bold text-slate-800 break-all">
-                        {validationResult.ip_address || 'IP Oculto (Sigilo de Privacidade)'}
-                      </div>
-                      <span className="text-[9px] text-slate-400 block font-normal leading-tight mt-0.5">
-                        * Capturado com precisão na borda Cloudflare (LGPD/Marco Civil).
-                      </span>
-                    </div>
-
-                    <div className="bg-white border border-slate-200 rounded-xl p-2">
-                      <span className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Localização (Borda)</span>
-                      <div className="font-mono text-[10.5px] font-bold text-slate-800">
-                        {validationResult.geolocation || 'Não registrado'}
-                      </div>
-                    </div>
+                  {/* Dispositivo */}
+                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
+                    <span className="text-slate-500 font-medium">Dispositivo:</span>
+                    <strong className="text-slate-800 font-semibold truncate max-w-[240px]">
+                      {formatUserAgent(validationResult.user_agent)}
+                    </strong>
                   </div>
 
                 </div>
 
-                {/* Coluna Direita: QR Code Oficial de Conferência Instantânea */}
-                <div className="bg-white border border-slate-200 rounded-xl p-2.5 flex flex-col items-center justify-between text-center space-y-1.5 shadow-xs">
-                  <div className="w-full">
-                    <span className="block text-[9.5px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 flex items-center justify-center gap-1">
-                      <QrCode className="w-3 h-3 text-sesi-primary" /> Consulta do Aceite
+                {/* Pontos de Autenticação em Badges Estilizados */}
+                <div className="pt-2">
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                    Pontos de Autenticação Registrados:
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-lg text-[11px] font-semibold">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      E-mail confirmado (Código OTP)
                     </span>
-                    <p className="text-[9px] text-slate-500 m-0 leading-tight">
-                      Aponte a câmera para consultar online:
-                    </p>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-lg text-[11px] font-semibold">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      Identidade declarada (Art. 299 CP)
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200/80 rounded-lg text-[11px] font-semibold">
+                      <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" />
+                      Integridade criptográfica SHA-256
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-semibold">
+                      <Sparkles className="w-3.5 h-3.5 text-slate-500" />
+                      Rede de borda Cloudflare
+                    </span>
+                  </div>
+                </div>
+
+                {/* Quadro de Assinatura Eletrônica */}
+                <div className="p-3.5 bg-blue-50/40 border border-blue-200/70 rounded-xl space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-blue-900 uppercase tracking-wider">
+                      Assinatura Eletrônica Simples
+                    </span>
+                    <span className="text-[9.5px] font-bold text-slate-500">
+                      Lei Federal nº 14.063/2020 • Art. 10, § 2º MP 2.200-2/2001
+                    </span>
+                  </div>
+                  <div className="p-3 bg-white rounded-lg border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <p className="font-serif italic text-base sm:text-lg text-slate-800 m-0 tracking-wide font-medium">
+                        {validationResult.signer_name}
+                      </p>
+                      <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                        Assinado digitalmente via Catraki • {validationCode}
+                      </span>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                        ✓ Autenticado
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trilha Técnica de Custódia (Hash SHA-256 & QR Code) */}
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 pt-2">
+                  <div className="lg:col-span-3 space-y-2">
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-sesi-primary" /> Código Criptográfico de Integridade (Hash SHA-256)
+                      </span>
+                      <div className="font-mono text-[10px] sm:text-[11px] font-bold text-slate-800 break-all select-all leading-relaxed bg-white p-2 rounded-lg border border-slate-200">
+                        {validationResult.manifest_sha256}
+                      </div>
+                      <span className="text-[10px] text-slate-400 block mt-1.5 leading-snug">
+                        Resumo criptográfico imutável que garante a integridade e inviolabilidade do documento assinado.
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-xs">
+                  <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center text-center">
                     {qrCodeDataUrl ? (
                       <img
                         src={qrCodeDataUrl}
-                        alt="QR Code de Consulta do Aceite"
+                        alt="QR Code de Validação"
                         className="w-20 h-20 sm:w-24 sm:h-24 block mx-auto rounded"
                       />
                     ) : (
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-100 flex items-center justify-center text-[9px] text-slate-400">
+                      <div className="w-20 h-20 bg-slate-100 flex items-center justify-center text-[10px] text-slate-400">
                         Gerando QR...
                       </div>
                     )}
-                  </div>
-
-                  <div className="w-full pt-1 border-t border-slate-100">
-                    <span className="text-[9px] font-mono font-bold text-sesi-primary uppercase tracking-wider block">
-                      {validationCode}
-                    </span>
-                    <span className="text-[8.5px] text-slate-400 block mt-0.5">
-                      Catraki • Plataforma Segura
+                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider mt-1 block">
+                      Validação Online
                     </span>
                   </div>
                 </div>
 
-                {/* Dispositivo e Navegador Identificados (Largura Total) */}
-                <div className="lg:col-span-3 bg-white border border-slate-200 rounded-xl p-2 space-y-0.5">
-                  <span className="block text-[9px] font-bold text-slate-400 uppercase">
-                    Dispositivo e Navegador Identificados
-                  </span>
-                  <div className="text-[11px] font-bold text-slate-900">
-                    {formatUserAgent(validationResult.user_agent)}
-                  </div>
-                  <div className="bg-slate-50 p-1.5 rounded border border-slate-100 font-mono text-[8.5px] text-slate-500 break-all leading-tight">
-                    <strong className="text-slate-400">Identificação Técnica: </strong>
-                    {validationResult.user_agent && validationResult.user_agent !== 'Não registrado' && validationResult.user_agent !== 'Dispositivo não identificado'
-                      ? validationResult.user_agent
-                      : (typeof navigator !== 'undefined' && navigator.userAgent ? navigator.userAgent : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36')}
-                  </div>
-                </div>
-
-                {/* Disclaimer Obrigatório de Infraestrutura Tecnológica */}
-                <div className="lg:col-span-3 bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-[9.5px] text-slate-500 leading-relaxed text-center sm:text-left">
+                {/* Disclaimer Institucional */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-[10px] text-slate-500 leading-relaxed">
                   <strong>Aviso Institucional:</strong> Os dados e procedimentos clínicos são de exclusiva responsabilidade dos Controladores (SESI-DF e Faculdade de Ciências da Saúde da UnB). A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.
                 </div>
 

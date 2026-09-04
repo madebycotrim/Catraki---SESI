@@ -492,7 +492,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                         <span>{formatBrasiliaDateTime(validationResult.signed_at_utc)}</span>
                       </div>
                       <span className="text-[9px] text-slate-500 block font-medium">
-                        🕒 Hora Legal de Brasília (NTP.br)
+                        🕒 Horário de Brasília (UTC-3)
                       </span>
                     </div>
 

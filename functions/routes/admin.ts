@@ -1095,7 +1095,6 @@ adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'oper
       ip: auditLog.ip_address,
       user_agent: auditLog.user_agent,
       geo: [auditLog.geo_city, auditLog.geo_region, auditLog.geo_country].filter(Boolean).join('/') || null,
-      ntp_source: 'Observatório Nacional Brasileiro (ON.br)',
     });
   }
 

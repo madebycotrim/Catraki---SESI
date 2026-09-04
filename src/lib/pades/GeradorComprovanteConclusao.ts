@@ -15,7 +15,6 @@ export interface EventoComprovante {
   ip?: string | null;
   user_agent?: string | null;
   geo?: string | null;
-  ntp_source?: string | null;
 }
 
 // Alias de retrocompatibilidade
@@ -311,10 +310,6 @@ export class GeradorComprovanteConclusao {
       }
       if (ev.geo) {
         page.drawText(`Geo: ${ev.geo}`, { x: MARGIN + 15, y, size: 6.5, font: fontRegular, color: rgb(0.5, 0.5, 0.5) });
-        novaLinha(9);
-      }
-      if (ev.ntp_source) {
-        page.drawText(`NTP: ${ev.ntp_source}`, { x: MARGIN + 15, y, size: 6, font: fontRegular, color: rgb(0.6, 0.6, 0.7) });
         novaLinha(9);
       }
       novaLinha(6);

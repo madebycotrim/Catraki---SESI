@@ -344,8 +344,6 @@ export interface CancellationEmailParams {
   documentHashSha256?: string;
   revokedByName?: string;
   revokedByEmail?: string;
-  ntpTimestamp?: string;
-  ntpSource?: string;
 }
 
 export interface RevocationEmailParams {
@@ -359,8 +357,6 @@ export interface RevocationEmailParams {
   supportEmail?: string;
   dpoContact?: string;
   documentHashSha256?: string;
-  ntpTimestamp?: string;
-  ntpSource?: string;
 }
 
 export interface CompletionEmailParams {

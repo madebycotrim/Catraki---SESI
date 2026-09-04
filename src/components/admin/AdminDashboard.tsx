@@ -489,7 +489,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       case 'pending':
         return 'Pendente';
       case 'revoked':
-        return 'Negada (Revogada)';
+        return 'Revogada';
       case 'cancelado_por_erro':
       case 'cancelled_error':
         return 'Cancelada por Erro';
@@ -1370,7 +1370,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   }`}
                 >
                   <span className="w-2 h-2 rounded-full bg-rose-500 shadow-sm shadow-rose-200" />
-                  <span>Canceladas & Negadas</span>
+                  <span>Revogadas</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                     subTab === 'cancelled' ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-600'
                   }`}>
@@ -1411,7 +1411,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <option value="all">Todos os Status</option>
                     <option value="signed">✅ Autorizadas</option>
                     <option value="pending">⏳ Pendentes</option>
-                    <option value="revoked">🚫 Negadas</option>
+                    <option value="revoked">🚫 Revogadas</option>
                     <option value="CANCELADO_POR_ERRO">⚠️ Canceladas</option>
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
@@ -1679,7 +1679,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {isRevoked && (
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-xs font-bold shadow-3xs">
                                   <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                                  <span>Negada</span>
+                                  <span>Revogada</span>
                                 </span>
                               )}
                               {isPending && (

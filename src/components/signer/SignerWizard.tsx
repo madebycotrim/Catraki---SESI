@@ -36,11 +36,6 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
 
   useEffect(() => {
     loadDocument(token);
-    apiClient.getInstitutionBySlug(schoolSlug || 'cemeit').then((res) => {
-      if (res.success && res.institution) {
-        setInstitution(res.institution);
-      }
-    });
   }, [token, schoolSlug]);
 
   const loadDocument = async (t: string) => {
@@ -51,6 +46,14 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
       const resp = await apiClient.getSignerDoc(t);
       if (resp.success && resp.document) {
         setDocumentData(resp.document);
+        setInstitution({
+          id: resp.document.institution_id || schoolSlug || 'cemeit',
+          name: resp.document.institution_name || 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)',
+          short_name: resp.document.institution_short_name || 'CEMEIT',
+          city: resp.document.institution_city || 'Brasília',
+          state: resp.document.institution_state || 'DF',
+          is_active: true,
+        });
       } else {
         setErrorCode(resp.code || '');
         setErrorMessage(resp.error || 'Este documento não foi encontrado ou o link expirou. Por favor, verifique se você está usando o link mais recente enviado pela escola.');
@@ -152,7 +155,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
           minorName={formData.minorName}
           minorBirthDate={formData.minorBirthDate}
           procedureTitle={documentData.procedure_title}
-          institutionName={institution?.name}
+          institutionName={institution?.name || documentData?.institution_name || 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)'}
           identityData={{
             signerName: formData.signerName,
             signerCpf: formData.signerCpf,

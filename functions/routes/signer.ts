@@ -928,6 +928,11 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     studentBirth = rawBirth || 'Data não informada';
   }
 
+  const resolvedSchoolName = parsed.data.institution_name
+    || (doc as any).school_name
+    || (doc as any).institution_name
+    || 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)';
+
   // Geração do PDF Oficial (Manifesto) no servidor
   const pdfBytes = await GeradorPdfTermoSesi.gerarPdfOriginal({
     tituloProcedimento: doc.template_title || 'Atendimento em Saúde — Escola Cidadã',
@@ -940,6 +945,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     minorCpfMascarado: parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : undefined,
     minorCpfCompleto: parsed.data.minor_cpf,
     parentesco: signer_relationship,
+    nomeEscola: resolvedSchoolName,
     isMaiorDeIdade,
     autorizacaoSaude: parsed.data.auth_health === 'yes',
     autorizacaoDados: parsed.data.auth_data === 'yes',
@@ -1161,8 +1167,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     signerName: signer_name,
     documentTitle: docTitle,
     downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
-    minorName: doc.minor_name,
-    institutionName: (doc as any).school_name || (doc as any).institution_name || 'Serviço Social da Indústria (SESI-DF)',
+    minorName: parsed.data.minor_name || doc.minor_name,
+    institutionName: resolvedSchoolName,
     validationCode,
     manifestSha256,
     signedAtFormatted: formatBrasiliaDateTime(new Date()),
@@ -1173,7 +1179,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     signerName: signer_name,
     documentTitle: docTitle,
     downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
-    minorName: doc.minor_name,
+    minorName: parsed.data.minor_name || doc.minor_name,
+    institutionName: resolvedSchoolName,
     validationCode,
     manifestSha256,
     companyName: 'Plataforma Catraki',

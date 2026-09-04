@@ -571,6 +571,7 @@ export function getTransactionalCompletionEmailText(params: CompletionEmailParam
     documentTitle,
     downloadUrl,
     minorName,
+    institutionName,
     validationCode,
     manifestSha256,
     companyName = 'Plataforma Catraki',
@@ -591,7 +592,7 @@ Em anexo a este e-mail, você encontra o arquivo PDF oficial contendo o Termo de
 RESUMO DO DOCUMENTO:
 - Documento: ${documentTitle}
 ${minorName ? `- Estudante: ${minorName}\n` : ''}- Responsável Signatário: ${signerName}
-- Código de Autenticidade: ${docCode}
+${institutionName ? `- Escola / Unidade: ${institutionName}\n` : ''}- Código de Autenticidade: ${docCode}
 ${manifestSha256 ? `- Hash SHA-256: ${manifestSha256}\n` : ''}- Situação: ASSINADO E REGISTRADO
 
 Link para consulta e download online:

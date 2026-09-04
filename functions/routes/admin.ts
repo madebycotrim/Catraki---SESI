@@ -908,9 +908,8 @@ adminRouter.delete('/documents/:id/hard-delete', requireAuth(['admin_master', 'o
     await db.prepare('DROP TRIGGER IF EXISTS prevent_cancellation_audit_delete').run().catch(() => null);
 
     // 2. Executa a exclusão de todas as dependências e do documento
-    await db.prepare('DELETE FROM document_cancellation_audits WHERE document_id = ?').bind(id).run();
-    await db.prepare('DELETE FROM audit_logs WHERE document_id = ?').bind(id).run();
-    await db.prepare('DELETE FROM document_reviews WHERE document_id = ?').bind(id).run();
+    await db.prepare('DELETE FROM document_cancellation_audits WHERE document_id = ?').bind(id).run().catch(() => null);
+    await db.prepare('DELETE FROM audit_logs WHERE document_id = ?').bind(id).run().catch(() => null);
     await db.prepare('DELETE FROM documents WHERE id = ?').bind(id).run();
 
     // 3. Remove do KV se existir

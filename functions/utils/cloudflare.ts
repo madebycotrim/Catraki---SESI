@@ -3,6 +3,8 @@ import { formatUserAgent } from '../../src/lib/schemas.ts';
 
 export interface CloudflareClientData {
   ip: string;
+  ipVersion: 'IPv4' | 'IPv6';
+  pseudoIpv4: string | null;
   city: string;
   region: string;
   country: string;
@@ -37,6 +39,9 @@ export function extractCloudflareClientData(c: Context): CloudflareClientData {
     || req.header('x-real-ip')
     || req.header('x-forwarded-for')?.split(',')[0]?.trim()
     || '127.0.0.1';
+
+  const ipVersion: 'IPv4' | 'IPv6' = ip.includes(':') ? 'IPv6' : 'IPv4';
+  const pseudoIpv4 = req.header('cf-pseudo-ipv4') || null;
 
   // 2. Cidade detectada na rede Edge da Cloudflare
   let city = cf.city || req.header('cf-ipcity') || '';
@@ -92,6 +97,8 @@ export function extractCloudflareClientData(c: Context): CloudflareClientData {
 
   return {
     ip,
+    ipVersion,
+    pseudoIpv4,
     city,
     region,
     country: countryName,

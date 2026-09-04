@@ -109,12 +109,14 @@ describe('Sistema de Filtro e Ordenação Estilo Excel (ExcelColumnFilter)', () 
   });
 
   it('deve retornar todos os dados quando o filtro for nulo (Selecionar Tudo)', () => {
-    const columnFilterStatus: Set<string> | null = null;
-    const filtered = sampleData.filter(item => {
-      if (columnFilterStatus && !columnFilterStatus.has(extractors.status(item))) return false;
-      return true;
-    });
+    const applyFilter = (filterSet: Set<string> | null) => {
+      return sampleData.filter(item => {
+        if (filterSet && !filterSet.has(extractors.status(item))) return false;
+        return true;
+      });
+    };
 
+    const filtered = applyFilter(null);
     expect(filtered.length).toBe(sampleData.length);
   });
 });

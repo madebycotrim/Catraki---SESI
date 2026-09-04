@@ -1408,7 +1408,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           {/* ━━ 5. TABELA ULTRA-MODERNA E ESPAÇOSA ━━ */}
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-200/90 overflow-hidden">
+          <div className="bg-white rounded-none shadow-sm border border-slate-200/90 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[980px]">
                 <thead className="table-thead-ultra">

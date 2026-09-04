@@ -656,7 +656,7 @@ publicRouter.get('/dossier/:query', async (c) => {
       exported_at_utc: new Date().toISOString(),
       controller: {
         institution: 'SESI - Serviço Social da Indústria / Departamento Regional do Distrito Federal',
-        platform_operator: 'Catraki Tecnologia e Assinaturas Digitais',
+        platform_operator: 'Catraki Tecnologia e Assinaturas Eletrônicas',
         project: 'Programa Escola Cidadã: Saúde em Movimento',
         dpo_contact: 'suporte@catraki.com.br',
       },

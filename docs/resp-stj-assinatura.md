@@ -30,19 +30,19 @@ Isso significa que documentos de consentimento, autorizações escolares, contra
 ## 4. O Raciocínio da Corte sobre Evidências Digitais
 
 O STJ destaca que, na ausência de certificado ICP-Brasil, a validade e a autoria do ato assinado eletronicamente devem ser verificadas através de:
-*   **Trilhas de Auditoria Digital (Logs):** Registros contendo endereço IP do signatário, data e hora exatas do evento (carimbo do tempo/timestamp).
-*   **Códigos de Autenticação (OTP):** Confirmações via e-mail ou SMS para atestar a autoria.
-*   **Hash Criptográfico (SHA-256):** Resumo criptográfico que atesta que o documento não sofreu alteração pós-assinatura (integridade digital).
+*   **Trilhas de Auditoria Digital (Logs):** Registros contendo endereço IP do signatário, data e hora exatas do evento (registro temporal de precisão).
+*   **Códigos de Autenticação (OTP):** Confirmações via e-mail para atestar a autoria.
+*   **Hash Criptográfico (SHA-256):** Resumo criptográfico que atesta que o documento não sofreu alteração pós-assinatura (integridade documental).
 
 ---
 
 ## 5. Alinhamento com a Plataforma Catraki
 
 A plataforma Catraki foi projetada em estrita aderência a esse entendimento jurisprudencial:
-*   **Autoria:** Verificada por meio de código eletrônico OTP de 6 dígitos enviado ao e-mail/celular verificado e dados do dispositivo (User-Agent/Canvas Fingerprint).
+*   **Autoria:** Verificada por meio de código eletrônico OTP de 6 dígitos enviado ao e-mail cadastrado e dados de conexão (IP e User-Agent).
 *   **Integridade:** Assegurada pela geração de hash SHA-256 exclusivo do manifesto, assinatura do bloco na cadeia hash (`log_row_hash`) e âncora na Árvore de Merkle.
-*   **Temporalidade:** Carimbo do tempo sincronizado via Time Stamping Authority (TSA).
-*   **Validador Público:** Canal que permite a terceiros auditar a trilha e o certificado de autenticidade a qualquer momento.
+*   **Temporalidade:** Registro temporal de precisão UTC gerado pelo servidor e banco de dados.
+*   **Validador Público:** Canal que permite a terceiros auditar a trilha e o comprovante de autenticidade a qualquer momento.
 
 ---
 

@@ -27,7 +27,7 @@ import {
 import { verifyAuditChain, computeMerkleRoot } from '../../src/lib/audit-chain.ts';
 import { requireAuth, signJwt, JwtPayload } from '../middleware/auth.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
-import { GeradorCertificadoConclusao, EventoCertificado } from '../../src/lib/pades/GeradorComprovanteConclusao.ts';
+import { GeradorComprovanteConclusao, EventoComprovante } from '../../src/lib/pades/GeradorComprovanteConclusao.ts';
 import type {
   Env,
   DocumentTemplate,
@@ -943,13 +943,13 @@ adminRouter.get('/documents/:id/parent-email', requireAuth(['admin_master', 'ope
 });
 
 // ============================================================================
-// CERTIFICADO DE CONCLUSÃO PDF (Pilar 4 — Lei 14.063/2020)
+// COMPROVANTE DE CONCLUSÃO E AUDITORIA PDF (Assinatura Eletrônica Simples — Lei 14.063/2020)
 // Download do relatório forense de linha do tempo do documento
 // ============================================================================
 
 /**
  * GET /api/admin/documents/:id/certificate
- * Gera e retorna o Certificado de Conclusão em PDF (relatório de timeline forense)
+ * Gera e retorna o Comprovante de Conclusão e Trilha de Auditoria em PDF
  */
 adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'operador', 'dpo']), async (c) => {
   const id = c.req.param('id');
@@ -977,7 +977,7 @@ adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'oper
   ).bind(id).first<any>().catch(() => null);
 
   // Monta a linha do tempo de eventos
-  const eventos: EventoCertificado[] = [];
+  const eventos: EventoComprovante[] = [];
 
   if (doc.created_at) {
     eventos.push({
@@ -1042,7 +1042,7 @@ adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'oper
   }
 
   try {
-    const pdfBytes = await GeradorCertificadoConclusao.gerarCertificado({
+    const pdfBytes = await GeradorComprovanteConclusao.gerarComprovante({
       documentId: doc.id,
       validationCode,
       minorName: doc.minor_name || 'Estudante',

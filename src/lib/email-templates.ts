@@ -532,7 +532,7 @@ export function getTransactionalCompletionEmailHtml(params: CompletionEmailParam
     <div class="attachment-box">
       <strong>📎 DOCUMENTO ORIGINAL ANEXADO A ESTE E-MAIL (PDF):</strong><br>
       Em anexo a esta mensagem, você encontra o arquivo <strong>PDF oficial</strong> contendo:<br>
-      • A via do <strong>Termo de Consentimento Livre e Esclarecido (TCLE)</strong> com sua assinatura digitalizada e marca d'água de proteção;<br>
+      • A via do <strong>Termo de Consentimento Livre e Esclarecido (TCLE)</strong> com sua assinatura eletrônica manuscrita e marca d'água de proteção;<br>
       • O <strong>Comprovante de Conclusão e Trilha de Auditoria</strong>, com endereço IP, User-Agent, resumo SHA-256 e código de validação pública.
     </div>
 

@@ -111,7 +111,7 @@ A arquitetura da plataforma **Catraki** foi desenvolvida para implementar a **As
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
 │                          ARQUITETURA DE REGISTRO DE AUDITORIA                            │
 ├──────────────────────────────────────────────────────────────────────────────────────────┤
-│ 1. AUTORIA & IDENTIFICAÇÃO   → Código OTP (E-mail/SMS) + Identificação do Responsável    │
+│ 1. AUTORIA & IDENTIFICAÇÃO   → Código OTP (E-mail) + Identificação do Responsável        │
 │ 2. INTEGRIDADE DIGITAL       → Resumo Criptográfico SHA-256 no Manifesto do Documento   │
 │ 3. TEMPORALIDADE             → Timestamp Sincronizado com Horário de Brasília (UTC)      │
 │ 4. NÃO-REPÚDIO & CUSTÓDIA    → Trilha de Auditoria (IP Real, User-Agent, Dispositivo)    │

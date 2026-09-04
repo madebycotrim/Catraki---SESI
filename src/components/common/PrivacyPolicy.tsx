@@ -189,7 +189,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
         {/* Rodapé e Barra Institucional */}
         <div className="pt-6 border-t border-slate-200 text-center text-[11px] sm:text-xs text-slate-500 space-y-1 mt-8">
           <p className="m-0 font-semibold text-slate-600">
-            Plataforma Catraki • Tecnologia em Assinaturas Digitais e Governança
+            Plataforma Catraki • Tecnologia em Assinaturas Eletrônicas e Governança
           </p>
           <p className="m-0 text-slate-400">
             Projeto Escola Cidadã: Saúde em Movimento • Cooperação SESI-DF e UnB

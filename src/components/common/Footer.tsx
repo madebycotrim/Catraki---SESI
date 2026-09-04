@@ -13,7 +13,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         <div className="space-y-2.5">
           <div className="flex items-center gap-2 text-white font-semibold text-sm">
             <CheckCircle2 className="w-4 h-4 text-blue-400" />
-            <span>Assinatura Digital e Segurança</span>
+            <span>Assinatura Eletrônica e Segurança</span>
           </div>
           <p className="leading-relaxed text-slate-400">
             O Catraki é a ferramenta tecnológica que facilita a assinatura de autorizações escolares com autenticação em duas etapas por e-mail e comprovante verificável.
@@ -64,11 +64,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       {/* Isenção e Governança Tecnológica */}
       <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-900 text-[11px] text-slate-500 leading-relaxed text-center sm:text-left space-y-3">
         <p className="m-0 bg-slate-900/60 p-3 rounded-lg border border-slate-800/80 text-slate-400">
-          <strong>Organização do Projeto:</strong> Os atendimentos clínicos e triagens são realizados e geridos pelas equipes de saúde do <strong>SESI-DF</strong> e da <strong>Faculdade de Ciências da Saúde da UnB</strong>. O Catraki atua estritamente como a plataforma de software para emissão e validação das autorizações digitais.
+          <strong>Organização do Projeto:</strong> Os atendimentos clínicos e triagens são realizados e geridos pelas equipes de saúde do <strong>SESI-DF</strong> e da <strong>Faculdade de Ciências da Saúde da UnB</strong>. O Catraki atua estritamente como a plataforma de software para emissão e validação das autorizações e consentimentos eletrônicos.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
           <div>
-            © {new Date().getFullYear()} Catraki • Tecnologia em Assinaturas Digitais Escolares.
+            © {new Date().getFullYear()} Catraki • Tecnologia em Assinaturas Eletrônicas Escolares.
           </div>
           <div className="flex items-center gap-4">
             <button

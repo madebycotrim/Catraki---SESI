@@ -55,7 +55,7 @@ sequenceDiagram
     Resp->>Worker: Digita OTP + Rubrica em Canvas + Aceite LGPD Art. 11/14
     Worker->>D1: Insere Audit Log (Hash Chain) + Atualiza Documento para 'signed'
     Worker->>R2: Grava Manifesto JSON e PDF Assinado com QR Code
-    Worker-->>Resp: Emite Comprovante com Hash SHA-256 e Carimbo TSA
+    Worker-->>Resp: Emite Comprovante com Hash SHA-256 e Registro Temporal UTC
 ```
 
 ---
@@ -70,7 +70,7 @@ sequenceDiagram
   1. Validação de formato de CPF com algoritmo oficial e prevenção de duplicidades;
   2. Autenticação 2FA/OTP vinculada aos canais de contato;
   3. Declaração expressa de responsabilidade civil e penal nos termos do Art. 299 do Código Penal;
-  4. Trilha de auditoria pericial imutável com carimbo de tempo, IP e geolocalização.
+  4. Trilha de auditoria pericial imutável com registro de data/hora UTC, IP e geolocalização.
 
 ### Risco 2: Vazamento de Dados Pessoais Sensíveis (PII / Saúde)
 - **Severidade:** Alta
@@ -89,7 +89,7 @@ sequenceDiagram
 - **Mitigações Implementadas:**
   1. Encadeamento criptográfico *Hash Chain* (`prev_log_hash` -> `log_row_hash`);
   2. **Triggers SQLite físicos** no Cloudflare D1 (`prevent_audit_update` e `prevent_audit_delete`) com `RAISE(ABORT)`;
-  3. Carimbo de tempo qualificado RFC 3161 (TSA) sobre o manifesto SHA-256;
+  3. Registro temporal UTC de precisão e integridade SHA-256 sobre o manifesto e PDF;
   4. Publicação periódica da Raiz de Merkle em ancoragem imutável.
 
 ### Risco 4: Enumeração de CPFs por Timing Attack

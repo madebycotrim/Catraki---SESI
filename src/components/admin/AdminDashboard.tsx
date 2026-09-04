@@ -42,6 +42,7 @@ import { GeradorPdfTermoSesi } from '../../lib/pades/GeradorPdfTermoSesi.ts';
 import { apiClient } from '../../lib/api.ts';
 import { parseUtcDate, formatBrasiliaDateTime, formatCPF } from '../../lib/schemas.ts';
 import type { Institution } from '../../lib/types.ts';
+import { ExcelColumnFilter, type ExcelOption } from './ExcelColumnFilter.tsx';
 
 interface AdminDashboardProps {
   onNavigateToSignerToken: (token: string, schoolSlug?: string) => void;
@@ -162,6 +163,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(25);
 
+  // ━━ Filtros de Coluna Estilo Excel e Ordenação ━━
+  const initialColumnFilters = {
+    code: null as Set<string> | null,
+    student: null as Set<string> | null,
+    classTurn: null as Set<string> | null,
+    parent: null as Set<string> | null,
+    school: null as Set<string> | null,
+    status: null as Set<string> | null,
+  };
+
+  const [columnFilters, setColumnFilters] = useState<{
+    code: Set<string> | null;
+    student: Set<string> | null;
+    classTurn: Set<string> | null;
+    parent: Set<string> | null;
+    school: Set<string> | null;
+    status: Set<string> | null;
+  }>(initialColumnFilters);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
+
+  const handleColumnFilterChange = (columnId: string, newSelected: Set<string> | null) => {
+    setColumnFilters((prev) => ({
+      ...prev,
+      [columnId]: newSelected,
+    }));
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (columnId: string, direction: 'asc' | 'desc' | null) => {
+    setSortColumn(direction ? columnId : null);
+    setSortDirection(direction);
+    setCurrentPage(1);
+  };
+
   const handleStatusFilterChange = (status: 'all' | 'signed' | 'pending' | 'revoked' | 'CANCELADO_POR_ERRO') => {
     setSelectedStatus(status);
     setCurrentPage(1);
@@ -190,10 +226,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSelectedTurn('all');
     setSubTab('all');
     setAlertFilter('all');
+    setColumnFilters(initialColumnFilters);
+    setSortColumn(null);
+    setSortDirection(null);
     setCurrentPage(1);
   };
 
-  const isFiltered = searchTerm !== '' || selectedInstitution !== 'all' || selectedImageOption !== 'all' || selectedStatus !== 'all' || selectedDateRange !== 'all' || selectedSeries !== 'all' || selectedTurn !== 'all' || subTab !== 'all' || alertFilter !== 'all';
+  const hasExcelFilters = Object.values(columnFilters).some((v) => v !== null) || sortColumn !== null;
+  const isFiltered = searchTerm !== '' || selectedInstitution !== 'all' || selectedImageOption !== 'all' || selectedStatus !== 'all' || selectedDateRange !== 'all' || selectedSeries !== 'all' || selectedTurn !== 'all' || subTab !== 'all' || alertFilter !== 'all' || hasExcelFilters;
 
   // Estados do Modal de Ficha Completa do Aluno (Triagem SESI Saúde)
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -843,7 +883,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return count;
   }, [authorizations, anomalyFlags]);
 
-  const filteredAuths = useMemo(() => {
+  // ━━ Extratores para Filtros e Ordenação de Colunas Excel ━━
+  const extractors = useMemo(() => ({
+    code: (auth: any) => (auth.validationCode || auth.id || 'Sem Código').trim(),
+    student: (auth: any) => (auth.studentName || 'Sem Nome').trim(),
+    classTurn: (auth: any) => {
+      const s = formatStudentSeriesClass(auth.minorSeries, auth.minorClass);
+      const t = auth.minorTurn ? `Turno ${auth.minorTurn}` : '';
+      if (s && t) return `${s} (${t})`;
+      return s || t || '— Não informada —';
+    },
+    parent: (auth: any) => (auth.parentName || 'Responsável Legal').trim(),
+    school: (auth: any) => (auth.institutionName || 'Escola não informada').trim(),
+    status: (auth: any) => {
+      if (auth.status === 'signed') return 'Autorizada';
+      if (auth.status === 'CANCELADO_POR_ERRO' || auth.status === 'cancelled_error') return 'Cancelada por Erro';
+      if (auth.status === 'revoked') return 'Revogada';
+      if (auth.status === 'expired') return 'Expirada';
+      return 'Pendente';
+    },
+  }), []);
+
+  // ━━ Helper para calcular opções únicas com contagem (Excel) ━━
+  const computeExcelOptions = (extractor: (a: any) => string, items: any[]): ExcelOption[] => {
+    const map = new Map<string, number>();
+    for (let i = 0; i < items.length; i++) {
+      const val = extractor(items[i]);
+      map.set(val, (map.get(val) || 0) + 1);
+    }
+    const result: ExcelOption[] = [];
+    map.forEach((count, value) => {
+      result.push({ value, label: value, count });
+    });
+    return result.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR', { numeric: true, sensitivity: 'base' }));
+  };
+
+  const alertFilteredAuths = useMemo(() => {
     if (alertFilter === 'all') return baseFilteredAuths;
     return baseFilteredAuths.filter(auth => {
       const flags = anomalyFlags.get(auth.id) || [];
@@ -855,6 +930,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       return true;
     });
   }, [baseFilteredAuths, anomalyFlags, alertFilter]);
+
+  // Opções de cada coluna calculadas a partir da base ativa
+  const codeOptions = useMemo(() => computeExcelOptions(extractors.code, alertFilteredAuths), [alertFilteredAuths, extractors]);
+  const studentOptions = useMemo(() => computeExcelOptions(extractors.student, alertFilteredAuths), [alertFilteredAuths, extractors]);
+  const classTurnOptions = useMemo(() => computeExcelOptions(extractors.classTurn, alertFilteredAuths), [alertFilteredAuths, extractors]);
+  const parentOptions = useMemo(() => computeExcelOptions(extractors.parent, alertFilteredAuths), [alertFilteredAuths, extractors]);
+  const schoolOptions = useMemo(() => computeExcelOptions(extractors.school, alertFilteredAuths), [alertFilteredAuths, extractors]);
+  const statusOptions = useMemo(() => computeExcelOptions(extractors.status, alertFilteredAuths), [alertFilteredAuths, extractors]);
+
+  // Aplica os filtros selecionados no menu Excel de cada coluna
+  const excelFilteredAuths = useMemo(() => {
+    return alertFilteredAuths.filter((auth) => {
+      if (columnFilters.code && !columnFilters.code.has(extractors.code(auth))) return false;
+      if (columnFilters.student && !columnFilters.student.has(extractors.student(auth))) return false;
+      if (columnFilters.classTurn && !columnFilters.classTurn.has(extractors.classTurn(auth))) return false;
+      if (columnFilters.parent && !columnFilters.parent.has(extractors.parent(auth))) return false;
+      if (columnFilters.school && !columnFilters.school.has(extractors.school(auth))) return false;
+      if (columnFilters.status && !columnFilters.status.has(extractors.status(auth))) return false;
+      return true;
+    });
+  }, [alertFilteredAuths, columnFilters, extractors]);
+
+  // Aplica ordenação da coluna selecionada
+  const filteredAuths = useMemo(() => {
+    if (!sortColumn || !sortDirection) return excelFilteredAuths;
+    const extractor = (extractors as any)[sortColumn];
+    if (!extractor) return excelFilteredAuths;
+
+    return [...excelFilteredAuths].sort((a, b) => {
+      const valA = extractor(a);
+      const valB = extractor(b);
+      const comparison = valA.localeCompare(valB, 'pt-BR', { numeric: true, sensitivity: 'base' });
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [excelFilteredAuths, sortColumn, sortDirection, extractors]);
 
   const totalImageAuthorized = filteredAuths.filter((a) => a.authImage && a.status === 'signed').length;
 
@@ -1483,17 +1593,83 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* ━━ 5. TABELA ULTRA-MODERNA E ESPAÇOSA ━━ */}
           <div className="bg-white rounded-none shadow-sm border border-slate-200/90 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[980px]">
+            <div className="overflow-x-auto min-h-[420px]">
+              <table className="w-full text-left border-collapse min-w-[1020px]">
                 <thead className="table-thead-ultra">
                   <tr>
-                    <th className="w-[13%] min-w-[130px]">Código / Protocolo</th>
-                    <th className="w-[23%] min-w-[240px]">Paciente / Aluno</th>
-                    <th className="w-[14%] min-w-[150px]">Turma &amp; Turno</th>
-                    <th className="w-[18%] min-w-[190px]">Responsável Legal</th>
-                    <th className="w-[11%] min-w-[120px]">Escola</th>
-                    <th className="w-[11%] min-w-[130px]">Status</th>
-                    <th className="w-[10%] min-w-[190px] text-right">Ações</th>
+                    <th className="w-[14%] min-w-[145px]">
+                      <ExcelColumnFilter
+                        columnId="code"
+                        title="Código / Protocolo"
+                        options={codeOptions}
+                        selectedValues={columnFilters.code}
+                        onFilterChange={handleColumnFilterChange}
+                        currentSortColumn={sortColumn}
+                        currentSortDirection={sortDirection}
+                        onSortChange={handleSortChange}
+                      />
+                    </th>
+                    <th className="w-[23%] min-w-[240px]">
+                      <ExcelColumnFilter
+                        columnId="student"
+                        title="Paciente / Aluno"
+                        options={studentOptions}
+                        selectedValues={columnFilters.student}
+                        onFilterChange={handleColumnFilterChange}
+                        currentSortColumn={sortColumn}
+                        currentSortDirection={sortDirection}
+                        onSortChange={handleSortChange}
+                      />
+                    </th>
+                    <th className="w-[14%] min-w-[155px]">
+                      <ExcelColumnFilter
+                        columnId="classTurn"
+                        title="Turma & Turno"
+                        options={classTurnOptions}
+                        selectedValues={columnFilters.classTurn}
+                        onFilterChange={handleColumnFilterChange}
+                        currentSortColumn={sortColumn}
+                        currentSortDirection={sortDirection}
+                        onSortChange={handleSortChange}
+                      />
+                    </th>
+                    <th className="w-[18%] min-w-[190px]">
+                      <ExcelColumnFilter
+                        columnId="parent"
+                        title="Responsável Legal"
+                        options={parentOptions}
+                        selectedValues={columnFilters.parent}
+                        onFilterChange={handleColumnFilterChange}
+                        currentSortColumn={sortColumn}
+                        currentSortDirection={sortDirection}
+                        onSortChange={handleSortChange}
+                      />
+                    </th>
+                    <th className="w-[11%] min-w-[130px]">
+                      <ExcelColumnFilter
+                        columnId="school"
+                        title="Escola"
+                        options={schoolOptions}
+                        selectedValues={columnFilters.school}
+                        onFilterChange={handleColumnFilterChange}
+                        currentSortColumn={sortColumn}
+                        currentSortDirection={sortDirection}
+                        onSortChange={handleSortChange}
+                      />
+                    </th>
+                    <th className="w-[11%] min-w-[130px]">
+                      <ExcelColumnFilter
+                        columnId="status"
+                        title="Status"
+                        options={statusOptions}
+                        selectedValues={columnFilters.status}
+                        onFilterChange={handleColumnFilterChange}
+                        currentSortColumn={sortColumn}
+                        currentSortDirection={sortDirection}
+                        onSortChange={handleSortChange}
+                      />
+                    </th>
+                    <th className="w-[9%] min-w-[180px] text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">

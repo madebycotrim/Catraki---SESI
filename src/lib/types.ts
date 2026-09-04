@@ -236,8 +236,6 @@ export interface PublicValidationResponse {
   document_status: DocumentStatus;
   chain_position: number;
   prev_log_hash: string | null;
-  tsa_verified?: boolean;
-  tsa_authority?: string;
   auth_image?: 'yes' | 'no' | boolean | null;
   auth_health?: 'yes' | 'no' | boolean | null;
   auth_data?: 'yes' | 'no' | boolean | null;
@@ -303,7 +301,6 @@ export interface Env {
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
   TURNSTILE_HOSTNAMES?: string;
-  TSA_ENDPOINT?: string;
   RESEND_API_KEY?: string;        // Chave API Resend para e-mails transacionais
   EMAIL_FROM?: string;            // Endereço de envio (ex: 'SESI Saúde <autorizacoes@catraki.com.br>')
 }

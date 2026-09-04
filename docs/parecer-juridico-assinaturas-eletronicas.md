@@ -99,7 +99,7 @@ O acolhimento dessas assinaturas fundamenta-se nos seguintes cânones:
 1. **Princípio da Autonomia Privada e Pacta Sunt Servanda:** As partes são livres para eleger o método pelo qual manifestam sua anuência e constituem obrigações (art. 107 do Código Civil e art. 10, § 2º, da MP nº 2.200-2/2001).
 2. **Princípio da Instrumentalidade das Formas (Art. 188 e 277 do CPC):** Os atos jurídicos são válidos quando atingem sua finalidade essencial sem causar prejuízo, rechaçando-se o apego a formalismos anacrônicos.
 3. **Boa-fé Objetiva e Vedação ao Venire Contra Factum Proprium:** A parte que aceita assinar e pactuar via plataforma eletrônica não pode, posteriormente, alegar a nulidade do ato unicamente pela ausência de certificado ICP-Brasil para esquivar-se de suas obrigações.
-4. **Trilha Forense de Auditoria (*Audit Trail*):** A força probatória decorre da comprovação material de registros de conexão (Art. 5º, VI e VIII da Lei 12.965/2014 - Marco Civil da Internet), endereços IP, carimbos de tempo (*timestamps*), verificação OTP e resumo criptográfico de integridade (*hash*).
+4. **Trilha Forense de Auditoria (*Audit Trail*):** A força probatória decorre da comprovação material de registros de conexão (Art. 5º, VI e VIII da Lei 12.965/2014 - Marco Civil da Internet), endereços IP, registros de data e hora (*timestamps UTC*), verificação OTP e resumo criptográfico de integridade (*hash*).
 
 ---
 

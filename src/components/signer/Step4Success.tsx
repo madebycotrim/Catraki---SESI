@@ -24,7 +24,6 @@ interface Step4SuccessProps {
     ip_address?: string;
     geo_city?: string;
     geo_region?: string;
-    tsa_authority?: string;
     validation_url: string;
     message: string;
     otp_channel?: string;

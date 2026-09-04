@@ -1279,7 +1279,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     ip_address: ipAddress,
     geo_city: geoCity === 'Local' ? 'Brasília' : geoCity,
     geo_region: geoRegion === 'BR-SP' ? 'DF' : geoRegion,
-    tsa_authority: 'Servidor Sincronizado - Cloudflare',
     validation_url: `/validar/${validationCode}`,
     email_dispatched: comprovanteEnviado,
     target_email: targetEmail,

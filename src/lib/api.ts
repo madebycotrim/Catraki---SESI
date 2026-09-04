@@ -5,7 +5,7 @@ import {
   generatePkceChallenge,
 } from './crypto.ts';
 import { computeLogRowHash, verifyAuditChain } from './audit-chain.ts';
-import { querySesiMatricula } from './sesi-matricula.ts';
+import { querySesiMatricula } from './catraki-matricula.ts';
 import { maskCPF, formatCPF, maskName, getInitials, generateUniqueDocId, formatUserAgent } from './schemas.ts';
 import type {
   DocumentRecord,

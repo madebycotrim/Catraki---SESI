@@ -123,3 +123,7 @@ export async function queryCatrakiMatricula(
     source: 'catraki_sistema_academico_v2',
   };
 }
+
+export const querySesiMatricula = queryCatrakiMatricula;
+export type SesiEnrollmentQuery = CatrakiEnrollmentQuery;
+export type SesiEnrollmentResult = CatrakiEnrollmentResult;

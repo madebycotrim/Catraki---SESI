@@ -1,4 +1,3 @@
-import { computeMerkleRoot } from '../../src/lib/audit-chain.ts';
 import { verifyDocumentIntegrity } from '../../src/lib/crypto.ts';
 import type { Env } from '../../src/lib/types.ts';
 
@@ -7,7 +6,6 @@ import type { Env } from '../../src/lib/types.ts';
  * - Expiração de termos pendentes
  * - Alertas 48h antes do vencimento
  * - Expurgo e anonimização de dados pessoais (LGPD) após término do prazo de retenção
- * - Cálculo e ancoragem da Raiz de Merkle da trilha de auditoria
  */
 export async function handleScheduled(
   _event: any,
@@ -43,10 +41,16 @@ export async function handleScheduled(
       await db.prepare(
         `UPDATE documents 
          SET minor_name = 'ANONIMIZADO_LGPD_' || substr(id, 1, 8),
-             minor_birth_date = '1900-01-01',
+             minor_series = NULL,
+             minor_class = NULL,
+             minor_turn = NULL,
              parent_name = 'ANONIMIZADO_LGPD',
              parent_email_encrypted = 'ANONIMIZADO',
-             parent_phone_encrypted = 'ANONIMIZADO'
+             parent_phone_encrypted = 'ANONIMIZADO',
+             parent_email_bindex_sha256 = NULL,
+             minor_cpf_encrypted = NULL,
+             minor_cpf_bindex_sha256 = NULL,
+             minor_cpf = NULL
          WHERE id = ?`
       ).bind(doc.id).run();
     }
@@ -56,29 +60,6 @@ export async function handleScheduled(
     }
   } catch (err) {
     console.error('[CRON] Erro no expurgo por retenção LGPD:', err);
-  }
-
-  // 3. Cálculo da Raiz de Merkle Diária para Publicação/Ancoragem
-  try {
-    const logs = await db.prepare(
-      `SELECT log_row_hash FROM audit_logs ORDER BY created_at ASC`
-    ).all<{ log_row_hash: string }>();
-
-    const hashes = (logs.results || []).map((r) => r.log_row_hash);
-    if (hashes.length > 0) {
-      const merkleRoot = await computeMerkleRoot(hashes);
-      const anchorId = `ANCHOR-${Date.now()}`;
-
-      await db.prepare(
-        `INSERT INTO merkle_roots_anchors (
-          id, period_start, period_end, row_count, merkle_root_sha256, anchor_target, anchor_reference, created_at
-        ) VALUES (?, datetime('now', '-1 day'), datetime('now'), ?, ?, 'GIT_COMMIT_IMMUTABLE_LOG', ?, datetime('now'))`
-      ).bind(anchorId, hashes.length, merkleRoot, `merkle-tree-root-${merkleRoot.substring(0, 16)}`).run();
-
-      console.log(`[CRON] Raiz de Merkle ancorada com sucesso: ${merkleRoot} (${hashes.length} registros)`);
-    }
-  } catch (err) {
-    console.error('[CRON] Erro na ancoragem da raiz de Merkle:', err);
   }
 
   // 4. Expurgo Seguro de Registros de Acesso com mais de 180 dias (Marco Civil da Internet Art. 15)

@@ -144,19 +144,7 @@
     resolved_at DATETIME
   );
 
-  -- 8. Ancoragem de Merkle para Integridade Periódica
-  CREATE TABLE IF NOT EXISTS merkle_roots_anchors (
-    id TEXT PRIMARY KEY,
-    period_start DATETIME NOT NULL,
-    period_end DATETIME NOT NULL,
-    row_count INTEGER NOT NULL CHECK(row_count >= 0),
-    merkle_root_sha256 TEXT NOT NULL CHECK(LENGTH(merkle_root_sha256) = 64),
-    anchor_target TEXT NOT NULL,
-    anchor_reference TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  -- 9. Trilha de Auditoria Imutável de Revogação e Cancelamento por Erro Operacional
+  -- 8. Trilha de Auditoria Imutável de Revogação e Cancelamento por Erro Operacional
   CREATE TABLE IF NOT EXISTS document_cancellation_audits (
     id TEXT PRIMARY KEY,                       -- Ex: 'CANCEL-20260825-103000-A1B2'
     document_id TEXT NOT NULL REFERENCES documents(id),
@@ -187,7 +175,7 @@
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- 11. Registros de Acesso a Aplicações (Marco Civil da Internet - Art. 15 da Lei 12.965/2014)
+  -- 10. Registros de Acesso a Aplicações (Marco Civil da Internet - Art. 15 da Lei 12.965/2014)
   CREATE TABLE IF NOT EXISTS application_access_logs (
     id TEXT PRIMARY KEY,
     ip_address TEXT NOT NULL,
@@ -198,18 +186,6 @@
     session_token_hash TEXT,
     retention_until DATETIME DEFAULT (datetime('now', '+180 days')), -- 6 meses regulatórios
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  -- 12. Gestão e Ciclo de Vida de Chaves Criptográficas (AES-GCM-256)
-  CREATE TABLE IF NOT EXISTS encryption_key_versions (
-    version INTEGER PRIMARY KEY,
-    key_sha256_fingerprint TEXT NOT NULL,
-    algorithm TEXT NOT NULL DEFAULT 'AES-GCM-256',
-    status TEXT CHECK(status IN ('active','retired','compromised')) NOT NULL DEFAULT 'active',
-    activated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    retired_at DATETIME,
-    created_by TEXT NOT NULL,
-    notes TEXT
   );
 
   -- ============================================================================
@@ -229,20 +205,7 @@
     SELECT RAISE(ABORT, 'VIOLAÇÃO DE SEGURANÇA: Registros de auditoria criptográfica não podem ser apagados.');
   END;
 
-  -- B. Bloqueio Físico contra Alterações ou Exclusões nas Âncoras da Árvore de Merkle
-  CREATE TRIGGER IF NOT EXISTS prevent_merkle_update
-  BEFORE UPDATE ON merkle_roots_anchors
-  BEGIN
-    SELECT RAISE(ABORT, 'VIOLAÇÃO DE SEGURANÇA: As âncoras da Raiz de Merkle são definitivas e imutáveis.');
-  END;
-
-  CREATE TRIGGER IF NOT EXISTS prevent_merkle_delete
-  BEFORE DELETE ON merkle_roots_anchors
-  BEGIN
-    SELECT RAISE(ABORT, 'VIOLAÇÃO DE SEGURANÇA: As âncoras da Raiz de Merkle não podem ser deletadas.');
-  END;
-
-  -- C. Trava de Transição de Estado dos Documentos Assinados
+  -- B. Trava de Transição de Estado dos Documentos Assinados
   CREATE TRIGGER IF NOT EXISTS prevent_signed_doc_reversion
   BEFORE UPDATE ON documents
   FOR EACH ROW
@@ -251,7 +214,7 @@
     SELECT RAISE(ABORT, 'VIOLAÇÃO DE INTEGRIDADE: Um termo assinado eletronicamente não pode retornar ao status pendente ou rascunho.');
   END;
 
-  -- D. Bloqueio de Alteração em Conteúdo de Templates Já Publicados
+  -- C. Bloqueio de Alteração em Conteúdo de Templates Já Publicados
   CREATE TRIGGER IF NOT EXISTS prevent_template_text_alteration
   BEFORE UPDATE ON document_templates
   FOR EACH ROW
@@ -260,14 +223,14 @@
     SELECT RAISE(ABORT, 'VIOLAÇÃO DE INTEGRIDADE: Modelos de termos já publicados não podem ter seu conteúdo alterado in-place. Crie uma nova versão.');
   END;
 
-  -- E. Bloqueio Absoluto de Exclusão Física em Documentos (Soft Delete Obrigatório - LGPD/Marco Civil/Lei 14.063)
+  -- D. Bloqueio Absoluto de Exclusão Física em Documentos (Soft Delete Obrigatório - LGPD/Marco Civil/Lei 14.063)
   CREATE TRIGGER IF NOT EXISTS prevent_document_delete
   BEFORE DELETE ON documents
   BEGIN
     SELECT RAISE(ABORT, 'VIOLAÇÃO LEGAL (LGPD/Marco Civil/Lei 14.063): É expressamente proibida a exclusão física (DELETE) de documentos ou autorizações. Utilize o cancelamento de estado com status CANCELADO_POR_ERRO para preservar a cadeia de custódia e evidências digitais.');
   END;
 
-  -- F. Bloqueio Físico contra Alterações ou Exclusões na Trilha de Auditoria de Cancelamento
+  -- E. Bloqueio Físico contra Alterações ou Exclusões na Trilha de Auditoria de Cancelamento
   CREATE TRIGGER IF NOT EXISTS prevent_cancellation_audit_update
   BEFORE UPDATE ON document_cancellation_audits
   BEGIN
@@ -280,7 +243,7 @@
     SELECT RAISE(ABORT, 'VIOLAÇÃO DE SEGURANÇA: Registros de auditoria de cancelamento não podem ser apagados sob hipótese alguma.');
   END;
 
-  -- G. Modo Somente-Leitura para Documentos com Status CANCELADO_POR_ERRO
+  -- F. Modo Somente-Leitura para Documentos com Status CANCELADO_POR_ERRO
   CREATE TRIGGER IF NOT EXISTS prevent_cancelled_doc_modification
   BEFORE UPDATE ON documents
   FOR EACH ROW
@@ -289,7 +252,7 @@
     SELECT RAISE(ABORT, 'VIOLAÇÃO DE INTEGRIDADE: Documentos cancelados por inconsistência operacional entram em modo somente-leitura definitivo e não podem ser reativados.');
   END;
 
-  -- H. Bloqueio Físico contra Alterações ou Exclusões na Trilha de Auditoria Administrativa
+  -- G. Bloqueio Físico contra Alterações ou Exclusões na Trilha de Auditoria Administrativa
   CREATE TRIGGER IF NOT EXISTS prevent_admin_audit_update
   BEFORE UPDATE ON admin_audit_logs
   BEGIN
@@ -302,7 +265,7 @@
     SELECT RAISE(ABORT, 'VIOLAÇÃO DE SEGURANÇA: Registros de auditoria administrativa não podem ser apagados sob hipótese alguma.');
   END;
 
-  -- I. Bloqueio de Exclusão Física em Templates, Solicitações LGPD e Escolas
+  -- H. Bloqueio de Exclusão Física em Templates, Solicitações LGPD e Escolas
   CREATE TRIGGER IF NOT EXISTS prevent_templates_delete
   BEFORE DELETE ON document_templates
   BEGIN
@@ -333,7 +296,6 @@
   CREATE INDEX IF NOT EXISTS idx_inst_active ON institutions(is_active);
   CREATE INDEX IF NOT EXISTS idx_admin_email ON admin_users(email);
   CREATE INDEX IF NOT EXISTS idx_lgpd_status ON lgpd_requests(status);
-  CREATE INDEX IF NOT EXISTS idx_merkle_created ON merkle_roots_anchors(created_at);
   CREATE INDEX IF NOT EXISTS idx_cancel_doc ON document_cancellation_audits(document_id);
   CREATE INDEX IF NOT EXISTS idx_cancel_created ON document_cancellation_audits(created_at);
   CREATE INDEX IF NOT EXISTS idx_cancel_user ON document_cancellation_audits(cancelled_by_user_id);
@@ -345,30 +307,6 @@
   CREATE INDEX IF NOT EXISTS idx_docs_minor_cpf_bindex ON documents(minor_cpf_bindex_sha256);
   CREATE INDEX IF NOT EXISTS idx_docs_integrity_alert ON documents(integrity_alert_at);
   CREATE INDEX IF NOT EXISTS idx_admin_last_login ON admin_users(last_login_at);
-
-  -- ============================================================================
-  -- TABELAS DE PRONTIDÃO ICP-BRASIL, MFA E GESTÃO DE CHAVES (Privacy by Design)
-  -- Lei 14.063/2020 Art. 4º, II e III; LGPD Art. 46; MP 2.200-2/2001
-  -- ============================================================================
-
-  -- 12. Gestão de Versões de Chaves de Criptografia (AES-256 Key Rotation)
-  CREATE TABLE IF NOT EXISTS encryption_key_versions (
-    version INTEGER PRIMARY KEY,                       -- Versão sequencial da chave (compatível com key_version nos documentos)
-    key_sha256_fingerprint TEXT NOT NULL,              -- Hash SHA-256 da chave pública/fingerprint (nunca a chave em si)
-    algorithm TEXT NOT NULL DEFAULT 'AES-GCM-256',    -- Algoritmo de criptografia
-    status TEXT CHECK(status IN ('active','retired','compromised')) NOT NULL DEFAULT 'active',
-    activated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    retired_at DATETIME,
-    created_by TEXT NOT NULL,                          -- ID do admin_master que ativou a chave
-    notes TEXT
-  );
-
-  -- Índices para novas tabelas de conformidade
-  CREATE INDEX IF NOT EXISTS idx_enc_key_status ON encryption_key_versions(status);
-
-  -- Seed: Registro da versão 1 da chave de criptografia AES-256
-  INSERT OR IGNORE INTO encryption_key_versions (version, key_sha256_fingerprint, algorithm, status, activated_at, created_by, notes)
-  VALUES (1, 'v1-fingerprint-configurar-via-env-ENCRYPTION_KEY_V1', 'AES-GCM-256', 'active', datetime('now'), 'USR-ADMIN-MASTER', 'Chave mestra inicial — fingerprint deve ser atualizado com o SHA-256 da chave real configurada em ENCRYPTION_KEY_V1');
 
   -- ============================================================================
   -- CARGA INICIAL DE DADOS (SEED DATA)

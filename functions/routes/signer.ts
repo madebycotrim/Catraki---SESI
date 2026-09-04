@@ -33,7 +33,7 @@ import {
   getCompletionEmailSubject,
   getTransactionalOtpEmailHtml,
 } from '../../src/lib/email-templates.ts';
-import { querySesiMatricula } from '../../src/lib/sesi-matricula.ts';
+import { querySesiMatricula } from '../../src/lib/catraki-matricula.ts';
 import { rateLimiter, checkOtpBruteForceBlock, setOtpBruteForceBlock, clearOtpBruteForceBlock } from '../middleware/ratelimit.ts';
 import type { Env, AuditLogRowInput, DocumentRecord } from '../../src/lib/types.ts';
 

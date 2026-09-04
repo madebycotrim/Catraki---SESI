@@ -24,7 +24,7 @@ import {
   getTransactionalCompletionEmailText,
   getCompletionEmailSubject,
 } from '../../src/lib/email-templates.ts';
-import { verifyAuditChain, computeMerkleRoot } from '../../src/lib/audit-chain.ts';
+import { verifyAuditChain } from '../../src/lib/audit-chain.ts';
 import { requireAuth, signJwt, JwtPayload } from '../middleware/auth.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
 import { GeradorComprovanteConclusao, EventoComprovante } from '../../src/lib/pades/GeradorComprovanteConclusao.ts';
@@ -1531,47 +1531,7 @@ adminRouter.post('/audit/export-log', requireAuth(['admin_master', 'dpo', 'opera
   return c.json({ success: true, message: 'Operação de exportação registrada na trilha de auditoria.' });
 });
 
-// ============================================================================
-// ANCORAGEM MERKLE TREE (INTEGRIDADE GLOBAL E IMUTABILIDADE)
-// ============================================================================
 
-adminRouter.get('/merkle-anchors', requireAuth(['admin_master', 'dpo']), async (c) => {
-  const db = c.env.DB;
-  const anchors = await db.prepare(
-    'SELECT * FROM merkle_roots_anchors ORDER BY created_at DESC LIMIT 50'
-  ).all<any>();
-
-  return c.json({ success: true, anchors: anchors.results || [] });
-});
-
-adminRouter.post('/anchor-merkle', requireAuth(['admin_master', 'dpo']), async (c) => {
-  const db = c.env.DB;
-  const logs = await db.prepare(
-    'SELECT log_row_hash FROM audit_logs ORDER BY created_at ASC'
-  ).all<{ log_row_hash: string }>();
-
-  const hashes = (logs.results || []).map((r) => r.log_row_hash);
-  if (hashes.length === 0) {
-    return c.json({ success: false, error: 'Nenhum registro de auditoria disponível para ancoragem.' }, 400);
-  }
-
-  const merkleRoot = await computeMerkleRoot(hashes);
-  const anchorId = `ANCHOR-${Date.now()}`;
-
-  await db.prepare(
-    `INSERT INTO merkle_roots_anchors (
-      id, period_start, period_end, row_count, merkle_root_sha256, anchor_target, anchor_reference, created_at
-    ) VALUES (?, datetime('now', '-1 day'), datetime('now'), ?, ?, 'GIT_COMMIT_IMMUTABLE_LOG', ?, datetime('now'))`
-  ).bind(anchorId, hashes.length, merkleRoot, `merkle-tree-root-${merkleRoot.substring(0, 16)}`).run();
-
-  return c.json({
-    success: true,
-    anchor_id: anchorId,
-    merkle_root_sha256: merkleRoot,
-    records_count: hashes.length,
-    message: 'Raiz de Merkle calculada e ancorada com sucesso no banco de custódia.',
-  });
-});
 
 // ============================================================================
 // ATENDIMENTO LGPD ART. 18

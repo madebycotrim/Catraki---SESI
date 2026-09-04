@@ -511,6 +511,66 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                 )}
               </div>
 
+              {/* Contato do Estudante Maior de Idade (Telefone e E-mail antes da Escola) */}
+              {isAdultStudent && (
+                <>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="field-signerPhone" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
+                      Seu Telefone (WhatsApp) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="field-signerPhone"
+                      type="tel"
+                      name="signerPhone"
+                      value={formData.signerPhone}
+                      onChange={handleChange}
+                      maxLength={15}
+                      inputMode="tel"
+                      autoComplete="tel"
+                      className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.signerPhone ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
+                      placeholder="(61) 99999-9999"
+                    />
+                    {errors.signerPhone && (
+                      <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                        <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                        <span>{errors.signerPhone}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-0.5 sm:gap-1">
+                      <label htmlFor="field-signerEmail" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
+                        Seu E-mail <span className="text-red-500">*</span>
+                      </label>
+                      <span className="text-[10px] text-sesi-primary font-medium">
+                        Para envio do código
+                      </span>
+                    </div>
+                    <input
+                      id="field-signerEmail"
+                      type="email"
+                      name="signerEmail"
+                      value={formData.signerEmail}
+                      onChange={handleChange}
+                      autoComplete="email"
+                      inputMode="email"
+                      className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.signerEmail ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
+                      placeholder="seu.email@exemplo.com"
+                    />
+                    {errors.signerEmail && (
+                      <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                        <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                        <span>{errors.signerEmail}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Linha separadora entre Telefone/Email e Escola */}
+                  <div className="md:col-span-2 my-1 border-t border-slate-200" />
+                </>
+              )}
+
               <div className="flex flex-col gap-1 md:col-span-2">
                 <label htmlFor="field-minorSchool" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">Escola / Instituição de Ensino</label>
                 <input
@@ -575,62 +635,6 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                 </div>
               </div>
             </div>
-
-            {isAdultStudent && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4 mt-4 animate-in fade-in slide-in-from-top-2">
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="field-signerPhone" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
-                    Seu Telefone (WhatsApp) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="field-signerPhone"
-                    type="tel"
-                    name="signerPhone"
-                    value={formData.signerPhone}
-                    onChange={handleChange}
-                    maxLength={15}
-                    inputMode="tel"
-                    autoComplete="tel"
-                    className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.signerPhone ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
-                    placeholder="(61) 99999-9999"
-                  />
-                  {errors.signerPhone && (
-                    <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
-                      <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                      <span>{errors.signerPhone}</span>
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-0.5 sm:gap-1">
-                    <label htmlFor="field-signerEmail" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">
-                      Seu E-mail <span className="text-red-500">*</span>
-                    </label>
-                    <span className="text-[10px] text-sesi-primary font-medium">
-                      Para envio do código
-                    </span>
-                  </div>
-                  <input
-                    id="field-signerEmail"
-                    type="email"
-                    name="signerEmail"
-                    value={formData.signerEmail}
-                    onChange={handleChange}
-                    autoComplete="email"
-                    inputMode="email"
-                    className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.signerEmail ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
-                    placeholder="seu.email@exemplo.com"
-                  />
-                  {errors.signerEmail && (
-                    <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
-                      <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                      <span>{errors.signerEmail}</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Card de Alerta de Autorização Já Existente (Prevenção de Duplicidade) */}

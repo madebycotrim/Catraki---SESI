@@ -502,6 +502,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  // Estado para Exclusão Definitiva de Testes (Hard Delete)
+  const [selectedAuthToHardDelete, setSelectedAuthToHardDelete] = useState<any | null>(null);
+  const [showHardDeleteModal, setShowHardDeleteModal] = useState<boolean>(false);
+  const [isHardDeleting, setIsHardDeleting] = useState<boolean>(false);
+  const [hardDeleteError, setHardDeleteError] = useState<string>('');
+
+  const handleOpenHardDeleteModal = (auth: any) => {
+    setSelectedAuthToHardDelete(auth);
+    setHardDeleteError('');
+    setShowHardDeleteModal(true);
+  };
+
+  const handleConfirmHardDelete = async () => {
+    if (!selectedAuthToHardDelete) return;
+    setIsHardDeleting(true);
+    setHardDeleteError('');
+    try {
+      const res = await apiClient.hardDeleteDocument(selectedAuthToHardDelete.id);
+      setIsHardDeleting(false);
+      if (res && res.success) {
+        setAuthorizations((prev) => prev.filter((a) => a.id !== selectedAuthToHardDelete.id));
+        setShowHardDeleteModal(false);
+        setRevocationSuccessToast(
+          `Registro (${selectedAuthToHardDelete.studentName || selectedAuthToHardDelete.validationCode || selectedAuthToHardDelete.id}) excluído definitivamente do banco de dados.`
+        );
+        setTimeout(() => setRevocationSuccessToast(null), 8000);
+      } else {
+        setHardDeleteError(res?.error || 'Falha ao excluir o registro do banco de dados.');
+      }
+    } catch (err: any) {
+      setIsHardDeleting(false);
+      setHardDeleteError(err?.message || 'Erro inesperado ao excluir.');
+    }
+  };
+
   const handleOpenRevokeModal = (auth: any) => {
     setSelectedAuthToRevoke(auth);
     setRevocationReason('');
@@ -1691,6 +1726,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <span className="hidden sm:inline">Revogar</span>
                                 </button>
                               )}
+
+                              {/* Botão Excluir Definitivamente do Banco (Testes / Revogados / Pendentes) */}
+                              <button
+                                onClick={() => handleOpenHardDeleteModal(auth)}
+                                className="inline-flex items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-slate-400 hover:text-rose-600 transition-all cursor-pointer active:scale-95"
+                                title="Excluir Definitivamente do Banco de Dados (Hard Delete)"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                              </button>
                             </div>
                           </td>
 
@@ -2596,6 +2640,97 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <>
                     <Send className="w-4 h-4" />
                     <span>Disparar E-mail Agora</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EXCLUSÃO DEFINITIVA DE TESTE (HARD DELETE) */}
+      {showHardDeleteModal && selectedAuthToHardDelete && (
+        <div 
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-3 sm:p-4 animate-in fade-in duration-200"
+          onClick={() => setShowHardDeleteModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-200 space-y-4 animate-in zoom-in-95 duration-200 text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold shadow-xs shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 leading-tight">
+                    Excluir Definitivamente?
+                  </h3>
+                  <p className="text-xs text-rose-600 font-semibold mt-0.5">
+                    Remoção física permanente do banco de dados
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHardDeleteModal(false)}
+                className="text-slate-400 hover:text-slate-600 rounded-lg p-1.5 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Conteúdo do Alerta */}
+            <div className="p-3.5 rounded-2xl bg-rose-50/70 border border-rose-200 text-xs text-rose-950 space-y-2">
+              <p className="font-semibold leading-relaxed">
+                Você está prestes a excluir este registro permanentemente:
+              </p>
+              <div className="bg-white/80 p-2.5 rounded-xl border border-rose-200 space-y-1 font-mono text-[11px]">
+                <div><strong>Aluno/Paciente:</strong> {selectedAuthToHardDelete.studentName || '—'}</div>
+                <div><strong>Responsável:</strong> {selectedAuthToHardDelete.parentName || '—'}</div>
+                <div><strong>Status:</strong> {selectedAuthToHardDelete.status}</div>
+                <div><strong>ID / Código:</strong> {selectedAuthToHardDelete.validationCode || selectedAuthToHardDelete.id}</div>
+              </div>
+              <p className="text-[11px] text-rose-800 leading-relaxed pt-1">
+                ⚠️ Esta ação apaga os dados do banco D1/SQLite e não pode ser desfeita. Ideal para limpar cadastros e testes de homologação.
+              </p>
+            </div>
+
+            {/* Mensagem de Erro */}
+            {hardDeleteError && (
+              <div className="p-3 rounded-xl bg-red-50 text-red-800 text-xs border border-red-200 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{hardDeleteError}</span>
+              </div>
+            )}
+
+            {/* Ações */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={isHardDeleting}
+                onClick={() => setShowHardDeleteModal(false)}
+                className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isHardDeleting}
+                onClick={handleConfirmHardDelete}
+                className="px-5 py-2.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isHardDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Excluindo do Banco...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Excluir do Banco</span>
                   </>
                 )}
               </button>

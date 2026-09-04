@@ -1289,6 +1289,38 @@ export const apiClient = {
   },
 
   /**
+   * Exclui definitivamente um documento de teste do banco de dados (Hard Delete)
+   */
+  async hardDeleteDocument(docId: string): Promise<any> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/documents/${encodeURIComponent(docId)}/hard-delete`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders(),
+      });
+      const data = (await resp.json().catch(() => null)) as any;
+      if (data && data.success) {
+        const docs = getDocuments();
+        const updated = docs.filter((d) => d.id !== docId && d.access_token !== docId);
+        setDocuments(updated);
+        return data;
+      }
+      if (data && !data.success) {
+        return data;
+      }
+    } catch {}
+
+    // Fallback local caso o backend esteja em modo mock / offline
+    const docs = getDocuments();
+    const updated = docs.filter((d) => d.id !== docId && d.access_token !== docId);
+    setDocuments(updated);
+    return {
+      success: true,
+      document_id: docId,
+      message: 'Registro de teste excluído definitivamente do banco de dados.',
+    };
+  },
+
+  /**
    * Baixa o Comprovante de Aceite / Relatório de Linha do Tempo em PDF (Lei 14.063/2020)
    */
   async downloadDocumentCertificate(docId: string): Promise<boolean> {

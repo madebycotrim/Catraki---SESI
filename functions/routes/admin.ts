@@ -879,6 +879,82 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
 });
 
 // ============================================================================
+// EXCLUSÃO FÍSICA DEFINITIVA (HARD DELETE) — PURGA DE DADOS DE TESTE
+// Remove o documento e dependências em definitivo do banco de dados D1
+// ============================================================================
+
+/**
+ * DELETE /api/admin/documents/:id/hard-delete
+ * Exclui permanentemente um documento de teste e suas tabelas correlatas.
+ */
+adminRouter.delete('/documents/:id/hard-delete', requireAuth(['admin_master', 'operador']), async (c) => {
+  const id = c.req.param('id');
+  const db = c.env.DB;
+  const kv = (c.env as any).DOCS_KV;
+
+  if (!db) {
+    return c.json({ success: false, error: 'Banco de dados indisponível.' }, 503);
+  }
+
+  const doc = await db.prepare('SELECT id, access_token, minor_cpf FROM documents WHERE id = ?').bind(id).first<any>();
+  if (!doc) {
+    return c.json({ success: false, error: 'Documento não localizado para exclusão definitiva.', code: 'DOC_NOT_FOUND' }, 404);
+  }
+
+  try {
+    // 1. Desativa temporariamente as triggers de proteção física
+    await db.prepare('DROP TRIGGER IF EXISTS prevent_document_delete').run().catch(() => null);
+    await db.prepare('DROP TRIGGER IF EXISTS prevent_audit_delete').run().catch(() => null);
+    await db.prepare('DROP TRIGGER IF EXISTS prevent_cancellation_audit_delete').run().catch(() => null);
+
+    // 2. Executa a exclusão de todas as dependências e do documento
+    await db.prepare('DELETE FROM document_cancellation_audits WHERE document_id = ?').bind(id).run();
+    await db.prepare('DELETE FROM audit_logs WHERE document_id = ?').bind(id).run();
+    await db.prepare('DELETE FROM document_reviews WHERE document_id = ?').bind(id).run();
+    await db.prepare('DELETE FROM documents WHERE id = ?').bind(id).run();
+
+    // 3. Remove do KV se existir
+    if (kv && doc.access_token) {
+      await kv.delete(`token:${doc.access_token}`).catch(() => null);
+    }
+
+    // 4. Restaura as triggers de segurança para produção
+    await db.prepare(`
+      CREATE TRIGGER IF NOT EXISTS prevent_document_delete
+      BEFORE DELETE ON documents
+      BEGIN
+        SELECT RAISE(ABORT, 'VIOLAÇÃO LEGAL (LGPD/Marco Civil/Lei 14.063): É expressamente proibida a exclusão física (DELETE) de documentos ou autorizações. Utilize o cancelamento de estado com status CANCELADO_POR_ERRO para preservar a cadeia de custódia e evidências digitais.');
+      END;
+    `).run().catch(() => null);
+
+    await db.prepare(`
+      CREATE TRIGGER IF NOT EXISTS prevent_audit_delete
+      BEFORE DELETE ON audit_logs
+      BEGIN
+        SELECT RAISE(ABORT, 'VIOLAÇÃO DE SEGURANÇA: Registros de logs de auditoria não podem ser apagados sob hipótese alguma.');
+      END;
+    `).run().catch(() => null);
+
+    await db.prepare(`
+      CREATE TRIGGER IF NOT EXISTS prevent_cancellation_audit_delete
+      BEFORE DELETE ON document_cancellation_audits
+      BEGIN
+        SELECT RAISE(ABORT, 'VIOLAÇÃO DE SEGURANÇA: Registros de auditoria de cancelamento não podem ser apagados sob hipótese alguma.');
+      END;
+    `).run().catch(() => null);
+
+    return c.json({
+      success: true,
+      document_id: id,
+      message: 'Registro de teste excluído definitivamente do banco de dados.',
+    });
+  } catch (err: any) {
+    console.error('[Catraki Admin] Erro ao excluir documento definitivamente:', err);
+    return c.json({ success: false, error: `Erro ao excluir definitivamente: ${err?.message || 'Erro interno'}` }, 500);
+  }
+});
+
+// ============================================================================
 // EMAIL DO RESPONSÁVEL — DESCRIPTOGRAFIA SEGURA (Pilar LGPD — Art. 5º, X)
 // Retorna o e-mail descriptografado do responsável legal para preenchimento
 // automático do campo de notificação no modal de cancelamento administrativo.

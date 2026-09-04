@@ -245,7 +245,7 @@ signerRouter.post('/verify-matricula', async (c) => {
     success: true,
     hasValidEnrollment: result.hasValidEnrollment,
     guardianType: result.guardianType,
-    identityMethod: result.hasValidEnrollment ? 'matricula_sesi' : 'declaracao_responsavel',
+    identityMethod: result.hasValidEnrollment ? 'matricula_sesi' : 'manual_review',
     verifiedAt: result.verifiedAt,
     message: result.hasValidEnrollment
       ? 'Vínculo com a base de matrícula SESI confirmado com sucesso.'
@@ -848,9 +848,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     signerName: signer_name,
   });
 
-  const identityMethod: 'matricula_sesi' | 'declaracao_responsavel' = sesiCheck.hasValidEnrollment
+  const identityMethod: 'matricula_sesi' | 'manual_review' = sesiCheck.hasValidEnrollment
     ? 'matricula_sesi'
-    : 'declaracao_responsavel';
+    : 'manual_review';
 
   const cfData = extractCloudflareClientData(c);
   const ipAddress = cfData.ip;

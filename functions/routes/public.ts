@@ -446,7 +446,7 @@ publicRouter.get('/validate/:query', async (c) => {
       signer_name: record.signer_name || 'Responsável Legal',
       signer_cpf_masked: record.signer_cpf_masked || '***.***.***-**',
       signer_relationship: record.signer_relationship || 'Responsável Legal',
-      ip_address: `${maskedIp} (Protegido por Sigilo Legal LGPD)`,
+      ip_address: maskedIp,
       geolocation: geoStr,
       user_agent: record.user_agent && record.user_agent !== 'Navegador Web Padrão' && record.user_agent !== 'Não registrado'
         ? record.user_agent

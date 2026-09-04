@@ -182,9 +182,10 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               </div>
               <div>
                 <span className="block text-[10px] font-bold text-slate-400 uppercase">Responsável Legal</span>
-                <strong className="text-slate-800 font-semibold">
-                  {signerName} {signerRelationship ? `(${signerRelationship})` : ''}
-                </strong>
+                <strong className="text-slate-800 font-semibold block">{signerName}</strong>
+                {signerRelationship && (
+                  <span className="text-[11px] text-slate-500 font-medium block">{signerRelationship}</span>
+                )}
               </div>
               <div className="sm:col-span-2">
                 <span className="block text-[10px] font-bold text-slate-400 uppercase">Projeto / Atividade</span>
@@ -222,8 +223,13 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                     Signatário Autenticado
                   </span>
                   <strong className="text-sm sm:text-base font-extrabold text-slate-900 block leading-tight">
-                    {signerName} {signerRelationship ? `(${signerRelationship})` : ''}
+                    {signerName}
                   </strong>
+                  {signerRelationship && (
+                    <span className="inline-block mt-0.5 text-xs text-slate-600 font-medium">
+                      Vínculo: <strong className="text-slate-700">{signerRelationship}</strong>
+                    </span>
+                  )}
                 </div>
               </div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold shrink-0">
@@ -232,17 +238,21 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               </span>
             </div>
 
-            {/* Grid de Metadados Claros */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6 text-xs">
+            {/* Grid de Metadados Claros (Título acima, valor abaixo) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               
               {/* Token do Documento com Copiar */}
-              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
-                <span className="text-slate-500 font-medium">Token do Documento:</span>
-                <div className="flex items-center gap-2">
-                  <strong className="font-mono text-sesi-primary font-bold">{validationCode}</strong>
+              <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Token do Documento
+                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <strong className="font-mono text-xs sm:text-sm text-sesi-primary font-bold select-all break-all">
+                    {validationCode}
+                  </strong>
                   <button
                     onClick={handleCopyCode}
-                    className="text-[10px] text-sesi-primary hover:underline font-semibold cursor-pointer"
+                    className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-[10px] text-sesi-primary font-bold rounded-md transition-colors cursor-pointer shrink-0 shadow-2xs"
                   >
                     {copiedCode ? 'Copiado ✓' : 'Copiar'}
                   </button>
@@ -250,19 +260,26 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               </div>
 
               {/* Assinou em */}
-              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
-                <span className="text-slate-500 font-medium flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-sesi-primary" /> Assinou em:
+              <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-sesi-primary" /> Data e Hora da Assinatura
                 </span>
-                <strong className="font-mono text-slate-800 font-bold">
-                  {formatBrasiliaDateTime(signResult.signed_at_utc || signResult.signed_at || new Date())} <span className="text-[10px] font-normal text-slate-400 font-sans">(Horário de Brasília)</span>
-                </strong>
+                <div>
+                  <strong className="font-mono text-xs sm:text-sm text-slate-800 font-bold block">
+                    {formatBrasiliaDateTime(signResult.signed_at_utc || signResult.signed_at || new Date())}
+                  </strong>
+                  <span className="text-[10px] text-slate-500 font-sans block mt-0.5">
+                    Horário Oficial de Brasília (UTC-3)
+                  </span>
+                </div>
               </div>
 
               {/* Localização */}
-              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
-                <span className="text-slate-500 font-medium">Localização (Borda):</span>
-                <strong className="text-slate-800 font-semibold truncate max-w-[240px]">
+              <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Localização (Borda Cloudflare)
+                </span>
+                <strong className="text-xs sm:text-sm text-slate-800 font-bold block">
                   {signResult.geo_city
                     ? `${signResult.geo_city}${signResult.geo_region ? `, ${signResult.geo_region}` : ''}`
                     : 'Brasília, DF, Brasil'}
@@ -270,16 +287,18 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               </div>
 
               {/* Endereço IP */}
-              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2">
-                <span className="text-slate-500 font-medium">Endereço IP:</span>
-                <div className="flex items-center gap-1.5 font-mono text-slate-800 font-bold">
-                  <span>
+              <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Endereço IP Registrado
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                  <strong className="font-mono text-xs sm:text-sm text-slate-800 font-bold break-all select-all">
                     {signResult.ip_address && signResult.ip_address !== 'não registrado'
                       ? signResult.ip_address
                       : 'Registrado no sistema'}
-                  </span>
+                  </strong>
                   {signResult.ip_address && signResult.ip_address !== 'não registrado' && (
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold font-sans border ${
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold font-sans border shrink-0 ${
                       signResult.ip_address.includes(':')
                         ? 'bg-purple-50 text-purple-700 border-purple-200'
                         : 'bg-blue-50 text-blue-700 border-blue-200'
@@ -290,12 +309,12 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                 </div>
               </div>
 
-              {/* E-mail */}
-              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-100 pb-2 md:col-span-2">
-                <span className="text-slate-500 font-medium flex items-center gap-1">
-                  <MailCheck className="w-3.5 h-3.5 text-sesi-primary" /> E-mail de Notificação:
+              {/* E-mail de Notificação */}
+              <div className="sm:col-span-2 bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 flex items-center gap-1">
+                  <MailCheck className="w-3 h-3 text-sesi-primary" /> E-mail de Notificação
                 </span>
-                <strong className="font-mono text-slate-800 font-bold">
+                <strong className="font-mono text-xs sm:text-sm text-slate-800 font-bold select-all break-all block">
                   {signerEmail || 'Informado no fluxo'}
                 </strong>
               </div>

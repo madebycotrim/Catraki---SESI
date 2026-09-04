@@ -350,7 +350,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     </div>
                   </div>
                   <span className="text-xs sm:text-[13px] text-slate-800 font-medium leading-relaxed">
-                     <strong>SIM, AUTORIZO</strong> o atendimento preventivo de saúde do(a) estudante nas unidades móveis do projeto, incluindo as especialidades de <strong>Oftalmologia (exame de vista)</strong>, <strong>Odontologia (saúde bucal)</strong>, <strong>Fonoaudiologia (audiometria)</strong>, <strong>Terapia Comunitária Integrativa</strong> e <strong>Nutrição (alimentação saudável)</strong>, durante o período escolar. <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                     <strong>SIM, AUTORIZO</strong> o atendimento preventivo de saúde do(a) estudante nas unidades móveis do projeto, incluindo as especialidades de <strong>Oftalmologia, Odontologia, Fonoaudiologia (Audiometria), Terapia Comunitária Integrativa e Oficinas de Alimentação Saudável (Nutrição)</strong>, durante o período escolar. <span className="text-red-500 font-bold">* (Obrigatório)</span>
                   </span>
                 </label>
 

@@ -379,7 +379,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
                   <div>
                     <strong className="text-emerald-950 font-bold block text-[11px]">Triagens e Avaliação Clínica</strong>
                     <span className="text-emerald-800 text-[10px] block mt-0.5 leading-snug">
-                      Consultas preventivas, acuidade visual e avaliação bucal autorizadas.
+                      Oftalmologia, Odontologia, Fonoaudiologia (Audiometria), Terapia Comunitária Integrativa e Oficinas de Alimentação Saudável (Nutrição).
                     </span>
                   </div>
                 </div>

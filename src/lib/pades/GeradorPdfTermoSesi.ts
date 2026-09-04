@@ -251,7 +251,7 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 11;
-    const descSaude = '— Fica autorizada a realização de triagens preventivas e avaliações clínicas integradas no circuito móvel do projeto: Oftalmologia, Audiometria, Odontologia, Psicologia e Nutrição, durante o turno escolar.';
+    const descSaude = '— Fica autorizada a realização de triagens preventivas e avaliações clínicas integradas no circuito móvel do projeto: Oftalmologia, Odontologia, Fonoaudiologia (Audiometria), Terapia Comunitária Integrativa e Oficinas de Alimentação Saudável (Nutrição), durante o turno escolar.';
     const linhasDescSaude = this.quebrarTexto(descSaude, 94);
     for (const linha of linhasDescSaude) {
       page1.drawText(linha, {

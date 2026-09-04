@@ -247,7 +247,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
               <strong>Quem deve preencher:</strong> Este formulário deve ser preenchido pelo <strong>responsável legal</strong> (mãe, pai, tutor ou guardião judicial) que irá assinar eletronicamente o termo.
             </p>
             <p className="m-0">
-               <strong>Como funciona a verificação:</strong> As informações fornecidas são validadas digitalmente com a base oficial do <strong>SESI-DF</strong> para confirmar a titularidade e o vínculo legal com o(a) estudante, garantindo segurança jurídica e sigilo integral.
+               <strong>Como funciona a assinatura:</strong> As informações declaradas pelo signatário são registradas eletronicamente com código de segurança (OTP) e carimbo de data/hora, garantindo validade jurídica e sigilo integral.
              </p>
             <p className="m-0 text-sesi-primary font-medium">
               🔒 <strong>Privacidade Garantida:</strong> Todo o tratamento de dados pessoais é criptografado e segue estritamente as diretrizes da LGPD (Lei nº 13.709/2018).

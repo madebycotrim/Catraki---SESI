@@ -152,7 +152,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedSeries, setSelectedSeries] = useState<string>('all');
   const [selectedTurn, setSelectedTurn] = useState<string>('all');
   const [subTab, setSubTab] = useState<'active' | 'pending' | 'cancelled' | 'all'>('active');
-  const [alertFilter, setAlertFilter] = useState<'all' | 'duplicate' | 'stale' | 'incomplete' | 'conflict'>('all');
+  const [alertFilter, setAlertFilter] = useState<'all' | 'any_alert' | 'duplicate' | 'stale' | 'incomplete' | 'conflict'>('all');
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -834,12 +834,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return flags;
   }, [authorizations]);
 
-
+  const totalAlertsCount = useMemo(() => {
+    let count = 0;
+    authorizations.forEach((auth) => {
+      const flags = anomalyFlags.get(auth.id) || [];
+      if (flags.length > 0) count++;
+    });
+    return count;
+  }, [authorizations, anomalyFlags]);
 
   const filteredAuths = useMemo(() => {
     if (alertFilter === 'all') return baseFilteredAuths;
     return baseFilteredAuths.filter(auth => {
       const flags = anomalyFlags.get(auth.id) || [];
+      if (alertFilter === 'any_alert') return flags.length > 0;
       if (alertFilter === 'duplicate') return flags.some(f => f.startsWith('DUPLICATE_CPF') || f === 'DUPLICATE_NAME' || f === 'DUPLICATE_PARENT_CHILD');
       if (alertFilter === 'stale') return flags.some(f => f.startsWith('STALE_PENDING'));
       if (alertFilter === 'incomplete') return flags.includes('MISSING_EMAIL');
@@ -1267,6 +1275,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <span>{isCleaningPending ? 'Expirando...' : 'Expirar Rascunhos'}</span>
                   </button>
                 )}
+
+                {/* Botão para Exibir Todos com Avisos ou Erros */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (alertFilter === 'any_alert') {
+                      setAlertFilter('all');
+                    } else {
+                      setAlertFilter('any_alert');
+                      setSubTab('all');
+                      setSelectedStatus('all');
+                    }
+                    setCurrentPage(1);
+                  }}
+                  className={`flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold text-sm transition-all cursor-pointer shadow-xs border ${
+                    alertFilter === 'any_alert'
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 ring-2 ring-amber-400/30'
+                      : 'bg-amber-50/80 hover:bg-amber-100 text-amber-900 border-amber-200'
+                  }`}
+                  title="Filtrar e exibir todas as autorizações com avisos, inconsistências ou duplicatas"
+                >
+                  <AlertTriangle className={`w-4 h-4 ${alertFilter === 'any_alert' ? 'text-white' : 'text-amber-600'}`} />
+                  <span className="whitespace-nowrap">Com Avisos / Erros</span>
+                  {totalAlertsCount > 0 && (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                      alertFilter === 'any_alert' ? 'bg-amber-700 text-white' : 'bg-amber-200 text-amber-950'
+                    }`}>
+                      {totalAlertsCount}
+                    </span>
+                  )}
+                </button>
 
                 {isFiltered && (
                   <button

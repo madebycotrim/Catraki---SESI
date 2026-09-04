@@ -236,65 +236,87 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
           </div>
         </div>
 
-        {/* Título */}
-        <div className="text-left mb-6 sm:mb-8">
+        {/* Título e Orientações Explicativas */}
+        <div className="text-left mb-6 sm:mb-7 space-y-2">
           <h1 className="text-sm sm:text-base font-bold uppercase tracking-wide text-slate-900 m-0">
-            1. IDENTIFICAÇÃO DO RESPONSÁVEL E DO ESTUDANTE
+            {isAdultStudent
+              ? '1. IDENTIFICAÇÃO DO PRÓPRIO ESTUDANTE (MAIOR DE 18 ANOS)'
+              : '1. IDENTIFICAÇÃO DO RESPONSÁVEL LEGAL E DO ESTUDANTE'}
           </h1>
-          {/* Texto explicativo padrão — sempre o mesmo independente da idade do estudante */}
-          <div className="text-xs text-slate-500 mt-1.5 space-y-1 leading-relaxed">
+          
+          <div className="text-xs text-slate-600 space-y-1.5 leading-relaxed bg-slate-50/70 border border-slate-200/70 p-3 sm:p-3.5 rounded-xl">
             <p className="m-0">
-              <strong>Quem deve preencher:</strong> Este formulário deve ser preenchido pelo <strong>responsável legal</strong> (mãe, pai, tutor ou guardião judicial) que irá assinar eletronicamente o termo.
+              <strong>Quem deve preencher:</strong>{' '}
+              {isAdultStudent
+                ? 'Este formulário destina-se ao próprio estudante maior de 18 anos, que possui capacidade civil plena para manifestar seu consentimento e assinar eletronicamente em seu próprio nome (Art. 11 da LGPD e Arts. 104 e 107 do Código Civil).'
+                : 'Este formulário deve ser preenchido pelo responsável legal (mãe, pai, tutor ou guardião judicial) que manifestará o consentimento e assinará eletronicamente em favor do(a) estudante menor de 18 anos (Art. 14 da LGPD e Art. 17 do ECA).'}
             </p>
             <p className="m-0">
-               <strong>Como funciona a assinatura:</strong> As informações declaradas pelo signatário são registradas eletronicamente com código de verificação (OTP) e data/hora do aceite, garantindo validade jurídica e sigilo integral.
-             </p>
-            <p className="m-0 text-sesi-primary font-medium">
-              🔒 <strong>Privacidade Garantida:</strong> Todo o tratamento de dados pessoais é criptografado e segue estritamente as diretrizes da LGPD (Lei nº 13.709/2018).
+              <strong>Como funciona a assinatura:</strong> As informações declaradas pelo signatário são autenticadas por código de segurança eletrônico (2FA OTP) enviado por e-mail, registrando a data/hora e o hash criptográfico com validade jurídica e sigilo integral (MP nº 2.200-2/2001 e Lei nº 14.063/2020).
+            </p>
+            <p className="m-0 text-sesi-primary font-medium flex items-center gap-1.5">
+              <span>🔒</span>
+              <span><strong>Privacidade Garantida:</strong> Todo o tratamento de dados pessoais é criptografado e segue estritamente as diretrizes da LGPD (Lei nº 13.709/2018).</span>
             </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           
-          {/* Seletor Minimalista de Perfil do Assinante */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-slate-100">
-            <span className="text-xs font-semibold text-slate-500">
-              Perfil do assinante:
-            </span>
+          {/* Seletor de Perfil do Signatário Completo e Explicativo */}
+          <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-4 shadow-2xs space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div>
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide block">
+                  Perfil do Signatário (Quem está assinando)
+                </span>
+                <span className="text-[11px] text-slate-500 block mt-0.5">
+                  Selecione abaixo quem é o titular responsável pela assinatura deste termo:
+                </span>
+              </div>
 
-            <div className="inline-flex p-0.5 bg-slate-100 rounded-xl border border-slate-200/80">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAdultStudent(false);
-                  setFormData((prev) => ({ ...prev, signerRelationship: '' }));
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                  !isAdultStudent
-                    ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Responsável Legal
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAdultStudent(true);
-                  setFormData((prev) => ({
-                    ...prev,
-                    signerRelationship: 'Próprio Estudante (Maior de Idade)',
-                  }));
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                  isAdultStudent
-                    ? 'bg-[#004b8d] text-white shadow-2xs font-bold'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Estudante (18+)
-              </button>
+              <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/80 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdultStudent(false);
+                    setFormData((prev) => ({ ...prev, signerRelationship: '' }));
+                  }}
+                  className={`px-3.5 py-2 rounded-lg text-xs transition-all cursor-pointer ${
+                    !isAdultStudent
+                      ? 'bg-white text-sesi-primary shadow-xs font-bold border border-slate-200/60'
+                      : 'text-slate-600 hover:text-slate-900 font-medium'
+                  }`}
+                >
+                  Responsável Legal (Menor de 18)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdultStudent(true);
+                    setFormData((prev) => ({
+                      ...prev,
+                      signerRelationship: 'Próprio Estudante (Maior de Idade)',
+                    }));
+                  }}
+                  className={`px-3.5 py-2 rounded-lg text-xs transition-all cursor-pointer ${
+                    isAdultStudent
+                      ? 'bg-sesi-primary text-white shadow-xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900 font-medium'
+                  }`}
+                >
+                  Próprio Estudante (18+)
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-600 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-sesi-primary shrink-0" />
+              <span>
+                {isAdultStudent
+                  ? 'Modo Estudante Maior de Idade ativado: você declarará seus próprios dados e assinará diretamente como titular.'
+                  : 'Modo Responsável Legal ativado: você preencherá seus dados de identificação e os dados do estudante menor representado.'}
+              </span>
             </div>
           </div>
           

@@ -114,26 +114,6 @@ signerRouter.get('/doc/:token', async (c) => {
       ).first<any>().catch(() => null);
     }
 
-    if (!institutionData) {
-      if (cleanToken.toLowerCase() === 'cemeit' || cleanToken.toLowerCase() === 'projeto-escola-cidada-2026') {
-        institutionData = await (db?.prepare?.(
-          `SELECT id, name, short_name, city, state, is_active FROM institutions WHERE (id = 'cemeit' OR LOWER(id) = 'cemeit') AND is_active = 1 LIMIT 1`
-        )?.bind?.()?.first<any>() ?? db?.prepare?.(
-          `SELECT id, name, short_name, city, state, is_active FROM institutions WHERE (id = 'cemeit' OR LOWER(id) = 'cemeit') AND is_active = 1 LIMIT 1`
-        )?.first<any>())?.catch(() => null);
-
-        if (!institutionData) {
-          institutionData = {
-            id: 'cemeit',
-            name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)',
-            short_name: 'CEMEIT',
-            city: 'Taguatinga',
-            state: 'DF',
-            is_active: 1,
-          };
-        }
-      }
-    }
 
     // Se não for um documento existente e a escola não estiver cadastrada no sistema, retorna erro 404
     if (!doc && !institutionData) {
@@ -508,7 +488,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     }
   }
 
-  const { token, email: providedEmail, minor_name: providedMinorName, school_slug, institution_id, institution_name } = parsed.data;
+  const { token, email: providedEmail, minor_name: providedMinorName, school_slug, institution_id } = parsed.data;
 
   const db = c.env.DB;
   const pepper = c.env.OTP_PEPPER;
@@ -530,17 +510,29 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
       const cleanDocId = isDocId ? token : (token.includes('-DOC-') ? `DOC-${token.split('-DOC-')[1]}` : generateUniqueDocId('DOC'));
       const cleanAccessToken = schoolId ? `${schoolId}-${cleanDocId}` : (isDocId ? token : cleanDocId);
 
-      let finalSchoolName: string | null = institution_name || null;
-      if (!finalSchoolName && schoolId) {
-        const instRow = await db.prepare('SELECT name FROM institutions WHERE id = ? OR LOWER(id) = LOWER(?) LIMIT 1').bind(schoolId, schoolId).first<any>().catch(() => null);
-        if (instRow?.name) finalSchoolName = instRow.name;
+      let finalSchoolName: string | null = null;
+      let finalSchoolId: string | null = null;
+      if (schoolId) {
+        const instRow = await db.prepare(
+          'SELECT id, name FROM institutions WHERE is_active = 1 AND (id = ? OR LOWER(id) = LOWER(?)) LIMIT 1'
+        ).bind(schoolId, schoolId).first<any>().catch(() => null);
+
+        if (!instRow) {
+          return c.json({
+            success: false,
+            error: `A unidade escolar "${schoolId}" não foi encontrada ou está inativa no sistema. Apenas escolas cadastradas no banco de dados podem emitir termos.`,
+            code: 'SCHOOL_NOT_FOUND',
+          }, 404);
+        }
+        finalSchoolId = instRow.id;
+        finalSchoolName = instRow.name;
       }
 
       try {
         await db.prepare(
           `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, institution_id, institution_name, status, retention_expires_at, expires_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+24 hours'))`
-        ).bind(cleanDocId, template.id, template.version, template.content_sha256, providedMinorName || 'Estudante', '2010-01-01', 'Responsável Legal', 'ENC_INITIAL', 'ENC_INITIAL', cleanAccessToken, schoolId, finalSchoolName).run();
+        ).bind(cleanDocId, template.id, template.version, template.content_sha256, providedMinorName || 'Estudante', '2010-01-01', 'Responsável Legal', 'ENC_INITIAL', 'ENC_INITIAL', cleanAccessToken, finalSchoolId, finalSchoolName).run();
       } catch {
         await db.prepare(
           `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
@@ -1061,13 +1053,12 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     ).bind(resolvedSchoolSlug, resolvedSchoolSlug).first<any>().catch(() => null);
   }
 
-  const resolvedSchoolName = parsed.data.institution_name
-    || dbSchool?.name
+  const resolvedSchoolName = dbSchool?.name
     || (doc as any).institution_name
     || (doc as any).school_name
-    || 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)';
+    || 'Instituição de Ensino';
 
-  const finalSchoolId = dbSchool?.id || resolvedSchoolSlug || (resolvedSchoolName.includes('CEMEIT') ? 'cemeit' : null);
+  const finalSchoolId = dbSchool?.id || (doc as any).institution_id || null;
 
   const finalAccessToken = finalSchoolId && !doc.access_token.includes(finalSchoolId)
     ? `${finalSchoolId}-${doc.id}`

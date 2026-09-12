@@ -280,7 +280,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     id: '',
     name: '',
     short_name: '',
-    city: 'Taguatinga',
+    city: '',
     state: 'DF',
   });
   const [schoolFormError, setSchoolFormError] = useState('');
@@ -450,13 +450,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         id: generatedSlug,
         name: newSchoolData.name.trim(),
         short_name: newSchoolData.short_name.trim(),
-        city: newSchoolData.city.trim() || 'Taguatinga',
+        city: newSchoolData.city.trim(),
         state: newSchoolData.state.trim().toUpperCase() || 'DF',
       });
 
       if (res.success) {
         setShowNewSchoolModal(false);
-        setNewSchoolData({ id: '', name: '', short_name: '', city: 'Taguatinga', state: 'DF' });
+        setNewSchoolData({ id: '', name: '', short_name: '', city: '', state: 'DF' });
         await fetchInstitutions();
       } else {
         setSchoolFormError(res.error || 'Erro ao cadastrar escola no servidor.');
@@ -2106,15 +2106,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           {inst.city} - {inst.state}
                         </span>
                       </div>
-                      {inst.id !== 'cemeit' && (
-                        <button
-                          onClick={() => handleDeactivateSchool(inst.id)}
-                          className="text-slate-400 hover:text-rose-700 transition-colors px-2 py-1 rounded-lg text-xs font-semibold hover:bg-rose-50 cursor-pointer"
-                          title="Desativar rota desta escola"
-                        >
-                          <span>Desativar</span>
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleDeactivateSchool(inst.id)}
+                        className="text-slate-400 hover:text-rose-700 transition-colors px-2 py-1 rounded-lg text-xs font-semibold hover:bg-rose-50 cursor-pointer"
+                        title="Desativar rota desta escola"
+                      >
+                        <span>Desativar</span>
+                      </button>
                     </div>
 
                     <h3 className="font-bold text-slate-900 text-base leading-snug">
@@ -2139,7 +2137,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </button>
 
                     <button
-                      onClick={() => onNavigateToSignerToken('projeto-escola-cidada-2026', inst.id)}
+                      onClick={() => onNavigateToSignerToken(inst.id, inst.id)}
                       className="py-2.5 px-4 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
                       title="Abrir formulário desta escola"
                     >

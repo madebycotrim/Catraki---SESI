@@ -27,6 +27,14 @@ describe('Validação Rigorosa de Slug de Escola na URL', () => {
   });
 
   it('deve carregar com sucesso os dados de escola previamente cadastrada (ex: CEMEIT)', async () => {
+    apiClient.seedInstitution({
+      id: 'cemeit',
+      name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)',
+      short_name: 'CEMEIT',
+      city: 'Taguatinga',
+      state: 'DF',
+      is_active: true,
+    });
     const res = await apiClient.getInstitutionBySlug('cemeit');
     expect(res.success).toBe(true);
     expect(res.institution?.id).toBe('cemeit');

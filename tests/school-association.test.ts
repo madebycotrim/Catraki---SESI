@@ -60,6 +60,14 @@ describe('Associação Correta de Escola e URL (Prevenção de Fallback Incorret
   });
 
   it('no cliente local/contingência, carregar e assinar para ced01-estrutural deve manter Centro Educacional 01 da Estrutural', async () => {
+    apiClient.seedInstitution({
+      id: 'ced01-estrutural',
+      name: 'Centro Educacional 01 da Estrutural',
+      short_name: 'CED 01',
+      city: 'Estrutural',
+      state: 'DF',
+      is_active: true,
+    });
     // 1. Carrega documento para ced01-estrutural
     const resDoc = await apiClient.getSignerDoc('ced01-estrutural');
     expect(resDoc.success).toBe(true);

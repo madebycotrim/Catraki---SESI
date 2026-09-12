@@ -75,22 +75,11 @@ publicRouter.get('/institutions/:slug', async (c) => {
   }
 
   if (!inst) {
-    if (cleanSlug.toLowerCase() === 'cemeit') {
-      inst = {
-        id: 'cemeit',
-        name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)',
-        short_name: 'CEMEIT',
-        city: 'Taguatinga',
-        state: 'DF',
-        is_active: 1,
-      };
-    } else {
-      return c.json({
-        success: false,
-        error: `A unidade escolar "${cleanSlug}" não foi encontrada no sistema.`,
-        code: 'SCHOOL_NOT_FOUND',
-      }, 404);
-    }
+    return c.json({
+      success: false,
+      error: `A unidade escolar "${cleanSlug}" não foi encontrada no sistema.`,
+      code: 'SCHOOL_NOT_FOUND',
+    }, 404);
   }
 
   return c.json({
@@ -123,19 +112,6 @@ publicRouter.get('/institutions', async (c) => {
     } catch (e) {
       console.warn('[PUBLIC_INSTITUTIONS_ALL_DB_WARN]', e);
     }
-  }
-
-  if (institutions.length === 0) {
-    institutions = [
-      {
-        id: 'cemeit',
-        name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)',
-        short_name: 'CEMEIT',
-        city: 'Taguatinga',
-        state: 'DF',
-        is_active: 1,
-      },
-    ];
   }
 
   return c.json({ success: true, institutions });

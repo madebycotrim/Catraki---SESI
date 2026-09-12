@@ -149,12 +149,7 @@ const setAuditLogs = (d: any[]) => setStorage('catraki_audit', d);
 const getLgpdRequests = () => getStorage<any[]>('catraki_lgpd', []);
 const setLgpdRequests = (d: any[]) => setStorage('catraki_lgpd', d);
 
-const SEED_INSTITUTIONS: Institution[] = [
-  { id: 'cemeit', name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)', short_name: 'CEMEIT', city: 'Taguatinga', state: 'DF', is_active: true },
-  { id: 'ced01-estrutural', name: 'Centro Educacional 01 da Estrutural', short_name: 'CED 01', city: 'Estrutural', state: 'DF', is_active: true },
-  { id: 'cem02-ceilandia', name: 'Centro de Ensino Médio 02 de Ceilândia', short_name: 'CEM 02', city: 'Ceilândia', state: 'DF', is_active: true },
-  { id: 'ced02-guara', name: 'Centro Educacional 02 do Guará', short_name: 'CED 02', city: 'Guará', state: 'DF', is_active: true },
-];
+const SEED_INSTITUTIONS: Institution[] = [];
 
 const getInstitutions = (): Institution[] => {
   return getStorage<Institution[]>('catraki_institutions', SEED_INSTITUTIONS);
@@ -190,6 +185,15 @@ export const apiClient = {
     const docs = getDocuments();
     docs.push(doc);
     setDocuments(docs);
+  },
+
+  /**
+   * Registra instituição mock para testes unitários / contingência
+   */
+  seedInstitution(inst: Institution) {
+    const insts = getInstitutions();
+    insts.push(inst);
+    setStorage('catraki_institutions', insts);
   },
 
   /**
@@ -236,7 +240,7 @@ export const apiClient = {
 
     // Se NÃO for um documento pré-existente e NÃO for um token de acesso nem escola cadastrada
     const isDocToken = cleanToken.startsWith('doc-') || cleanToken.startsWith('sesi-') || cleanToken.startsWith('tok-') || cleanToken.startsWith('token-') || cleanToken.startsWith('test-');
-    if (!doc && !inst && cleanToken !== 'cemeit' && cleanNoHyphen !== 'cemeit' && !isDocToken) {
+    if (!doc && !inst && !isDocToken) {
       return {
         success: false,
         code: 'SCHOOL_NOT_FOUND',
@@ -303,15 +307,11 @@ export const apiClient = {
         revoked_at: doc.revoked_at,
         revoked_reason: doc.revoked_reason,
         legal_notice: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020; Código Civil (Arts. 104 e 107); CPC (Arts. 411 e 441); LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP',
-        institution_id: inst ? inst.id : (cleanToken === 'cemeit' ? 'cemeit' : cleanToken),
-        institution_name: inst 
-          ? inst.name 
-          : (cleanToken === 'cemeit' 
-              ? 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)' 
-              : `Escola ${cleanToken.replace(/[-_]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}`),
-        institution_short_name: inst ? inst.short_name : (cleanToken === 'cemeit' ? 'CEMEIT' : cleanToken.toUpperCase()),
-        institution_city: inst ? inst.city : 'Brasília',
-        institution_state: inst ? inst.state : 'DF',
+        institution_id: inst ? inst.id : ((doc as any).institution_id || cleanToken),
+        institution_name: inst ? inst.name : ((doc as any).institution_name || 'Instituição de Ensino'),
+        institution_short_name: inst ? inst.short_name : ((doc as any).institution_short_name || 'Instituição'),
+        institution_city: inst ? inst.city : ((doc as any).institution_city || 'Brasília'),
+        institution_state: inst ? inst.state : ((doc as any).institution_state || 'DF'),
       },
     };
   },
@@ -1550,20 +1550,6 @@ export const apiClient = {
 
     if (inst) {
       return { success: true, institution: inst };
-    }
-
-    if (clean === 'cemeit' || cleanNoHyphen === 'cemeit') {
-      return {
-        success: true,
-        institution: {
-          id: 'cemeit',
-          name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)',
-          short_name: 'CEMEIT',
-          city: 'Taguatinga',
-          state: 'DF',
-          is_active: true,
-        },
-      };
     }
 
     return {

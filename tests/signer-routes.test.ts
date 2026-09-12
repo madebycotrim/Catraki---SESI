@@ -12,17 +12,27 @@ describe('Rotas de Assinatura Eletrônica (signerRouter) — Resiliência e Prev
 
   it('deve responder 404 TEMPLATE_NOT_FOUND quando a tabela document_templates do banco estiver vazia', async () => {
     const mockDb = {
-      prepare: () => ({
+      prepare: (query: string) => ({
         bind: () => ({
-          first: async () => null,
+          first: async () => {
+            if (query.includes('institutions')) {
+              return { id: 'cemeit', name: 'CEMEIT', short_name: 'CEMEIT', is_active: 1 };
+            }
+            return null;
+          },
           all: async () => ({ results: [] }),
           run: async () => ({ success: true }),
         }),
-        first: async () => null,
+        first: async () => {
+          if (query.includes('institutions')) {
+            return { id: 'cemeit', name: 'CEMEIT', short_name: 'CEMEIT', is_active: 1 };
+          }
+          return null;
+        },
       }),
     };
 
-    const res = await signerRouter.request('/doc/projeto-escola-cidada-2026', { method: 'GET' }, { DB: mockDb as any });
+    const res = await signerRouter.request('/doc/cemeit', { method: 'GET' }, { DB: mockDb as any });
     expect(res.status).toBe(404);
     const json = (await res.json()) as any;
     expect(json.success).toBe(false);

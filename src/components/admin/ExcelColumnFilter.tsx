@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Filter, 
   ArrowUp, 
@@ -44,6 +45,7 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [popoverCoords, setPopoverCoords] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
   
   // Local pending selection while popover is open
   const [tempSelected, setTempSelected] = useState<Set<string>>(() => {
@@ -56,6 +58,38 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
+  const updatePosition = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const popoverWidth = Math.min(295, window.innerWidth - 24);
+
+    let left = align === 'right' ? rect.right - popoverWidth : rect.left;
+    if (left + popoverWidth > window.innerWidth - 12) {
+      left = window.innerWidth - popoverWidth - 12;
+    }
+    if (left < 12) {
+      left = 12;
+    }
+
+    const spaceBelow = window.innerHeight - rect.bottom - 16;
+    const spaceAbove = rect.top - 16;
+    let top = rect.bottom + 6;
+    let maxHeight = Math.max(220, Math.min(480, spaceBelow));
+
+    // If space below is limited and more room is available above, flip upward
+    if (spaceBelow < 280 && spaceAbove > spaceBelow) {
+      maxHeight = Math.max(220, Math.min(480, spaceAbove));
+      top = Math.max(12, rect.top - maxHeight - 6);
+    }
+
+    setPopoverCoords({
+      top,
+      left,
+      width: popoverWidth,
+      maxHeight,
+    });
+  };
+
   // Sync tempSelected whenever popover opens or options/selectedValues change
   useEffect(() => {
     if (isOpen) {
@@ -65,19 +99,39 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
         setTempSelected(new Set(selectedValues));
       }
       setSearchTerm('');
+      updatePosition();
     }
   }, [isOpen, selectedValues, options]);
+
+  // Keep popover aligned on scroll and resize
+  useEffect(() => {
+    if (!isOpen) return;
+    updatePosition();
+
+    const handleScrollOrResize = () => {
+      updatePosition();
+    };
+
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+
+    return () => {
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, [isOpen, align]);
 
   // Click outside to close
   useEffect(() => {
     if (!isOpen) return;
 
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
         popoverRef.current && 
-        !popoverRef.current.contains(event.target as Node) &&
+        !popoverRef.current.contains(target) &&
         buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
+        !buttonRef.current.contains(target)
       ) {
         setIsOpen(false);
       }
@@ -197,7 +251,12 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          setIsOpen(!isOpen);
+          if (!isOpen) {
+            updatePosition();
+            setIsOpen(true);
+          } else {
+            setIsOpen(false);
+          }
         }}
         className={`p-1 rounded-md transition-all cursor-pointer shrink-0 flex items-center justify-center ${
           isFiltered
@@ -212,18 +271,21 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
         <Filter className={`w-3 h-3 ${isFiltered ? 'fill-current' : ''}`} />
       </button>
 
-      {/* Excel Dropdown Popover */}
-      {isOpen && (
+      {/* Excel Dropdown Popover (Rendered in document.body via Portal to prevent z-index/table overflow clipping) */}
+      {isOpen && popoverCoords && typeof document !== 'undefined' && createPortal(
         <div
           ref={popoverRef}
           onClick={(e) => e.stopPropagation()}
-          className={`absolute top-full mt-2 z-50 w-72 max-w-[90vw] bg-white rounded-2xl shadow-2xl border border-slate-200 p-3.5 space-y-3 font-sans normal-case text-left ${
-            align === 'right' ? 'right-0' : 'left-0'
-          }`}
-          style={{ minWidth: '260px' }}
+          className="fixed z-[99999] bg-white rounded-2xl shadow-2xl border border-slate-200/95 p-3.5 space-y-3 font-sans normal-case text-left animate-in fade-in zoom-in-95 duration-150 flex flex-col"
+          style={{
+            top: `${popoverCoords.top}px`,
+            left: `${popoverCoords.left}px`,
+            width: `${popoverCoords.width}px`,
+            maxHeight: `${popoverCoords.maxHeight}px`,
+          }}
         >
           {/* Popover Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
             <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800">
               <Filter className="w-3.5 h-3.5 text-[#004b8d]" />
               <span className="truncate">Filtro: {title}</span>
@@ -237,7 +299,7 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
           </div>
 
           {/* Quick Sorting Options (Excel-style) */}
-          <div className="space-y-1">
+          <div className="space-y-1 shrink-0">
             <button
               type="button"
               onClick={handleSortAsc}
@@ -282,14 +344,14 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
             )}
           </div>
 
-          <div className="h-px bg-slate-100 my-1" />
+          <div className="h-px bg-slate-100 my-1 shrink-0" />
 
           {/* Quick Clear Column Filter */}
           {isFiltered && (
             <button
               type="button"
               onClick={handleClearColumnFilter}
-              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors text-left cursor-pointer"
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors text-left cursor-pointer shrink-0"
             >
               <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
               <span>Limpar Filtro desta Coluna</span>
@@ -297,7 +359,7 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
           )}
 
           {/* Search Box */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             <input
               type="text"
@@ -318,9 +380,9 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
           </div>
 
           {/* Options List (Checkboxes) */}
-          <div className="space-y-1">
+          <div className="space-y-1 flex-1 min-h-0 flex flex-col">
             {/* Select All Checkbox */}
-            <label className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-800 border-b border-slate-100 select-none">
+            <label className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-800 border-b border-slate-100 select-none shrink-0">
               <input
                 type="checkbox"
                 checked={isAllVisibleSelected}
@@ -339,7 +401,7 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
             </label>
 
             {/* Individual Item Checkboxes */}
-            <div className="max-h-44 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
+            <div className="overflow-y-auto max-h-44 space-y-0.5 pr-1 custom-scrollbar">
               {visibleOptions.length > 0 ? (
                 visibleOptions.map((opt) => {
                   const isChecked = tempSelected.has(opt.value);
@@ -375,7 +437,7 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
           </div>
 
           {/* Action Footer Buttons */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 shrink-0">
             <button
               type="button"
               onClick={() => setIsOpen(false)}
@@ -391,7 +453,8 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
               Aplicar
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -48,6 +48,8 @@
     parent_email_encrypted TEXT,
     parent_phone_encrypted TEXT,
     parent_email_bindex_sha256 TEXT, -- Blind index SHA-256 para buscas seguras e sigilosas (LGPD)
+    institution_id TEXT,
+    institution_name TEXT,
     auth_image TEXT,
     auth_health TEXT,
     auth_data TEXT,
@@ -289,6 +291,7 @@
   -- ============================================================================
   CREATE INDEX IF NOT EXISTS idx_docs_token ON documents(access_token);
   CREATE INDEX IF NOT EXISTS idx_docs_status ON documents(status);
+  CREATE INDEX IF NOT EXISTS idx_docs_institution_id ON documents(institution_id);
   CREATE INDEX IF NOT EXISTS idx_docs_bindex ON documents(parent_email_bindex_sha256);
   CREATE INDEX IF NOT EXISTS idx_audit_doc ON audit_logs(document_id);
   CREATE INDEX IF NOT EXISTS idx_audit_manifest ON audit_logs(manifest_sha256);

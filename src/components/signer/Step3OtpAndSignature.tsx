@@ -23,6 +23,8 @@ interface Step3OtpAndSignatureProps {
   minorBirthDate?: string;
   procedureTitle: string;
   institutionName?: string;
+  institutionId?: string;
+  schoolSlug?: string;
   identityData: {
     signerName: string;
     signerCpf: string;
@@ -50,6 +52,8 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   minorBirthDate,
   procedureTitle: _procedureTitle,
   institutionName,
+  institutionId,
+  schoolSlug,
   identityData,
   onSuccess,
   onBack,
@@ -88,6 +92,8 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
     signerEmail: identityData.signerEmail,
     minorName,
     signerPhone: identityData.signerPhone,
+    schoolSlug: schoolSlug || institutionId,
+    institutionName,
   });
 
   // Geolocalização e IP reais do cliente via Cloudflare edge
@@ -123,7 +129,14 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
 
     if (!authData) {
       setErrorMessage(
-        'Para que possamos registrar a assinatura com validade legal, é necessário confirmar a autorização de tratamento dos dados pessoais.'
+        'Para prosseguir, autorize o tratamento dos dados cadastrais para identificação formal do(a) estudante (LGPD).'
+      );
+      return;
+    }
+
+    if (!declarationLegalResponsibility) {
+      setErrorMessage(
+        'Para prosseguir, declare expressamente que você é o responsável legal pelo(a) estudante indicado(a).'
       );
       return;
     }
@@ -195,6 +208,8 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         minor_series: identityData.minorSeries,
         minor_class: identityData.minorClass,
         minor_turn: identityData.minorTurn,
+        school_slug: schoolSlug || institutionId,
+        institution_id: institutionId || schoolSlug,
         institution_name: institutionName,
         auth_health: authHealth ? 'yes' : 'no',
         auth_data: authData ? 'yes' : 'no',
@@ -268,6 +283,11 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
             <p className="text-xs sm:text-[9pt] text-slate-800 m-0 font-bold">
               Termo de Consentimento (TCLE)
             </p>
+            {institutionName && (
+              <p className="text-[11px] sm:text-[8.5pt] text-[#004b8d] m-0 font-bold">
+                {institutionName}
+              </p>
+            )}
             <p className="text-[10px] sm:text-[8pt] text-slate-500 m-0">{dataHoje}</p>
           </div>
         </div>

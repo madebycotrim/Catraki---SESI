@@ -18,7 +18,7 @@ interface Step1ReadingProps {
   onProceed: () => void;
 }
 
-export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed }) => {
+export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institution, onProceed }) => {
 
   const dataHoje = new Intl.DateTimeFormat('pt-BR', {
     day:   '2-digit',
@@ -47,6 +47,11 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
             <p className="text-xs sm:text-[9pt] text-slate-800 m-0 font-bold">
               Doc. nº {document.id}
             </p>
+            {institution?.name && (
+              <p className="text-[11px] sm:text-[8.5pt] text-[#004b8d] m-0 font-bold">
+                {institution.name}
+              </p>
+            )}
             <p className="text-[10px] sm:text-[8pt] text-slate-500 m-0">
               {dataHoje}
             </p>
@@ -58,6 +63,11 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
           <h1 className="text-sm sm:text-base md:text-[12pt] font-bold text-slate-900 uppercase leading-snug tracking-tight m-0">
            CARTA DE BOAS-VINDAS — PROJETO ESCOLA CIDADÃ — SAÚDe EM MOVIMENTO
           </h1>
+          {institution?.name && (
+            <p className="text-xs sm:text-sm font-semibold text-[#004b8d] mt-1.5">
+              Unidade Escolar: {institution.name} ({institution.city}/{institution.state})
+            </p>
+          )}
         </div>
 
         {/* Corpo da Carta de Boas-Vindas */}

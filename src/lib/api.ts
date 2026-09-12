@@ -151,6 +151,9 @@ const setLgpdRequests = (d: any[]) => setStorage('catraki_lgpd', d);
 
 const SEED_INSTITUTIONS: Institution[] = [
   { id: 'cemeit', name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)', short_name: 'CEMEIT', city: 'Taguatinga', state: 'DF', is_active: true },
+  { id: 'ced01-estrutural', name: 'Centro Educacional 01 da Estrutural', short_name: 'CED 01', city: 'Estrutural', state: 'DF', is_active: true },
+  { id: 'cem02-ceilandia', name: 'Centro de Ensino Médio 02 de Ceilândia', short_name: 'CEM 02', city: 'Ceilândia', state: 'DF', is_active: true },
+  { id: 'ced02-guara', name: 'Centro Educacional 02 do Guará', short_name: 'CED 02', city: 'Guará', state: 'DF', is_active: true },
 ];
 
 const getInstitutions = (): Institution[] => {
@@ -388,19 +391,31 @@ export const apiClient = {
   /**
    * Solicita envio de OTP por e-mail com código real e verificação anti-bot Turnstile
    */
-  async requestOtp(token: string, channel: 'email' = 'email', email?: string, minor_name?: string, turnstile_token?: string, phone?: string): Promise<any> {
+  async requestOtp(
+    token: string,
+    channel: 'email' = 'email',
+    email?: string,
+    minor_name?: string,
+    turnstile_token?: string,
+    phone?: string,
+    school_slug?: string,
+    institution_name?: string
+  ): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/signer/otp/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, channel, email, minor_name, turnstile_token, phone }),
+        body: JSON.stringify({ token, channel, email, minor_name, turnstile_token, phone, school_slug, institution_name }),
       });
       return await resp.json();
     } catch {}
 
     const docs = getDocuments();
-    const doc = docs.find((d) => d.access_token === token);
+    const doc = docs.find((d) => d.access_token === token || d.id === token);
     if (!doc) return { success: false, error: 'Documento indisponível.' };
+
+    if (school_slug) (doc as any).institution_id = school_slug;
+    if (institution_name) (doc as any).institution_name = institution_name;
 
     const devOtp = '123456';
     doc.otp_secret_hash = devOtp;
@@ -435,7 +450,7 @@ export const apiClient = {
     } catch {}
 
     const docs = getDocuments();
-    const doc = docs.find((d) => d.access_token === token);
+    const doc = docs.find((d) => d.access_token === token || d.id === token);
     if (!doc) return { success: false, error: 'Documento indisponível.' };
 
     if (otp_code === '123456' || doc.otp_secret_hash === otp_code) {
@@ -465,6 +480,8 @@ export const apiClient = {
     minor_series?: string;
     minor_class?: string;
     minor_turn?: string;
+    school_slug?: string;
+    institution_id?: string;
     institution_name?: string;
     auth_health?: 'yes' | 'no';
     auth_data?: 'yes' | 'no';
@@ -481,16 +498,18 @@ export const apiClient = {
     termos_versao?: string;
     device_fingerprint_data?: any;
   }): Promise<any> {
-    // Função auxiliar: persiste auth_image/health/data no localStorage
+    // Função auxiliar: persiste auth_image/health/data e instituição no localStorage
     // independente de qual caminho processa a assinatura (backend ou mock local)
     const persistAuthFieldsLocally = (successResp: any) => {
       try {
         const docs = getDocuments();
-        const doc = docs.find((d) => d.access_token === payload.token);
+        const doc = docs.find((d) => d.access_token === payload.token || d.id === payload.token);
         if (doc) {
           (doc as any).auth_image = payload.auth_image ?? 'no';
           (doc as any).auth_health = payload.auth_health ?? 'yes';
           (doc as any).auth_data = payload.auth_data ?? 'yes';
+          if (payload.institution_name) (doc as any).institution_name = payload.institution_name;
+          if (payload.school_slug || payload.institution_id) (doc as any).institution_id = payload.school_slug || payload.institution_id;
           if (successResp?.document_id) doc.id = successResp.document_id;
           if (successResp?.validation_code) (doc as any).validation_code = successResp.validation_code;
           if (successResp?.manifest_sha256) (doc as any).manifest_sha256 = successResp.manifest_sha256;
@@ -515,7 +534,7 @@ export const apiClient = {
     } catch {}
 
     const docs = getDocuments();
-    const doc = docs.find((d) => d.access_token === payload.token);
+    const doc = docs.find((d) => d.access_token === payload.token || d.id === payload.token);
     if (!doc) return { success: false, error: 'Documento não localizado.' };
 
     // Verificação de duplicidade: não permite que o mesmo aluno tenha mais de uma autorização assinada
@@ -653,6 +672,12 @@ export const apiClient = {
     (doc as any).auth_image = payload.auth_image ?? 'no';
     (doc as any).auth_health = payload.auth_health ?? 'yes';
     (doc as any).auth_data = payload.auth_data ?? 'yes';
+    if (payload.school_slug || payload.institution_id) {
+      (doc as any).institution_id = payload.school_slug || payload.institution_id;
+    }
+    if (payload.institution_name) {
+      (doc as any).institution_name = payload.institution_name;
+    }
 
     setDocuments(docs);
 

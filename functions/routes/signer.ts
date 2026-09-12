@@ -161,10 +161,14 @@ signerRouter.get('/doc/:token', async (c) => {
       }, 404);
     }
 
-    // Se for uma nova sessão de autorização iniciada pela URL da escola (ex: /autorizar/cemeit)
+    // Se for uma nova sessão de autorização iniciada pela URL da escola (ex: /autorizar/cemeit ou /autorizar/ced01-estrutural)
     if (!doc) {
+      const generatedDocId = generateUniqueDocId('DOC');
+      const schoolId = institutionData?.id || cleanToken;
+      const compositeAccessToken = `${schoolId}-${generatedDocId}`;
       doc = {
-        id: generateUniqueDocId('DOC'),
+        id: generatedDocId,
+        access_token: compositeAccessToken,
         status: 'pending',
         minor_name: 'Estudante',
         minor_birth_date: '2010-01-01',
@@ -176,7 +180,7 @@ signerRouter.get('/doc/:token', async (c) => {
         consent_text_version: template.consent_text_version || 1,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         institution_name: institutionData?.name || 'Escola Participante',
-        institution_id: institutionData?.id || token,
+        institution_id: schoolId,
         institution_short_name: institutionData?.short_name || 'Escola',
         institution_city: institutionData?.city || 'Brasília',
         institution_state: institutionData?.state || 'DF',
@@ -210,6 +214,7 @@ signerRouter.get('/doc/:token', async (c) => {
       success: true,
       document: {
         id: doc.id,
+        access_token: doc.access_token || token,
         status: doc.status,
         minor_name: doc.minor_name,
         minor_birth_date: doc.minor_birth_date,
@@ -503,7 +508,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     }
   }
 
-  const { token, email: providedEmail, minor_name: providedMinorName } = parsed.data;
+  const { token, email: providedEmail, minor_name: providedMinorName, school_slug, institution_id, institution_name } = parsed.data;
 
   const db = c.env.DB;
   const pepper = c.env.OTP_PEPPER;
@@ -513,19 +518,36 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     return c.json({ success: false, error: 'Configuração do servidor incompleta (OTP_PEPPER/ENCRYPTION_KEY_V1 ausentes).', code: 'KEY_CONFIG_ERROR' }, 500);
   }
 
-  let doc = await db.prepare("SELECT * FROM documents WHERE (access_token = ? OR id = ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1").bind(token, token).first<DocumentRecord>();
+  let doc = await db.prepare(
+    "SELECT * FROM documents WHERE (access_token = ? OR id = ? OR access_token LIKE ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1"
+  ).bind(token, token, `%${token}%`).first<DocumentRecord>();
+
   if (!doc) {
     const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
     if (template) {
+      const schoolId = school_slug || institution_id || (token.includes('-DOC-') ? token.split('-DOC-')[0] : null);
       const isDocId = token.startsWith('DOC-');
-      const newDocId = isDocId ? token : generateUniqueDocId('DOC');
-      const cleanAccessToken = isDocId ? token : newDocId;
+      const cleanDocId = isDocId ? token : (token.includes('-DOC-') ? `DOC-${token.split('-DOC-')[1]}` : generateUniqueDocId('DOC'));
+      const cleanAccessToken = schoolId ? `${schoolId}-${cleanDocId}` : (isDocId ? token : cleanDocId);
 
-      await db.prepare(
-        `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+24 hours'))`
-      ).bind(newDocId, template.id, template.version, template.content_sha256, providedMinorName || 'Estudante', '2010-01-01', 'Responsável Legal', 'ENC_INITIAL', 'ENC_INITIAL', cleanAccessToken).run();
-      doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(newDocId).first<DocumentRecord>();
+      let finalSchoolName: string | null = institution_name || null;
+      if (!finalSchoolName && schoolId) {
+        const instRow = await db.prepare('SELECT name FROM institutions WHERE id = ? OR LOWER(id) = LOWER(?) LIMIT 1').bind(schoolId, schoolId).first<any>().catch(() => null);
+        if (instRow?.name) finalSchoolName = instRow.name;
+      }
+
+      try {
+        await db.prepare(
+          `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, institution_id, institution_name, status, retention_expires_at, expires_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+24 hours'))`
+        ).bind(cleanDocId, template.id, template.version, template.content_sha256, providedMinorName || 'Estudante', '2010-01-01', 'Responsável Legal', 'ENC_INITIAL', 'ENC_INITIAL', cleanAccessToken, schoolId, finalSchoolName).run();
+      } catch {
+        await db.prepare(
+          `INSERT INTO documents (id, template_id, template_version, content_sha256, minor_name, minor_birth_date, parent_name, parent_email_encrypted, parent_phone_encrypted, access_token, status, retention_expires_at, expires_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', '+20 years'), datetime('now', '+24 hours'))`
+        ).bind(cleanDocId, template.id, template.version, template.content_sha256, providedMinorName || 'Estudante', '2010-01-01', 'Responsável Legal', 'ENC_INITIAL', 'ENC_INITIAL', cleanAccessToken).run();
+      }
+      doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(cleanDocId).first<DocumentRecord>();
     }
   }
 
@@ -829,9 +851,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     `SELECT d.*, t.title as template_title, t.procedure_description, t.content_markdown, t.consent_text_version, t.content_sha256 as template_content_sha256
      FROM documents d
      LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-     WHERE (d.access_token = ? OR d.id = ?) AND d.status = 'pending'
+     WHERE (d.access_token = ? OR d.id = ? OR d.access_token LIKE ?) AND d.status = 'pending'
      ORDER BY d.created_at DESC LIMIT 1`
-  ).bind(token, token).first<any>();
+  ).bind(token, token, `%${token}%`).first<any>();
 
   if (!doc) {
     return c.json({ success: false, error: 'Documento não encontrado ou já assinado.', code: 'DOC_NOT_FOUND' }, 404);
@@ -1024,10 +1046,32 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     studentBirth = rawBirth || 'Data não informada';
   }
 
+  let resolvedSchoolSlug = parsed.data.school_slug || parsed.data.institution_id || (doc as any).institution_id || null;
+  if (!resolvedSchoolSlug && doc.access_token) {
+    const match = doc.access_token.match(/^([a-z0-9_-]+)-DOC-/i);
+    if (match) {
+      resolvedSchoolSlug = match[1];
+    }
+  }
+
+  let dbSchool: any = null;
+  if (db && resolvedSchoolSlug) {
+    dbSchool = await db.prepare(
+      `SELECT id, name, short_name, city, state FROM institutions WHERE id = ? OR LOWER(id) = LOWER(?) LIMIT 1`
+    ).bind(resolvedSchoolSlug, resolvedSchoolSlug).first<any>().catch(() => null);
+  }
+
   const resolvedSchoolName = parsed.data.institution_name
-    || (doc as any).school_name
+    || dbSchool?.name
     || (doc as any).institution_name
+    || (doc as any).school_name
     || 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)';
+
+  const finalSchoolId = dbSchool?.id || resolvedSchoolSlug || (resolvedSchoolName.includes('CEMEIT') ? 'cemeit' : null);
+
+  const finalAccessToken = finalSchoolId && !doc.access_token.includes(finalSchoolId)
+    ? `${finalSchoolId}-${doc.id}`
+    : doc.access_token;
 
   // Geração do PDF Oficial (Manifesto) no servidor
   const pdfBytes = await GeradorPdfTermoSesi.gerarPdfOriginal({
@@ -1154,7 +1198,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
              signed_pdf_r2_key = ?, 
              otp_secret_hash = NULL,
              otp_verified_at = ?,
-             doc_parent_hash_sha256 = ?
+             doc_parent_hash_sha256 = ?,
+             access_token = ?
          WHERE id = ? AND status = 'pending'`
       ).bind(
         signer_name,
@@ -1174,12 +1219,20 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         pdfR2Key,
         signedAtIso,
         docParentHash,
+        finalAccessToken,
         doc.id
       ),
     ]);
 
     if ((batch[1] as any).meta?.changes === 0) {
       throw new Error('Falha ao atualizar status do documento: concorrência ou status alterado.');
+    }
+
+    // Persiste dados da instituição nas colunas dedicadas se existirem
+    if (finalSchoolId || resolvedSchoolName) {
+      await db.prepare(
+        `UPDATE documents SET institution_id = ?, institution_name = ? WHERE id = ?`
+      ).bind(finalSchoolId, resolvedSchoolName, doc.id).run().catch(() => null);
     }
   } catch (err: any) {
     return c.json({

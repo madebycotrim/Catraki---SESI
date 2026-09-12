@@ -266,6 +266,9 @@ adminRouter.get('/documents', async (c) => {
        ORDER BY d.created_at DESC LIMIT ?`
     ).bind(limit).all<any>();
 
+    const instQuery = await db.prepare('SELECT id, name, short_name FROM institutions').all<any>().catch(() => ({ results: [] }));
+    const instList = (instQuery.results || []) as any[];
+
     const results = await Promise.all((docs.results || []).map(async (doc: any) => {
       if (doc.minor_cpf_encrypted && c.env.ENCRYPTION_KEY_V1) {
         try {
@@ -276,6 +279,18 @@ adminRouter.get('/documents', async (c) => {
         } catch {}
       } else if (doc.minor_cpf && !doc.minor_cpf.includes('*')) {
         doc.minor_cpf = formatCPF(doc.minor_cpf);
+      }
+
+      if (!doc.institution_id || !doc.institution_name) {
+        const matchedInst = instList.find((i: any) =>
+          (doc.institution_id && i.id.toLowerCase() === doc.institution_id.toLowerCase()) ||
+          (doc.access_token && doc.access_token.toLowerCase().includes(i.id.toLowerCase()))
+        );
+        if (matchedInst) {
+          doc.institution_id = doc.institution_id || matchedInst.id;
+          doc.institution_name = doc.institution_name || matchedInst.name;
+          doc.institution_short_name = matchedInst.short_name;
+        }
       }
       return doc;
     }));
@@ -288,6 +303,9 @@ adminRouter.get('/documents', async (c) => {
         `SELECT * FROM documents ${fallbackWhere} ORDER BY created_at DESC LIMIT ?`
       ).bind(limit).all<any>();
 
+      const instQueryFallback = await db.prepare('SELECT id, name, short_name FROM institutions').all<any>().catch(() => ({ results: [] }));
+      const instListFallback = (instQueryFallback.results || []) as any[];
+
       const results = await Promise.all((fallbackDocs.results || []).map(async (doc: any) => {
         if (doc.minor_cpf_encrypted && c.env.ENCRYPTION_KEY_V1) {
           try {
@@ -298,6 +316,18 @@ adminRouter.get('/documents', async (c) => {
           } catch {}
         } else if (doc.minor_cpf && !doc.minor_cpf.includes('*')) {
           doc.minor_cpf = formatCPF(doc.minor_cpf);
+        }
+
+        if (!doc.institution_id || !doc.institution_name) {
+          const matchedInst = instListFallback.find((i: any) =>
+            (doc.institution_id && i.id.toLowerCase() === doc.institution_id.toLowerCase()) ||
+            (doc.access_token && doc.access_token.toLowerCase().includes(i.id.toLowerCase()))
+          );
+          if (matchedInst) {
+            doc.institution_id = doc.institution_id || matchedInst.id;
+            doc.institution_name = doc.institution_name || matchedInst.name;
+            doc.institution_short_name = matchedInst.short_name;
+          }
         }
         return doc;
       }));

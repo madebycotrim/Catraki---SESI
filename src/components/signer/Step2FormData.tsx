@@ -237,7 +237,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
         </div>
 
         {/* Título Oficial */}
-        <div className="text-left mb-5">
+        <div className="text-left mb-4">
           <h1 className="text-sm sm:text-base font-bold uppercase tracking-wide text-slate-900 m-0">
             1. IDENTIFICAÇÃO DO SIGNATÁRIO E DO ESTUDANTE
           </h1>
@@ -245,6 +245,14 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
             Preencha os dados abaixo para emissão da autorização eletrônica com validade jurídica (Lei nº 14.063/2020 e LGPD).
           </p>
         </div>
+
+        {/* Banner da Escola Ativa */}
+        {institution?.name && (
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-blue-50 border border-blue-200/80 rounded-xl text-xs font-semibold text-[#004b8d] mb-5">
+            <GraduationCap className="w-4 h-4 shrink-0 text-[#004b8d]" />
+            <span>Unidade Escolar: <strong className="font-bold">{institution.name}</strong> ({institution.city}/{institution.state})</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-7">
           

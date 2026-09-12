@@ -367,6 +367,9 @@ export const OtpRequestSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   minor_name: z.string().optional(),
+  school_slug: z.string().optional(),
+  institution_id: z.string().optional(),
+  institution_name: z.string().optional(),
 });
 
 export const OtpVerifySchema = z.object({
@@ -391,6 +394,8 @@ export const SignDocumentSchema = z.object({
   minor_turn: z.string().optional(),
   signer_phone: z.string().optional(),
   signer_address: z.string().optional(),
+  school_slug: z.string().optional(),
+  institution_id: z.string().optional(),
   institution_name: z.string().optional(),
   auth_health: z.enum(['yes', 'no']).optional(),
   auth_data: z.enum(['yes', 'no']).optional(),

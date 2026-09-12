@@ -6,6 +6,8 @@ interface UseOtpVerificationParams {
   signerEmail?: string;
   minorName?: string;
   signerPhone?: string;
+  schoolSlug?: string;
+  institutionName?: string;
 }
 
 /**
@@ -17,6 +19,8 @@ export function useOtpVerification({
   signerEmail,
   minorName,
   signerPhone,
+  schoolSlug,
+  institutionName,
 }: UseOtpVerificationParams) {
   const [otpSent, setOtpSent] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -53,7 +57,9 @@ export function useOtpVerification({
         signerEmail || undefined,
         minorName || undefined,
         undefined,
-        signerPhone || undefined
+        signerPhone || undefined,
+        schoolSlug || undefined,
+        institutionName || undefined
       );
 
       if (resp.success) {

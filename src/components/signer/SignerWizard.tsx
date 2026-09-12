@@ -202,11 +202,13 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
 
       {step === 3 && formData && (
         <Step3OtpAndSignature
-          token={documentData.id}
+          token={documentData.access_token || documentData.id}
           minorName={formData.minorName}
           minorBirthDate={formData.minorBirthDate}
           procedureTitle={documentData.procedure_title}
           institutionName={institution?.name || documentData?.institution_name || 'Escola Participante'}
+          institutionId={institution?.id || documentData?.institution_id || schoolSlug}
+          schoolSlug={schoolSlug || institution?.id || documentData?.institution_id}
           identityData={{
             signerName: formData.signerName,
             signerCpf: formData.signerCpf,

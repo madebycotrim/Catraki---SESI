@@ -290,9 +290,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const fetchInstitutions = async () => {
     const res = await apiClient.getAdminInstitutions();
     if (res.success && res.institutions) {
-      const legacyIds = ['ced01-estrutural', 'cem02-ceilandia', 'ced02-guara'];
       const activeOnly = res.institutions.filter(
-        (i: any) => !legacyIds.includes(i.id) && i.is_active !== false && i.is_active !== 0
+        (i: any) => i.is_active !== false && i.is_active !== 0
       );
       setInstitutions(activeOnly);
     }
@@ -310,8 +309,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const auths = activeDocs.map((doc: any) => {
         const log = resLogs?.success && resLogs.logs ? resLogs.logs.find((l: any) => l.document_id === doc.id) : null;
         const instMatch = instList.find((i: any) => 
-          i.id === doc.institution_id || 
-          (doc.access_token && doc.access_token.toLowerCase().includes(i.id))
+          (doc.institution_id && i.id.toLowerCase() === doc.institution_id.toLowerCase()) || 
+          (doc.access_token && doc.access_token.toLowerCase().includes(i.id.toLowerCase())) ||
+          (doc.institution_name && (
+            doc.institution_name.toLowerCase().includes(i.name.toLowerCase()) || 
+            doc.institution_name.toLowerCase().includes(i.short_name.toLowerCase()) ||
+            i.name.toLowerCase().includes(doc.institution_name.toLowerCase())
+          ))
         );
 
         const isSigned = doc.status === 'signed';
@@ -350,8 +354,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           parentEmail: doc.parent_email || log?.signer_email || '',
           relationship: log?.signer_relationship || (isSigned ? 'Responsável' : 'Aguardando'),
           activity: doc.template_title || 'Escola Cidadã — Saúde em Movimento',
-          institutionId: instMatch ? instMatch.id : (doc.institution_id || 'cemeit'),
-          institutionName: instMatch ? instMatch.short_name : (doc.institution_name || 'CEMEIT'),
+          institutionId: instMatch ? instMatch.id : (doc.institution_id || 'outra'),
+          institutionName: instMatch ? instMatch.short_name : (doc.institution_name || (doc.institution_id ? doc.institution_id.toUpperCase() : 'Escola Participante')),
           status: doc.status || 'pending',
           authHealth: true,
           authData: true,

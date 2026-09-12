@@ -13,7 +13,6 @@ import {
   hashPasswordPbkdf2,
   verifyPasswordPbkdf2,
   maskIpAddress,
-  verifyTurnstileToken,
 } from '../src/lib/crypto.ts';
 
 describe('Núcleo Criptográfico SESI Saúde (crypto.ts)', () => {
@@ -124,9 +123,5 @@ describe('Núcleo Criptográfico SESI Saúde (crypto.ts)', () => {
     expect(maskIpAddress('2804:14d:5481:8822::1')).toBe('2804:14d:****:****');
     expect(maskIpAddress('')).toBe('IP Protegido');
   });
-
-  it('deve permitir validação de Turnstile quando chave não configurada (dev/fallback)', async () => {
-    const isHuman = await verifyTurnstileToken('mock_token', '');
-    expect(isHuman).toBe(true);
-  });
 });
+

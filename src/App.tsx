@@ -13,7 +13,7 @@ import { apiClient } from './lib/api.ts';
 export type AppView = 'school-select' | 'no-school-error' | 'signer' | 'validator' | 'admin' | 'privacy' | 'terms';
 
 export function App() {
-  const [currentView, setCurrentView] = useState<AppView>('no-school-error');
+  const [currentView, setCurrentView] = useState<AppView>('school-select');
   const [activeSignerToken, setActiveSignerToken] = useState('');
   const [activeSchoolSlug, setActiveSchoolSlug] = useState('');
   const [activeValidatorHash, setActiveValidatorHash] = useState('');
@@ -70,21 +70,26 @@ export function App() {
           setCurrentView('signer');
           return;
         }
-        // Se a rota for apenas o prefixo sem slug (ex: /autorizar/), dá erro
-        setActiveSchoolSlug('');
-        setActiveSignerToken('');
-        setCurrentView('no-school-error');
-        return;
-      }
-
-      if (path === '/escolas') {
+        // Se a rota for apenas o prefixo sem slug (ex: /autorizar/), vai para o portal principal
         setActiveSchoolSlug('');
         setActiveSignerToken('');
         setCurrentView('school-select');
-      } else if (path === '/autorizar' || path === '/escolacidada' || path === '/termo' || path === '/escola' || path === '/') {
+        window.history.replaceState({}, '', '/');
+        return;
+      }
+
+      if (path === '/' || path === '/escolas' || path === '') {
         setActiveSchoolSlug('');
         setActiveSignerToken('');
-        setCurrentView('no-school-error');
+        setCurrentView('school-select');
+        if (path === '/escolas') {
+          window.history.replaceState({}, '', '/');
+        }
+      } else if (path === '/autorizar' || path === '/escolacidada' || path === '/termo' || path === '/escola') {
+        setActiveSchoolSlug('');
+        setActiveSignerToken('');
+        setCurrentView('school-select');
+        window.history.replaceState({}, '', '/');
       } else if (path.startsWith('/validar/')) {
         const hash = path.substring('/validar/'.length);
         setActiveValidatorHash(hash);
@@ -95,7 +100,7 @@ export function App() {
       } else if (path === '/revogar') {
         setActiveSchoolSlug('');
         setActiveSignerToken('');
-        setCurrentView('no-school-error');
+        setCurrentView('school-select');
         window.history.replaceState({}, '', '/');
       } else if (path === '/termos') {
         setCurrentView('terms');
@@ -104,10 +109,11 @@ export function App() {
       } else if (path === '/admin') {
         setCurrentView('admin');
       } else {
-        // Redireciona qualquer rota desconhecida para o erro de escola não informada
+        // Redireciona qualquer rota desconhecida para o portal principal
         setActiveSchoolSlug('');
         setActiveSignerToken('');
-        setCurrentView('no-school-error');
+        setCurrentView('school-select');
+        window.history.replaceState({}, '', '/');
       }
     };
 
@@ -124,7 +130,7 @@ export function App() {
   const navigateToSigner = (token?: string, slug?: string) => {
     const targetSlug = slug || (token && !token.startsWith('DOC-') && !token.startsWith('SESI-') ? token : activeSchoolSlug);
     if (!targetSlug) {
-      navegarParaView('no-school-error', '/');
+      navegarParaView('school-select', '/');
       return;
     }
     setActiveSignerToken(token || targetSlug);
@@ -135,7 +141,7 @@ export function App() {
   const navigateToSchoolSelect = () => {
     setActiveSchoolSlug('');
     setActiveSignerToken('');
-    navegarParaView('school-select', '/escolas');
+    navegarParaView('school-select', '/');
   };
 
   const navigateToValidator = (hash?: string) => {
@@ -178,7 +184,7 @@ export function App() {
             <StatusAlertScreen
               scenario="missing_school_slug"
               customReason="Nenhuma escola foi especificada no endereço de acesso. Para abrir o formulário de autorização digital escolar, é necessário utilizar o link direto com o identificador da escola (exemplo: catraki.com.br/autorizar/cemeit)."
-              onPrimaryAction={() => navegarParaView('school-select', '/escolas')}
+              onPrimaryAction={() => navegarParaView('school-select', '/')}
               primaryActionLabel="Consultar escolas cadastradas"
             />
           </div>

@@ -27,7 +27,7 @@ interface PublicValidatorProps {
   onNavigateToSigner?: () => void;
 }
 
-export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash }) => {
+export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, onNavigateToSigner }) => {
   const [hashInput, setHashInput] = useState(initialHash || '');
   const [loading, setLoading] = useState(false);
   const [validationResult, setValidationResult] = useState<PublicValidationResponse | null>(null);
@@ -122,18 +122,30 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
     <div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-1 sm:px-4 pb-10 pt-1">
       
       {/* Botões de Ação Superior (fora da folha A4) */}
-      {validationResult && (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mb-4 px-1 no-print">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mb-4 px-1 no-print">
+        {onNavigateToSigner ? (
           <button
-            onClick={handleResetSearch}
+            type="button"
+            onClick={onNavigateToSigner}
             className="text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Consultar Outro Documento</span>
+            <span>Voltar ao Início</span>
           </button>
-          
+        ) : <div />}
+
+        {validationResult ? (
           <div className="flex items-center gap-2">
             <button
+              type="button"
+              onClick={handleResetSearch}
+              className="text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+            >
+              <Search className="w-4 h-4" />
+              <span>Consultar Outro Documento</span>
+            </button>
+            <button
+              type="button"
               onClick={() => window.print()}
               className="text-xs sm:text-sm font-bold bg-sesi-primary hover:bg-blue-900 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
             >
@@ -141,8 +153,8 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash })
               <span>Imprimir Comprovante / Salvar PDF</span>
             </button>
           </div>
-        </div>
-      )}
+        ) : null}
+      </div>
 
       {/* Folha A4 — Padrão ABNT Responsivo */}
       <div className="document-sheet-a4">

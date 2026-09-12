@@ -98,7 +98,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
       <StatusAlertScreen
         scenario="missing_school_slug"
         customReason="Nenhuma escola foi especificada na URL. O formulário de autorização digital só pode ser aberto através do link oficial de uma escola cadastrada (ex: /autorizar/nome-da-escola)."
-        onPrimaryAction={onChangeSchool || (() => { window.location.href = '/escolas'; })}
+        onPrimaryAction={onChangeSchool || (() => { window.location.href = '/'; })}
         primaryActionLabel="Ver escolas participantes"
       />
     );
@@ -119,7 +119,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
       <StatusAlertScreen
         scenario="school_not_found"
         customReason={errorMessage || `A unidade escolar "${schoolSlug}" não foi encontrada no sistema. O formulário só pode ser aberto para escolas previamente cadastradas.`}
-        onPrimaryAction={onChangeSchool || (() => { window.location.href = '/escolas'; })}
+        onPrimaryAction={onChangeSchool || (() => { window.location.href = '/'; })}
         primaryActionLabel="Ver escolas participantes"
       />
     );

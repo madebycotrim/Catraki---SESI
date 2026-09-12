@@ -446,7 +446,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                     </div>
                   </div>
                    <span className="text-xs sm:text-[13px] text-slate-900 font-bold leading-relaxed">
-                     <strong>Declaro que li e compreendi</strong> todas as informações deste Termo de Consentimento e concordo expressamente com a utilização deste método de assinatura eletrônica — incluindo o código de verificação por e-mail, a assinatura eletrônica manuscrita e os registros de segurança — como forma válida e vinculante de manifestação de vontade, nos termos do Art. 10, § 2º, da MP nº 2.200-2/2001, Art. 107 do Código Civil e Art. 441 do CPC, confirmando a veracidade de todas as declarações prestadas sob as penas da lei (Art. 299 do Código Penal). <span className="text-red-500 font-bold">* (Obrigatório)</span>
+                     <strong>Declaro que li e concordo</strong> com este Termo de Consentimento e com o uso de assinatura eletrônica simples (Lei Federal nº 14.063/2020 e MP nº 2.200-2/2001), confirmando a veracidade de todas as declarações prestadas, sob as penas da lei. <span className="text-red-500 font-bold">* (Obrigatório)</span>
                    </span>
                 </label>
               </div>

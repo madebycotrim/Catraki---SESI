@@ -684,7 +684,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
 
                 {/* Disclaimer Institucional */}
                 <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-[10px] text-slate-500 leading-relaxed">
-                  <strong>Aviso Institucional:</strong> Os dados e procedimentos clínicos são de exclusiva responsabilidade dos Controladores (SESI-DF e Faculdade de Ciências da Saúde da UnB). A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de log e emissão de hash, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.
+                  <strong>Aviso Institucional:</strong> Os atendimentos clínicos e avaliações de saúde são de exclusiva responsabilidade das entidades realizadoras do projeto (SESI-DF e Faculdade de Ciências da Saúde da UnB). A Plataforma Catraki atua estritamente como ferramenta tecnológica para emissão e conferência eletrônica das autorizações.
                 </div>
 
               </div>

@@ -89,13 +89,16 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, cla
     ctx.lineTo(coords.x, coords.y);
     ctx.stroke();
     setHasDrawn(true);
-
-    const base64 = canvas.toDataURL('image/png');
-    onSave(base64);
   };
 
   const stopDrawing = () => {
+    if (!isDrawing) return;
     setIsDrawing(false);
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const base64 = canvas.toDataURL('image/png');
+      onSave(base64);
+    }
   };
 
   const handleClear = () => {

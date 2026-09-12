@@ -462,3 +462,63 @@ export const CancelDocumentErrorSchema = z.object({
     }),
   }),
 });
+
+// ============================================================================
+// FORMATADORES DE SÉRIE E TURMA ESCOLAR
+// ============================================================================
+export function formatStudentSeries(series?: string | null): string {
+  if (!series) return '';
+  let s = series.trim();
+
+  // Normalizações para Ensino Médio (ex: 1ª Série do Ensino Médio -> 1º Ano E.M.)
+  if (
+    /1[ªºa]?\s*(s[ée]rie|ano)?\s*(do\s*)?(ens(\.|\s*ino)?\s*m[ée]d(\.|\s*io)?|e\.?m\.?)/i.test(s) ||
+    /^(1|1º|1ª)\s*(ano|s[ée]rie)?\s*e\.?m\.?$/i.test(s) ||
+    /^1[ªºa]?\s*s[ée]rie$/i.test(s)
+  ) {
+    return '1º Ano E.M.';
+  }
+  if (
+    /2[ªºa]?\s*(s[ée]rie|ano)?\s*(do\s*)?(ens(\.|\s*ino)?\s*m[ée]d(\.|\s*io)?|e\.?m\.?)/i.test(s) ||
+    /^(2|2º|2ª)\s*(ano|s[ée]rie)?\s*e\.?m\.?$/i.test(s) ||
+    /^2[ªºa]?\s*s[ée]rie$/i.test(s)
+  ) {
+    return '2º Ano E.M.';
+  }
+  if (
+    /3[ªºa]?\s*(s[ée]rie|ano)?\s*(do\s*)?(ens(\.|\s*ino)?\s*m[ée]d(\.|\s*io)?|e\.?m\.?)/i.test(s) ||
+    /^(3|3º|3ª)\s*(ano|s[ée]rie)?\s*e\.?m\.?$/i.test(s) ||
+    /^3[ªºa]?\s*s[ée]rie$/i.test(s)
+  ) {
+    return '3º Ano E.M.';
+  }
+
+  // Normalizações para Ensino Fundamental
+  if (/7[ªºa]?\s*(ano|s[ée]rie)?\s*(do\s*)?(ens(\.|\s*ino)?\s*fund(\.|\s*amental)?|e\.?f\.?)/i.test(s)) {
+    return '7º Ano';
+  }
+  if (/8[ªºa]?\s*(ano|s[ée]rie)?\s*(do\s*)?(ens(\.|\s*ino)?\s*fund(\.|\s*amental)?|e\.?f\.?)/i.test(s)) {
+    return '8º Ano';
+  }
+  if (/9[ªºa]?\s*(ano|s[ée]rie)?\s*(do\s*)?(ens(\.|\s*ino)?\s*fund(\.|\s*amental)?|e\.?f\.?)/i.test(s)) {
+    return '9º Ano';
+  }
+
+  if (/^\d+$/.test(s)) return `${s}º Ano`;
+  if (/^\d+º$/.test(s)) return `${s} Ano`;
+
+  return s;
+}
+
+export function formatStudentSeriesClass(series?: string | null, minorClass?: string | null): string {
+  const s = formatStudentSeries(series);
+  let c = (minorClass || '').trim();
+  if (c.toLowerCase().startsWith('turma ')) {
+    c = c.substring(6).trim();
+  }
+
+  if (s && c) return `${s} • Turma ${c}`;
+  if (s) return s;
+  if (c) return `Turma ${c}`;
+  return '';
+}

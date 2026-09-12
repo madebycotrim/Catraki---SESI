@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { apiClient } from '../../lib/api.ts';
-import { formatUserAgent, formatBrasiliaDateTime } from '../../lib/schemas.ts';
+import { formatUserAgent, formatBrasiliaDateTime, formatStudentSeries } from '../../lib/schemas.ts';
 import type { PublicValidationResponse } from '../../lib/types.ts';
 
 interface PublicValidatorProps {
@@ -342,7 +342,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
                     {(validationResult.minor_series || validationResult.minor_class || validationResult.minor_turn) && (
                       <span className="text-[10px] text-slate-600 block mt-0.5 font-medium">
                         {[
-                          validationResult.minor_series ? `Série: ${validationResult.minor_series}` : '',
+                          validationResult.minor_series ? `Série: ${formatStudentSeries(validationResult.minor_series)}` : '',
                           validationResult.minor_class ? `Turma: ${validationResult.minor_class}` : '',
                           validationResult.minor_turn ? `Turno: ${validationResult.minor_turn}` : ''
                         ].filter(Boolean).join(' • ')}

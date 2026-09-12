@@ -19,7 +19,6 @@ import {
   FileSpreadsheet,
   Archive,
   Camera,
-  Calendar,
   Loader2,
   FileCheck,
   Clock,
@@ -40,7 +39,7 @@ import {
 import JSZip from 'jszip';
 import { GeradorPdfTermoSesi } from '../../lib/pades/GeradorPdfTermoSesi.ts';
 import { apiClient } from '../../lib/api.ts';
-import { parseUtcDate, formatBrasiliaDateTime, formatCPF } from '../../lib/schemas.ts';
+import { parseUtcDate, formatBrasiliaDateTime, formatCPF, formatStudentSeries, formatStudentSeriesClass } from '../../lib/schemas.ts';
 import type { Institution } from '../../lib/types.ts';
 import { ExcelColumnFilter, type ExcelOption } from './ExcelColumnFilter.tsx';
 
@@ -81,6 +80,8 @@ export const verificarCorrespondenciaBusca = (auth: any, termo: string): boolean
     auth.parentEmail,
     auth.validationCode,
     auth.minorSeries,
+    formatStudentSeries(auth.minorSeries),
+    formatStudentSeriesClass(auth.minorSeries, auth.minorClass),
     auth.minorClass,
     auth.minorTurn,
     auth.institutionName,
@@ -160,8 +161,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [authorizations, setAuthorizations] = useState<any[]>([]);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [showNewSchoolModal, setShowNewSchoolModal] = useState(false);
+  const [showSchoolSelectModal, setShowSchoolSelectModal] = useState(true);
+  const [schoolModalSearch, setSchoolModalSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(25);
+
+  const handleSelectSchoolFromModal = (schoolId: string) => {
+    setSelectedInstitution(schoolId);
+    setShowSchoolSelectModal(false);
+    setCurrentPage(1);
+  };
+
+  const filteredModalInstitutions = institutions.filter((inst) => {
+    if (!schoolModalSearch.trim()) return true;
+    const term = schoolModalSearch.toLowerCase();
+    return (
+      inst.name.toLowerCase().includes(term) ||
+      inst.short_name.toLowerCase().includes(term) ||
+      inst.city.toLowerCase().includes(term) ||
+      inst.id.toLowerCase().includes(term)
+    );
+  });
 
   // ━━ Filtros de Coluna Estilo Excel e Ordenação ━━
   const initialColumnFilters = {
@@ -447,22 +467,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     window.print();
   };
 
-  const formatStudentSeriesClass = (series?: string, minorClass?: string) => {
-    let s = (series || '').trim();
-    if (/^\d+$/.test(s)) s = `${s}º Ano`;
-    else if (/^\d+º$/.test(s)) s = `${s} Ano`;
-
-    let c = (minorClass || '').trim();
-    if (c.toLowerCase().startsWith('turma ')) {
-      c = c.substring(6).trim();
-    }
-
-    if (s && c) return `${s} • Turma ${c}`;
-    if (s) return s;
-    if (c) return `Turma ${c}`;
-    return '';
-  };
-
   const formatBirthDateAndAge = (birthDateStr?: string) => {
     if (!birthDateStr) return null;
     const str = birthDateStr.trim();
@@ -703,9 +707,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         (selectedImageOption === 'authorized' && auth.authImage === true) ||
         (selectedImageOption === 'not_authorized' && auth.authImage === false);
 
+      const sFormatted = formatStudentSeries(auth.minorSeries);
       const matchesSeries =
         selectedSeries === 'all' ||
-        (auth.minorSeries && auth.minorSeries.toLowerCase().includes(selectedSeries.toLowerCase()));
+        (auth.minorSeries && auth.minorSeries.toLowerCase().includes(selectedSeries.toLowerCase())) ||
+        (sFormatted && sFormatted.toLowerCase().includes(selectedSeries.toLowerCase()));
 
       const matchesTurn =
         selectedTurn === 'all' ||
@@ -1018,7 +1024,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       `"${a.validationCode || a.id}"`,
       `"${a.studentName}"`,
       `"${a.birthDate || ''}"`,
-      `"${a.minorSeries || ''}"`,
+      `"${formatStudentSeries(a.minorSeries) || a.minorSeries || ''}"`,
       `"${a.minorClass || ''}"`,
       `"${a.minorTurn || ''}"`,
       `"${a.institutionName}"`,
@@ -1145,15 +1151,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'A'}
                 </div>
                 <div className="text-left">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-white text-xs sm:text-sm truncate max-w-[180px] sm:max-w-[240px]">
+                  <div>
+                    <span className="font-bold text-white text-xs sm:text-sm whitespace-nowrap">
                       {currentUser.name}
                     </span>
-                    <span className="px-2 py-0.5 bg-blue-500/30 text-blue-300 border border-blue-400/40 text-[9px] font-black rounded-md uppercase tracking-wider">
-                      {currentUser.role === 'admin_master' ? 'Master' : 'Gestor'}
-                    </span>
                   </div>
-                  <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate max-w-[200px] sm:max-w-[260px]">
+                  <div className="text-[11px] text-slate-400 font-mono mt-0.5 whitespace-nowrap">
                     {currentUser.email}
                   </div>
                 </div>
@@ -1161,6 +1164,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             )}
 
             <div className="flex items-center gap-2.5 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setShowSchoolSelectModal(true)}
+                className="flex-1 sm:flex-none px-3.5 py-2.5 bg-slate-800/90 hover:bg-slate-700 text-blue-200 hover:text-white border border-slate-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                title="Escolher ou trocar unidade escolar ativa"
+              >
+                <Building2 className="w-4 h-4 text-blue-400 shrink-0" />
+                <span className="truncate max-w-[130px] sm:max-w-[180px]">
+                  {selectedInstitution === 'all'
+                    ? 'Todas as Escolas'
+                    : (institutions.find((i) => i.id === selectedInstitution)?.short_name || 'Escola Selecionada')}
+                </span>
+                <span className="text-[10px] text-blue-300 font-normal px-1.5 py-0.5 bg-blue-500/20 rounded">
+                  Trocar
+                </span>
+              </button>
+
               <button
                 onClick={() => setShowNewSchoolModal(true)}
                 className="flex-1 sm:flex-none px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-900/40 transition-all cursor-pointer hover:-translate-y-0.5"
@@ -1356,7 +1376,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full pl-12 pr-10 py-3 text-sm text-slate-800 bg-slate-50/50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-slate-400 font-medium"
+                  className="w-full pl-12 pr-10 py-3 text-sm text-slate-800 bg-slate-50/50 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] transition-all placeholder:text-slate-400 font-medium"
                 />
                 {searchTerm && (
                   <button
@@ -1516,7 +1536,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <select
                     value={selectedStatus}
                     onChange={(e) => handleStatusFilterChange(e.target.value as any)}
-                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none cursor-pointer"
+                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] appearance-none cursor-pointer"
                   >
                     <option value="all">Todos os Status</option>
                     <option value="signed">✅ Autorizadas</option>
@@ -1536,7 +1556,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       setSelectedInstitution(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none cursor-pointer truncate"
+                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] appearance-none cursor-pointer truncate"
                   >
                     <option value="all">Todas as Escolas</option>
                     {institutions.map((inst) => (
@@ -1555,33 +1575,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       setSelectedSeries(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none cursor-pointer"
+                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] appearance-none cursor-pointer"
                   >
                     <option value="all">Série: Todas</option>
-                    <option value="1º Ano">1º Ano</option>
-                    <option value="2º Ano">2º Ano</option>
-                    <option value="3º Ano">3º Ano</option>
-                    <option value="4º Ano">4º Ano</option>
+                    <option value="1º Ano">1º Ano E.M.</option>
+                    <option value="2º Ano">2º Ano E.M.</option>
+                    <option value="3º Ano">3º Ano E.M.</option>
+                    <option value="7º Ano">7º Ano</option>
+                    <option value="8º Ano">8º Ano</option>
                     <option value="9º Ano">9º Ano</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-                </div>
-
-                {/* Filtro de Período */}
-                <div className="relative min-w-[150px] flex-1 lg:flex-none">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <select
-                    value={selectedDateRange}
-                    onChange={(e) => {
-                      setSelectedDateRange(e.target.value as any);
-                      setCurrentPage(1);
-                    }}
-                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none cursor-pointer"
-                  >
-                    <option value="all">Período: Todo</option>
-                    <option value="today">📅 Hoje</option>
-                    <option value="7days">📅 Últimos 7 dias</option>
-                    <option value="30days">📅 Últimos 30 dias</option>
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
                 </div>
@@ -2125,6 +2127,206 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* ━━ 7. MODAIS INTEGRADOS ━━ */}
 
+      {/* MODAL: ESCOLHA DE UNIDADE ESCOLAR APÓS LOGIN */}
+      {showSchoolSelectModal && (
+        <div className="fixed inset-0 z-[120] bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl space-y-4 sm:space-y-5 border border-slate-200 my-auto max-h-[92vh] flex flex-col">
+            
+            {/* Cabeçalho do Modal */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-blue-50 border border-blue-100 text-[#004b8d] flex items-center justify-center shrink-0 shadow-xs">
+                  <Building2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[#004b8d] text-[10px] font-bold uppercase tracking-wider mb-1">
+                    <Sparkles className="w-3 h-3 text-[#004b8d]" />
+                    <span>Gestão Escolar • Painel Administrativo</span>
+                  </div>
+                  <h2 className="font-black text-slate-900 text-base sm:text-xl leading-snug">
+                    Selecione a Unidade Escolar
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                    Escolha qual escola você deseja acompanhar para visualizar os registros de autorização.
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowSchoolSelectModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-base sm:text-lg font-bold p-1.5 rounded-xl hover:bg-slate-100 cursor-pointer transition-colors shrink-0"
+                title="Fechar e continuar"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Campo de Busca Rápida de Escola */}
+            {institutions.length > 2 && (
+              <div className="relative shrink-0">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={schoolModalSearch}
+                  onChange={(e) => setSchoolModalSearch(e.target.value)}
+                  placeholder="Buscar escola por nome, sigla ou região..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] transition-all"
+                />
+              </div>
+            )}
+
+            {/* Lista de Escolas */}
+            <div className="overflow-y-auto space-y-2.5 pr-1 max-h-[52vh] flex-1">
+              {/* Opção Consolidada: Todas as Unidades */}
+              <div
+                onClick={() => handleSelectSchoolFromModal('all')}
+                className={`group p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                  selectedInstitution === 'all'
+                    ? 'bg-blue-50/80 border-[#004b8d] ring-2 ring-blue-500/20 shadow-xs'
+                    : 'bg-white hover:bg-slate-50 border-slate-200/90 hover:border-slate-300'
+                }`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelectSchoolFromModal('all');
+                  }
+                }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 transition-colors ${
+                    selectedInstitution === 'all'
+                      ? 'bg-[#004b8d] text-white'
+                      : 'bg-slate-100 text-slate-600 group-hover:bg-blue-100 group-hover:text-[#004b8d]'
+                  }`}>
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-[#004b8d] transition-colors">
+                        Todas as Escolas Participantes
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold text-[10px]">
+                        Consolidado
+                      </span>
+                    </div>
+                    <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate">
+                      Visualizar registros consolidados de todas as escolas ({authorizations.length} termos no total)
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0 flex items-center gap-2">
+                  {selectedInstitution === 'all' && (
+                    <span className="px-2.5 py-1 rounded-lg bg-blue-100 text-[#004b8d] text-xs font-bold flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Selecionada</span>
+                    </span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#004b8d] group-hover:translate-x-0.5 transition-all" />
+                </div>
+              </div>
+
+              {/* Divisor */}
+              <div className="pt-2 pb-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Ou selecione uma escola específica:
+                </span>
+              </div>
+
+              {/* Estado de Carregamento */}
+              {institutions.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-10 text-slate-500 gap-2">
+                  <Loader2 className="w-7 h-7 animate-spin text-[#004b8d]" />
+                  <span className="text-xs font-medium">Carregando escolas cadastradas...</span>
+                </div>
+              )}
+
+              {/* Escolas Participantes */}
+              {filteredModalInstitutions.map((inst) => {
+                const isSelected = selectedInstitution === inst.id;
+                const count = authorizations.filter(
+                  (a) => a.institutionId === inst.id || (a.institutionName && a.institutionName.toLowerCase().includes(inst.id.toLowerCase()))
+                ).length;
+
+                return (
+                  <div
+                    key={inst.id}
+                    onClick={() => handleSelectSchoolFromModal(inst.id)}
+                    className={`group p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      isSelected
+                        ? 'bg-blue-50/80 border-[#004b8d] ring-2 ring-blue-500/20 shadow-xs'
+                        : 'bg-white hover:bg-slate-50 border-slate-200/90 hover:border-[#004b8d]/60'
+                    }`}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleSelectSchoolFromModal(inst.id);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 transition-colors ${
+                        isSelected
+                          ? 'bg-[#004b8d] text-white'
+                          : 'bg-blue-100/70 text-[#004b8d] group-hover:bg-[#004b8d] group-hover:text-white'
+                      }`}>
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2 py-0.5 rounded-md bg-blue-100/80 text-blue-950 font-mono text-xs font-bold">
+                            {inst.short_name || inst.id.toUpperCase()}
+                          </span>
+                          <span className="text-xs text-slate-500 font-medium">
+                            {inst.city} - {inst.state}
+                          </span>
+                        </div>
+                        <h3 className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-[#004b8d] transition-colors mt-1 leading-snug">
+                          {inst.name}
+                        </h3>
+                        <div className="flex items-center gap-2 sm:gap-3 text-[11px] text-slate-500 mt-1 flex-wrap">
+                          <span className="font-semibold text-slate-600">{count} {count === 1 ? 'registro' : 'registros'} vinculados</span>
+                          <span>&bull;</span>
+                          <span className="font-mono text-slate-400 text-[10px]">/autorizar/{inst.id}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 flex items-center gap-2">
+                      {isSelected ? (
+                        <span className="px-2.5 py-1 rounded-lg bg-blue-100 text-[#004b8d] text-xs font-bold flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Selecionada</span>
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1.5 rounded-xl bg-slate-100 group-hover:bg-[#004b8d] text-slate-600 group-hover:text-white text-xs font-bold transition-colors">
+                          Acessar
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Rodapé do Modal */}
+            <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 text-xs text-slate-500 shrink-0">
+              <span className="text-[11px]">Você pode alternar de escola a qualquer momento no topo do painel.</span>
+              <button
+                type="button"
+                onClick={() => setShowSchoolSelectModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors cursor-pointer text-center"
+              >
+                Continuar para o Painel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL: CADASTRAR NOVA ESCOLA */}
       {showNewSchoolModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
@@ -2603,7 +2805,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="bg-blue-50/70 rounded-xl p-2.5 border border-blue-100">
                         <span className="text-[10px] text-blue-700 font-bold block uppercase">Ano / Série</span>
                         <strong className="text-xs sm:text-sm text-blue-950 font-black">
-                          {selectedAuthForDetails.minorSeries ? formatStudentSeriesClass(selectedAuthForDetails.minorSeries) : 'Não informado'}
+                          {selectedAuthForDetails.minorSeries ? formatStudentSeries(selectedAuthForDetails.minorSeries) : 'Não informado'}
                         </strong>
                       </div>
                       <div className="bg-blue-50/70 rounded-xl p-2.5 border border-blue-100">

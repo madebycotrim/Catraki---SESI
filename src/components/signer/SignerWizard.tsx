@@ -5,7 +5,7 @@ import { Step3OtpAndSignature } from './Step3OtpAndSignature.tsx';
 import { Step4Success } from './Step4Success.tsx';
 import { StatusAlertScreen } from '../common/StatusAlertScreen.tsx';
 import { apiClient } from '../../lib/api.ts';
-import { Loader2, Building2, ArrowRight } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import type { Institution } from '../../lib/types.ts';
 
 interface SignerWizardProps {
@@ -178,30 +178,6 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
 
   return (
     <div className="w-full space-y-6">
-
-      {/* Barra de identificação da Unidade Escolar e opção de troca */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white border border-slate-200/90 px-3.5 sm:px-4 py-2.5 rounded-2xl shadow-2xs text-xs">
-        <div className="flex items-center gap-2 text-slate-700 min-w-0">
-          <Building2 className="w-4 h-4 text-[#004b8d] shrink-0" />
-          <span className="font-semibold text-slate-500 hidden sm:inline">Unidade Escolar:</span>
-          <span className="font-bold text-slate-900 truncate">
-            {institution?.name || documentData?.institution_name || (schoolSlug ? `Escola ${schoolSlug.toUpperCase()}` : 'Escola Participante')}
-          </span>
-        </div>
-
-        {onChangeSchool && (
-          <button
-            type="button"
-            onClick={onChangeSchool}
-            className="text-xs font-bold text-[#004b8d] hover:text-[#003666] hover:underline cursor-pointer flex items-center gap-1 shrink-0 ml-auto"
-            title="Selecionar outra escola participante"
-          >
-            <span>Trocar de escola</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
-
       {/* Renderização Condicional da Etapa Atual */}
       {step === 1 && (
         <Step1Reading

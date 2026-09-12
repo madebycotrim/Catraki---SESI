@@ -6,6 +6,8 @@ import {
   maskEmail,
   maskName,
   getInitials,
+  formatStudentSeries,
+  formatStudentSeriesClass,
   CreateDocumentSchema,
   SignDocumentSchema,
 } from '../src/lib/schemas.ts';
@@ -210,5 +212,31 @@ describe('Validações e Schemas Zod (schemas.ts)', () => {
     const res5 = await apiClient.validatePublic(sabrinaHash);
     expect(res5.success).toBe(true);
     expect(res5.validation?.manifest_sha256).toBe(sabrinaHash);
+  });
+
+  it('deve formatar séries de Ensino Médio e Fundamental conforme padrão (1º Ano E.M.)', () => {
+    // 1ª Série do Ensino Médio -> 1º Ano E.M.
+    expect(formatStudentSeries('1ª Série do Ensino Médio')).toBe('1º Ano E.M.');
+    expect(formatStudentSeries('1ª Série do Ens. Médio')).toBe('1º Ano E.M.');
+    expect(formatStudentSeries('1ª Série')).toBe('1º Ano E.M.');
+    expect(formatStudentSeries('1 ano e.m')).toBe('1º Ano E.M.');
+    expect(formatStudentSeries('1º Ano E.M.')).toBe('1º Ano E.M.');
+    expect(formatStudentSeries('1º Ano EM')).toBe('1º Ano E.M.');
+    expect(formatStudentSeries('1 ANO E.M')).toBe('1º Ano E.M.');
+
+    // Outras séries de Ensino Médio
+    expect(formatStudentSeries('2ª Série do Ensino Médio')).toBe('2º Ano E.M.');
+    expect(formatStudentSeries('3ª Série do Ensino Médio')).toBe('3º Ano E.M.');
+
+    // Fundamental
+    expect(formatStudentSeries('7º Ano do Ensino Fundamental')).toBe('7º Ano');
+    expect(formatStudentSeries('8º Ano do Ensino Fundamental')).toBe('8º Ano');
+    expect(formatStudentSeries('9º Ano do Ensino Fundamental')).toBe('9º Ano');
+
+    // Com turma combinada (badge visual exibido na listagem)
+    expect(formatStudentSeriesClass('1ª Série do Ensino Médio', 'Turma D')).toBe('1º Ano E.M. • Turma D');
+    expect(formatStudentSeriesClass('1ª Série do Ensino Médio', 'D')).toBe('1º Ano E.M. • Turma D');
+    expect(formatStudentSeriesClass('2ª Série do Ensino Médio', 'Turma B')).toBe('2º Ano E.M. • Turma B');
+    expect(formatStudentSeriesClass('7º Ano do Ensino Fundamental', 'Turma A')).toBe('7º Ano • Turma A');
   });
 });

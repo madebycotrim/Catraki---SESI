@@ -2157,8 +2157,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* MODAL: ESCOLHA DE UNIDADE ESCOLAR APÓS LOGIN */}
       {showSchoolSelectModal && (typeof document !== 'undefined' ? createPortal(
-        <div className="fixed inset-0 z-[120] bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl flex flex-col gap-3 sm:gap-3.5 border border-slate-200 my-auto max-h-[92vh]">
+        <div className="fixed inset-0 z-[120] bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-0 m-0 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-2xl w-[calc(100%-2rem)] sm:w-full mx-4 p-4 sm:p-6 shadow-2xl flex flex-col gap-3 sm:gap-3.5 border border-slate-200 my-auto max-h-[92vh]">
             
             {/* Cabeçalho do Modal */}
             <div className="flex items-start justify-between border-b border-slate-100 pb-3 shrink-0">
@@ -2359,9 +2359,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       ) : null)}
 
       {/* MODAL: CADASTRAR NOVA ESCOLA */}
-      {showNewSchoolModal && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl space-y-5 border border-slate-200 my-auto max-h-[90vh] overflow-y-auto">
+      {showNewSchoolModal && (typeof document !== 'undefined' ? createPortal(
+        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-0 m-0 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-[calc(100%-2rem)] sm:w-full mx-4 p-6 sm:p-7 shadow-2xl space-y-5 border border-slate-200 my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-blue-50 text-[#004b8d] flex items-center justify-center shrink-0">
@@ -2485,8 +2485,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </form>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      ) : null)}
 
       {/* TOAST DE FEEDBACK DE REVOGAÇÃO / SUCESSO */}
       {revocationSuccessToast && (
@@ -2506,13 +2507,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* MODAL DE REVOGAÇÃO / ANULAÇÃO DE DOCUMENTO */}
-      {showRevocationModal && selectedAuthToRevoke && (
+      {showRevocationModal && selectedAuthToRevoke && (typeof document !== 'undefined' ? createPortal(
         <div 
-          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-2 sm:p-4 animate-in fade-in duration-200 overflow-y-auto"
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-0 m-0 animate-in fade-in duration-200 overflow-y-auto"
           onClick={() => !isRevoking && setShowRevocationModal(false)}
         >
           <div 
-            className="document-sheet-a4 max-w-2xl w-full animate-in zoom-in-95 duration-200 text-left my-6 space-y-5 relative rounded-3xl shadow-2xl bg-white border border-slate-200/80"
+            className="document-sheet-a4 max-w-2xl w-[calc(100%-2rem)] sm:w-full mx-4 animate-in zoom-in-95 duration-200 text-left my-6 space-y-5 relative rounded-3xl shadow-2xl bg-white border border-slate-200/80"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header Timbrado Oficial */}
@@ -2695,17 +2696,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               1
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      ) : null)}
 
       {/* MODAL: FICHA CADASTRAL E DE COMPROVANTE DO ESTUDANTE — FOLHA A4 (PADRÃO TIMBRADO CATRAKI / SESI) */}
-      {showDetailsModal && selectedAuthForDetails && (
+      {showDetailsModal && selectedAuthForDetails && (typeof document !== 'undefined' ? createPortal(
         <div 
-          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-2 sm:p-4 animate-in fade-in duration-200 overflow-y-auto"
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-0 m-0 animate-in fade-in duration-200 overflow-y-auto"
           onClick={() => setShowDetailsModal(false)}
         >
           <div 
-            className="document-sheet-a4 max-w-3xl w-full animate-in zoom-in-95 duration-200 text-left my-6 space-y-5 relative rounded-3xl shadow-2xl bg-white border border-slate-200/80"
+            className="document-sheet-a4 max-w-3xl w-[calc(100%-2rem)] sm:w-full mx-4 animate-in zoom-in-95 duration-200 text-left my-6 space-y-5 relative rounded-3xl shadow-2xl bg-white border border-slate-200/80"
             onClick={(e) => e.stopPropagation()}
           >
             {/* ━━ CABEÇALHO TIMBRADO OFICIAL PLATAFORMA CATRAKI (PADRÃO COMPROVANTE) ━━ */}
@@ -2973,17 +2975,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="absolute bottom-0 left-0 right-0 h-2.5 sm:h-3.5 bg-[#034b7f] pointer-events-none z-10 rounded-b-3xl" />
 
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      ) : null)}
 
       {/* MODAL: REENVIAR E-MAIL */}
-      {showResendEmailModal && selectedAuthForResendEmail && (
+      {showResendEmailModal && selectedAuthForResendEmail && (typeof document !== 'undefined' ? createPortal(
         <div 
-          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-3 sm:p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-0 m-0 animate-in fade-in duration-200 overflow-y-auto"
           onClick={() => setShowResendEmailModal(false)}
         >
           <div 
-            className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-200 text-left"
+            className="bg-white rounded-3xl max-w-lg w-[calc(100%-2rem)] sm:w-full mx-4 p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-200 text-left my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -3098,17 +3101,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      ) : null)}
 
       {/* MODAL: EXCLUSÃO DEFINITIVA DE TESTE (HARD DELETE) */}
-      {showHardDeleteModal && selectedAuthToHardDelete && (
+      {showHardDeleteModal && selectedAuthToHardDelete && (typeof document !== 'undefined' ? createPortal(
         <div 
-          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-3 sm:p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-0 m-0 animate-in fade-in duration-200 overflow-y-auto"
           onClick={() => setShowHardDeleteModal(false)}
         >
           <div 
-            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-200 space-y-4 animate-in zoom-in-95 duration-200 text-left"
+            className="bg-white rounded-3xl max-w-md w-[calc(100%-2rem)] sm:w-full mx-4 p-6 shadow-2xl border border-rose-200 space-y-4 animate-in zoom-in-95 duration-200 text-left my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -3189,8 +3193,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      ) : null)}
 
     </div>
   );

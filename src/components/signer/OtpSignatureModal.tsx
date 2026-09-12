@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, RefreshCw, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { SignaturePad } from '../common/SignaturePad.tsx';
 
@@ -54,11 +55,11 @@ export const OtpSignatureModal: React.FC<OtpSignatureModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
+  const modalNode = (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-0 m-0 overflow-y-auto animate-in fade-in duration-200">
       {/* Folha A5 — Padrão Formal */}
       <div
-        className="w-full max-w-[500px] animate-in zoom-in-95 duration-200"
+        className="w-[calc(100%-2rem)] sm:w-full max-w-[500px] mx-4 my-auto animate-in zoom-in-95 duration-200"
         style={{
           background: '#ffffff',
           paddingTop: '36px',
@@ -361,4 +362,6 @@ export const OtpSignatureModal: React.FC<OtpSignatureModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : modalNode;
 };

@@ -98,7 +98,7 @@ export const SchoolSelectionScreen: React.FC<SchoolSelectionScreenProps> = ({
         </div>
 
         <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
-          Portal de Autorização Eletrônica Escolar
+          Portal de Autorização Eletrônica
         </h1>
 
         <p className="max-w-2xl mx-auto text-xs sm:text-sm md:text-base text-slate-600 leading-relaxed">

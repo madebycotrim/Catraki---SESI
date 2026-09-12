@@ -487,17 +487,20 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Parâmetros inválidos.', code: 'VALIDATION_ERROR' }, 400);
   }
 
-  // ── Validação Anti-Robô Obrigatória (Cloudflare Turnstile) ───────────────
+  // ── Validação Anti-Robô (Cloudflare Turnstile) ───────────────
+  // Valida token Turnstile apenas se enviado pelo cliente. Não bloqueia usuários legítimos.
   const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
   const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
-  const cfData = extractCloudflareClientData(c);
-  const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip);
-  if (!turnstileCheck.success) {
-    return c.json({
-      success: false,
-      error: turnstileCheck.error || 'Verificação de segurança anti-robô falhou. Por favor, recarregue e tente novamente.',
-      code: 'TURNSTILE_FAILED',
-    }, 403);
+  if (turnstileToken && turnstileSecret) {
+    const cfData = extractCloudflareClientData(c);
+    const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip);
+    if (!turnstileCheck.success) {
+      return c.json({
+        success: false,
+        error: turnstileCheck.error || 'Verificação de segurança anti-robô falhou. Por favor, recarregue e tente novamente.',
+        code: 'TURNSTILE_FAILED',
+      }, 403);
+    }
   }
 
   const { token, email: providedEmail, minor_name: providedMinorName } = parsed.data;
@@ -774,17 +777,21 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
 
   const { token, otp_code, signer_name, signer_cpf, signer_relationship, signature_png_base64, client_fingerprint } = parsed.data;
 
-  // ── Validação Anti-Robô Obrigatória (Cloudflare Turnstile) ───────────────
+  // ── Validação Anti-Robô (Cloudflare Turnstile) ───────────────
+  // A assinatura é autenticada por OTP de 6 dígitos enviado por e-mail com limite de 3 tentativas,
+  // rate limiting e bloqueio anti-força-bruta no KV. Valida Turnstile apenas se fornecido.
   const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
   const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
-  const cfData = extractCloudflareClientData(c);
-  const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip);
-  if (!turnstileCheck.success) {
-    return c.json({
-      success: false,
-      error: turnstileCheck.error || 'Verificação de segurança anti-robô falhou para assinatura.',
-      code: 'TURNSTILE_FAILED',
-    }, 403);
+  if (turnstileToken && turnstileSecret) {
+    const cfData = extractCloudflareClientData(c);
+    const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip);
+    if (!turnstileCheck.success) {
+      return c.json({
+        success: false,
+        error: turnstileCheck.error || 'Verificação de segurança anti-robô falhou para assinatura.',
+        code: 'TURNSTILE_FAILED',
+      }, 403);
+    }
   }
 
   // device_fingerprint_data: dados adicionais de impressão digital do dispositivo

@@ -90,8 +90,11 @@ export async function sha256(data: string | Uint8Array): Promise<string> {
  * Calcula HMAC-SHA256 para OTP Peppered
  */
 export async function hmacSha256(data: string, secretKey: string): Promise<string> {
+  if (!secretKey) {
+    throw new Error('HMAC secret key é obrigatória. Verifique a configuração de OTP_PEPPER/JWT_ADMIN_SECRET.');
+  }
   const encoder = new TextEncoder();
-  const keyBuffer = encoder.encode(secretKey || 'SESI_DEFAULT_PEPPER_KEY_32BYTES_MIN');
+  const keyBuffer = encoder.encode(secretKey);
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
     keyBuffer as any,
@@ -364,23 +367,8 @@ export async function verifyPasswordPbkdf2(
   return constantTimeEqual(computedHashHex, expectedHashHex);
 }
 
-export interface TurnstileVerifyOptions {
-  secretKey?: string;
-  remoteIp?: string;
-  expectedAction?: string;
-  expectedHostnames?: string[];
-}
-
-/**
- * Validação canônica de token Cloudflare Turnstile (RFC/Canonical Siteverify)
- */
-export async function verifyTurnstileToken(
-  _token?: string,
-  _optionsOrSecret?: TurnstileVerifyOptions | string,
-  _legacyRemoteIp?: string
-): Promise<boolean> {
-  return true; // Turnstile desativado por completo
-}
+// NOTA: A validação de Turnstile é feita exclusivamente via functions/utils/turnstile.ts
+// A função duplicada que retornava 'true' foi removida por vulnerabilidade de segurança (CRIT-04).
 
 /**
  * Mascaramento de endereço IP para exibição pública em conformidade com a LGPD (Minimização de Dados)

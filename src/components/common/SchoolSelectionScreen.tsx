@@ -277,7 +277,7 @@ export const SchoolSelectionScreen: React.FC<SchoolSelectionScreenProps> = ({
         </div>
 
         <p className="text-[11px] text-slate-400 max-w-xl mx-auto leading-relaxed">
-          Plataforma Catraki • Sistema Oficial de Assinatura Eletrônica do Projeto Escola Cidadã: Saúde em Movimento (SESI-DF, Universidade de Brasília e FINATEC). Em conformidade com a MP 2.200-2/2001, Lei 14.063/2020 e LGPD.
+          Plataforma Catraki • Sistema Oficial de Assinatura Eletrônica do Projeto Escola Cidadã: Saúde em Movimento (SESI-DF e Universidade de Brasília). Em conformidade com a MP 2.200-2/2001, Lei 14.063/2020 e LGPD.
         </p>
       </footer>
 

@@ -328,11 +328,10 @@ signerRouter.post('/check-student', rateLimiter({ limit: 20, windowSeconds: 60, 
  * Validação de consentimento em massa restrita para sistemas clínicos autenticados (SMS-MEDCO)
  */
 signerRouter.post('/check-bulk', rateLimiter({ limit: 30, windowSeconds: 60, keyPrefix: 'chk_blk' }), async (c) => {
-  // ── Autenticação de API Key / Bearer Token Obrigatória ─────────────────────
+  // ── Autenticação de API Key Obrigatória (Constant-Time Compare) ─────────────────────
   const apiKey = c.req.header('x-api-key') || c.req.header('apikey');
-  const authHeader = c.req.header('authorization');
   const expectedKey = (c.env as any).SMS_MEDCO_API_KEY || (c.env as any).CLINIC_API_KEY;
-  const isAuthorized = (expectedKey && apiKey && apiKey === expectedKey) || (authHeader && authHeader.startsWith('Bearer '));
+  const isAuthorized = !!(expectedKey && apiKey && constantTimeEqual(apiKey, expectedKey));
 
   if (!isAuthorized) {
     return c.json({
@@ -642,13 +641,12 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   ).bind(otpHash, expiresAtIso, new Date().toISOString(), messageId, deliveryStatus, doc.id).run();
 
   if (!emailSent) {
-    console.info(`[SIMULATION_OTP] Código OTP gerado para o documento ${doc.id}: ${otpCode}`);
+    console.warn(`[OTP_FALLBACK] E-mail de código OTP não enviado para o documento ${doc.id}. Verifique RESEND_API_KEY.`);
   } else {
-    console.log(`[SECURE_OTP] Código OTP enviado por e-mail com sucesso.`);
+    console.log(`[SECURE_OTP] Código OTP enviado por e-mail com sucesso para doc ${doc.id}.`);
   }
 
-  const requestUrl = new URL(c.req.url);
-  const isLocalhost = requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1' || requestUrl.hostname.startsWith('192.168.') || requestUrl.hostname === '::1';
+  const isDev = (c.env as any).APP_ENV === 'development';
 
   return c.json({
     success: true,
@@ -656,7 +654,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     email_sent: emailSent,
     email_error: emailError || undefined,
     expires_in_seconds: 300,
-    simulated_otp: isLocalhost ? otpCode : undefined,
+    simulated_otp: isDev ? otpCode : undefined,
     message: 'Código de verificação de 6 dígitos enviado para o e-mail do responsável legal.',
   });
 });
@@ -1240,7 +1238,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         const errorText = await response.text();
         console.warn(`[Catraki] Falha ao sincronizar com sms-medco (Status ${response.status}):`, errorText);
       } else {
-        console.log(`[Catraki] Consentimento sincronizado no sms-medco com sucesso para o CPF ${cleanCpf} (Protocolo: ${validationCode})`);
+        console.log(`[Catraki] Consentimento sincronizado no sms-medco com sucesso (Protocolo: ${validationCode})`);
       }
     }
   } catch (syncError) {
@@ -1670,7 +1668,7 @@ signerRouter.post('/revoke', async (c) => {
           tcle_protocol: null,
         }),
       });
-      console.log(`[Catraki] Consentimento revogado no Supabase do SMS-MEDCO para o CPF ${cleanCpf}`);
+      console.log(`[Catraki] Consentimento revogado no Supabase do SMS-MEDCO para doc ${doc.id}`);
     }
   } catch (syncErr) {
     console.error('[Catraki] Erro ao sincronizar revogação com SMS-MEDCO:', syncErr);

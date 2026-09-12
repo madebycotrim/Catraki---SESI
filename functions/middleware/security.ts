@@ -25,10 +25,25 @@ export const securityHeaders: MiddlewareHandler = async (c, next) => {
   // Permissions Policy restrita para saúde
   c.header('Permissions-Policy', 'camera=(self), geolocation=(), microphone=()');
 
-  // Content Security Policy
+  // Content Security Policy (Endurecida — OWASP Level 2)
+  // NOTA: 'unsafe-inline' mantido em style-src por necessidade do Vite/React (CSS-in-JS).
+  // script-src usa 'unsafe-inline' pois Vite injeta inline scripts em dev/build, mas 'unsafe-eval' foi REMOVIDO.
   c.header(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://catraki.com.br https://*.catraki.com.br https://challenges.cloudflare.com https://static.cloudflareinsights.com https://*.cloudflareinsights.com https://*.cloudflare.com blob:; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://catraki.com.br https://*.catraki.com.br https://challenges.cloudflare.com https://static.cloudflareinsights.com https://*.cloudflareinsights.com https://*.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://catraki.com.br https://*.catraki.com.br https://challenges.cloudflare.com https://cloudflareinsights.com https://*.cloudflareinsights.com https://static.cloudflareinsights.com https://*.cloudflare.com blob: data:; frame-src 'self' https://challenges.cloudflare.com; frame-ancestors 'none';"
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://*.cloudflareinsights.com https://*.cloudflare.com",
+      "script-src-elem 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://*.cloudflareinsights.com https://*.cloudflare.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data: blob: https://catraki.com.br https://*.catraki.com.br",
+      "connect-src 'self' https://catraki.com.br https://*.catraki.com.br https://challenges.cloudflare.com https://cloudflareinsights.com https://*.cloudflareinsights.com https://static.cloudflareinsights.com https://*.cloudflare.com",
+      "frame-src 'self' https://challenges.cloudflare.com",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+    ].join('; ')
   );
 };
 

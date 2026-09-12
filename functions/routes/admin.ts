@@ -870,7 +870,7 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
           tcle_protocol: null,
         }),
       });
-      console.log(`[Catraki Admin] Consentimento cancelado no Supabase do SMS-MEDCO para o CPF ${cleanCpf}`);
+      console.log(`[Catraki Admin] Consentimento cancelado no Supabase do SMS-MEDCO para doc ${doc.id}`);
     }
   } catch (syncErr) {
     console.error('[Catraki Admin] Erro ao sincronizar cancelamento com SMS-MEDCO:', syncErr);

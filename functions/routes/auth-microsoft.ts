@@ -266,7 +266,10 @@ authMicrosoftRouter.get('/me', async (c) => {
   }
 
   const token = authHeader.substring(7);
-  const secret = c.env.JWT_ADMIN_SECRET || 'SESI_DEV_SECRET_KEY_FOR_LOCAL_TESTS_12345';
+  const secret = c.env.JWT_ADMIN_SECRET;
+  if (!secret) {
+    return c.json({ success: false, error: 'Configuração de segurança do servidor incompleta (JWT_ADMIN_SECRET ausente).', code: 'SERVER_MISCONFIGURED' }, 500);
+  }
   const payload = await verifyJwt(token, secret);
 
   if (!payload) {

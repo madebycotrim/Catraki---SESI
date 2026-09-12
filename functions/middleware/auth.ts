@@ -124,8 +124,16 @@ export function requireAuth(allowedRoles?: AdminRole[]): MiddlewareHandler<{ Bin
         if (dbUser.role) {
           payload.role = dbUser.role;
         }
-      } catch {
-        // Fallback gracioso caso a tabela esteja em migração inicial
+      } catch (err) {
+        console.error('[AUTH_DB_CHECK_ERROR] Falha ao verificar status de usuário ativo:', err);
+        // Fail-closed: em produção, nega acesso se a verificação de status falhar
+        if (c.env.APP_ENV !== 'development') {
+          return c.json({
+            success: false,
+            error: 'Falha temporária na verificação de segurança do usuário. Tente novamente.',
+            code: 'AUTH_DB_CHECK_FAILED',
+          }, 503);
+        }
       }
     }
 

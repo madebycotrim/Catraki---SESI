@@ -14,7 +14,7 @@ export function rateLimiter(options: RateLimitOptions): MiddlewareHandler<{ Bind
   return async (c, next) => {
     const kv = c.env.KV_RATE_LIMIT;
     if (!kv) {
-      // Fallback gracioso se KV não estiver disponível localmente
+      console.warn(`[SECURITY_WARNING] KV_RATE_LIMIT não está vinculado. Rate limiting desativado para ${c.req.path}. Configure o binding no wrangler.toml/Cloudflare Dashboard.`);
       return await next();
     }
 

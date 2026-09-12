@@ -93,7 +93,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
               O <strong>Catraki</strong> é uma ferramenta de tecnologia desenvolvida para facilitar o preenchimento, a assinatura e a conferência de autorizações escolares de forma 100% eletrônica, rápida e sem necessidade de papel.
             </p>
             <p className="m-0 pl-7">
-              O sistema é utilizado no projeto <strong>"Escola Cidadã: Saúde em Movimento"</strong>, uma parceria entre o <strong>SESI-DF</strong>, a <strong>Universidade de Brasília (FS/UnB)</strong>, a <strong>FINATEC</strong> e escolas públicas parceiras (como o CEMEIT), permitindo que pais e responsáveis autorizem com segurança a participação dos estudantes nas triagens e atendimentos de saúde.
+              O sistema é utilizado no projeto <strong>"Escola Cidadã: Saúde em Movimento"</strong>, uma parceria entre o <strong>SESI-DF</strong> e a <strong>Universidade de Brasília</strong>, permitindo que pais e responsáveis autorizem com segurança a participação dos estudantes nas triagens e atendimentos de saúde.
             </p>
           </section>
 

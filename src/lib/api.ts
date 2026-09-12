@@ -1452,9 +1452,10 @@ export const apiClient = {
     };
   },
 
-  async getAdminAuditLogs(): Promise<any> {
+  async getAdminAuditLogs(limit: string = 'all'): Promise<any> {
     try {
-      const resp = await fetch(`${API_BASE}/admin/audit-logs`, {
+      const url = limit ? `${API_BASE}/admin/audit-logs?limit=${limit}` : `${API_BASE}/admin/audit-logs`;
+      const resp = await fetch(url, {
         headers: this.getAuthHeaders(),
       });
       if (resp.ok) {

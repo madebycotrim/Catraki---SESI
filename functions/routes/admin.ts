@@ -259,9 +259,17 @@ adminRouter.get('/documents', async (c) => {
   try {
     const whereClause = includeExpired ? '' : "WHERE d.status != 'expired'";
     const docs = await db.prepare(
-      `SELECT d.*, t.title as template_title, t.procedure_description
+      `SELECT d.*, 
+              t.title as template_title, 
+              t.procedure_description,
+              a.manifest_sha256,
+              a.signer_name as audit_signer_name,
+              a.signer_cpf_masked as audit_signer_cpf_masked,
+              a.signer_relationship as audit_signer_relationship,
+              a.signed_at as audit_signed_at
        FROM documents d
        LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+       LEFT JOIN audit_logs a ON a.document_id = d.id
        ${whereClause}
        ORDER BY d.created_at DESC LIMIT ?`
     ).bind(limit).all<any>();
@@ -1521,14 +1529,21 @@ adminRouter.get('/verify-chain', requireAuth(['admin_master', 'dpo']), async (c)
 
 adminRouter.get('/audit-logs', requireAuth(['admin_master', 'dpo', 'operador']), async (c) => {
   const db = c.env.DB;
+  if (!db) {
+    return c.json({ success: true, logs: [] });
+  }
+
+  const limitQuery = c.req.query('limit');
+  const limit = limitQuery === 'all' ? 100000 : (parseInt(limitQuery || '10000', 10) || 10000);
+
   const logs = await db.prepare(
     `SELECT a.id, a.document_id, a.signed_at, a.signer_name, a.signer_cpf_masked, a.signer_relationship,
             a.identity_method, a.ip_address, a.geo_city, a.geo_region, a.manifest_sha256, a.log_row_hash,
             a.prev_log_hash, a.created_at, d.minor_name
      FROM audit_logs a
      LEFT JOIN documents d ON a.document_id = d.id
-     ORDER BY a.created_at DESC LIMIT 100`
-  ).all<any>();
+     ORDER BY a.created_at DESC LIMIT ?`
+  ).bind(limit).all<any>();
 
   return c.json({ success: true, logs: logs.results || [] });
 });

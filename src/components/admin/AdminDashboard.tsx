@@ -328,9 +328,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         const realParentName = (log?.signer_name && log.signer_name.trim().toLowerCase() !== 'responsável legal')
           ? log.signer_name
+          : (doc.audit_signer_name && doc.audit_signer_name.trim().toLowerCase() !== 'responsável legal')
+          ? doc.audit_signer_name
           : (doc.parent_name && doc.parent_name.trim().toLowerCase() !== 'responsável legal'
               ? doc.parent_name
-              : (log?.signer_name || doc.parent_name || (isSigned ? 'Responsável Legal' : 'Aguardando preenchimento')));
+              : (log?.signer_name || doc.audit_signer_name || doc.parent_name || (isSigned ? 'Responsável Legal' : 'Aguardando preenchimento')));
 
         const realStudentName = (doc.minor_name && doc.minor_name.trim().toLowerCase() !== 'estudante escola cidadã' && doc.minor_name.trim().toLowerCase() !== 'estudante')
           ? doc.minor_name
@@ -340,7 +342,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const formattedMinorCpf = rawMinorCpf ? formatCPF(rawMinorCpf) : (doc.minor_cpf ? (doc.minor_cpf.includes('*') ? doc.minor_cpf : formatCPF(doc.minor_cpf)) : '');
         const studentCpf = formattedMinorCpf || (isSigned ? 'CPF não informado' : 'Pendente');
         const studentCpfDigits = (rawMinorCpf || doc.minor_cpf || doc.cpf || '').replace(/\D/g, '');
-        const parentCpfDigits = (log?.signer_cpf_raw || log?.signer_cpf_masked || log?.signer_cpf || '').replace(/\D/g, '');
+        const parentCpfDigits = (log?.signer_cpf_raw || log?.signer_cpf_masked || doc.audit_signer_cpf_masked || log?.signer_cpf || '').replace(/\D/g, '');
+
+        // Identificação Forense e Código do Protocolo SHA-256
+        const manifest = doc.manifest_sha256 || log?.manifest_sha256 || doc.content_sha256;
+        let vCode = '';
+        if (manifest && manifest.length >= 8) {
+          vCode = `CATRAKI-${manifest.substring(0, 4).toUpperCase()}-${manifest.substring(manifest.length - 4).toUpperCase()}`;
+        } else if (doc.validation_code) {
+          vCode = doc.validation_code;
+        } else if (doc.id) {
+          const cleanId = doc.id.replace(/^DOC-?/i, '').replace(/[^A-Za-z0-9]/g, '');
+          if (cleanId.length >= 8) {
+            vCode = `CATRAKI-${cleanId.substring(0, 4).toUpperCase()}-${cleanId.substring(cleanId.length - 4).toUpperCase()}`;
+          } else if (cleanId.length >= 4) {
+            vCode = `CATRAKI-${cleanId.substring(0, 4).toUpperCase()}`;
+          } else {
+            vCode = `CATRAKI-${cleanId.toUpperCase() || 'VALID'}`;
+          }
+        } else {
+          vCode = 'CATRAKI-VALID';
+        }
 
         return {
           id: doc.id,
@@ -351,10 +373,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           studentCpfRaw: studentCpfDigits,
           birthDate: doc.minor_birth_date || '',
           parentName: realParentName,
-          parentCpfMasked: log?.signer_cpf_masked || (isSigned ? '***.***.***-**' : 'Pendente'),
+          parentCpfMasked: log?.signer_cpf_masked || doc.audit_signer_cpf_masked || (isSigned ? '***.***.***-**' : 'Pendente'),
           parentCpfRaw: parentCpfDigits,
           parentEmail: doc.parent_email || log?.signer_email || '',
-          relationship: log?.signer_relationship || (isSigned ? 'Responsável' : 'Aguardando'),
+          relationship: log?.signer_relationship || doc.audit_signer_relationship || (isSigned ? 'Responsável' : 'Aguardando'),
           activity: doc.template_title || 'Escola Cidadã — Saúde em Movimento',
           institutionId: instMatch ? instMatch.id : (doc.institution_id || 'outra'),
           institutionName: instMatch ? instMatch.short_name : (doc.institution_name || (doc.institution_id ? doc.institution_id.toUpperCase() : 'Escola Participante')),
@@ -370,14 +392,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           minorSeries: doc.minor_series || '',
           minorClass: doc.minor_class || '',
           minorTurn: doc.minor_turn || '',
-          dateSent: (log?.signed_at || doc.created_at || log?.created_at)
-            ? formatBrasiliaDateTime(log?.signed_at || doc.created_at || log?.created_at)
+          dateSent: (log?.signed_at || doc.audit_signed_at || doc.created_at || log?.created_at)
+            ? formatBrasiliaDateTime(log?.signed_at || doc.audit_signed_at || doc.created_at || log?.created_at)
             : 'Hoje',
-          signedAtDate: parseUtcDate(log?.signed_at || doc.created_at || log?.created_at),
-          hash: log?.manifest_sha256 || doc.content_sha256,
-          validationCode: log?.manifest_sha256
-            ? `CATRAKI-${log.manifest_sha256.substring(0, 4).toUpperCase()}-${log.manifest_sha256.substring(log.manifest_sha256.length - 4).toUpperCase()}`
-            : (doc.id ? `CATRAKI-${doc.id.substring(0, 4).toUpperCase()}` : 'CATRAKI-VALID'),
+          signedAtDate: parseUtcDate(log?.signed_at || doc.audit_signed_at || doc.created_at || log?.created_at),
+          hash: manifest,
+          validationCode: vCode,
         };
       });
       setAuthorizations(auths);

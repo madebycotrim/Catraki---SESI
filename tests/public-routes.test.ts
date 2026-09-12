@@ -88,8 +88,17 @@ describe('Rotas Públicas e Validação de Autenticidade (publicRouter)', () => 
     expect(json.validation.valid).toBe(true);
     expect(json.validation.validation_code).toBe('SESI-AFD6-4833');
     expect(json.validation.minor_name_initials).toBe('Lucas C. S.');
+    expect(json.validation.signer_name).toBe('Maria C***');
     expect(json.validation.chain_position).toBe(42);
     expect(json.validation.document_id).toBe('DOC-20260826-AFD64833');
+  });
+
+  it('deve rejeitar consultas com curingas ou consultas curtas maliciosas para evitar enumeração', async () => {
+    const res = await publicRouter.request('/validate/%25DOC-%25', { method: 'GET' }, { DB: null as any });
+    expect(res.status).toBe(400);
+    const json = (await res.json()) as any;
+    expect(json.success).toBe(false);
+    expect(json.code).toBe('INVALID_QUERY_FORMAT');
   });
 
   it('deve retornar dados de client-info com resiliência', async () => {

@@ -27,7 +27,7 @@ const EMAIL_BASE_CSS = `
     background-color: #eef2f7;
     padding: 32px 12px;
   }
-  /* Folha A4 Digital */
+  /* Folha A4 Oficial */
   .sheet {
     max-width: 600px;
     margin: 0 auto;
@@ -675,7 +675,7 @@ export function getRevocationEmailHtml(params: RevocationEmailParams): string {
     <div class="hash-box">
       <strong>🔐 Resumo Criptográfico SHA-256 do Documento:</strong><br>
       ${documentHashSha256}<br>
-      <span style="font-size:10px;color:#64748b;">Este código constitui a impressão digital imutável da trilha de auditoria.</span>
+      <span style="font-size:10px;color:#64748b;">Este código constitui o identificador criptográfico imutável da trilha de auditoria eletrônica.</span>
     </div>` : ''}
 
     <div class="highlight-box">

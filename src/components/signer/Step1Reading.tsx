@@ -70,7 +70,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
           </p>
 
           <p className="m-0 leading-relaxed">
-            Criamos este ambiente digital para que você possa autorizar a participação do(a) estudante com total transparência e comodidade, direto do seu celular e sem a necessidade de imprimir papéis.
+            Criamos este ambiente eletrônico para que você possa autorizar a participação do(a) estudante com total transparência e comodidade, direto do seu celular e sem a necessidade de imprimir papéis.
           </p>
 
 
@@ -96,7 +96,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, onProceed 
             <AlertTriangle className="w-5 h-5 shrink-0 text-amber-500 mt-0.5" />
             <div>
               <strong className="text-amber-950 block mb-0.5 text-xs sm:text-sm font-bold">Aviso Operacional Importante</strong>
-               Esta autorização digital é o primeiro passo — mas não garante atendimento imediato. O agendamento das consultas é feito <strong>presencialmente na escola</strong>, junto às unidades móveis do projeto, e está sujeito à capacidade diária de cada especialidade. <strong>Vagas são limitadas.</strong>
+               Esta autorização eletrônica é o primeiro passo — mas não garante atendimento imediato. O agendamento das consultas é feito <strong>presencialmente na escola</strong>, junto às unidades móveis do projeto, e está sujeito à capacidade diária de cada especialidade. <strong>Vagas são limitadas.</strong>
             </div>
           </div>
 

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { handle } from 'hono/cloudflare-pages';
 import { cors } from 'hono/cors';
-import { securityHeaders } from '../middleware/security.ts';
+import { securityHeaders, accessLogger } from '../middleware/security.ts';
 import { requireAuth } from '../middleware/auth.ts';
 import { signerRouter } from '../routes/signer.ts';
 import { adminRouter } from '../routes/admin.ts';
@@ -11,41 +11,54 @@ import type { Env } from '../../src/lib/types.ts';
 
 const app = new Hono<{ Bindings: Env }>().basePath('/api');
 
-// 1. Middlewares Globais de Segurança
+// 1. Middlewares Globais de Segurança e Conformidade Regulatória (Marco Civil Art. 15)
 app.use('*', securityHeaders);
+app.use('*', accessLogger);
 
-// 2. CORS Oficial de Produção (Catraki <-> Saúde em Movimento / SMS-MEDCO)
+// 2. CORS Restrito de Produção (Proteção contra CSRF e requisições de origens não autorizadas)
 const ALLOWED_ORIGINS = new Set([
   'https://saudeemmovimento.vercel.app',
+  'https://catraki---sem.pages.dev',
   'https://catraki.com.br',
   'https://www.catraki.com.br',
   'https://catraki---sesi.pages.dev',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:8788',
+  'http://127.0.0.1:8788',
 ]);
+
+function isOriginAllowed(origin: string): boolean {
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+
+  try {
+    const url = new URL(origin);
+    const host = url.hostname;
+    // Permite exclusivamente os domínios autorizados para consultar a API
+    if (host === 'saudeemmovimento.vercel.app' || host.endsWith('.saudeemmovimento.vercel.app')) return true;
+    if (host === 'catraki---sem.pages.dev' || host.endsWith('.catraki---sem.pages.dev')) return true;
+    if (host === 'catraki.com.br' || host.endsWith('.catraki.com.br')) return true;
+    if (host === 'catraki---sesi.pages.dev' || host.endsWith('.catraki---sesi.pages.dev')) return true;
+    if (host === 'localhost' || host === '127.0.0.1') return true;
+  } catch {
+    return false;
+  }
+  return false;
+}
 
 app.use('*', cors({
   origin: (origin) => {
-    if (!origin) return '*';
-
-    // 1. Domínios oficiais fixos de produção
-    if (ALLOWED_ORIGINS.has(origin)) {
+    if (!origin) return 'https://catraki.com.br';
+    if (isOriginAllowed(origin)) {
       return origin;
     }
-
-    // 2. Subdomínios e previews autorizados da Vercel / Pages / Catraki
-    if (
-      origin.endsWith('.vercel.app') ||
-      origin.endsWith('.pages.dev') ||
-      origin.endsWith('.catraki.com.br') ||
-      origin.includes('saudeemmovimento') ||
-      origin.includes('sms-medco')
-    ) {
-      return origin;
-    }
-
-    return origin;
+    // Fail-closed: nunca reflete origens desconhecidas/maliciosas em requisições com credenciais
+    return 'https://catraki.com.br';
   },
   allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'CF-Turnstile-Token', 'apikey', 'Prefer'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'CF-Turnstile-Token', 'x-api-key', 'apikey', 'Prefer'],
   exposeHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining'],
   credentials: true,
   maxAge: 86400,

@@ -362,7 +362,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                     {signerName}
                   </p>
                   <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-                    Assinado digitalmente via Catraki • {validationCode}
+                    Assinado eletronicamente via Catraki • {validationCode}
                   </span>
                 </div>
                 <div className="text-right shrink-0">
@@ -461,22 +461,22 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               <div className="bg-white p-2.5 border border-slate-200 rounded-lg flex items-start gap-2">
                 <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
                 <div>
-                  <span className="text-slate-500 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Não-Repúdio</span>
-                  <span className="text-slate-700 font-semibold">Assinatura manuscrita + IP + Geolocalização</span>
+                  <span className="text-slate-500 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Autoria</span>
+                  <span className="text-slate-700 font-semibold">Assinatura manuscrita na tela + IP e Horário</span>
                 </div>
               </div>
               <div className="bg-white p-2.5 border border-slate-200 rounded-lg flex items-start gap-2">
                 <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
                 <div>
                   <span className="text-slate-500 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Tempestividade</span>
-                  <span className="text-slate-700 font-semibold">Data e hora registradas pelo servidor (UTC)</span>
+                  <span className="text-slate-700 font-semibold">Data e hora registradas pelo servidor</span>
                 </div>
               </div>
               <div className="bg-white p-2.5 border border-slate-200 rounded-lg flex items-start gap-2 sm:col-span-2 lg:col-span-2">
                 <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
                 <div>
-                  <span className="text-slate-500 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Confidencialidade</span>
-                  <span className="text-slate-700 font-semibold">Criptografia AES-GCM-256 em repouso + TLS 1.3 em trânsito</span>
+                  <span className="text-slate-500 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Segurança da Conexão</span>
+                  <span className="text-slate-700 font-semibold">Tráfego protegido via HTTPS/TLS com integridade criptográfica SHA-256</span>
                 </div>
               </div>
             </div>

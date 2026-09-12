@@ -280,7 +280,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
                 {validationResult.document_status === 'signed' ? 'AUTORIZAÇÃO CONFIRMADA' : 'DOCUMENTO REVOGADO / EXPIRADO'}
               </h2>
               <p className="text-[11px] sm:text-xs text-slate-600 m-0">
-                Registro de Auditoria Digital: Bloco #{validationResult.chain_position} • {validationResult.legal_notice}
+                Registro de Auditoria Eletrônica: Bloco #{validationResult.chain_position} • {validationResult.legal_notice}
               </p>
             </div>
 
@@ -376,6 +376,9 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
                           </>
                         )}
                       </div>
+                      <span className="text-[9px] text-slate-500 block mt-0.5">
+                        ✓ Identidade do signatário parcialmente protegida nos termos da LGPD (Art. 14)
+                      </span>
                     </div>
                   </div>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-[10px] font-bold shrink-0 self-start sm:self-auto">
@@ -634,7 +637,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
                         {validationResult.signer_name}
                       </p>
                       <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-                        Assinado digitalmente via Catraki • {validationCode}
+                        Assinado eletronicamente via Catraki • {validationCode}
                       </span>
                     </div>
                     <div className="text-right shrink-0">

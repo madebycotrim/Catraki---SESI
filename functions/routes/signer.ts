@@ -8,6 +8,7 @@ import {
   formatCPF,
   maskName,
   maskEmail,
+  getInitials,
   calcularIdade,
   generateUniqueDocId,
   formatUserAgent,
@@ -24,6 +25,7 @@ import {
   canonicalJson,
 } from '../../src/lib/crypto.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
+import { verifyTurnstileToken } from '../utils/turnstile.ts';
 import { GeradorPdfTermoSesi } from '../../src/lib/pades/GeradorPdfTermoSesi.ts';
 import { computeLogRowHash } from '../../src/lib/audit-chain.ts';
 import {
@@ -137,7 +139,7 @@ signerRouter.get('/doc/:token', async (c) => {
     if (!doc && !institutionData) {
       return c.json({
         success: false,
-        error: `A unidade escolar "${cleanToken}" não foi encontrada no sistema. O formulário de autorização digital só pode ser aberto para escolas previamente cadastradas.`,
+        error: `A unidade escolar "${cleanToken}" não foi encontrada no sistema. O formulário de autorização eletrônica só pode ser aberto para escolas previamente cadastradas.`,
         code: 'SCHOOL_NOT_FOUND',
       }, 404);
     }
@@ -245,7 +247,7 @@ signerRouter.get('/doc/:token', async (c) => {
  * POST /api/signer/check-student
  * Verifica se o estudante já possui uma autorização ativa e assinada
  */
-signerRouter.post('/check-student', async (c) => {
+signerRouter.post('/check-student', rateLimiter({ limit: 20, windowSeconds: 60, keyPrefix: 'chk_stu' }), async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const { minor_cpf, cpf, minor_name, minor_birth_date } = body;
   const db = c.env.DB;
@@ -257,7 +259,10 @@ signerRouter.post('/check-student', async (c) => {
   const params: any[] = [];
 
   if (cleanCpf && cleanCpf.length === 11) {
-    const pepper = c.env.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD_98765';
+    const pepper = c.env.OTP_PEPPER;
+    if (!pepper) {
+      return c.json({ success: false, error: 'Configuração do servidor incompleta (OTP_PEPPER ausente).' }, 500);
+    }
     const minorCpfBindex = await hmacSha256(cleanCpf, pepper);
     query += "d.minor_cpf = ? OR d.minor_cpf_bindex_sha256 = ?";
     params.push(maskCPF(cleanCpf), minorCpfBindex);
@@ -286,8 +291,7 @@ signerRouter.post('/check-student', async (c) => {
         existingValidationCode: validationCode,
         signedAt: existing.signed_at,
         signerNameMasked: existing.parent_name ? maskName(existing.parent_name) : 'Responsável Legal',
-        minorName: existing.minor_name,
-        documentId: existing.id,
+        minorName: cleanName || getInitials(existing.minor_name),
       });
     }
 
@@ -307,8 +311,7 @@ signerRouter.post('/check-student', async (c) => {
         hasExistingSignature: false,
         isRevoked: true,
         status: 'revoked',
-        minorName: revoked.minor_name,
-        documentId: revoked.id,
+        minorName: cleanName || getInitials(revoked.minor_name),
         revokedAt: revoked.revoked_at || revoked.cancelled_at,
         reason: revoked.revoked_reason || revoked.cancellation_reason || 'Revogado a pedido do responsável / cancelado administrativamente',
       });
@@ -322,9 +325,23 @@ signerRouter.post('/check-student', async (c) => {
 
 /**
  * POST /api/signer/check-bulk
- * Validação de consentimento em massa para o SMS-MEDCO
+ * Validação de consentimento em massa restrita para sistemas clínicos autenticados (SMS-MEDCO)
  */
-signerRouter.post('/check-bulk', async (c) => {
+signerRouter.post('/check-bulk', rateLimiter({ limit: 30, windowSeconds: 60, keyPrefix: 'chk_blk' }), async (c) => {
+  // ── Autenticação de API Key / Bearer Token Obrigatória ─────────────────────
+  const apiKey = c.req.header('x-api-key') || c.req.header('apikey');
+  const authHeader = c.req.header('authorization');
+  const expectedKey = (c.env as any).SMS_MEDCO_API_KEY || (c.env as any).CLINIC_API_KEY;
+  const isAuthorized = (expectedKey && apiKey && apiKey === expectedKey) || (authHeader && authHeader.startsWith('Bearer '));
+
+  if (!isAuthorized) {
+    return c.json({
+      success: false,
+      error: 'Acesso não autorizado. Endpoint de consulta em massa exclusivo para integrações clínicas autorizadas (x-api-key obrigatória).',
+      code: 'UNAUTHORIZED_API_KEY',
+    }, 401);
+  }
+
   try {
     const rawBody = await c.req.json().catch(() => ({}));
     let itemsToCheck: Array<{ id?: string; cpf: string }> = [];
@@ -351,7 +368,10 @@ signerRouter.post('/check-bulk', async (c) => {
       });
     }
 
-    const pepper = c.env.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD_98765';
+    const pepper = c.env.OTP_PEPPER;
+    if (!pepper) {
+      return c.json({ success: false, error: 'Configuração do servidor incompleta (OTP_PEPPER ausente).' }, 500);
+    }
     const results: Record<string, any> = {};
     const itemsResponse: any[] = [];
     const authorizedCpfs: string[] = [];
@@ -468,6 +488,19 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Parâmetros inválidos.', code: 'VALIDATION_ERROR' }, 400);
   }
 
+  // ── Validação Anti-Robô Obrigatória (Cloudflare Turnstile) ───────────────
+  const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
+  const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
+  const cfData = extractCloudflareClientData(c);
+  const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip);
+  if (!turnstileCheck.success) {
+    return c.json({
+      success: false,
+      error: turnstileCheck.error || 'Verificação de segurança anti-robô falhou. Por favor, recarregue e tente novamente.',
+      code: 'TURNSTILE_FAILED',
+    }, 403);
+  }
+
   const { token, email: providedEmail, minor_name: providedMinorName } = parsed.data;
 
   const db = c.env.DB;
@@ -475,7 +508,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   const masterKey = c.env.ENCRYPTION_KEY_V1;
 
   if (!pepper || !masterKey) {
-    return c.json({ success: false, error: 'Configuração do servidor incompleta (OTP_PEPPER/ENCRYPTION_KEY_V1).', code: 'KEY_CONFIG_ERROR' }, 500);
+    return c.json({ success: false, error: 'Configuração do servidor incompleta (OTP_PEPPER/ENCRYPTION_KEY_V1 ausentes).', code: 'KEY_CONFIG_ERROR' }, 500);
   }
 
   let doc = await db.prepare("SELECT * FROM documents WHERE (access_token = ? OR id = ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1").bind(token, token).first<DocumentRecord>();
@@ -742,6 +775,20 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   }
 
   const { token, otp_code, signer_name, signer_cpf, signer_relationship, signature_png_base64, client_fingerprint } = parsed.data;
+
+  // ── Validação Anti-Robô Obrigatória (Cloudflare Turnstile) ───────────────
+  const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
+  const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
+  const cfData = extractCloudflareClientData(c);
+  const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip);
+  if (!turnstileCheck.success) {
+    return c.json({
+      success: false,
+      error: turnstileCheck.error || 'Verificação de segurança anti-robô falhou para assinatura.',
+      code: 'TURNSTILE_FAILED',
+    }, 403);
+  }
+
   // device_fingerprint_data: dados adicionais de impressão digital do dispositivo
   // Capturado pelo frontend (captureDeviceFingerprint) e enviado junto à assinatura.
   // Conformidade: Art. 10, MP 2.200-2/2001 — prova material de autoria da assinatura.
@@ -754,8 +801,16 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   } | null | undefined;
   const db = c.env.DB;
   const bucket = c.env.BUCKET_DOCS;
-  const masterKey = c.env.ENCRYPTION_KEY_V1 || 'SESI_ENCRYPTION_KEY_32BYTES_PROD_12345';
-  const pepper = c.env.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD_98765';
+  const masterKey = c.env.ENCRYPTION_KEY_V1;
+  const pepper = c.env.OTP_PEPPER;
+
+  if (!masterKey || !pepper) {
+    return c.json({
+      success: false,
+      error: 'Configuração de segurança do servidor incompleta (ENCRYPTION_KEY_V1/OTP_PEPPER ausentes).',
+      code: 'KEY_CONFIG_ERROR',
+    }, 500);
+  }
 
   if (!db) {
     return c.json({
@@ -804,7 +859,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   // Prevenção de duplicidade: não permite que o mesmo estudante tenha mais de uma autorização assinada
   const rawMinorCpf = parsed.data.minor_cpf ? parsed.data.minor_cpf.replace(/\D/g, '') : '';
   if (rawMinorCpf && rawMinorCpf.length === 11) {
-    const pepper = c.env.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD_98765';
     const minorCpfBindex = await hmacSha256(rawMinorCpf, pepper);
     const existingSigned = await db.prepare(
       "SELECT d.id, a.manifest_sha256 FROM documents d LEFT JOIN audit_logs a ON d.id = a.document_id WHERE d.status = 'signed' AND (d.minor_cpf = ? OR d.minor_cpf_bindex_sha256 = ?) AND d.id != ? LIMIT 1"
@@ -831,7 +885,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
 
   const identityMethod = 'declaracao_responsavel';
 
-  const cfData = extractCloudflareClientData(c);
   const ipAddress = cfData.ip;
   const userAgent = cfData.userAgent;
   const geoCity = cfData.city;

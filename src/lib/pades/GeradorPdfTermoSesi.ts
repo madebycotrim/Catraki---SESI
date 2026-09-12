@@ -412,7 +412,7 @@ export class GeradorPdfTermoSesi {
     y -= 38;
 
     // Marca d'água de proteção contra cópia / fraude (Watermark de Segurança Anti-Cópia)
-    page1.drawText('CATRAKI DIGITAL • USO EXCLUSIVO NESTE TERMO • NÃO COPIAR', {
+    page1.drawText('CATRAKI • USO EXCLUSIVO NESTE TERMO • NÃO COPIAR', {
       x: margemEsquerda + 8,
       y: y + 20,
       size: 5.5,
@@ -523,7 +523,7 @@ export class GeradorPdfTermoSesi {
     });
 
     // ========================================================================
-    // PÁGINA 2: REGISTRO DE AUDITORIA E CUSTÓDIA DIGITAL (EVIDÊNCIAS DIGITAIS)
+    // PÁGINA 2: REGISTRO DE AUDITORIA E CUSTÓDIA ELETRÔNICA (EVIDÊNCIAS FORENSES)
     // ========================================================================
     if (dados.tipoAssinatura === 'ELETRONICA' || dados.ipAddress) {
       const page2 = pdfDoc.addPage([595.28, 841.89]);

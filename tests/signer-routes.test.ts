@@ -216,5 +216,50 @@ describe('Rotas de Assinatura Eletrônica (signerRouter) — Resiliência e Prev
     expect(json.code).toBe('SCHOOL_NOT_FOUND');
     expect(json.error).toContain('não foi encontrada no sistema');
   });
+
+  it('deve rejeitar /check-bulk sem x-api-key (401 UNAUTHORIZED_API_KEY)', async () => {
+    const res = await signerRouter.request(
+      '/check-bulk',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([{ cpf: '12345678901' }]),
+      },
+      { DB: {} as any, SMS_MEDCO_API_KEY: 'CHAVE_VALIDA_123' as any }
+    );
+    expect(res.status).toBe(401);
+    const json = (await res.json()) as any;
+    expect(json.success).toBe(false);
+    expect(json.code).toBe('UNAUTHORIZED_API_KEY');
+  });
+
+  it('deve autorizar /check-bulk quando x-api-key correta for fornecida', async () => {
+    const mockDb = {
+      prepare: () => ({
+        bind: () => ({
+          first: async () => null,
+          all: async () => ({ results: [] }),
+          run: async () => ({ success: true }),
+        }),
+      }),
+    };
+
+    const res = await signerRouter.request(
+      '/check-bulk',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'CHAVE_VALIDA_123',
+        },
+        body: JSON.stringify([{ cpf: '12345678901' }]),
+      },
+      { DB: mockDb as any, SMS_MEDCO_API_KEY: 'CHAVE_VALIDA_123' as any, OTP_PEPPER: 'PEPPER_123' as any }
+    );
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as any;
+    expect(json.success).toBe(true);
+    expect(json.count).toBe(1);
+  });
 });
 

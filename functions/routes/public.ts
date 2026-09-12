@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { LgpdRequestPublicSchema, maskCPF, getInitials } from '../../src/lib/schemas.ts';
+import { LgpdRequestPublicSchema, maskCPF, getInitials, maskName } from '../../src/lib/schemas.ts';
 import { encryptAesGcm, maskIpAddress, hmacSha256 } from '../../src/lib/crypto.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
@@ -159,12 +159,33 @@ publicRouter.get('/validate/:query', async (c) => {
       }, 400);
     }
 
-    // Normalização avançada: decodifica URLs, remove aspas e barras
-    let clean = decodeURIComponent(query.trim());
+    // Normalização avançada: decodifica URLs com proteção contra URIError
+    let clean = query.trim();
+    try {
+      clean = decodeURIComponent(clean);
+    } catch {
+      return c.json({
+        success: false,
+        valid: false,
+        error: 'Código ou formato de consulta inválido.',
+        code: 'INVALID_QUERY_FORMAT',
+      }, 400);
+    }
+
     if (clean.includes('/validar/')) {
       clean = clean.split('/validar/').pop()?.split('?')[0]?.split('#')[0] || clean;
     }
     clean = clean.replace(/^[/#]+/, '').trim();
+
+    // Bloqueia tentativas de SQL injection, enumeração com curinga ou consultas excessivamente curtas
+    if (clean.includes('%') || clean.includes('_') || clean.length < 6) {
+      return c.json({
+        success: false,
+        valid: false,
+        error: 'Código ou hash de validação inválido.',
+        code: 'INVALID_QUERY_FORMAT',
+      }, 400);
+    }
 
     const cleanUpper = clean.toUpperCase();
     const cleanLower = clean.toLowerCase();
@@ -174,8 +195,9 @@ publicRouter.get('/validate/:query', async (c) => {
 
     // Extrai prefixo e sufixo de 4 caracteres para códigos hexadecimais formatados (ex: SESI-AFD6-4833 -> afd6 e 4833)
     const searchHex = cleanNoPrefix.replace(/[^0-9a-f]/gi, '').toLowerCase();
-    const hexPrefix = searchHex.length >= 8 ? searchHex.substring(0, 4) : '';
-    const hexSuffix = searchHex.length >= 8 ? searchHex.substring(searchHex.length - 4) : '';
+    const isFormattedCode = searchHex.length === 8;
+    const hexPrefix = isFormattedCode ? searchHex.substring(0, 4) : '';
+    const hexSuffix = isFormattedCode ? searchHex.substring(4) : '';
 
     let record: any = null;
 
@@ -203,8 +225,8 @@ publicRouter.get('/validate/:query', async (c) => {
         }
       }
 
-      // 2. Busca por código formatado SESI-XXXX-YYYY / CATRAKI-XXXX-YYYY (4 prefixo + 4 sufixo)
-      if (!record && hexPrefix && hexSuffix) {
+      // 2. Busca por código formatado SESI-XXXX-YYYY / CATRAKI-XXXX-YYYY (exatos 4 chars de prefixo + 4 de sufixo no SHA-256)
+      if (!record && isFormattedCode) {
         try {
           record = await db.prepare(
             `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
@@ -214,34 +236,24 @@ publicRouter.get('/validate/:query', async (c) => {
              FROM audit_logs a
              LEFT JOIN documents d ON a.document_id = d.id
              LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-             WHERE (a.manifest_sha256 LIKE ? AND a.manifest_sha256 LIKE ?)
-                OR (a.content_sha256_at_signing LIKE ? AND a.content_sha256_at_signing LIKE ?)
-                OR a.document_id LIKE ?
-                OR a.id LIKE ?
+             WHERE a.manifest_sha256 LIKE ? AND a.manifest_sha256 LIKE ?
              LIMIT 1`
           ).bind(
-            `${hexPrefix}%`, `%${hexSuffix}`,
-            `${hexPrefix}%`, `%${hexSuffix}`,
-            `%${searchHex}%`,
-            `%${searchHex}%`
+            `${hexPrefix}%`, `%${hexSuffix}`
           ).first<any>();
         } catch {
           record = await db.prepare(
             `SELECT * FROM audit_logs 
-             WHERE (manifest_sha256 LIKE ? AND manifest_sha256 LIKE ?)
-                OR document_id LIKE ?
-                OR id LIKE ?
+             WHERE manifest_sha256 LIKE ? AND manifest_sha256 LIKE ?
              LIMIT 1`
           ).bind(
-            `${hexPrefix}%`, `%${hexSuffix}`,
-            `%${searchHex}%`,
-            `%${searchHex}%`
+            `${hexPrefix}%`, `%${hexSuffix}`
           ).first<any>().catch(() => null);
         }
       }
 
-      // 3. Busca por identificador de documento DOC-YYYYMMDD-XXXX ou access_token
-      if (!record && clean.length >= 4) {
+      // 3. Busca por identificador exato de documento DOC-YYYYMMDD-XXXX (igualdade estrita, sem curingas parciais)
+      if (!record && cleanUpper.startsWith('DOC-') && clean.length >= 16) {
         try {
           record = await db.prepare(
             `SELECT a.*, d.minor_name, d.minor_series, d.minor_class, d.minor_turn, d.status as doc_status, 
@@ -251,17 +263,17 @@ publicRouter.get('/validate/:query', async (c) => {
              FROM audit_logs a
              LEFT JOIN documents d ON a.document_id = d.id
              LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-             WHERE a.document_id = ? OR a.document_id LIKE ? OR a.id = ?
+             WHERE a.document_id = ?
              LIMIT 1`
-          ).bind(clean, `%${clean}%`, clean).first<any>();
+          ).bind(clean).first<any>();
         } catch {
           record = await db.prepare(
-            `SELECT * FROM audit_logs WHERE document_id = ? OR document_id LIKE ? OR id = ? LIMIT 1`
-          ).bind(clean, `%${clean}%`, clean).first<any>().catch(() => null);
+            `SELECT * FROM audit_logs WHERE document_id = ? LIMIT 1`
+          ).bind(clean).first<any>().catch(() => null);
         }
       }
 
-      // 4. Se não localizado em audit_logs, busca diretamente na tabela documents
+      // 4. Se não localizado em audit_logs, busca diretamente na tabela documents (estritamente por igualdade)
       if (!record) {
         let docRecord: any = null;
 
@@ -279,37 +291,41 @@ publicRouter.get('/validate/:query', async (c) => {
               `SELECT * FROM documents WHERE content_sha256 = ? LIMIT 1`
             ).bind(cleanLower).first<any>().catch(() => null);
           }
-        } else if (hexPrefix && hexSuffix) {
+        } else if (isFormattedCode) {
           docRecord = await db.prepare(
             `SELECT d.*, t.title as template_title, t.procedure_description
              FROM documents d
              LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-             WHERE (d.content_sha256 LIKE ? AND d.content_sha256 LIKE ?)
-                OR d.id LIKE ? OR d.access_token LIKE ?
+             WHERE d.content_sha256 LIKE ? AND d.content_sha256 LIKE ?
              LIMIT 1`
           ).bind(
-            `${hexPrefix}%`, `%${hexSuffix}`,
-            `%${searchHex}%`, `%${searchHex}%`
+            `${hexPrefix}%`, `%${hexSuffix}`
           ).first<any>().catch(() => null);
 
           if (!docRecord) {
             docRecord = await db.prepare(
               `SELECT * FROM documents 
-               WHERE (content_sha256 LIKE ? AND content_sha256 LIKE ?)
-                  OR id LIKE ? OR access_token LIKE ?
+               WHERE content_sha256 LIKE ? AND content_sha256 LIKE ?
                LIMIT 1`
             ).bind(
-              `${hexPrefix}%`, `%${hexSuffix}`,
-              `%${searchHex}%`, `%${searchHex}%`
+              `${hexPrefix}%`, `%${hexSuffix}`
             ).first<any>().catch(() => null);
           }
+        } else if (cleanUpper.startsWith('DOC-') && clean.length >= 16) {
+          docRecord = await db.prepare(
+            `SELECT d.*, t.title as template_title, t.procedure_description
+             FROM documents d
+             LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
+             WHERE d.id = ?
+             LIMIT 1`
+          ).bind(clean).first<any>().catch(() => null);
         }
 
-        if (!docRecord && clean.length >= 4) {
+        if (!docRecord && clean.length >= 11) {
           const cleanCpfDigits = clean.replace(/\D/g, '');
-          if (cleanCpfDigits.length === 11) {
+          if (cleanCpfDigits.length === 11 && c.env?.OTP_PEPPER) {
             try {
-              const pepper = c.env?.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD_98765';
+              const pepper = c.env.OTP_PEPPER;
               const minorCpfBindex = await hmacSha256(cleanCpfDigits, pepper);
               docRecord = await db.prepare(
                 `SELECT d.*, t.title as template_title, t.procedure_description
@@ -320,22 +336,6 @@ publicRouter.get('/validate/:query', async (c) => {
                  ORDER BY d.created_at DESC LIMIT 1`
               ).bind(maskCPF(cleanCpfDigits), minorCpfBindex).first<any>().catch(() => null);
             } catch {}
-          }
-
-          if (!docRecord) {
-            docRecord = await db.prepare(
-              `SELECT d.*, t.title as template_title, t.procedure_description
-               FROM documents d
-               LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-               WHERE d.id = ? OR d.access_token = ? OR d.id LIKE ? OR d.access_token LIKE ?
-               LIMIT 1`
-            ).bind(clean, clean, `%${clean}%`, `%${clean}%`).first<any>().catch(() => null);
-          }
-
-          if (!docRecord) {
-            docRecord = await db.prepare(
-              `SELECT * FROM documents WHERE id = ? OR access_token = ? OR id LIKE ? OR access_token LIKE ? LIMIT 1`
-            ).bind(clean, clean, `%${clean}%`, `%${clean}%`).first<any>().catch(() => null);
           }
         }
 
@@ -460,7 +460,7 @@ publicRouter.get('/validate/:query', async (c) => {
       content_sha256: record.content_sha256_at_signing || record.content_sha256 || 'SHA256-PENDING',
       signature_png_sha256: record.signature_png_sha256 || manifest,
       signed_at_utc: record.signed_at || record.created_at || new Date().toISOString(),
-      signer_name: record.signer_name || 'Responsável Legal',
+      signer_name: maskName(record.signer_name || 'Responsável Legal'),
       signer_cpf_masked: record.signer_cpf_masked || '***.***.***-**',
       signer_relationship: record.signer_relationship || 'Responsável Legal',
       ip_address: maskedIp,

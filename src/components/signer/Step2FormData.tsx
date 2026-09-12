@@ -633,12 +633,12 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                     className="w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary bg-white"
                   >
                     <option value="">Selecione...</option>
-                    <option value="1º Ano E.M.">1º Ano E.M.</option>
-                    <option value="2º Ano E.M.">2º Ano E.M.</option>
-                    <option value="3º Ano E.M.">3º Ano E.M.</option>
                     <option value="7º Ano">7º Ano</option>
                     <option value="8º Ano">8º Ano</option>
                     <option value="9º Ano">9º Ano</option>
+                    <option value="1º Ano E.M.">1º Ano E.M.</option>
+                    <option value="2º Ano E.M.">2º Ano E.M.</option>
+                    <option value="3º Ano E.M.">3º Ano E.M.</option>
                   </select>
                 </div>
 

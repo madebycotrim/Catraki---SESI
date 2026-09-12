@@ -28,114 +28,76 @@ const SEED_TEMPLATES: DocumentTemplate[] = [
     version: 1,
     title: 'Escola Cidadã — Saúde em Movimento',
     procedure_description: 'Autorização para atendimento do aluno nas ações do projeto Escola Cidadã — Saúde em Movimento (UnB + SESI-DF), sem a presença do responsável legal, com consentimento granular para tratamento de dados pessoais (LGPD) e uso de imagem, nome e voz (ECA/Art. 17).',
-    content_markdown: `## TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO DIGITAL (TCLE)
+    content_markdown: `## TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO ELETRÔNICO (TCLE)
 ### Autorização de Atendimento de Saúde, Tratamento de Dados e Uso de Imagem
 
-Prezado(a) Responsável Legal,
+Prezado(a) Responsável,
 
-Este formulário digital tem o objetivo de garantir a segurança, a privacidade e os direitos do(a) estudante durante o projeto **Escola Cidadã — Saúde em Movimento**. A leitura e o aceite eletrônico deste termo possuem validade jurídica equivalente a um documento físico assinado em papel.
+Este formulário tem o objetivo de registrar a autorização para a participação do(a) estudante no projeto **Escola Cidadã — Saúde em Movimento**. O aceite eletrônico deste termo possui validade jurídica equivalente a um documento em papel assinado de próprio punho.
 
 ---
 
 ## 1. IDENTIFICAÇÃO DAS PARTES
 
 ### DADOS DO RESPONSÁVEL LEGAL (Quem autoriza)
-
-- **Nome Completo:** [Preenchido na etapa seguinte]
-- **CPF:** [Preenchido na etapa seguinte]
-- **Vínculo com o(a) menor:** Mãe / Pai / Tutor(a) / Outro
-- **Telefone (WhatsApp) e E-mail:** [Preenchidos na etapa seguinte]
-- **Endereço Completo:** [Preenchido na etapa seguinte]
+- **Nome Completo:** [Informado no formulário]
+- **CPF:** [Informado no formulário]
+- **Vínculo com o(a) estudante:** Mãe / Pai / Responsável Legal
+- **Telefone e E-mail:** [Informados no formulário]
 
 ### DADOS DO(A) ESTUDANTE (Quem receberá o atendimento)
-
-- **Nome Completo:** [Preenchido automaticamente pela plataforma]
-- **Data de Nascimento e CPF:** [Preenchidos automaticamente]
-- **Escola / Instituição:** [Escola do estudante — Projeto itinerante]
-- **Série, Turma e Turno:** [Preenchidos na etapa seguinte]
+- **Nome Completo:** [Informado no formulário]
+- **Data de Nascimento e CPF:** [Informados no formulário]
+- **Escola / Instituição:** [Informada no formulário]
+- **Série, Turma e Turno:** [Informados no formulário]
 
 ---
 
 ## 2. SOBRE O PROJETO
 
-O **Escola Cidadã: Saúde em Movimento** é uma iniciativa de extensão da **Universidade de Brasília (UnB)**, por meio da Faculdade de Ciências da Saúde (FS/UnB), realizada em parceria com o **Serviço Social da Indústria do Distrito Federal (SESI-DF)**, mediante acordo de cooperação técnica. O projeto é financiado por emenda parlamentar da Bancada do Distrito Federal.
+O **Escola Cidadã: Saúde em Movimento** é uma iniciativa de extensão da **Universidade de Brasília (UnB)**, por meio da Faculdade de Ciências da Saúde (FS/UnB), realizada em parceria com o **Serviço Social da Indústria do Distrito Federal (SESI-DF)**.
 
-**Público-alvo:** Estudantes e comunidade a partir de 14 anos, matriculados em escolas públicas do Distrito Federal.
+**Público-alvo:** Estudantes matriculados em escolas públicas parceiras do Distrito Federal.
 
-**Serviços ofertados pelo SESI-DF:** atendimentos odontológicos, oftalmológicos e fonoaudiológicos, além de terapia comunitária integrativa e oficinas de alimentação saudável. A UnB oferece oficinas de educomunicação em saúde.
-
-**Regiões atendidas:** Asa Norte, Arapoanga, Ceilândia, Gama, Sobradinho, Taguatinga, São Sebastião, Santa Maria, Recanto das Emas, Paranoá e Itapoã.
+**Atendimentos ofertados:** Triagens preventivas e avaliações de saúde (Odontologia, Oftalmologia, Audiometria, Terapia Comunitária Integrativa e Nutrição) em unidades móveis na escola durante o período escolar.
 
 ---
 
-## 3. PAINEL DE AUTORIZAÇÕES DIGITAIS
+## 3. AUTORIZAÇÕES DO TERMO
 
-A Lei Geral de Proteção de Dados (**LGPD — Lei nº 13.709/2018**) exige que seu consentimento seja **livre, informado e específico**. Por isso, cada autorização abaixo é independente e deve ser respondida individualmente na etapa de preenchimento.
+### A. Atendimento de Saúde (Obrigatório para participação)
+Autorizo a realização de triagens preventivas e avaliações de saúde no(a) estudante pelas equipes do SESI-DF e da UnB nas unidades móveis do projeto, durante o turno escolar.
 
----
+### B. Tratamento de Dados Pessoais (Obrigatório para participação)
+Autorizo a coleta e o armazenamento dos dados cadastrais informados exclusivamente para identificação do(a) estudante e validação formal desta autorização, em conformidade com a LGPD (Lei nº 13.709/2018).
 
-### A. SOBRE O ATENDIMENTO DE SAÚDE *(Obrigatório para participação)*
-
-**⚠ Atenção: A recusa neste item impede a participação do(a) estudante no projeto.**
-
-> **(A1) AUTORIZO** a realização do atendimento de saúde (odontológico, oftalmológico, fonoaudiológico, terapia comunitária e oficinas de saúde), triagem e avaliação no(a) estudante pelos profissionais do SESI-DF e da UnB, **sem a minha presença física no momento**, durante o horário escolar. Comprometo-me a orientar o(a) menor a portar seu documento de identidade com CPF.
-
-> **(A2) NÃO AUTORIZO** o atendimento de saúde. *(Impede a participação.)*
-
-**Base Legal:** Art. 7º, II e III, e Art. 14 da LGPD; Art. 98 do ECA (emergências).
+### C. Uso de Imagem e Voz (Opcional)
+Autorizo o registro de imagens e vídeos do(a) estudante para fins de documentação e divulgação institucional do projeto pelo SESI-DF e UnB. A recusa deste item não impede o atendimento de saúde.
 
 ---
 
-### B. SOBRE OS DADOS PESSOAIS E DE SAÚDE *(Obrigatório para participação)*
+## 4. CONSULTA E REVOGAÇÃO
 
-**⚠ Atenção: A recusa neste item impede a participação do(a) estudante no projeto.**
-
-> **(B1) AUTORIZO** a coleta, armazenamento e tratamento dos dados de consentimento e informações de identificação do(a) estudante pela UnB e SESI-DF, nos termos do **Art. 14 da LGPD**, para fins exclusivos de registro e comprovação da permissão legal de participação nas atividades de promoção da saúde.
-
-> **(B2) NÃO AUTORIZO** o tratamento de dados. *(Impede a participação.)*
-
-**Dados coletados:** nome completo, CPF do(a) estudante e do(a) responsável, data de nascimento, escola/turma e dados de auditoria da assinatura (IP, timestamp, geolocalização).
-
-**Base Legal:** Art. 7º, I, Art. 11, I, e Art. 14 da LGPD; Art. 46 da LGPD (segurança dos dados).
+- A autenticidade deste termo pode ser verificada a qualquer momento através do código de validação emitido pela plataforma.
+- A autorização poderá ser revogada ou corrigida a qualquer momento procurando a equipe de apoio presencial do projeto ou a direção da escola.
 
 ---
 
-### C. SOBRE O USO DE IMAGEM E VOZ *(Opcional — não impede o atendimento)*
+## 5. ASSINATURA ELETRÔNICA SIMPLES
 
-> **(C1) AUTORIZO** de forma gratuita o uso da imagem e voz do(a) estudante em fotos e vídeos do projeto, pela **Universidade de Brasília (UnB)** e **SESI-DF**, exclusivamente para documentação, relatórios institucionais, peças de comunicação e divulgação do projeto em canais oficiais (site, redes sociais institucionais, materiais impressos), respeitando a dignidade e os direitos do(a) menor, nos termos do **Art. 17 do ECA**.
+Declaro, sob as penas da lei, que as informações prestadas são verdadeiras e que sou o responsável legal pelo(a) estudante indicado(a) (ou o próprio, se maior de idade).
 
-> **(C2) NÃO AUTORIZO** o uso da imagem. *(O(a) estudante participará normalmente de todos os atendimentos e não será fotografado(a) ou filmado(a).)*
+As partes concordam expressamente com a utilização de **Assinatura Eletrônica Simples**, nos termos da **Lei Federal nº 14.063/2020** e do **Art. 10, § 2º da Medida Provisória nº 2.200-2/2001**.
 
-**É expressamente proibido** o uso das imagens para fins comerciais, vexatórios, humilhantes ou discriminatórios, sob pena do **Art. 241 do ECA**.
-
----
-
-## 4. COMPROMISSOS E DIREITOS DO TITULAR DOS DADOS *(Art. 18, LGPD)*
-
-**Finalidade e Proteção:** Os dados coletados não serão comercializados, repassados a terceiros alheios ao projeto ou utilizados para fins discriminatórios.
-
-**Direito de Revogação:** O titular, representado por seu responsável, poderá solicitar o acesso aos dados, correções ou a revogação deste consentimento a qualquer momento, procurando a equipe de apoio presencial do projeto ou a coordenação da escola.
-
-**Seus direitos garantidos:** acesso, correção, eliminação, portabilidade, revogação do consentimento e reclamação perante a **ANPD** (anpd.gov.br).
+Para fins de registro e comprovação da assinatura, a plataforma armazena:
+- Assinatura desenhada na tela;
+- Código de confirmação enviado para o e-mail informado;
+- Endereço IP e horário do registro;
+- Resumo criptográfico (Hash SHA-256) garantindo a integridade do termo.
 
 ---
 
-## 5. VALIDADE JURÍDICA DA ASSINATURA ELETRÔNICA
-
-Declaro, sob as penas da lei (**Art. 299 do Código Penal — Falsidade Ideológica**, reclusão de 1 a 3 anos), que sou o(a) legítimo(a) responsável legal do(a) menor acima qualificado(a) e que as informações por mim inseridas nesta plataforma são verdadeiras.
-
-As partes (entidades promotoras e o signatário) concordam expressamente em firmar este termo por meio eletrônico através da plataforma Catraki, constituindo **Assinatura Eletrônica com Autenticidade e Integridade Comprovadas**, nos termos do **Art. 10, § 2º, da Medida Provisória nº 2.200-2/2001**, da **Lei Federal nº 14.063/2020**, dos **Arts. 104 e 107 do Código Civil** e dos **Arts. 411 e 441 do Código de Processo Civil**, reconhecendo mutuamente este método como dotado de **eficácia probatória e validade jurídica**, com respaldo da jurisprudência consolidada do Superior Tribunal de Justiça (**STJ — REsp 2.205.708/PR**).
-
-Estou ciente e concordo que a plataforma registrará e armazenará, de forma segura, os seguintes dados para fins de comprovação de autoria e auditoria da integridade da minha assinatura:
-
-- **Endereço IP** do dispositivo utilizado (Autoria);
-- **Data e Hora (Timestamp)** do registro em UTC (Autoria);
-- **Hash SHA-256** deste documento (Integridade - garantia de que o documento não foi alterado após a assinatura);
-- **Dados do navegador/dispositivo** e **geolocalização** (Autoria).
-
----
-
-*Ao prosseguir e confirmar a leitura, você avançará para a etapa de preenchimento dos seus dados e registro individual de cada autorização (A, B e C). O aceite final ocorre somente após o preenchimento completo e a assinatura eletrônica.*`,
+*Ao prosseguir, você avançará para o preenchimento dos dados e confirmação das opções de autorização.*`,
     content_sha256: '5d98b3c1ad95490eba3b6339902569637cb26659bbaefc481b6e8c9edf5261da',
     consent_text_version: 3,
     retention_days: 7300, // 20 anos conforme o termo

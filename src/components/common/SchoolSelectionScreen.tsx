@@ -98,11 +98,11 @@ export const SchoolSelectionScreen: React.FC<SchoolSelectionScreenProps> = ({
         </div>
 
         <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
-          Portal de Autorização Digital Escolar
+          Portal de Autorização Eletrônica Escolar
         </h1>
 
         <p className="max-w-2xl mx-auto text-xs sm:text-sm md:text-base text-slate-600 leading-relaxed">
-          Selecione a sua <strong>unidade escolar</strong> para acessar o formulário oficial de consentimento e assinatura eletrônica para os atendimentos de saúde gratuitos.
+          Selecione a sua <strong>unidade escolar</strong> para acessar o formulário oficial de consentimento e assinatura eletrônica simples para os atendimentos de saúde gratuitos.
         </p>
       </div>
 

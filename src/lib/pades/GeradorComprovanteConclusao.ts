@@ -103,7 +103,7 @@ function quebrarTexto(texto: string, maxCaracteres: number): string[] {
 
 /**
  * Gerador do Comprovante de Conclusão em PDF — Relatório Final de Linha do Tempo e Auditoria
- * Produz documento forense com toda a cadeia de custódia digital do termo de consentimento eletrônico.
+ * Produz documento forense com toda a cadeia de custódia eletrônica do termo de consentimento eletrônico.
  */
 export class GeradorComprovanteConclusao {
   public static async gerarComprovante(dados: IDadosComprovanteConclusao): Promise<Uint8Array> {
@@ -269,7 +269,7 @@ export class GeradorComprovanteConclusao {
 
     // ── LINHA DO TEMPO ─────────────────────────────────────────────────────
     checkPage(80);
-    page.drawText('LINHA DO TEMPO DE AÇÕES — CADEIA DE CUSTÓDIA DIGITAL', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
+    page.drawText('LINHA DO TEMPO DE AÇÕES — CADEIA DE CUSTÓDIA ELETRÔNICA', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
     novaLinha(12);
     drawLine(MARGIN, y, PAGE_W - MARGIN, y);
     novaLinha(14);

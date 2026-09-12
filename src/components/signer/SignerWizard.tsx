@@ -97,7 +97,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
     return (
       <StatusAlertScreen
         scenario="missing_school_slug"
-        customReason="Nenhuma escola foi especificada na URL. O formulário de autorização digital só pode ser aberto através do link oficial de uma escola cadastrada (ex: /autorizar/nome-da-escola)."
+        customReason="Nenhuma escola foi especificada na URL. O formulário de autorização eletrônica só pode ser aberto através do link oficial de uma escola cadastrada (ex: /autorizar/nome-da-escola)."
         onPrimaryAction={onChangeSchool || (() => { window.location.href = '/'; })}
         primaryActionLabel="Ver escolas participantes"
       />

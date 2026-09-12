@@ -26,6 +26,7 @@ import {
 } from '../../src/lib/email-templates.ts';
 import { verifyAuditChain } from '../../src/lib/audit-chain.ts';
 import { requireAuth, signJwt, JwtPayload } from '../middleware/auth.ts';
+import { rateLimiter } from '../middleware/ratelimit.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
 import { GeradorComprovanteConclusao, EventoComprovante } from '../../src/lib/pades/GeradorComprovanteConclusao.ts';
 import type {
@@ -72,7 +73,7 @@ export async function logAdminAction(
 // AUTENTICAÇÃO ADMINISTRATIVA (PBKDF2-SHA256 & RBAC ESTRITO)
 // ============================================================================
 
-adminRouter.post('/auth/login', async (c) => {
+adminRouter.post('/auth/login', rateLimiter({ limit: 5, windowSeconds: 900, keyPrefix: 'adm_login' }), async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const { email, password } = body;
   const cfData = extractCloudflareClientData(c);
@@ -93,6 +94,15 @@ adminRouter.post('/auth/login', async (c) => {
     'SELECT * FROM admin_users WHERE LOWER(email) = ? AND is_active = 1'
   ).bind(cleanEmail).first<any>();
 
+  // ── Bloqueio Anti-Força-Bruta por Conta (5 tentativas falhas consecutivas) ──
+  if (dbUser && typeof dbUser.failed_login_count === 'number' && dbUser.failed_login_count >= 5) {
+    return c.json({
+      success: false,
+      error: 'Conta administrativa temporariamente bloqueada por excesso de tentativas incorretas (5). Contate o Administrador Master para liberação.',
+      code: 'ACCOUNT_LOCKED',
+    }, 429);
+  }
+
   let isValid = false;
   if (dbUser && dbUser.password_hash) {
     isValid = await verifyPasswordPbkdf2(password, dbUser.password_hash);
@@ -102,6 +112,9 @@ adminRouter.post('/auth/login', async (c) => {
   }
 
   if (!isValid || !dbUser) {
+    if (dbUser) {
+      await db.prepare('UPDATE admin_users SET failed_login_count = COALESCE(failed_login_count, 0) + 1 WHERE id = ?').bind(dbUser.id).run().catch(() => null);
+    }
     // Grava log de tentativa falha de login (Segurança Marco Civil e LGPD Art. 46)
     await logAdminAction(
       db,
@@ -114,6 +127,9 @@ adminRouter.post('/auth/login', async (c) => {
     );
     return c.json({ success: false, error: 'Credenciais administrativas inválidas.', code: 'INVALID_CREDENTIALS' }, 401);
   }
+
+  // Zera contador de falhas e atualiza último login
+  await db.prepare('UPDATE admin_users SET failed_login_count = 0, last_login_at = datetime("now") WHERE id = ?').bind(dbUser.id).run().catch(() => null);
 
   const secret = c.env.JWT_ADMIN_SECRET;
   if (!secret) {

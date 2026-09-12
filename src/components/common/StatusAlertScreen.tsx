@@ -109,7 +109,7 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
               Unidade Escolar Não Informada
             </h2>
             <p className="text-sm sm:text-base font-medium text-amber-900 leading-relaxed bg-amber-50/80 p-3.5 rounded-xl border border-amber-200/60">
-              {customReason || 'Para acessar o formulário de autorização digital, é obrigatório utilizar o link com o identificador da escola (ex: /autorizar/nome-da-escola).'}
+              {customReason || 'Para acessar o formulário de autorização eletrônica, é obrigatório utilizar o link com o identificador da escola (ex: /autorizar/nome-da-escola).'}
             </p>
           </div>
 
@@ -153,7 +153,7 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
           </div>
 
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-center px-1">
-            O formulário de autorização digital só pode ser aberto para escolas previamente cadastradas no sistema.
+            O formulário de autorização eletrônica só pode ser aberto para escolas previamente cadastradas no sistema.
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -218,7 +218,7 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
           <div className="space-y-2">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-800 text-xs font-semibold uppercase tracking-wider mb-1">
               <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
-              Segurança Digital
+              Segurança da Informação
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               Acesso interrompido por segurança

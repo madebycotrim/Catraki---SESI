@@ -76,7 +76,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
             TERMOS DE USO DA PLATAFORMA CATRAKI
           </h1>
           <p className="text-xs text-slate-500 mt-1.5 m-0">
-            Orientações sobre a ferramenta digital, assinatura eletrônica e responsabilidades
+            Orientações sobre a plataforma, assinatura eletrônica simples e responsabilidades
           </p>
         </div>
 
@@ -90,7 +90,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
               <span>O que é a Plataforma Catraki?</span>
             </h2>
             <p className="m-0 pl-7">
-              O <strong>Catraki</strong> é uma ferramenta de tecnologia desenvolvida para facilitar o preenchimento, a assinatura e a conferência de autorizações escolares de forma 100% digital, rápida e sem necessidade de papel.
+              O <strong>Catraki</strong> é uma ferramenta de tecnologia desenvolvida para facilitar o preenchimento, a assinatura e a conferência de autorizações escolares de forma 100% eletrônica, rápida e sem necessidade de papel.
             </p>
             <p className="m-0 pl-7">
               O sistema é utilizado no projeto <strong>"Escola Cidadã: Saúde em Movimento"</strong>, uma parceria entre o <strong>SESI-DF</strong>, a <strong>Universidade de Brasília (FS/UnB)</strong>, a <strong>FINATEC</strong> e escolas públicas parceiras (como o CEMEIT), permitindo que pais e responsáveis autorizem com segurança a participação dos estudantes nas triagens e atendimentos de saúde.
@@ -110,7 +110,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
               <ul className="space-y-1.5 text-xs text-slate-600 list-disc list-inside m-0">
                 <li><strong>Código de Segurança por E-mail:</strong> Enviamos um código numérico de 6 dígitos para o seu e-mail para validar sua identidade;</li>
                 <li><strong>Assinatura na Tela:</strong> Você faz o desenho da sua assinatura na tela do celular ou computador;</li>
-                <li><strong>Comprovante com Código de Validação:</strong> Ao finalizar, o sistema gera um comprovante digital oficial com código alfanumérico e QR Code único para conferência na escola.</li>
+                <li><strong>Comprovante com Código de Validação:</strong> Ao finalizar, o sistema gera um comprovante eletrônico oficial com código alfanumérico e QR Code único para conferência na escola.</li>
               </ul>
             </div>
           </section>

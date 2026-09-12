@@ -183,7 +183,7 @@ export function App() {
           <div className="w-full max-w-xl px-2 sm:px-6 md:px-8 py-4 sm:py-8">
             <StatusAlertScreen
               scenario="missing_school_slug"
-              customReason="Nenhuma escola foi especificada no endereço de acesso. Para abrir o formulário de autorização digital escolar, é necessário utilizar o link direto com o identificador da escola (exemplo: catraki.com.br/autorizar/cemeit)."
+              customReason="Nenhuma escola foi especificada no endereço de acesso. Para abrir o formulário de autorização eletrônica escolar, é necessário utilizar o link direto com o identificador da escola (exemplo: catraki.com.br/autorizar/cemeit)."
               onPrimaryAction={() => navegarParaView('school-select', '/')}
               primaryActionLabel="Consultar escolas cadastradas"
             />

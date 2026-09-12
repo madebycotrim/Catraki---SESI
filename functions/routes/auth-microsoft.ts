@@ -177,25 +177,53 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
       );
     }
 
-    // 4. Determina papel RBAC a partir do banco de dados D1
+    // 4. Determina papel RBAC e validação de aprovação prévia no banco D1
     let role: AdminRole = 'operador';
+    let isActive = 1;
+
     if (c.env.DB) {
       try {
         const existingUser = await c.env.DB.prepare(
-          'SELECT role FROM admin_users WHERE LOWER(email) = ? AND is_active = 1'
-        ).bind(userProfile.email.toLowerCase().trim()).first<{ role: string }>();
+          'SELECT id, role, is_active FROM admin_users WHERE LOWER(email) = ?'
+        ).bind(userProfile.email.toLowerCase().trim()).first<{ id: string; role: string; is_active: number }>();
 
-        if (existingUser?.role) {
-          role = existingUser.role as AdminRole;
+        if (existingUser) {
+          if (existingUser.is_active === 0) {
+            return c.json({
+              success: false,
+              error: `Acesso Bloqueado: A conta do usuário (${userProfile.email}) está inativa ou aguardando aprovação pelo Administrador Master.`,
+              code: 'ACCOUNT_DEACTIVATED',
+            }, 403);
+          }
+          if (existingUser.role) {
+            role = existingUser.role as AdminRole;
+          }
+          // Atualiza dados e último login
+          await c.env.DB.prepare(
+            `UPDATE admin_users SET name = ?, last_login_at = datetime('now') WHERE LOWER(email) = ?`
+          ).bind(userProfile.name, userProfile.email.toLowerCase().trim()).run();
+        } else {
+          // Princípio do Menor Privilégio (RBAC): novos usuários institucionais exigem aprovação do Master
+          const isMasterEmail = userProfile.email.toLowerCase().trim() === 'mateus.cotrim@sistemafibra.org.br';
+          role = isMasterEmail ? 'admin_master' : 'operador';
+          isActive = isMasterEmail ? 1 : 0;
+
+          await c.env.DB.prepare(
+            `INSERT INTO admin_users (id, name, email, password_hash, role, is_active, last_login_at)
+             VALUES (?, ?, ?, 'MICROSOFT_SSO_OAUTH', ?, ?, datetime('now'))`
+          ).bind(userProfile.id || `MS-${Date.now()}`, userProfile.name, userProfile.email, role, isActive).run();
+
+          if (!isActive) {
+            return c.json({
+              success: false,
+              error: `Conta institucional criada com sucesso, porém aguardando liberação de acesso pelo Administrador Master. Entre em contato com a equipe de gestão para ativação do seu perfil (${role}).`,
+              code: 'ACCOUNT_PENDING_APPROVAL',
+            }, 403);
+          }
         }
-
-        // 5. Persiste / Atualiza no banco D1 sem alterar o role pré-existente
-        await c.env.DB.prepare(
-          `INSERT INTO admin_users (id, name, email, password_hash, role, is_active)
-           VALUES (?, ?, ?, 'MICROSOFT_SSO_OAUTH', ?, 1)
-           ON CONFLICT(email) DO UPDATE SET name = excluded.name, is_active = 1`
-        ).bind(userProfile.id || `MS-${Date.now()}`, userProfile.name, userProfile.email, role).run();
-      } catch {}
+      } catch (err: any) {
+        console.error('[AUTH_MS_DB_ERROR]', err);
+      }
     }
 
     // 6. Emite JWT com validade de 8 horas

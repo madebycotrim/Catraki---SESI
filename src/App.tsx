@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Header } from './components/common/Header.tsx';
+import { SchoolSelectionScreen } from './components/common/SchoolSelectionScreen.tsx';
+import { StatusAlertScreen } from './components/common/StatusAlertScreen.tsx';
 import { SignerWizard } from './components/signer/SignerWizard.tsx';
 import { PublicValidator } from './components/validator/PublicValidator.tsx';
 import { AdminDashboard } from './components/admin/AdminDashboard.tsx';
@@ -8,10 +10,12 @@ import { PrivacyPolicy } from './components/common/PrivacyPolicy.tsx';
 import { TermsOfUse } from './components/common/TermsOfUse.tsx';
 import { apiClient } from './lib/api.ts';
 
+export type AppView = 'school-select' | 'no-school-error' | 'signer' | 'validator' | 'admin' | 'privacy' | 'terms';
+
 export function App() {
-  const [currentView, setCurrentView] = useState<'signer' | 'validator' | 'admin' | 'privacy' | 'terms'>('signer');
-  const [activeSignerToken, setActiveSignerToken] = useState('projeto-escola-cidada-2026');
-  const [activeSchoolSlug, setActiveSchoolSlug] = useState('cemeit');
+  const [currentView, setCurrentView] = useState<AppView>('no-school-error');
+  const [activeSignerToken, setActiveSignerToken] = useState('');
+  const [activeSchoolSlug, setActiveSchoolSlug] = useState('');
   const [activeValidatorHash, setActiveValidatorHash] = useState('');
   const [adminUser, setAdminUser] = useState<any | null>(() => apiClient.getCurrentAdminUser());
 
@@ -54,30 +58,33 @@ export function App() {
         return;
       }
 
-      if (path.startsWith('/autorizar/')) {
-        const slug = path.substring('/autorizar/'.length) || 'cemeit';
-        setActiveSchoolSlug(slug);
-        setActiveSignerToken(slug);
-        setCurrentView('signer');
-      } else if (path.startsWith('/termo/')) {
-        const slug = path.substring('/termo/'.length) || 'cemeit';
-        setActiveSchoolSlug(slug);
-        setActiveSignerToken(slug);
-        setCurrentView('signer');
-      } else if (path.startsWith('/escola/')) {
-        const slug = path.substring('/escola/'.length) || 'cemeit';
-        setActiveSchoolSlug(slug);
-        setActiveSignerToken(slug);
-        setCurrentView('signer');
-      } else if (path.startsWith('/escolacidada/')) {
-        const slug = path.substring('/escolacidada/'.length) || 'cemeit';
-        setActiveSchoolSlug(slug);
-        setActiveSignerToken(slug);
-        setCurrentView('signer');
-      } else if (path === '/autorizar' || path === '/escolacidada' || path === '/termo') {
-        setActiveSchoolSlug('cemeit');
-        setActiveSignerToken('cemeit');
-        setCurrentView('signer');
+      // Rotas com identificador explícito de escola (ex: /autorizar/cemeit ou /autorizar/nova-escola)
+      const prefixosEscola = ['/autorizar/', '/termo/', '/escola/', '/escolacidada/'];
+      const prefixoEncontrado = prefixosEscola.find((pref) => path.startsWith(pref));
+
+      if (prefixoEncontrado) {
+        const slug = path.substring(prefixoEncontrado.length).trim().replace(/\/$/, '');
+        if (slug) {
+          setActiveSchoolSlug(slug);
+          setActiveSignerToken(slug);
+          setCurrentView('signer');
+          return;
+        }
+        // Se a rota for apenas o prefixo sem slug (ex: /autorizar/), dá erro
+        setActiveSchoolSlug('');
+        setActiveSignerToken('');
+        setCurrentView('no-school-error');
+        return;
+      }
+
+      if (path === '/escolas') {
+        setActiveSchoolSlug('');
+        setActiveSignerToken('');
+        setCurrentView('school-select');
+      } else if (path === '/autorizar' || path === '/escolacidada' || path === '/termo' || path === '/escola' || path === '/') {
+        setActiveSchoolSlug('');
+        setActiveSignerToken('');
+        setCurrentView('no-school-error');
       } else if (path.startsWith('/validar/')) {
         const hash = path.substring('/validar/'.length);
         setActiveValidatorHash(hash);
@@ -86,8 +93,10 @@ export function App() {
         setActiveValidatorHash('');
         setCurrentView('validator');
       } else if (path === '/revogar') {
-        setCurrentView('signer');
-        window.history.replaceState({}, '', '/autorizar/cemeit');
+        setActiveSchoolSlug('');
+        setActiveSignerToken('');
+        setCurrentView('no-school-error');
+        window.history.replaceState({}, '', '/');
       } else if (path === '/termos') {
         setCurrentView('terms');
       } else if (path === '/privacidade') {
@@ -95,10 +104,10 @@ export function App() {
       } else if (path === '/admin') {
         setCurrentView('admin');
       } else {
-        // Redireciona a raiz (/) para a rota padrão do Catraki
-        setActiveSchoolSlug('cemeit');
-        setCurrentView('signer');
-        window.history.replaceState({}, '', '/autorizar/cemeit');
+        // Redireciona qualquer rota desconhecida para o erro de escola não informada
+        setActiveSchoolSlug('');
+        setActiveSignerToken('');
+        setCurrentView('no-school-error');
       }
     };
 
@@ -107,15 +116,26 @@ export function App() {
     return () => window.removeEventListener('popstate', tratarRota);
   }, []);
 
-  const navegarParaView = (view: 'signer' | 'validator' | 'admin' | 'privacy' | 'terms', path: string) => {
+  const navegarParaView = (view: AppView, path: string) => {
     setCurrentView(view);
     window.history.pushState({}, '', path);
   };
 
-  const navigateToSigner = (token?: string, slug = 'cemeit') => {
-    if (token) setActiveSignerToken(token);
-    setActiveSchoolSlug(slug);
-    navegarParaView('signer', `/autorizar/${slug}`);
+  const navigateToSigner = (token?: string, slug?: string) => {
+    const targetSlug = slug || (token && !token.startsWith('DOC-') && !token.startsWith('SESI-') ? token : activeSchoolSlug);
+    if (!targetSlug) {
+      navegarParaView('no-school-error', '/');
+      return;
+    }
+    setActiveSignerToken(token || targetSlug);
+    setActiveSchoolSlug(targetSlug);
+    navegarParaView('signer', `/autorizar/${targetSlug}`);
+  };
+
+  const navigateToSchoolSelect = () => {
+    setActiveSchoolSlug('');
+    setActiveSignerToken('');
+    navegarParaView('school-select', '/escolas');
   };
 
   const navigateToValidator = (hash?: string) => {
@@ -127,7 +147,7 @@ export function App() {
     }
   };
 
-  const isPublicView = currentView === 'signer' || currentView === 'validator' || currentView === 'privacy' || currentView === 'terms';
+  const isPublicView = currentView === 'school-select' || currentView === 'no-school-error' || currentView === 'signer' || currentView === 'validator' || currentView === 'privacy' || currentView === 'terms';
 
   return (
     <div className="min-h-screen flex flex-col bg-[#edf1f5] text-slate-800 font-sans selection:bg-blue-500 selection:text-white">
@@ -138,7 +158,13 @@ export function App() {
           currentView={currentView as any} 
           onNavigate={(v) => {
             if (v === 'admin') navegarParaView('admin', '/admin');
-            else if (v === 'signer') navegarParaView('signer', '/autorizar/cemeit');
+            else if (v === 'signer') {
+              if (activeSchoolSlug) {
+                navegarParaView('signer', `/autorizar/${activeSchoolSlug}`);
+              } else {
+                navigateToSchoolSelect();
+              }
+            }
             else if (v === 'validator') navegarParaView('validator', '/validar');
           }} 
         />
@@ -147,12 +173,35 @@ export function App() {
       {/* Conteúdo Principal */}
       <main className={`flex-1 flex flex-col w-full ${isPublicView ? 'items-center pt-2 sm:pt-6 md:pt-10' : ''}`}>
 
+        {currentView === 'no-school-error' && (
+          <div className="w-full max-w-xl px-2 sm:px-6 md:px-8 py-4 sm:py-8">
+            <StatusAlertScreen
+              scenario="missing_school_slug"
+              customReason="Nenhuma escola foi especificada no endereço de acesso. Para abrir o formulário de autorização digital escolar, é necessário utilizar o link direto com o identificador da escola (exemplo: catraki.com.br/autorizar/cemeit)."
+              onPrimaryAction={() => navegarParaView('school-select', '/escolas')}
+              primaryActionLabel="Consultar escolas cadastradas"
+            />
+          </div>
+        )}
+
+        {currentView === 'school-select' && (
+          <SchoolSelectionScreen
+            onSelectSchool={(slug) => navigateToSigner(slug, slug)}
+            onNavigateToValidator={() => navigateToValidator()}
+            onNavigateToAdmin={() => navegarParaView('admin', '/admin')}
+            onNavigateToPrivacy={() => navegarParaView('privacy', '/privacidade')}
+            onNavigateToTerms={() => navegarParaView('terms', '/termos')}
+          />
+        )}
+
         {currentView === 'signer' && (
           <div className="w-full max-w-4xl px-2 sm:px-6 md:px-8 py-2 sm:py-4">
             <SignerWizard
+              key={activeSchoolSlug || activeSignerToken || 'signer'}
               initialToken={activeSignerToken}
               schoolSlug={activeSchoolSlug}
               onNavigateToValidator={navigateToValidator}
+              onChangeSchool={navigateToSchoolSelect}
             />
           </div>
         )}
@@ -162,7 +211,7 @@ export function App() {
             <PublicValidator 
               key={activeValidatorHash || 'empty'}
               initialHash={activeValidatorHash} 
-              onNavigateToSigner={() => navigateToSigner()} 
+              onNavigateToSigner={() => (activeSchoolSlug ? navigateToSigner(activeSchoolSlug, activeSchoolSlug) : navigateToSchoolSelect())} 
             />
           </div>
         )}
@@ -187,13 +236,13 @@ export function App() {
 
         {currentView === 'privacy' && (
           <div className="w-full px-2 sm:px-6 md:px-8 py-2 sm:py-4 max-w-4xl mx-auto">
-            <PrivacyPolicy onBack={() => navigateToSigner()} />
+            <PrivacyPolicy onBack={() => (activeSchoolSlug ? navigateToSigner(activeSchoolSlug, activeSchoolSlug) : navigateToSchoolSelect())} />
           </div>
         )}
 
         {currentView === 'terms' && (
           <div className="w-full px-2 sm:px-6 md:px-8 py-2 sm:py-4 max-w-4xl mx-auto">
-            <TermsOfUse onBack={() => navigateToSigner()} />
+            <TermsOfUse onBack={() => (activeSchoolSlug ? navigateToSigner(activeSchoolSlug, activeSchoolSlug) : navigateToSchoolSelect())} />
           </div>
         )}
 

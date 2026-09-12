@@ -616,7 +616,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   name="minorSchool"
                   type="text"
                   readOnly
-                  value={institution?.name || 'Centro de Ensino Médio EIT (CEMEIT)'}
+                  value={institution?.name || 'Escola Participante'}
                   className="w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>

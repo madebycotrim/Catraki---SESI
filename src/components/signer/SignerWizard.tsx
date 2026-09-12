@@ -5,23 +5,23 @@ import { Step3OtpAndSignature } from './Step3OtpAndSignature.tsx';
 import { Step4Success } from './Step4Success.tsx';
 import { StatusAlertScreen } from '../common/StatusAlertScreen.tsx';
 import { apiClient } from '../../lib/api.ts';
-import { Loader2 } from 'lucide-react';
-
-
+import { Loader2, Building2, ArrowRight } from 'lucide-react';
 import type { Institution } from '../../lib/types.ts';
 
 interface SignerWizardProps {
   initialToken?: string;
   schoolSlug?: string;
   onNavigateToValidator: (hash: string) => void;
+  onChangeSchool?: () => void;
 }
 
 export const SignerWizard: React.FC<SignerWizardProps> = ({
-  initialToken = 'demo-token-sesi-audiometria-2026',
-  schoolSlug = 'cemeit',
+  initialToken = '',
+  schoolSlug = '',
   onNavigateToValidator,
+  onChangeSchool,
 }) => {
-  const [token] = useState(initialToken);
+  const activeToken = schoolSlug || initialToken;
   const [institution, setInstitution] = useState<Institution | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [loading, setLoading] = useState(true);
@@ -31,27 +31,54 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
 
   // Dados coletados nas etapas
   const [formData, setFormData] = useState<any>(null);
-
   const [signResult, setSignResult] = useState<any>(null);
 
   useEffect(() => {
-    loadDocument(token);
-  }, [token, schoolSlug]);
+    if (activeToken) {
+      loadDocument(activeToken);
+    }
+  }, [activeToken, schoolSlug]);
 
   const loadDocument = async (t: string) => {
     setLoading(true);
     setErrorMessage('');
     setErrorCode('');
     try {
+      // 1. Busca os dados oficiais da instituição pelo slug da URL (prioridade absoluta)
+      const targetSlug = schoolSlug || (!t.startsWith('DOC-') && !t.startsWith('SESI-') ? t : '');
+      let instResData: Institution | null = null;
+      
+      if (targetSlug) {
+        const instRes = await apiClient.getInstitutionBySlug(targetSlug);
+        if (!instRes.success || !instRes.institution) {
+          setErrorCode('SCHOOL_NOT_FOUND');
+          setErrorMessage(
+            (instRes as any)?.error ||
+            `A unidade escolar "${targetSlug}" não foi encontrada no sistema. O formulário só pode ser aberto para escolas previamente cadastradas.`
+          );
+          setLoading(false);
+          return;
+        }
+        instResData = instRes.institution;
+      }
+
+      // 2. Busca os dados do documento / template
       const resp = await apiClient.getSignerDoc(t);
       if (resp.success && resp.document) {
         setDocumentData(resp.document);
+
+        const finalName = instResData?.name || resp.document.institution_name;
+        const finalShort = instResData?.short_name || resp.document.institution_short_name;
+        const finalId = instResData?.id || resp.document.institution_id || targetSlug || 'escola';
+        const finalCity = instResData?.city || resp.document.institution_city || 'Brasília';
+        const finalState = instResData?.state || resp.document.institution_state || 'DF';
+
         setInstitution({
-          id: resp.document.institution_id || schoolSlug || 'cemeit',
-          name: resp.document.institution_name || 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)',
-          short_name: resp.document.institution_short_name || 'CEMEIT',
-          city: resp.document.institution_city || 'Brasília',
-          state: resp.document.institution_state || 'DF',
+          id: finalId,
+          name: finalName || 'Escola Participante',
+          short_name: finalShort || 'Escola',
+          city: finalCity,
+          state: finalState,
           is_active: true,
         });
       } else {
@@ -65,12 +92,36 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
     }
   };
 
+  // Ausência de slug na URL: exige link com a escola
+  if (!schoolSlug && !initialToken) {
+    return (
+      <StatusAlertScreen
+        scenario="missing_school_slug"
+        customReason="Nenhuma escola foi especificada na URL. O formulário de autorização digital só pode ser aberto através do link oficial de uma escola cadastrada (ex: /autorizar/nome-da-escola)."
+        onPrimaryAction={onChangeSchool || (() => { window.location.href = '/escolas'; })}
+        primaryActionLabel="Ver escolas participantes"
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-[#004b8d]" />
         <span className="text-sm">Carregando autorização escolar segura...</span>
       </div>
+    );
+  }
+
+  // Escola não cadastrada no sistema
+  if (errorCode === 'SCHOOL_NOT_FOUND' || (errorMessage && errorMessage.toLowerCase().includes('não foi encontrada'))) {
+    return (
+      <StatusAlertScreen
+        scenario="school_not_found"
+        customReason={errorMessage || `A unidade escolar "${schoolSlug}" não foi encontrada no sistema. O formulário só pode ser aberto para escolas previamente cadastradas.`}
+        onPrimaryAction={onChangeSchool || (() => { window.location.href = '/escolas'; })}
+        primaryActionLabel="Ver escolas participantes"
+      />
     );
   }
 
@@ -84,11 +135,13 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
         onPrimaryAction={() => {
           if (documentData.content_sha256) {
             onNavigateToValidator(documentData.content_sha256);
+          } else if (onChangeSchool) {
+            onChangeSchool();
           } else {
-            window.location.href = '/autorizar/cemeit';
+            window.location.href = schoolSlug ? `/autorizar/${schoolSlug}` : '/';
           }
         }}
-        primaryActionLabel={documentData.content_sha256 ? 'Validar assinatura' : 'Fechar tela'}
+        primaryActionLabel={documentData.content_sha256 ? 'Validar assinatura' : 'Voltar ao início'}
       />
     );
   }
@@ -124,8 +177,30 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
   }
 
   return (
-    <div className="w-full space-y-10">
+    <div className="w-full space-y-6">
 
+      {/* Barra de identificação da Unidade Escolar e opção de troca */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white border border-slate-200/90 px-3.5 sm:px-4 py-2.5 rounded-2xl shadow-2xs text-xs">
+        <div className="flex items-center gap-2 text-slate-700 min-w-0">
+          <Building2 className="w-4 h-4 text-[#004b8d] shrink-0" />
+          <span className="font-semibold text-slate-500 hidden sm:inline">Unidade Escolar:</span>
+          <span className="font-bold text-slate-900 truncate">
+            {institution?.name || documentData?.institution_name || (schoolSlug ? `Escola ${schoolSlug.toUpperCase()}` : 'Escola Participante')}
+          </span>
+        </div>
+
+        {onChangeSchool && (
+          <button
+            type="button"
+            onClick={onChangeSchool}
+            className="text-xs font-bold text-[#004b8d] hover:text-[#003666] hover:underline cursor-pointer flex items-center gap-1 shrink-0 ml-auto"
+            title="Selecionar outra escola participante"
+          >
+            <span>Trocar de escola</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
 
       {/* Renderização Condicional da Etapa Atual */}
       {step === 1 && (
@@ -155,7 +230,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
           minorName={formData.minorName}
           minorBirthDate={formData.minorBirthDate}
           procedureTitle={documentData.procedure_title}
-          institutionName={institution?.name || documentData?.institution_name || 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)'}
+          institutionName={institution?.name || documentData?.institution_name || 'Escola Participante'}
           identityData={{
             signerName: formData.signerName,
             signerCpf: formData.signerCpf,

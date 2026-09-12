@@ -99,4 +99,74 @@ describe('Rotas Públicas e Validação de Autenticidade (publicRouter)', () => 
     expect(json.success).toBe(true);
     expect(json.client).toBeDefined();
   });
+
+  it('deve listar múltiplas escolas ativas via /institutions', async () => {
+    const mockDb = {
+      prepare: () => ({
+        bind: () => ({
+          all: async () => ({
+            results: [
+              { id: 'cemeit', name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)', short_name: 'CEMEIT', city: 'Taguatinga', state: 'DF', is_active: 1 },
+              { id: 'ced01-estrutural', name: 'Centro Educacional 01 da Estrutural', short_name: 'CED 01', city: 'Estrutural', state: 'DF', is_active: 1 },
+            ],
+          }),
+        }),
+        all: async () => ({
+          results: [
+            { id: 'cemeit', name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)', short_name: 'CEMEIT', city: 'Taguatinga', state: 'DF', is_active: 1 },
+            { id: 'ced01-estrutural', name: 'Centro Educacional 01 da Estrutural', short_name: 'CED 01', city: 'Estrutural', state: 'DF', is_active: 1 },
+          ],
+        }),
+      }),
+    };
+
+    const res = await publicRouter.request('/institutions', { method: 'GET' }, { DB: mockDb as any });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as any;
+    expect(json.success).toBe(true);
+    expect(json.institutions).toHaveLength(2);
+    expect(json.institutions[0].id).toBe('cemeit');
+    expect(json.institutions[1].id).toBe('ced01-estrutural');
+  });
+
+  it('deve retornar instituição específica pelo slug dinâmico em /institutions/:slug', async () => {
+    const mockDb = {
+      prepare: () => ({
+        bind: (slug: string) => ({
+          first: async () => ({
+            id: slug,
+            name: `Escola Estadual Modelo (${slug.toUpperCase()})`,
+            short_name: slug.toUpperCase(),
+            city: 'Ceilândia',
+            state: 'DF',
+            is_active: 1,
+          }),
+        }),
+      }),
+    };
+
+    const res = await publicRouter.request('/institutions/cem02-ceilandia', { method: 'GET' }, { DB: mockDb as any });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as any;
+    expect(json.success).toBe(true);
+    expect(json.institution.id).toBe('cem02-ceilandia');
+    expect(json.institution.short_name).toBe('CEM02-CEILANDIA');
+  });
+
+  it('deve retornar 404 SCHOOL_NOT_FOUND para escola não cadastrada em /institutions/:slug', async () => {
+    const mockDb = {
+      prepare: () => ({
+        bind: () => ({
+          first: async () => null,
+        }),
+      }),
+    };
+
+    const res = await publicRouter.request('/institutions/escola-inexistente-999', { method: 'GET' }, { DB: mockDb as any });
+    expect(res.status).toBe(404);
+    const json = (await res.json()) as any;
+    expect(json.success).toBe(false);
+    expect(json.code).toBe('SCHOOL_NOT_FOUND');
+  });
 });
+

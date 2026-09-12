@@ -48,32 +48,49 @@ publicRouter.get('/institutions/:slug', async (c) => {
     return c.json({ success: false, error: 'Identificador da escola inválido.' }, 400);
   }
 
+  const cleanSlug = decodeURIComponent(slug).trim();
   let inst: any = null;
-  if (db) {
+  if (db && cleanSlug) {
     try {
+      const cleanNoHyphen = cleanSlug.toLowerCase().replace(/[-_]/g, '');
       inst = await db.prepare(
         `SELECT id, name, short_name, city, state, is_active, created_at
          FROM institutions
-         WHERE (id = ? OR LOWER(id) = LOWER(?) OR LOWER(short_name) = LOWER(?)) AND is_active = 1
+         WHERE is_active = 1 AND (
+           id = ? 
+           OR LOWER(id) = LOWER(?) 
+           OR LOWER(short_name) = LOWER(?)
+           OR REPLACE(LOWER(id), '-', '') = ?
+           OR REPLACE(LOWER(short_name), ' ', '') = ?
+           OR REPLACE(LOWER(short_name), '-', '') = ?
+         )
+         ORDER BY (CASE WHEN LOWER(id) = LOWER(?) THEN 1 WHEN LOWER(short_name) = LOWER(?) THEN 2 ELSE 3 END) ASC
          LIMIT 1`
-      ).bind(slug, slug, slug).first<any>();
+      ).bind(
+        cleanSlug, cleanSlug, cleanSlug, cleanNoHyphen, cleanNoHyphen, cleanNoHyphen, cleanSlug, cleanSlug
+      ).first<any>();
     } catch (e) {
       console.warn('[PUBLIC_INSTITUTION_DB_WARN]', e);
     }
   }
 
   if (!inst) {
-    const clean = slug.toLowerCase().replace(/[-_]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-    inst = {
-      id: slug.toLowerCase(),
-      name: slug.toLowerCase() === 'cemeit' 
-        ? 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)' 
-        : `Escola ${clean}`,
-      short_name: slug.toUpperCase(),
-      city: 'Taguatinga',
-      state: 'DF',
-      is_active: 1,
-    };
+    if (cleanSlug.toLowerCase() === 'cemeit') {
+      inst = {
+        id: 'cemeit',
+        name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)',
+        short_name: 'CEMEIT',
+        city: 'Taguatinga',
+        state: 'DF',
+        is_active: 1,
+      };
+    } else {
+      return c.json({
+        success: false,
+        error: `A unidade escolar "${cleanSlug}" não foi encontrada no sistema.`,
+        code: 'SCHOOL_NOT_FOUND',
+      }, 404);
+    }
   }
 
   return c.json({
@@ -534,47 +551,6 @@ publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, 
   }
 });
 
-/**
- * GET /api/public/institutions/:slug
- * Retorna dados da instituição/escola para preenchimento dinâmico
- */
-publicRouter.get('/institutions/:slug', async (c) => {
-  try {
-    const slug = c.req.param('slug');
-    const db = c.env?.DB;
-
-    if (!slug) {
-      return c.json({ success: false, error: 'Identificador de escola obrigatório.' }, 400);
-    }
-
-    const clean = slug.toLowerCase().trim();
-    let inst: any = null;
-    if (db) {
-      inst = await db.prepare(
-        'SELECT * FROM institutions WHERE id = ? AND is_active = 1'
-      ).bind(clean).first<any>().catch(() => null);
-    }
-
-    if (!inst) {
-      const formattedName = clean.replace(/[-_]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-      return c.json({
-        success: true,
-        institution: {
-          id: clean,
-          name: `Escola ${formattedName}`,
-          short_name: formattedName,
-          city: 'Brasília',
-          state: 'DF',
-          is_active: 1,
-        },
-      });
-    }
-
-    return c.json({ success: true, institution: inst });
-  } catch (err: any) {
-    return c.json({ success: false, error: 'Erro ao consultar instituição.' }, 500);
-  }
-});
 
 /**
  * GET /api/public/dossier/:query

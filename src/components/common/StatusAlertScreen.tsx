@@ -18,7 +18,9 @@ export type AlertScenario =
   | 'security_tampered'   // Cenário 2: Acesso interrompido por segurança (Hash)
   | 'already_signed'      // Cenário 3: Tudo certo por aqui! (Já assinado)
   | 'otp_auth_failed'     // Cenário 4: Não foi possível confirmar sua identidade
-  | 'link_expired';       // Cenário 5: Link de acesso expirado (TTL 3 dias - Segurança LGPD)
+  | 'link_expired'        // Cenário 5: Link de acesso expirado (TTL 3 dias - Segurança LGPD)
+  | 'missing_school_slug' // Cenário 6: Nenhuma escola informada na URL
+  | 'school_not_found';   // Cenário 7: Escola informada na URL não cadastrada no sistema
 
 interface StatusAlertScreenProps {
   scenario: AlertScenario;
@@ -42,7 +44,7 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
   downloadUrl,
 }) => {
   const handleDefaultGoHome = () => {
-    window.location.href = '/autorizar/cemeit';
+    window.location.href = '/';
   };
 
   if (scenario === 'link_expired') {
@@ -83,6 +85,84 @@ export const StatusAlertScreen: React.FC<StatusAlertScreenProps> = ({
             >
               <ArrowLeft className="w-4 h-4" />
               {primaryActionLabel || 'Voltar para a página inicial'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (scenario === 'missing_school_slug') {
+    return (
+      <div className="max-w-xl mx-auto py-8 sm:py-12 px-4 animate-in fade-in zoom-in-95 duration-300">
+        <div className="bg-white rounded-2xl p-6 sm:p-10 text-center border border-amber-300 shadow-xl space-y-6">
+          <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200 shadow-inner">
+            <AlertTriangle className="w-9 h-9 text-amber-600" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold uppercase tracking-wider mb-1">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+              Link Incompleto
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
+              Unidade Escolar Não Informada
+            </h2>
+            <p className="text-sm sm:text-base font-medium text-amber-900 leading-relaxed bg-amber-50/80 p-3.5 rounded-xl border border-amber-200/60">
+              {customReason || 'Para acessar o formulário de autorização digital, é obrigatório utilizar o link com o identificador da escola (ex: /autorizar/nome-da-escola).'}
+            </p>
+          </div>
+
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-center px-1">
+            Por motivos de conformidade e integridade, o formulário de consentimento só pode ser aberto através do link oficial de uma escola cadastrada.
+          </p>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={onPrimaryAction || handleDefaultGoHome}
+              className="w-full sm:w-auto px-6 py-2.5 bg-[#004b8d] hover:bg-[#003666] text-white font-semibold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+            >
+              <ExternalLink className="w-4 h-4" />
+              {primaryActionLabel || 'Ver escolas participantes'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (scenario === 'school_not_found') {
+    return (
+      <div className="max-w-xl mx-auto py-8 sm:py-12 px-4 animate-in fade-in zoom-in-95 duration-300">
+        <div className="bg-white rounded-2xl p-6 sm:p-10 text-center border border-red-200 shadow-xl space-y-6">
+          <div className="w-16 h-16 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto border border-red-200 shadow-inner">
+            <XCircle className="w-9 h-9 text-red-600" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-800 text-xs font-semibold uppercase tracking-wider mb-1">
+              <XCircle className="w-3.5 h-3.5 text-red-700" />
+              Escola Não Cadastrada
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
+              Unidade Escolar Não Encontrada
+            </h2>
+            <p className="text-sm sm:text-base font-medium text-red-900 leading-relaxed bg-red-50/80 p-3.5 rounded-xl border border-red-200/60">
+              {customReason || 'A unidade escolar informada na URL não foi encontrada no sistema ou está inativa.'}
+            </p>
+          </div>
+
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed text-center px-1">
+            O formulário de autorização digital só pode ser aberto para escolas previamente cadastradas no sistema.
+          </p>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={onPrimaryAction || handleDefaultGoHome}
+              className="w-full sm:w-auto px-6 py-2.5 bg-[#004b8d] hover:bg-[#003666] text-white font-semibold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+            >
+              <ExternalLink className="w-4 h-4" />
+              {primaryActionLabel || 'Ver escolas participantes'}
             </button>
           </div>
         </div>

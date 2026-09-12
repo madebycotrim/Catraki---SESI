@@ -192,16 +192,7 @@ const SEED_INSTITUTIONS: Institution[] = [
 ];
 
 const getInstitutions = (): Institution[] => {
-  const current = getStorage<Institution[]>('catraki_institutions', SEED_INSTITUTIONS);
-  const legacyIds = ['ced01-estrutural', 'cem02-ceilandia', 'ced02-guara'];
-  const hasLegacy = current.some((inst) => legacyIds.includes(inst.id));
-  if (hasLegacy) {
-    const cleaned = current.filter((inst) => !legacyIds.includes(inst.id));
-    const finalInstitutions = cleaned.length > 0 ? cleaned : SEED_INSTITUTIONS;
-    setStorage('catraki_institutions', finalInstitutions);
-    return finalInstitutions;
-  }
-  return current;
+  return getStorage<Institution[]>('catraki_institutions', SEED_INSTITUTIONS);
 };
 const setInstitutions = (d: Institution[]) => setStorage('catraki_institutions', d);
 
@@ -249,6 +240,14 @@ export const apiClient = {
    * Busca documento pelo token de acesso
    */
   async getSignerDoc(token: string): Promise<any> {
+    if (!token || !token.trim()) {
+      return {
+        success: false,
+        code: 'MISSING_SCHOOL_SLUG',
+        error: 'Nenhuma escola foi especificada na URL.',
+      };
+    }
+
     try {
       const resp = await fetch(`${API_BASE}/signer/doc/${token}`);
       const data = (await resp.json().catch(() => null)) as any;
@@ -256,7 +255,31 @@ export const apiClient = {
     } catch {}
 
     const docs = getDocuments();
-    let doc = docs.find((d) => d.access_token === token);
+    let doc = docs.find((d) => d.access_token === token || d.id === token);
+
+    const instList = getInstitutions();
+    const cleanToken = (token || '').toLowerCase().trim();
+    const cleanNoHyphen = cleanToken.replace(/[-_]/g, '');
+    const inst = instList.find(
+      (i) =>
+        i.is_active && (
+          i.id.toLowerCase() === cleanToken ||
+          i.short_name.toLowerCase() === cleanToken ||
+          cleanNoHyphen === i.id.toLowerCase().replace(/[-_]/g, '') ||
+          cleanNoHyphen === i.short_name.toLowerCase().replace(/[-_]/g, '')
+        )
+    );
+
+    // Se NÃO for um documento pré-existente e NÃO for um token de acesso nem escola cadastrada
+    const isDocToken = cleanToken.startsWith('doc-') || cleanToken.startsWith('sesi-') || cleanToken.startsWith('tok-') || cleanToken.startsWith('token-') || cleanToken.startsWith('test-');
+    if (!doc && !inst && cleanToken !== 'cemeit' && cleanNoHyphen !== 'cemeit' && !isDocToken) {
+      return {
+        success: false,
+        code: 'SCHOOL_NOT_FOUND',
+        error: `A unidade escolar "${token}" não foi encontrada no sistema. O formulário só pode ser aberto para escolas previamente cadastradas.`,
+      };
+    }
+
     if (!doc) {
       const tmpl = SEED_TEMPLATES[0];
       doc = {
@@ -316,6 +339,15 @@ export const apiClient = {
         revoked_at: doc.revoked_at,
         revoked_reason: doc.revoked_reason,
         legal_notice: 'Assinatura Eletrônica — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei nº 14.063/2020; Código Civil (Arts. 104 e 107); CPC (Arts. 411 e 441); LGPD (Lei nº 13.709/2018) Arts. 7º, I, 11, I e 14; ECA Art. 17; Art. 299 CP',
+        institution_id: inst ? inst.id : (cleanToken === 'cemeit' ? 'cemeit' : cleanToken),
+        institution_name: inst 
+          ? inst.name 
+          : (cleanToken === 'cemeit' 
+              ? 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)' 
+              : `Escola ${cleanToken.replace(/[-_]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}`),
+        institution_short_name: inst ? inst.short_name : (cleanToken === 'cemeit' ? 'CEMEIT' : cleanToken.toUpperCase()),
+        institution_city: inst ? inst.city : 'Brasília',
+        institution_state: inst ? inst.state : 'DF',
       },
     };
   },
@@ -1490,7 +1522,15 @@ export const apiClient = {
   /**
    * Busca dados da escola/instituição pelo slug da URL
    */
-  async getInstitutionBySlug(slug: string): Promise<{ success: boolean; institution: Institution }> {
+  async getInstitutionBySlug(slug: string): Promise<{ success: boolean; institution?: Institution; code?: string; error?: string }> {
+    if (!slug || !slug.trim()) {
+      return {
+        success: false,
+        code: 'SCHOOL_NOT_FOUND',
+        error: 'Identificador da escola não informado.',
+      };
+    }
+
     try {
       const resp = await fetch(`${API_BASE}/public/institutions/${encodeURIComponent(slug)}`);
       if (resp.ok) {
@@ -1498,32 +1538,79 @@ export const apiClient = {
         if (data.success && data.institution) {
           return { success: true, institution: data.institution };
         }
+      } else if (resp.status === 404) {
+        const errData = (await resp.json().catch(() => null)) as any;
+        return {
+          success: false,
+          code: errData?.code || 'SCHOOL_NOT_FOUND',
+          error: errData?.error || `A unidade escolar "${slug}" não foi encontrada no sistema.`,
+        };
       }
     } catch {}
 
     const list = getInstitutions();
     const clean = slug.toLowerCase().trim();
-    const inst = list.find((i) => i.id === clean && i.is_active);
+    const cleanNoHyphen = clean.replace(/[-_]/g, '');
+
+    const inst = list.find(
+      (i) =>
+        i.is_active && (
+          i.id.toLowerCase() === clean ||
+          i.short_name.toLowerCase() === clean ||
+          i.id.toLowerCase().replace(/[-_]/g, '') === cleanNoHyphen ||
+          i.short_name.toLowerCase().replace(/[-_]/g, '') === cleanNoHyphen
+        )
+    );
 
     if (inst) {
       return { success: true, institution: inst };
     }
 
-    // Se não estiver na lista fixa, gera um nome formatado amigável
-    const formattedName = clean
-      .replace(/[-_]/g, ' ')
-      .replace(/\b\w/g, (l) => l.toUpperCase());
+    if (clean === 'cemeit' || cleanNoHyphen === 'cemeit') {
+      return {
+        success: true,
+        institution: {
+          id: 'cemeit',
+          name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)',
+          short_name: 'CEMEIT',
+          city: 'Taguatinga',
+          state: 'DF',
+          is_active: true,
+        },
+      };
+    }
 
     return {
+      success: false,
+      code: 'SCHOOL_NOT_FOUND',
+      error: `A unidade escolar "${slug}" não foi encontrada no sistema. O formulário de consentimento só pode ser aberto para escolas previamente cadastradas.`,
+    };
+  },
+
+  /**
+   * Obtém lista pública de instituições ativas para a tela inicial / seletor de escolas
+   */
+  async getPublicInstitutions(): Promise<{ success: boolean; institutions: Institution[] }> {
+    try {
+      const resp = await fetch(`${API_BASE}/public/institutions`);
+      if (resp.ok) {
+        const data = (await resp.json()) as any;
+        if (data.success && Array.isArray(data.institutions)) {
+          return {
+            success: true,
+            institutions: data.institutions.map((i: any) => ({
+              ...i,
+              is_active: Boolean(i.is_active),
+            })),
+          };
+        }
+      }
+    } catch {}
+
+    const list = getInstitutions();
+    return {
       success: true,
-      institution: {
-        id: clean,
-        name: `Escola ${formattedName}`,
-        short_name: formattedName,
-        city: 'Brasília',
-        state: 'DF',
-        is_active: true,
-      },
+      institutions: list.filter((i) => i.is_active),
     };
   },
 

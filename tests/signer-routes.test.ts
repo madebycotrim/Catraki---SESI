@@ -145,4 +145,76 @@ describe('Rotas de Assinatura Eletrônica (signerRouter) — Resiliência e Prev
     expect(json.document.procedure_title).toBe('Escola Cidadã: Saúde em Movimento (D1 Database)');
     expect(json.document.content_markdown).toBe('## Termo Oficial do Banco D1');
   });
+
+  it('deve trocar dinamicamente o nome da escola quando outra escola cadastrada for passada na URL', async () => {
+    const mockNovaEscola = {
+      id: 'ced01-estrutural',
+      name: 'Centro Educacional 01 da Estrutural',
+      short_name: 'CED 01',
+      city: 'Estrutural',
+      state: 'DF',
+      is_active: 1,
+    };
+
+    const mockTemplate = {
+      id: 'proc_escola_cidada',
+      version: 1,
+      title: 'Escola Cidadã: Saúde em Movimento',
+      procedure_description: 'Descrição oficial',
+      content_markdown: '## Termo Oficial',
+      content_sha256: '5d98b3c1ad95490eba3b6339902569637cb26659bbaefc481b6e8c9edf5261da',
+      consent_text_version: 1,
+      is_active: 1,
+    };
+
+    const mockDb = {
+      prepare: (sql: string) => ({
+        bind: () => ({
+          first: async () => {
+            if (sql.includes('FROM documents')) return null;
+            if (sql.includes('institutions')) return mockNovaEscola;
+            if (sql.includes('document_templates')) return mockTemplate;
+            return null;
+          },
+          all: async () => ({ results: [] }),
+          run: async () => ({ success: true }),
+        }),
+        first: async () => {
+          if (sql.includes('FROM documents')) return null;
+          if (sql.includes('institutions')) return mockNovaEscola;
+          if (sql.includes('document_templates')) return mockTemplate;
+          return null;
+        },
+      }),
+    };
+
+    const res = await signerRouter.request('/doc/ced01-estrutural', { method: 'GET' }, { DB: mockDb as any });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as any;
+    expect(json.success).toBe(true);
+    expect(json.document.institution_id).toBe('ced01-estrutural');
+    expect(json.document.institution_name).toBe('Centro Educacional 01 da Estrutural');
+    expect(json.document.institution_name).not.toBe('Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)');
+  });
+
+  it('deve retornar 404 SCHOOL_NOT_FOUND quando o slug da escola não estiver cadastrado no banco D1', async () => {
+    const mockDb = {
+      prepare: () => ({
+        bind: () => ({
+          first: async () => null,
+          all: async () => ({ results: [] }),
+          run: async () => ({ success: true }),
+        }),
+        first: async () => null,
+      }),
+    };
+
+    const res = await signerRouter.request('/doc/escola-nao-cadastrada-xyz', { method: 'GET' }, { DB: mockDb as any });
+    expect(res.status).toBe(404);
+    const json = (await res.json()) as any;
+    expect(json.success).toBe(false);
+    expect(json.code).toBe('SCHOOL_NOT_FOUND');
+    expect(json.error).toContain('não foi encontrada no sistema');
+  });
 });
+

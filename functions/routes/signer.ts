@@ -88,20 +88,58 @@ signerRouter.get('/doc/:token', async (c) => {
        ORDER BY d.created_at DESC LIMIT 1`
     ).bind(token, token).first<any>().catch(() => null);
 
-    // 2. Busca dados cadastrais da instituição na tabela institutions do D1 pelo slug da URL (ex: 'cemeit')
-    let institutionData: any = await db.prepare(
-      `SELECT id, name, short_name, city, state, is_active
-       FROM institutions
-       WHERE (id = ? OR LOWER(id) = LOWER(?) OR LOWER(short_name) = LOWER(?)) AND is_active = 1
-       LIMIT 1`
-    ).bind(token, token, token).first<any>().catch(() => null);
+    // 2. Busca dados cadastrais da instituição na tabela institutions do D1 pelo slug da URL (ex: 'cemeit' ou outra escola)
+    const cleanToken = token ? decodeURIComponent(token).trim() : '';
+    let institutionData: any = null;
+
+    if (db && cleanToken) {
+      const cleanNoHyphen = cleanToken.toLowerCase().replace(/[-_]/g, '');
+      institutionData = await db.prepare(
+        `SELECT id, name, short_name, city, state, is_active
+         FROM institutions
+         WHERE is_active = 1 AND (
+           id = ? 
+           OR LOWER(id) = LOWER(?) 
+           OR LOWER(short_name) = LOWER(?)
+           OR REPLACE(LOWER(id), '-', '') = ?
+           OR REPLACE(LOWER(short_name), ' ', '') = ?
+           OR REPLACE(LOWER(short_name), '-', '') = ?
+         )
+         ORDER BY (CASE WHEN LOWER(id) = LOWER(?) THEN 1 WHEN LOWER(short_name) = LOWER(?) THEN 2 ELSE 3 END) ASC
+         LIMIT 1`
+      ).bind(
+        cleanToken, cleanToken, cleanToken, cleanNoHyphen, cleanNoHyphen, cleanNoHyphen, cleanToken, cleanToken
+      ).first<any>().catch(() => null);
+    }
 
     if (!institutionData) {
-      institutionData = await (db.prepare(
-        `SELECT id, name, short_name, city, state, is_active FROM institutions WHERE is_active = 1 ORDER BY created_at ASC LIMIT 1`
-      ).bind?.()?.first<any>() ?? db.prepare(
-        `SELECT id, name, short_name, city, state, is_active FROM institutions WHERE is_active = 1 ORDER BY created_at ASC LIMIT 1`
-      ).first<any>()).catch(() => null);
+      if (cleanToken.toLowerCase() === 'cemeit' || cleanToken.toLowerCase() === 'projeto-escola-cidada-2026') {
+        institutionData = await (db?.prepare?.(
+          `SELECT id, name, short_name, city, state, is_active FROM institutions WHERE (id = 'cemeit' OR LOWER(id) = 'cemeit') AND is_active = 1 LIMIT 1`
+        )?.bind?.()?.first<any>() ?? db?.prepare?.(
+          `SELECT id, name, short_name, city, state, is_active FROM institutions WHERE (id = 'cemeit' OR LOWER(id) = 'cemeit') AND is_active = 1 LIMIT 1`
+        )?.first<any>())?.catch(() => null);
+
+        if (!institutionData) {
+          institutionData = {
+            id: 'cemeit',
+            name: 'Centro de Ensino Médio Escola Industrial de Taguatinga (CEMEIT)',
+            short_name: 'CEMEIT',
+            city: 'Taguatinga',
+            state: 'DF',
+            is_active: 1,
+          };
+        }
+      }
+    }
+
+    // Se não for um documento existente e a escola não estiver cadastrada no sistema, retorna erro 404
+    if (!doc && !institutionData) {
+      return c.json({
+        success: false,
+        error: `A unidade escolar "${cleanToken}" não foi encontrada no sistema. O formulário de autorização digital só pode ser aberto para escolas previamente cadastradas.`,
+        code: 'SCHOOL_NOT_FOUND',
+      }, 404);
     }
 
     // 3. Busca o template de termo ativo diretamente na tabela document_templates do banco D1

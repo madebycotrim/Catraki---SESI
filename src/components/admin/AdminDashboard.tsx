@@ -1208,14 +1208,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
 
               {onLogout && (
-                <button
-                  onClick={onLogout}
-                  title="Sair do Painel Gestor"
-                  className="px-3.5 py-2.5 bg-slate-800/80 hover:bg-rose-950/80 text-slate-300 hover:text-rose-200 border border-slate-700 hover:border-rose-700/80 font-semibold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">Sair</span>
-                </button>
+                <>
+                  <div className="h-6 w-px bg-slate-700/80 mx-0.5 shrink-0" aria-hidden="true" />
+                  <button
+                    onClick={onLogout}
+                    title="Sair do Painel Gestor"
+                    className="px-3.5 py-2.5 bg-slate-800/80 hover:bg-rose-950/80 text-slate-300 hover:text-rose-200 border border-slate-700 hover:border-rose-700/80 font-semibold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline">Sair</span>
+                  </button>
+                </>
               )}
             </div>
           </div>

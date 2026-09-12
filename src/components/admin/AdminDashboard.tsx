@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   FileText, 
   Search, 
@@ -2155,15 +2156,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ━━ 7. MODAIS INTEGRADOS ━━ */}
 
       {/* MODAL: ESCOLHA DE UNIDADE ESCOLAR APÓS LOGIN */}
-      {showSchoolSelectModal && (
-        <div className="fixed inset-0 z-[120] bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl space-y-4 sm:space-y-5 border border-slate-200 my-auto max-h-[92vh] flex flex-col">
+      {showSchoolSelectModal && (typeof document !== 'undefined' ? createPortal(
+        <div className="fixed inset-0 z-[120] bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl flex flex-col gap-3 sm:gap-3.5 border border-slate-200 my-auto max-h-[92vh]">
             
             {/* Cabeçalho do Modal */}
-            <div className="flex items-start justify-between border-b border-slate-100 pb-4 shrink-0">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-blue-50 border border-blue-100 text-[#004b8d] flex items-center justify-center shrink-0 shadow-xs">
-                  <Building2 className="w-6 h-6" />
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-blue-50 border border-blue-100 text-[#004b8d] flex items-center justify-center shrink-0 shadow-xs">
+                  <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[#004b8d] text-[10px] font-bold uppercase tracking-wider mb-1">
@@ -2197,13 +2198,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   value={schoolModalSearch}
                   onChange={(e) => setSchoolModalSearch(e.target.value)}
                   placeholder="Buscar escola por nome, sigla ou região..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] transition-all"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] transition-all"
                 />
               </div>
             )}
 
             {/* Lista de Escolas */}
-            <div className="overflow-y-auto space-y-2.5 pr-1 max-h-[52vh] flex-1">
+            <div className="overflow-y-auto space-y-2.5 pr-1 max-h-[54vh] flex-1">
               {/* Opção Consolidada: Todas as Unidades */}
               <div
                 onClick={() => handleSelectSchoolFromModal('all')}
@@ -2255,7 +2256,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {/* Divisor */}
-              <div className="pt-2 pb-1">
+              <div className="pt-1.5 pb-0.5">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Ou selecione uma escola específica:
                 </span>
@@ -2275,6 +2276,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 const count = authorizations.filter(
                   (a) => a.institutionId === inst.id || (a.institutionName && a.institutionName.toLowerCase().includes(inst.id.toLowerCase()))
                 ).length;
+
+                const cleanShortName = (inst.short_name || inst.id.toUpperCase()).trim().replace(/\s+/g, ' ');
 
                 return (
                   <div
@@ -2305,7 +2308,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="px-2 py-0.5 rounded-md bg-blue-100/80 text-blue-950 font-mono text-xs font-bold">
-                            {inst.short_name || inst.id.toUpperCase()}
+                            {cleanShortName}
                           </span>
                           <span className="text-xs text-slate-500 font-medium">
                             {inst.city} - {inst.state}
@@ -2351,8 +2354,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      ) : null)}
 
       {/* MODAL: CADASTRAR NOVA ESCOLA */}
       {showNewSchoolModal && (

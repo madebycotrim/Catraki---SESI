@@ -284,6 +284,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     state: 'DF',
   });
   const [schoolFormError, setSchoolFormError] = useState('');
+  const [isSubmittingSchool, setIsSubmittingSchool] = useState(false);
 
   const [isCleaningPending, setIsCleaningPending] = useState(false);
 
@@ -438,20 +439,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9_-]/g, '-');
 
-    const res = await apiClient.createAdminInstitution({
-      id: generatedSlug,
-      name: newSchoolData.name.trim(),
-      short_name: newSchoolData.short_name.trim(),
-      city: newSchoolData.city.trim() || 'Taguatinga',
-      state: newSchoolData.state.trim().toUpperCase() || 'DF',
-    });
+    if (!generatedSlug || generatedSlug === '-') {
+      setSchoolFormError('Sigla ou identificador inválido para gerar a URL.');
+      return;
+    }
 
-    if (res.success) {
-      setShowNewSchoolModal(false);
-      setNewSchoolData({ id: '', name: '', short_name: '', city: 'Taguatinga', state: 'DF' });
-      fetchInstitutions();
-    } else {
-      setSchoolFormError(res.error || 'Erro ao cadastrar escola.');
+    setIsSubmittingSchool(true);
+    try {
+      const res = await apiClient.createAdminInstitution({
+        id: generatedSlug,
+        name: newSchoolData.name.trim(),
+        short_name: newSchoolData.short_name.trim(),
+        city: newSchoolData.city.trim() || 'Taguatinga',
+        state: newSchoolData.state.trim().toUpperCase() || 'DF',
+      });
+
+      if (res.success) {
+        setShowNewSchoolModal(false);
+        setNewSchoolData({ id: '', name: '', short_name: '', city: 'Taguatinga', state: 'DF' });
+        await fetchInstitutions();
+      } else {
+        setSchoolFormError(res.error || 'Erro ao cadastrar escola no servidor.');
+      }
+    } catch (err: any) {
+      setSchoolFormError(err.message || 'Falha de conexão ao tentar cadastrar escola.');
+    } finally {
+      setIsSubmittingSchool(false);
     }
   };
 
@@ -2052,12 +2065,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ━━ 6. CONTEÚDO DA ABA: GESTÃO DE ESCOLAS & INSTITUIÇÕES ━━ */}
       {activeTab === 'schools' && (
         <div className="space-y-4">
-          <div className="bg-blue-50/80 border border-blue-200 rounded-2xl p-4 sm:p-5 text-xs text-blue-900 leading-relaxed flex items-start gap-3.5 shadow-2xs">
-            <LinkIcon className="w-5 h-5 text-[#004b8d] shrink-0 mt-0.5" />
-            <div>
-              <strong className="block text-sm font-bold text-blue-950 mb-1">Como funciona o roteamento por escola:</strong>
-              Qualquer link no formato <code className="bg-blue-100 px-2 py-0.5 rounded font-mono text-blue-950 font-bold">/autorizar/[slug-da-escola]</code> carrega o termo de consentimento personalizado com o nome daquela instituição de ensino. Basta cadastrar a escola abaixo e copiar o link para enviar aos pais!
+          <div className="bg-blue-50/80 border border-blue-200 rounded-2xl p-4 sm:p-5 text-xs text-blue-900 leading-relaxed flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 shadow-2xs">
+            <div className="flex items-start gap-3.5">
+              <LinkIcon className="w-5 h-5 text-[#004b8d] shrink-0 mt-0.5" />
+              <div>
+                <strong className="block text-sm font-bold text-blue-950 mb-1">Como funciona o roteamento por escola:</strong>
+                Qualquer link no formato <code className="bg-blue-100 px-2 py-0.5 rounded font-mono text-blue-950 font-bold">/autorizar/[slug-da-escola]</code> carrega o termo de consentimento personalizado com o nome daquela instituição de ensino. Basta cadastrar a escola abaixo e copiar o link para enviar aos pais!
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSchoolFormError('');
+                setShowNewSchoolModal(true);
+              }}
+              className="shrink-0 px-4 py-2.5 bg-[#004b8d] hover:bg-[#003666] text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer self-stretch sm:self-auto justify-center"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Cadastrar Nova Escola</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2440,16 +2466,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="pt-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5">
                 <button
                   type="button"
+                  disabled={isSubmittingSchool}
                   onClick={() => setShowNewSchoolModal(false)}
-                  className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer text-center"
+                  className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer text-center disabled:opacity-50"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-[#004b8d] hover:bg-[#003666] text-white rounded-xl transition-colors shadow-xs cursor-pointer text-center"
+                  disabled={isSubmittingSchool}
+                  className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-[#004b8d] hover:bg-[#003666] text-white rounded-xl transition-colors shadow-xs cursor-pointer text-center disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Salvar Escola e Gerar Link
+                  {isSubmittingSchool && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isSubmittingSchool ? 'Salvando...' : 'Salvar Escola e Gerar Link'}</span>
                 </button>
               </div>
             </form>

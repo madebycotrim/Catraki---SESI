@@ -1648,61 +1648,75 @@ adminRouter.get('/institutions', requireAuth(['operador', 'admin_master', 'dpo']
   return c.json({ success: true, institutions: list.results });
 });
 
-adminRouter.post('/institutions', requireAuth(['admin_master']), async (c) => {
+adminRouter.post('/institutions', requireAuth(['admin_master', 'operador']), async (c) => {
   const user = c.get('user');
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const { id, name, short_name, city, state } = body;
   const db = c.env.DB;
   const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
   const userAgent = c.req.header('user-agent') || 'Catraki Admin';
 
   if (!id || !name || !short_name) {
-    return c.json({ success: false, error: 'Slug (ID), Nome e Sigla são obrigatórios.' }, 400);
+    return c.json({ success: false, error: 'Identificador (Slug), Nome Completo e Sigla são obrigatórios.' }, 400);
   }
 
   const cleanSlug = id.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
 
-  await db.prepare(
-    `INSERT INTO institutions (id, name, short_name, city, state, is_active)
-     VALUES (?, ?, ?, ?, ?, 1)
-     ON CONFLICT(id) DO UPDATE SET name = excluded.name, short_name = excluded.short_name, city = excluded.city, state = excluded.state, is_active = 1`
-  ).bind(cleanSlug, name.trim(), short_name.trim(), city?.trim() || 'Brasília', state?.trim() || 'DF').run();
+  try {
+    await db.prepare(
+      `INSERT INTO institutions (id, name, short_name, city, state, is_active)
+       VALUES (?, ?, ?, ?, ?, 1)
+       ON CONFLICT(id) DO UPDATE SET name = excluded.name, short_name = excluded.short_name, city = excluded.city, state = excluded.state, is_active = 1`
+    ).bind(cleanSlug, name.trim(), short_name.trim(), city?.trim() || 'Brasília', state?.trim() || 'DF').run();
 
-  await logAdminAction(
-    db,
-    user,
-    'INSTITUTION_ACTION',
-    `institution:${cleanSlug}`,
-    `Escola/Instituição '${name.trim()}' (${short_name.trim()}) cadastrada/atualizada`,
-    clientIp,
-    userAgent
-  );
+    await logAdminAction(
+      db,
+      user,
+      'INSTITUTION_ACTION',
+      `institution:${cleanSlug}`,
+      `Escola/Instituição '${name.trim()}' (${short_name.trim()}) cadastrada/atualizada`,
+      clientIp,
+      userAgent
+    );
 
-  return c.json({
-    success: true,
-    institution: { id: cleanSlug, name: name.trim(), short_name: short_name.trim(), city: city || 'Brasília', state: state || 'DF' },
-    message: 'Instituição / Escola cadastrada com sucesso.',
-  });
+    return c.json({
+      success: true,
+      institution: { id: cleanSlug, name: name.trim(), short_name: short_name.trim(), city: city || 'Brasília', state: state || 'DF' },
+      message: 'Instituição / Escola cadastrada com sucesso.',
+    });
+  } catch (err: any) {
+    return c.json({
+      success: false,
+      error: `Falha ao registrar escola no banco de dados: ${err.message}`,
+    }, 500);
+  }
 });
 
-adminRouter.delete('/institutions/:id', requireAuth(['admin_master']), async (c) => {
+adminRouter.delete('/institutions/:id', requireAuth(['admin_master', 'operador']), async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
   const db = c.env.DB;
   const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
   const userAgent = c.req.header('user-agent') || 'Catraki Admin';
 
-  await db.prepare('UPDATE institutions SET is_active = 0 WHERE id = ?').bind(id).run();
+  try {
+    await db.prepare('UPDATE institutions SET is_active = 0 WHERE id = ?').bind(id).run();
 
-  await logAdminAction(
-    db,
-    user,
-    'INSTITUTION_ACTION',
-    `institution:${id}`,
-    `Escola/Instituição '${id}' desativada logicamente (is_active = 0)`,
-    clientIp,
-    userAgent
-  );
+    await logAdminAction(
+      db,
+      user,
+      'INSTITUTION_ACTION',
+      `institution:${id}`,
+      `Escola/Instituição '${id}' desativada logicamente (is_active = 0)`,
+      clientIp,
+      userAgent
+    );
 
-  return c.json({ success: true, message: 'Instituição desativada com sucesso.' });
+    return c.json({ success: true, message: 'Instituição desativada com sucesso.' });
+  } catch (err: any) {
+    return c.json({
+      success: false,
+      error: `Falha ao desativar escola no banco de dados: ${err.message}`,
+    }, 500);
+  }
 });

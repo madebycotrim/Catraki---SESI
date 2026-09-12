@@ -134,13 +134,6 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
       return;
     }
 
-    if (!declarationLegalResponsibility) {
-      setErrorMessage(
-        'Para prosseguir, declare expressamente que você é o responsável legal pelo(a) estudante indicado(a).'
-      );
-      return;
-    }
-
     if (!readAndAccept) {
       setErrorMessage(
         'Por favor, confirme que você leu e concorda com as condições do Termo de Consentimento.'
@@ -168,7 +161,9 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
 
     if (!declarationLegalResponsibility) {
       setOtpError(
-        'Para finalizar, confirme que você é o responsável legal e que todas as informações fornecidas são verdadeiras.'
+        isMaiorDeIdade
+          ? 'Por favor, confirme a declaração de veracidade das informações sob as penas da lei.'
+          : 'Para finalizar, confirme que você é o responsável legal e que todas as informações fornecidas são verdadeiras.'
       );
       return;
     }
@@ -459,6 +454,13 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               </div>
             </div>
           </div>
+
+          {errorMessage && (
+            <div className="p-3.5 sm:p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-center gap-3 mt-4 shadow-xs">
+              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+              <span className="font-semibold">{errorMessage}</span>
+            </div>
+          )}
 
           {/* Botões de Ação */}
           <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200 mt-4">

@@ -159,7 +159,6 @@ const SEED_INSTITUTIONS: Institution[] = [
 const getInstitutions = (): Institution[] => {
   return getStorage<Institution[]>('catraki_institutions', SEED_INSTITUTIONS);
 };
-const setInstitutions = (d: Institution[]) => setStorage('catraki_institutions', d);
 
 // ============================================================================
 // CLIENTE API COM FALLBACK INTELIGENTE
@@ -1621,37 +1620,24 @@ export const apiClient = {
         headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(data),
       });
-      if (resp.ok) return await resp.json();
+      const resData: any = await resp.json().catch(() => ({}));
+      if (resp.ok) {
+        return resData;
+      }
       if (resp.status === 401 && this.getAdminToken()) {
         this.logoutAdmin();
+        return { success: false, error: 'Sessão expirada. Por favor, faça login novamente.' };
       }
-    } catch {}
-
-    const list = getInstitutions();
-    const cleanId = (data.id || data.short_name || 'escola').toLowerCase().trim().replace(/[^a-z0-9_-]/g, '-');
-    const newInst: Institution = {
-      id: cleanId,
-      name: data.name || cleanId,
-      short_name: data.short_name || cleanId.toUpperCase(),
-      city: data.city || 'Brasília',
-      state: data.state || 'DF',
-      is_active: true,
-      created_at: new Date().toISOString(),
-    };
-
-    const existingIndex = list.findIndex((i) => i.id === cleanId);
-    if (existingIndex >= 0) {
-      list[existingIndex] = newInst;
-    } else {
-      list.unshift(newInst);
+      return {
+        success: false,
+        error: resData.error || `Erro ${resp.status}: Falha ao cadastrar instituição no servidor.`,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: `Erro de rede ao conectar com o servidor: ${err.message || 'Falha de conexão.'}`,
+      };
     }
-    setInstitutions(list);
-
-    return {
-      success: true,
-      institution: newInst,
-      message: 'Instituição / Escola cadastrada com sucesso!',
-    };
   },
 
   async deleteAdminInstitution(id: string): Promise<any> {
@@ -1660,16 +1646,24 @@ export const apiClient = {
         method: 'DELETE',
         headers: this.getAuthHeaders(),
       });
-      if (resp.ok) return await resp.json();
+      const resData: any = await resp.json().catch(() => ({}));
+      if (resp.ok) {
+        return resData;
+      }
       if (resp.status === 401 && this.getAdminToken()) {
         this.logoutAdmin();
+        return { success: false, error: 'Sessão expirada. Por favor, faça login novamente.' };
       }
-    } catch {}
-
-    const list = getInstitutions();
-    const updated = list.filter((i) => i.id !== id);
-    setInstitutions(updated);
-    return { success: true, message: 'Instituição desativada com sucesso.' };
+      return {
+        success: false,
+        error: resData.error || `Erro ${resp.status}: Falha ao desativar instituição no servidor.`,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: `Erro de rede ao desativar instituição: ${err.message || 'Falha de conexão.'}`,
+      };
+    }
   },
 
   // ==========================================================================

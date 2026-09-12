@@ -100,7 +100,7 @@ describe('Funcionalidade: Revogação e Cancelamento por Erro Operacional (LGPD 
 
     it('deve gerar assunto padronizado para o e-mail de cancelamento', () => {
       const subject = getCancellationEmailSubject();
-      expect(subject).toBe('Comunicado Oficial: Atualização no processo do documento eletrônico');
+      expect(subject).toBe('Comunicado Oficial: Atualização no documento eletrônico');
     });
 
     it('deve gerar template HTML com modelo oficial, hash de autenticidade, menção à LGPD e próximos passos', () => {
@@ -113,7 +113,7 @@ describe('Funcionalidade: Revogação e Cancelamento por Erro Operacional (LGPD 
       expect(html).toContain('Plataforma Catraki');
       expect(html).toContain('Inconsistência cadastral na data de nascimento');
       expect(html).toContain('O que acontece agora?');
-      expect(html).toContain('Os links de acesso anteriores vinculados a este documento foram desativados');
+      expect(html).toContain('Os links de acesso anteriores foram desativados');
       expect(html).toContain('LGPD');
       expect(html).toContain('suporte@catraki.com.br');
     });
@@ -123,7 +123,7 @@ describe('Funcionalidade: Revogação e Cancelamento por Erro Operacional (LGPD 
 
       expect(text).toContain('Assunto: Comunicado Oficial: Atualização no documento "Termo de Consentimento - Lucas Silva Santos"');
       expect(text).toContain('Olá, Maria Silva Santos.');
-      expect(text).toContain('Código de Autenticidade: CATRAKI-8661-7A48');
+      expect(text).toContain('CATRAKI-8661-7A48');
       expect(text).toContain('Motivo: "Inconsistência cadastral na data de nascimento do estudante"');
       expect(text).toContain('Os links anteriores foram desativados');
     });

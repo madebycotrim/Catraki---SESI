@@ -776,6 +776,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   }
 
   const { token, otp_code, signer_name, signer_cpf, signer_relationship, signature_png_base64, client_fingerprint } = parsed.data;
+  const cfData = extractCloudflareClientData(c);
 
   // ── Validação Anti-Robô (Cloudflare Turnstile) ───────────────
   // A assinatura é autenticada por OTP de 6 dígitos enviado por e-mail com limite de 3 tentativas,
@@ -783,7 +784,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
   const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
   if (turnstileToken && turnstileSecret) {
-    const cfData = extractCloudflareClientData(c);
     const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip);
     if (!turnstileCheck.success) {
       return c.json({

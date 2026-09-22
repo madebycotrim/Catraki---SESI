@@ -55,17 +55,20 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
 
 
   const formatCpf = (value: string) => {
-    return value
-      .replace(/\D/g, '')
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    return digits
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-      .replace(/(-\d{2})\d+?$/, '$1');
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2');
   };
   
   const formatPhone = (value: string) => {
-    return value
-      .replace(/\D/g, '')
+    let digits = value.replace(/\D/g, '');
+    if ((digits.length === 12 || digits.length === 13) && digits.startsWith('55')) {
+      digits = digits.slice(2);
+    }
+    digits = digits.slice(0, 11);
+    return digits
       .replace(/(\d{2})(\d)/, '($1) $2')
       .replace(/(\d{4,5})(\d{4})$/, '$1-$2');
   };
@@ -94,22 +97,23 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
     }
   };
 
-
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof FormData, string>> = {};
     
     if (!isAdultStudent) {
       // 1. Nome do Responsável
-      if (!formData.signerName.trim()) {
+      const cleanSignerName = (formData.signerName || '').trim();
+      if (!cleanSignerName) {
         newErrors.signerName = 'Informe o seu nome completo conforme documento oficial.';
-      } else if (!isValidFullName(formData.signerName)) {
+      } else if (!isValidFullName(cleanSignerName)) {
         newErrors.signerName = 'Por favor, digite seu nome completo como consta no documento oficial (ex: João da Silva Santos). Apelidos ou nomes incompletos não são aceitos.';
       }
 
       // 2. CPF do Responsável
-      if (!formData.signerCpf.trim()) {
+      const cleanSignerCpf = (formData.signerCpf || '').replace(/\D/g, '');
+      if (!cleanSignerCpf) {
         newErrors.signerCpf = 'Informe o seu número de CPF.';
-      } else if (!isValidCPF(formData.signerCpf)) {
+      } else if (!isValidCPF(cleanSignerCpf)) {
         newErrors.signerCpf = 'CPF inválido. Confira os 11 dígitos digitados.';
       }
 
@@ -120,37 +124,65 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
     }
 
     // 4. Telefone (WhatsApp)
-    const cleanPhone = formData.signerPhone.replace(/\D/g, '');
+    let cleanPhone = (formData.signerPhone || '').replace(/\D/g, '');
+    if ((cleanPhone.length === 12 || cleanPhone.length === 13) && cleanPhone.startsWith('55')) {
+      cleanPhone = cleanPhone.slice(2);
+    }
     if (!cleanPhone) {
       newErrors.signerPhone = 'Informe um número de telefone com DDD para contato.';
-    } else if (cleanPhone.length < 10) {
+    } else if (cleanPhone.length < 10 || cleanPhone.length > 11) {
       newErrors.signerPhone = 'Telefone incompleto. Digite o DDD seguido do número com 9 dígitos (ex: (61) 99999-9999).';
     }
 
     // 5. E-mail do Responsável
-    if (!formData.signerEmail.trim()) {
+    const cleanEmail = (formData.signerEmail || '').trim();
+    if (!cleanEmail) {
       newErrors.signerEmail = 'Informe o e-mail onde você receberá o código de segurança de 6 dígitos.';
-    } else if (!/\S+@\S+\.\S+/.test(formData.signerEmail.trim())) {
+    } else if (!/\S+@\S+\.\S+/.test(cleanEmail)) {
       newErrors.signerEmail = 'Digite um e-mail válido (exemplo: seu.nome@email.com).';
     }
 
     // 6. Nome do Aluno
-    if (!formData.minorName.trim()) {
+    const cleanMinorName = (formData.minorName || '').trim();
+    if (!cleanMinorName) {
       newErrors.minorName = 'Informe o nome completo do estudante.';
-    } else if (!isValidFullName(formData.minorName)) {
+    } else if (!isValidFullName(cleanMinorName)) {
       newErrors.minorName = 'Digite o nome e sobrenome válidos do estudante (sem repetições ou apelidos).';
     }
 
     // 7. Data de Nascimento do Aluno
-    if (!formData.minorBirthDate) {
+    const rawBirthDate = (formData.minorBirthDate || '').trim();
+    if (!rawBirthDate) {
       newErrors.minorBirthDate = 'Informe a data de nascimento do estudante.';
     } else {
-      const birthDate = new Date(formData.minorBirthDate);
-      const today = new Date();
-      if (isNaN(birthDate.getTime()) || birthDate > today) {
-        newErrors.minorBirthDate = 'Data de nascimento inválida.';
+      let birthDate: Date | null = null;
+      if (rawBirthDate.includes('/')) {
+        const parts = rawBirthDate.split('/');
+        if (parts.length === 3) {
+          birthDate = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+        }
+      } else if (rawBirthDate.includes('-')) {
+        const parts = rawBirthDate.split('-');
+        if (parts.length === 3) {
+          if (parts[0].length === 4) {
+            // YYYY-MM-DD
+            birthDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+          } else {
+            // DD-MM-YYYY
+            birthDate = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+          }
+        }
       } else {
-        const age = calcularIdade(formData.minorBirthDate, today);
+        birthDate = new Date(rawBirthDate);
+      }
+
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+
+      if (!birthDate || isNaN(birthDate.getTime()) || birthDate > today || birthDate.getFullYear() < 1920) {
+        newErrors.minorBirthDate = 'Data de nascimento inválida. Verifique o dia, mês e ano.';
+      } else {
+        const age = calcularIdade(rawBirthDate, new Date());
         if (age < 14) {
           newErrors.minorBirthDate = 'Este projeto é destinado a estudantes a partir de 14 anos completos.';
         }
@@ -161,14 +193,32 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
     }
 
     // 8. CPF do Aluno
-    if (!formData.minorCpf.trim()) {
+    const cleanMinorCpf = (formData.minorCpf || '').replace(/\D/g, '');
+    if (!cleanMinorCpf) {
       newErrors.minorCpf = 'Informe o número de CPF do estudante.';
-    } else if (!isValidCPF(formData.minorCpf)) {
+    } else if (!isValidCPF(cleanMinorCpf)) {
       newErrors.minorCpf = 'CPF do estudante inválido. Confira os 11 dígitos digitados.';
     }
     
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    // Se houver erros, foca e rola a tela até o primeiro campo inválido (crítico em celulares)
+    const errorKeys = Object.keys(newErrors) as (keyof FormData)[];
+    if (errorKeys.length > 0) {
+      const firstErrorField = errorKeys[0];
+      setTimeout(() => {
+        const el = document.getElementById(`field-${firstErrorField}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          try { (el as HTMLElement).focus(); } catch {}
+        } else {
+          window.scrollTo({ top: 120, behavior: 'smooth' });
+        }
+      }, 50);
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -185,6 +235,9 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
 
       if (dup.hasExistingSignature) {
         setDuplicateInfo(dup);
+        setTimeout(() => {
+          window.scrollTo({ top: 250, behavior: 'smooth' });
+        }, 50);
         return;
       }
     } catch (err) {
@@ -384,7 +437,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   name="signerCpf"
                   value={formData.signerCpf}
                   onChange={handleChange}
-                  maxLength={14}
+                  maxLength={18}
                   inputMode="numeric"
                   autoComplete="off"
                   className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.signerCpf ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
@@ -436,7 +489,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   name="signerPhone"
                   value={formData.signerPhone}
                   onChange={handleChange}
-                  maxLength={15}
+                  maxLength={20}
                   inputMode="tel"
                   autoComplete="tel"
                   className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.signerPhone ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
@@ -539,7 +592,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   name="minorCpf"
                   value={formData.minorCpf}
                   onChange={handleChange}
-                  maxLength={14}
+                  maxLength={18}
                   inputMode="numeric"
                   className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.minorCpf ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : duplicateInfo ? 'border-amber-400 bg-amber-50/20' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                   placeholder="000.000.000-00"
@@ -570,7 +623,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                       name="signerPhone"
                       value={formData.signerPhone}
                       onChange={handleChange}
-                      maxLength={15}
+                      maxLength={20}
                       inputMode="tel"
                       autoComplete="tel"
                       className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.signerPhone ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
@@ -743,20 +796,36 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
 
 
 
+          {/* Alerta de Erros de Preenchimento — Visível imediatamente no mobile */}
+          {Object.values(errors).some(Boolean) && (
+            <div className="p-3.5 sm:p-4 rounded-xl bg-red-50 border-2 border-red-200 text-red-800 text-xs sm:text-sm flex items-start gap-3 mt-4 shadow-xs animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+              <div className="space-y-1 text-left">
+                <strong className="block font-bold text-red-900">
+                  Atenção: Existem dados pendentes ou incorretos
+                </strong>
+                <p className="m-0 text-red-700 leading-relaxed">
+                  {Object.values(errors).find(Boolean) || 'Por favor, revise os campos destacados acima antes de continuar.'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Botões de Ação dentro do documento */}
           <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-6 border-t border-slate-200 mt-6 sm:mt-8">
             <button
               type="button"
               onClick={onBack}
-              className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer touch-manipulation"
             >
               <ChevronLeft className="w-4 h-4" />
               <span>Voltar</span>
             </button>
             <button
+              id="btn-continuar-formulario"
               type="submit"
               disabled={checkingDuplicate}
-              className="w-full sm:w-auto px-6 py-3.5 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 disabled:opacity-70 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-[0.99] cursor-pointer"
+              className="w-full sm:w-auto px-6 py-3.5 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 disabled:opacity-70 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-[0.99] cursor-pointer touch-manipulation relative z-20"
             >
               {checkingDuplicate ? (
                 <>

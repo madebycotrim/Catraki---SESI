@@ -39,6 +39,11 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
     }
   }, [activeToken, schoolSlug]);
 
+  // Sempre que a etapa mudar, reposiciona a tela no topo (fundamental em dispositivos móveis)
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
+
   const loadDocument = async (t: string) => {
     setLoading(true);
     setErrorMessage('');

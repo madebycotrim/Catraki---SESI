@@ -162,8 +162,9 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
             <div className="flex justify-end">
               <button
                 id="btn-avancar-leitura"
+                type="button"
                 onClick={onProceed}
-                className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-[#004b8d] hover:bg-[#003666] text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer active:scale-[0.99]"
+                className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-[#004b8d] hover:bg-[#003666] text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer active:scale-[0.99] touch-manipulation relative z-20"
               >
                 <span>Continuar para Preencher o Formulário</span>
                 <ChevronRight className="w-4 h-4" />

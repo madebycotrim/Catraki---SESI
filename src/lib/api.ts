@@ -336,6 +336,7 @@ export const apiClient = {
           minor_name: params.minor_name,
           minor_birth_date: params.minor_birth_date,
         }),
+        signal: AbortSignal.timeout(6000),
       });
       if (resp.ok) {
         return await resp.json();

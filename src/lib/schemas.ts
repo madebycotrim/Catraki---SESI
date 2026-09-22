@@ -161,7 +161,13 @@ export function validateFullName(name?: string): { valid: boolean; error?: strin
   if (!name || typeof name !== 'string') {
     return { valid: false, error: 'O nome completo é obrigatório.' };
   }
-  const clean = name.trim();
+  // Normaliza espaços Unicode e apóstrofos/hífens tipográficos de teclados mobile (iOS / Android)
+  const clean = name
+    .replace(/[\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/g, ' ')
+    .replace(/[’‘`´′]/g, "'")
+    .replace(/[‐‑‒–—]/g, '-')
+    .trim();
+
   if (clean.length < 5) {
     return { valid: false, error: 'O nome deve conter no mínimo 5 caracteres.' };
   }
@@ -170,7 +176,7 @@ export function validateFullName(name?: string): { valid: boolean; error?: strin
   }
 
   // Não pode conter números ou símbolos impróprios para nomes civis (permite acentos, apóstrofo e hífen)
-  if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(clean)) {
+  if (!/^[a-zA-ZÀ-ÿ\s'.-]+$/.test(clean)) {
     return { valid: false, error: 'O nome deve conter apenas letras e espaços.' };
   }
 
@@ -179,18 +185,34 @@ export function validateFullName(name?: string): { valid: boolean; error?: strin
     return { valid: false, error: 'Digite o seu nome completo (nome e sobrenome).' };
   }
 
-  for (const part of parts) {
-    if (part.length < 2 && !['e', 'd', 'o', 'a', 'y', 'da', 'de', 'do', 'das', 'dos'].includes(part.toLowerCase())) {
-      return { valid: false, error: 'Cada parte do nome deve conter pelo menos 2 letras.' };
+  // Primeiro e último nome devem ter pelo menos 2 letras
+  const firstPart = parts[0].replace(/[^a-zA-ZÀ-ÿ]/g, '');
+  const lastPart = parts[parts.length - 1].replace(/[^a-zA-ZÀ-ÿ]/g, '');
+  if (firstPart.length < 2 || lastPart.length < 2) {
+    return { valid: false, error: 'O nome e o sobrenome devem conter pelo menos 2 letras cada.' };
+  }
+
+  for (let idx = 0; idx < parts.length; idx++) {
+    const rawPart = parts[idx];
+    const lettersOnly = rawPart.replace(/[^a-zA-ZÀ-ÿ]/g, '');
+    const isMiddlePart = idx > 0 && idx < parts.length - 1;
+
+    // Permite abreviações de nome do meio como "M.", "M", "C.", ou partículas conectivas
+    if (lettersOnly.length < 2) {
+      const isConnector = ['e', 'd', 'o', 'a', 'y', 'da', 'de', 'do', 'das', 'dos'].includes(lettersOnly.toLowerCase());
+      const isValidMiddleInitial = isMiddlePart && lettersOnly.length === 1;
+      if (!isConnector && !isValidMiddleInitial) {
+        return { valid: false, error: 'Cada parte do nome deve conter pelo menos 2 letras.' };
+      }
     }
     // Bloqueia repetições sequenciais de 3 ou mais caracteres idênticos (ex: "Gaaaa", "xxxxx", "Jooaaao")
-    if (/(.)\1{2,}/i.test(part)) {
+    if (/(.)\1{2,}/i.test(lettersOnly)) {
       return { valid: false, error: 'O nome contém repetições excessivas de caracteres inválidas.' };
     }
   }
 
   // Bloqueia nomes repetitivos / fictícios como "Gaga gaga", "teste teste", "fulano fulano", "bla bla"
-  const normalizedWords = parts.map((p) => p.toLowerCase());
+  const normalizedWords = parts.map((p) => p.toLowerCase().replace(/[^a-zA-ZÀ-ÿ]/g, '')).filter(Boolean);
   const uniqueWords = new Set(normalizedWords);
   if (uniqueWords.size === 1) {
     return { valid: false, error: 'Por favor, informe um nome e sobrenome válidos (nomes repetitivos não são permitidos).' };

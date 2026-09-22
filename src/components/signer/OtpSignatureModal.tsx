@@ -59,7 +59,7 @@ export const OtpSignatureModal: React.FC<OtpSignatureModalProps> = ({
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-0 m-0 overflow-y-auto animate-in fade-in duration-200">
       {/* Folha A5 — Padrão Formal */}
       <div
-        className="w-[calc(100%-2rem)] sm:w-full max-w-[500px] mx-4 my-auto animate-in zoom-in-95 duration-200"
+        className="w-[calc(100%-2rem)] sm:w-full max-w-[500px] mx-4 my-auto max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200"
         style={{
           background: '#ffffff',
           paddingTop: '36px',
@@ -154,7 +154,11 @@ export const OtpSignatureModal: React.FC<OtpSignatureModalProps> = ({
               1. Digite o Código de 6 Dígitos
             </label>
             <input
+              id="field-otpCode"
               type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="one-time-code"
               maxLength={6}
               value={otpCode}
               onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
@@ -317,12 +321,13 @@ export const OtpSignatureModal: React.FC<OtpSignatureModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-full sm:w-auto px-5 py-3 sm:py-2.5 text-xs font-bold text-slate-500 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl transition-all cursor-pointer text-center whitespace-nowrap"
+              className="w-full sm:w-auto px-5 py-3 sm:py-2.5 text-xs font-bold text-slate-500 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl transition-all cursor-pointer text-center whitespace-nowrap touch-manipulation"
             >
               Voltar
             </button>
 
             <button
+              id="btn-confirmar-assinatura-otp"
               type="button"
               onClick={onConfirmSign}
               disabled={
@@ -331,7 +336,7 @@ export const OtpSignatureModal: React.FC<OtpSignatureModalProps> = ({
                 !hasSignature ||
                 submittingSign
               }
-              className="w-full sm:flex-1 py-3 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none cursor-pointer active:scale-[0.99]"
+              className="w-full sm:flex-1 py-3 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none cursor-pointer active:scale-[0.99] touch-manipulation"
             >
               {submittingSign ? (
                 <>

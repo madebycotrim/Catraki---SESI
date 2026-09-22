@@ -81,6 +81,8 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
       formattedValue = formatCpf(value);
     } else if (name === 'signerPhone') {
       formattedValue = formatPhone(value);
+    } else if (name === 'signerEmail') {
+      formattedValue = value.replace(/\s+/g, '').toLowerCase();
     }
 
     setFormData((prev) => ({
@@ -519,6 +521,9 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   value={formData.signerEmail}
                   onChange={handleChange}
                   autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   inputMode="email"
                   className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.signerEmail ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                   placeholder="seu.email@exemplo.com"
@@ -572,6 +577,8 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   name="minorBirthDate"
                   value={formData.minorBirthDate}
                   onChange={handleChange}
+                  max={new Date().toISOString().split('T')[0]}
+                  min="1990-01-01"
                   className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.minorBirthDate ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                 />
                 {errors.minorBirthDate && (
@@ -653,6 +660,9 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                       value={formData.signerEmail}
                       onChange={handleChange}
                       autoComplete="email"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       inputMode="email"
                       className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.signerEmail ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                       placeholder="seu.email@exemplo.com"

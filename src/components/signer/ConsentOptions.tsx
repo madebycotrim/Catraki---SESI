@@ -65,7 +65,7 @@ export const ConsentOptions: React.FC<ConsentOptionsProps> = ({
               className="sr-only"
             />
             <div
-              className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors ${
+              className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors group-focus-within:ring-2 group-focus-within:ring-[#004b8d] group-focus-within:ring-offset-1 ${
                 authHealth
                   ? 'border-[#004b8d]'
                   : 'border-slate-300 bg-white group-hover:border-[#004b8d]'
@@ -96,7 +96,7 @@ export const ConsentOptions: React.FC<ConsentOptionsProps> = ({
               className="sr-only"
             />
             <div
-              className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors ${
+              className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors group-focus-within:ring-2 group-focus-within:ring-[#004b8d] group-focus-within:ring-offset-1 ${
                 authData
                   ? 'border-[#004b8d]'
                   : 'border-slate-300 bg-white group-hover:border-[#004b8d]'
@@ -134,7 +134,7 @@ export const ConsentOptions: React.FC<ConsentOptionsProps> = ({
               className="sr-only"
             />
             <div
-              className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors ${
+              className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors group-focus-within:ring-2 group-focus-within:ring-[#004b8d] group-focus-within:ring-offset-1 ${
                 authImage
                   ? 'border-[#004b8d]'
                   : 'border-slate-300 bg-white group-hover:border-[#004b8d]'
@@ -164,7 +164,7 @@ export const ConsentOptions: React.FC<ConsentOptionsProps> = ({
               className="sr-only"
             />
             <div
-              className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors ${
+              className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors group-focus-within:ring-2 group-focus-within:ring-[#004b8d] group-focus-within:ring-offset-1 ${
                 readAndAccept
                   ? 'border-[#004b8d]'
                   : 'border-slate-300 bg-white group-hover:border-[#004b8d]'

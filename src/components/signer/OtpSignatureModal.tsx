@@ -56,7 +56,15 @@ export const OtpSignatureModal: React.FC<OtpSignatureModalProps> = ({
   if (!isOpen) return null;
 
   const modalNode = (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-0 m-0 overflow-y-auto animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Confirmação de Identidade e Assinatura"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && !submittingSign) onClose();
+      }}
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-0 m-0 overflow-y-auto animate-in fade-in duration-200"
+    >
       {/* Folha A5 — Padrão Formal */}
       <div
         className="w-[calc(100%-2rem)] sm:w-full max-w-[500px] mx-4 my-auto max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200"
@@ -228,7 +236,7 @@ export const OtpSignatureModal: React.FC<OtpSignatureModalProps> = ({
                   className="sr-only"
                 />
                 <div
-                  className={`flex h-4 w-4 border-2 rounded items-center justify-center transition-colors ${
+                  className={`flex h-4 w-4 border-2 rounded items-center justify-center transition-colors group-focus-within:ring-2 group-focus-within:ring-[#004b8d] group-focus-within:ring-offset-1 ${
                     declarationLegalResponsibility
                       ? 'border-[#004b8d]'
                       : 'border-slate-300 bg-white group-hover:border-[#004b8d]'

@@ -36,9 +36,11 @@ import {
   SlidersHorizontal,
   HelpCircle,
   Trash2,
-  Pencil
+  Pencil,
+  QrCode
 } from 'lucide-react';
 import JSZip from 'jszip';
+import QRCode from 'qrcode';
 import { GeradorPdfTermoSesi } from '../../lib/pades/GeradorPdfTermoSesi.ts';
 import { apiClient } from '../../lib/api.ts';
 import { parseUtcDate, formatBrasiliaDateTime, formatCPF, formatStudentSeries, formatStudentSeriesClass } from '../../lib/schemas.ts';
@@ -717,11 +719,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleOpenResendEmailModal = (auth: any) => {
+  const handleDownloadSchoolQrCode = async (inst: Institution) => {
+    try {
+      const url = `${window.location.origin}/autorizar/${inst.id}`;
+      const dataUrl = await QRCode.toDataURL(url, {
+        width: 512,
+        margin: 2,
+        color: { dark: '#004b8d', light: '#ffffff' },
+      });
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `qrcode_${inst.id}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err: any) {
+      setRevocationSuccessToast(`Falha ao gerar QR Code da escola: ${err?.message || 'Erro interno'}`);
+    }
+  };
+
+  const handleOpenResendEmailModal = async (auth: any) => {
     setSelectedAuthForResendEmail(auth);
     setResendEmailInput(auth.parentEmail || '');
     setResendEmailFeedback(null);
     setShowResendEmailModal(true);
+
+    if (!auth.parentEmail && auth.id) {
+      try {
+        const res = await apiClient.getDocumentParentEmail(auth.id);
+        if (res?.success && res.parent_email) {
+          setResendEmailInput(res.parent_email);
+        }
+      } catch (err: any) {
+        console.warn('[AdminDashboard] Falha ao buscar e-mail do responsável:', err?.message || err);
+      }
+    }
   };
 
   const handleConfirmResendEmail = async () => {
@@ -2210,6 +2242,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     >
                       {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       <span>{isCopied ? 'Link Copiado!' : 'Copiar Link dos Pais'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadSchoolQrCode(inst)}
+                      className="py-2.5 px-3 rounded-xl bg-white border border-slate-300 hover:bg-blue-50 hover:text-[#004b8d] hover:border-blue-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                      title="Baixar QR Code para cartaz/impressão"
+                    >
+                      <QrCode className="w-4 h-4" />
+                      <span>QR Code</span>
                     </button>
 
                     <button

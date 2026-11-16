@@ -1036,14 +1036,9 @@ adminRouter.get('/documents/:id/parent-email', requireAuth(['admin_master', 'ope
     if (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' && masterKey) {
       try {
         parentEmail = await decryptAesGcm(doc.parent_email_encrypted, masterKey);
-      } catch {
-        // Falha silenciosa — fallback abaixo
+      } catch (decryptErr: any) {
+        console.warn('[ADMIN_PARENT_EMAIL_DECRYPT_WARN]', decryptErr?.message || decryptErr);
       }
-    }
-
-    // Fallback: e-mail em texto plano (documentos legados anteriores à criptografia)
-    if (!parentEmail && doc.parent_email && doc.parent_email.includes('@')) {
-      parentEmail = doc.parent_email;
     }
 
     if (!parentEmail) {
@@ -1053,6 +1048,20 @@ adminRouter.get('/documents/:id/parent-email', requireAuth(['admin_master', 'ope
         code: 'EMAIL_NOT_FOUND',
       }, 404);
     }
+
+    // Auditoria de acesso a PII (LGPD Art. 37)
+    const user = c.get('user');
+    const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
+    const userAgent = c.req.header('user-agent') || 'Catraki Admin';
+    await logAdminAction(
+      db,
+      user,
+      'ADMIN_VIEW_PII_EMAIL',
+      `documents/${id}`,
+      JSON.stringify({ purpose: 'resend_or_cancellation_notification' }),
+      clientIp,
+      userAgent
+    );
 
     return c.json({
       success: true,

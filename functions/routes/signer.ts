@@ -943,11 +943,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const contentSha256AtSigning = doc.content_sha256 || doc.template_content_sha256;
   const cpfMasked = maskCPF(signer_cpf);
 
-  const lastAudit = await db.prepare(
-    'SELECT log_row_hash FROM audit_logs ORDER BY created_at DESC LIMIT 1'
-  ).first<{ log_row_hash: string }>();
-
-  const prevLogHash = lastAudit?.log_row_hash || null;
+  // Blind Index e envelopes criptográficos preparados antes da transação com retry
+  const signerCpfEncrypted = await encryptAesGcm(signer_cpf, masterKey, 1);
+  const signaturePngEncrypted = await encryptAesGcm(signature_png_base64, masterKey, 1);
 
   const manifestData = {
     document_id: doc.id,
@@ -1026,7 +1024,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const auditRowInput: AuditLogRowInput = {
     id: auditLogId,
     document_id: doc.id,
-    prev_log_hash: prevLogHash,
+    prev_log_hash: null,
     signed_at: signedAtIso,
     signer_name: signer_name,
     signer_cpf_masked: cpfMasked,
@@ -1046,9 +1044,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     device_metadata: deviceMetadataJson,
   };
 
-  const logRowHash = await computeLogRowHash(auditRowInput);
-  const signerCpfEncrypted = await encryptAesGcm(signer_cpf, masterKey, 1);
-  const signaturePngEncrypted = await encryptAesGcm(signature_png_base64, masterKey, 1);
+  const logRowHash = await computeLogRowHash({ ...auditRowInput, prev_log_hash: null });
+  // (logRowHash definitivo será calculado dentro do loop atômico com prevLogHash atualizado)
 
   const pdfR2Key = `signed-pdfs/${doc.id}/${manifestSha256}.pdf`;
   const manifestR2Key = `manifests/${doc.id}/${manifestSha256}.json`;
@@ -1149,97 +1146,128 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       ? await hmacSha256(rawMinorCpfForEncrypt, pepper)
       : null;
 
-    const batch = await db.batch([
-      db.prepare(
-        `INSERT INTO audit_logs (
-          id, document_id, prev_log_hash, signed_at, signer_name,
-          signer_cpf_encrypted, signer_cpf_masked, signer_relationship, identity_method,
-          signature_png_encrypted, signature_png_sha256, key_version, ip_address, user_agent,
-          geo_city, geo_region, geo_country, client_fingerprint,
-          content_sha256_at_signing, consent_text_version, manifest_sha256,
-          otp_requested_at, otp_verified_at, otp_email_message_id, doc_parent_hash_sha256, device_metadata,
-          log_row_hash, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
-      ).bind(
-        auditLogId,
-        doc.id,
-        prevLogHash,
-        signedAtIso,
-        signer_name,
-        signerCpfEncrypted,
-        cpfMasked,
-        signer_relationship,
-        identityMethod,
-        signaturePngEncrypted,
-        signaturePngSha256,
-        ipAddress,
-        userAgent,
-        geoCity,
-        geoRegion,
-        geoCountry,
-        client_fingerprint || null,
-        contentSha256AtSigning,
-        doc.consent_text_version,
-        manifestSha256,
-        doc.otp_requested_at,
-        signedAtIso,
-        doc.otp_email_message_id,
-        docParentHash,
-        deviceMetadataJson,
-        logRowHash
-      ),
-      db.prepare(
-        `UPDATE documents 
-         SET status = 'signed', 
-             parent_name = ?, 
-             parent_email_encrypted = COALESCE(?, parent_email_encrypted),
-             parent_email_bindex_sha256 = COALESCE(?, parent_email_bindex_sha256),
-             minor_name = COALESCE(?, minor_name), 
-             minor_birth_date = COALESCE(?, minor_birth_date),
-             minor_cpf = ?,
-             minor_cpf_encrypted = COALESCE(?, minor_cpf_encrypted),
-             minor_cpf_bindex_sha256 = COALESCE(?, minor_cpf_bindex_sha256),
-             minor_series = ?,
-             minor_class = ?,
-             minor_turn = ?,
-             auth_health = ?,
-             auth_data = ?,
-             auth_image = ?,
-             signed_pdf_r2_key = ?, 
-             otp_secret_hash = NULL,
-             otp_verified_at = ?,
-             doc_parent_hash_sha256 = ?,
-             access_token = ?,
-             institution_id = COALESCE(?, institution_id),
-             institution_name = COALESCE(?, institution_name)
-         WHERE id = ? AND status = 'pending'`
-      ).bind(
-        signer_name,
-        parentEmailEncrypted,
-        parentEmailBindex,
-        parsed.data.minor_name || doc.minor_name || null,
-        parsed.data.minor_birth_date || doc.minor_birth_date || null,
-        parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : null,
-        minorCpfEncrypted,
-        minorCpfBindex,
-        parsed.data.minor_series || null,
-        parsed.data.minor_class || null,
-        parsed.data.minor_turn || null,
-        parsed.data.auth_health || 'yes',
-        parsed.data.auth_data || 'yes',
-        parsed.data.auth_image || 'no',
-        pdfR2Key,
-        signedAtIso,
-        docParentHash,
-        finalAccessToken,
-        finalSchoolId,
-        resolvedSchoolName,
-        doc.id
-      ),
-    ]);
+    const MAX_CHAIN_RETRIES = 3;
+    let batchSuccess = false;
+    let lastBatchErr: unknown = null;
 
-    if ((batch[1] as any).meta?.changes === 0) {
-      throw new Error('Falha ao atualizar status do documento: concorrência ou status alterado.');
+    for (let attempt = 0; attempt < MAX_CHAIN_RETRIES; attempt++) {
+      const lastAudit = await db.prepare(
+        'SELECT log_row_hash FROM audit_logs ORDER BY created_at DESC LIMIT 1'
+      ).first<{ log_row_hash: string }>();
+      const currentPrevHash = lastAudit?.log_row_hash || null;
+      const attemptLogRowHash = await computeLogRowHash({
+        ...auditRowInput,
+        prev_log_hash: currentPrevHash,
+      });
+
+      try {
+        const batch = await db.batch([
+          db.prepare(
+            `INSERT INTO audit_logs (
+              id, document_id, prev_log_hash, signed_at, signer_name,
+              signer_cpf_encrypted, signer_cpf_masked, signer_relationship, identity_method,
+              signature_png_encrypted, signature_png_sha256, key_version, ip_address, user_agent,
+              geo_city, geo_region, geo_country, client_fingerprint,
+              content_sha256_at_signing, consent_text_version, manifest_sha256,
+              otp_requested_at, otp_verified_at, otp_email_message_id, doc_parent_hash_sha256, device_metadata,
+              log_row_hash, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+          ).bind(
+            auditLogId,
+            doc.id,
+            currentPrevHash,
+            signedAtIso,
+            signer_name,
+            signerCpfEncrypted,
+            cpfMasked,
+            signer_relationship,
+            identityMethod,
+            signaturePngEncrypted,
+            signaturePngSha256,
+            ipAddress,
+            userAgent,
+            geoCity,
+            geoRegion,
+            geoCountry,
+            client_fingerprint || null,
+            contentSha256AtSigning,
+            doc.consent_text_version,
+            manifestSha256,
+            doc.otp_requested_at,
+            signedAtIso,
+            doc.otp_email_message_id,
+            docParentHash,
+            deviceMetadataJson,
+            attemptLogRowHash
+          ),
+          db.prepare(
+            `UPDATE documents 
+             SET status = 'signed', 
+                 parent_name = ?, 
+                 parent_email_encrypted = COALESCE(?, parent_email_encrypted),
+                 parent_email_bindex_sha256 = COALESCE(?, parent_email_bindex_sha256),
+                 minor_name = COALESCE(?, minor_name), 
+                 minor_birth_date = COALESCE(?, minor_birth_date),
+                 minor_cpf = ?,
+                 minor_cpf_encrypted = COALESCE(?, minor_cpf_encrypted),
+                 minor_cpf_bindex_sha256 = COALESCE(?, minor_cpf_bindex_sha256),
+                 minor_series = ?,
+                 minor_class = ?,
+                 minor_turn = ?,
+                 auth_health = ?,
+                 auth_data = ?,
+                 auth_image = ?,
+                 signed_pdf_r2_key = ?, 
+                 otp_secret_hash = NULL,
+                 otp_verified_at = ?,
+                 doc_parent_hash_sha256 = ?,
+                 access_token = ?,
+                 institution_id = COALESCE(?, institution_id),
+                 institution_name = COALESCE(?, institution_name)
+             WHERE id = ? AND status = 'pending'`
+          ).bind(
+            signer_name,
+            parentEmailEncrypted,
+            parentEmailBindex,
+            parsed.data.minor_name || doc.minor_name || null,
+            parsed.data.minor_birth_date || doc.minor_birth_date || null,
+            parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : null,
+            minorCpfEncrypted,
+            minorCpfBindex,
+            parsed.data.minor_series || null,
+            parsed.data.minor_class || null,
+            parsed.data.minor_turn || null,
+            parsed.data.auth_health || 'yes',
+            parsed.data.auth_data || 'yes',
+            parsed.data.auth_image || 'no',
+            pdfR2Key,
+            signedAtIso,
+            docParentHash,
+            finalAccessToken,
+            finalSchoolId,
+            resolvedSchoolName,
+            doc.id
+          ),
+        ]);
+
+        if ((batch[1] as any).meta?.changes === 0) {
+          throw new Error('Falha ao atualizar status do documento: concorrência ou status alterado.');
+        }
+        batchSuccess = true;
+        break;
+      } catch (batchErr: any) {
+        lastBatchErr = batchErr;
+        const msg = String(batchErr?.message || '');
+        if (msg.includes('UNIQUE') && msg.includes('prev_log_hash') && attempt < MAX_CHAIN_RETRIES - 1) {
+          await new Promise((r) => setTimeout(r, 20 * (attempt + 1)));
+          continue;
+        }
+        throw batchErr;
+      }
+    }
+
+    if (!batchSuccess) {
+      throw lastBatchErr || new Error('Falha de concorrência na Hash Chain.');
     }
 
     if (bucket) {

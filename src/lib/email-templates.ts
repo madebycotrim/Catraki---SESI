@@ -12,7 +12,7 @@
 // ---------------------------------------------------------------------------
 // UTILITÁRIO DE SEGURANÇA (Sanitização contra injeção de HTML / XSS)
 // ---------------------------------------------------------------------------
-function escapeHtml(str?: string): string {
+export function escapeHtml(str?: string): string {
   if (!str) return '';
   return str
     .replace(/&/g, '&amp;')

@@ -110,16 +110,12 @@ export async function hmacSha256(data: string, secretKey: string): Promise<strin
  * Comparação em tempo constante para prevenir timing attacks
  */
 export function constantTimeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    let dummy = 0;
-    for (let i = 0; i < a.length; i++) {
-      dummy |= a.charCodeAt(i) ^ a.charCodeAt(i);
-    }
-    return false;
-  }
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  const maxLen = Math.max(a.length, b.length);
+  let result = a.length ^ b.length;
+  for (let i = 0; i < maxLen; i++) {
+    const ca = i < a.length ? a.charCodeAt(i) : 0;
+    const cb = i < b.length ? b.charCodeAt(i) : 0;
+    result |= ca ^ cb;
   }
   return result === 0;
 }
@@ -137,9 +133,15 @@ export function generateSecureToken(byteLength = 32): string {
  * Gera OTP de 6 dígitos numéricos aleatórios via CSPRNG
  */
 export function generateOtp(): string {
+  const range = 900000;
+  const maxValid = Math.floor(0x100000000 / range) * range;
   const array = new Uint32Array(1);
-  crypto.getRandomValues(array);
-  const code = 100000 + (array[0] % 900000);
+  let rand: number;
+  do {
+    crypto.getRandomValues(array);
+    rand = array[0];
+  } while (rand >= maxValid);
+  const code = 100000 + (rand % range);
   return code.toString();
 }
 
@@ -147,6 +149,9 @@ export function generateOtp(): string {
  * Importa chave AES-GCM a partir de Base64 ou texto puro
  */
 async function importAesKey(keyRaw: string): Promise<CryptoKey> {
+  if (!keyRaw || !keyRaw.trim()) {
+    throw new Error('AES master key cannot be empty');
+  }
   let keyBytes: Uint8Array;
   try {
     keyBytes = base64ToBytes(keyRaw);
@@ -215,11 +220,11 @@ export async function decryptAesGcm(
   try {
     envelope = JSON.parse(encryptedPayloadJson);
   } catch {
-    return '[DADO_ENCRIPTADO_LEGADO]';
+    throw new Error('Encrypted payload is not valid JSON');
   }
 
-  if (!envelope.iv || !envelope.ct) {
-    return '[FORMATO_ENVELOPE_INVALIDO]';
+  if (!envelope || !envelope.iv || !envelope.ct) {
+    throw new Error('Encrypted payload envelope missing iv or ct');
   }
 
   const cryptoKey = await importAesKey(masterKey);
@@ -243,17 +248,15 @@ export function canonicalJson(obj: any): string {
     return JSON.stringify(obj);
   }
   if (Array.isArray(obj)) {
-    return '[' + obj.map(canonicalJson).join(',') + ']';
+    return '[' + obj.map((item) => (item === undefined ? 'null' : canonicalJson(item))).join(',') + ']';
   }
-  const keys = Object.keys(obj).sort();
+  const keys = Object.keys(obj).filter((k) => obj[k] !== undefined).sort();
   const pairs = keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(obj[k])}`);
   return '{' + pairs.join(',') + '}';
 }
 
-
-
 /**
- * Sanitização de metadados EXIF de imagens (JPEG/PNG) para proteger geolocalização e PII
+ * Sanitização de metadados EXIF/ancilares de imagens (JPEG/PNG) para proteger geolocalização e PII
  */
 export function stripExifFromBase64Image(base64Data: string): string {
   if (!base64Data.includes('base64,')) {
@@ -262,20 +265,50 @@ export function stripExifFromBase64Image(base64Data: string): string {
   const [header, content] = base64Data.split('base64,');
   const bytes = base64ToBytes(content);
 
-  if (bytes[0] === 0xff && bytes[1] === 0xd8) {
+  // JPEG (SOI = 0xFF 0xD8): remove APP1 (0xE1 EXIF/XMP) e APP2 (0xE2 ICC)
+  if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xd8) {
     const cleanBytes: number[] = [0xff, 0xd8];
     let i = 2;
     while (i < bytes.length) {
-      if (bytes[i] === 0xff) {
+      if (bytes[i] === 0xff && i + 3 < bytes.length) {
         const marker = bytes[i + 1];
         if (marker === 0xe1 || marker === 0xe2) {
           const length = (bytes[i + 2] << 8) + bytes[i + 3];
-          i += 2 + length;
-          continue;
+          if (length >= 2 && i + 2 + length <= bytes.length) {
+            i += 2 + length;
+            continue;
+          }
         }
       }
       cleanBytes.push(bytes[i]);
       i++;
+    }
+    return `${header}base64,${bytesToBase64(new Uint8Array(cleanBytes))}`;
+  }
+
+  // PNG (signature 89 50 4E 47 0D 0A 1A 0A): remove chunks de metadados (eXIf, tEXt, zTXt, iTXt, tIME)
+  if (
+    bytes.length > 8 &&
+    bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 &&
+    bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a
+  ) {
+    const metadataChunks = new Set(['eXIf', 'tEXt', 'zTXt', 'iTXt', 'tIME']);
+    const cleanBytes: number[] = Array.from(bytes.slice(0, 8));
+    let i = 8;
+    while (i + 12 <= bytes.length) {
+      const length = ((bytes[i] << 24) | (bytes[i + 1] << 16) | (bytes[i + 2] << 8) | bytes[i + 3]) >>> 0;
+      const chunkEnd = i + 12 + length;
+      if (chunkEnd > bytes.length) {
+        return base64Data;
+      }
+      const type = String.fromCharCode(bytes[i + 4], bytes[i + 5], bytes[i + 6], bytes[i + 7]);
+      if (!metadataChunks.has(type)) {
+        for (let j = i; j < chunkEnd; j++) {
+          cleanBytes.push(bytes[j]);
+        }
+      }
+      i = chunkEnd;
+      if (type === 'IEND') break;
     }
     return `${header}base64,${bytesToBase64(new Uint8Array(cleanBytes))}`;
   }

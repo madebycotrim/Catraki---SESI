@@ -51,7 +51,9 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [duplicateInfo, setDuplicateInfo] = useState<DuplicateStudentCheckResponse | null>(null);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
-  const [isAdultStudent, setIsAdultStudent] = useState(false);
+  const [isAdultStudent, setIsAdultStudent] = useState(
+    () => Boolean(initialData?.signerRelationship?.includes('Próprio'))
+  );
 
 
   const formatCpf = (value: string) => {
@@ -578,7 +580,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   value={formData.minorBirthDate}
                   onChange={handleChange}
                   max={new Date().toISOString().split('T')[0]}
-                  min="1990-01-01"
+                  min="1920-01-01"
                   className={`w-full px-3 py-2.5 sm:py-2 text-base sm:text-xs border rounded-lg focus:outline-none transition-colors ${errors.minorBirthDate ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
                 />
                 {errors.minorBirthDate && (

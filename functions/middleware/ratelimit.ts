@@ -18,13 +18,12 @@ export function rateLimiter(options: RateLimitOptions): MiddlewareHandler<{ Bind
       return await next();
     }
 
-    const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
+    const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
     const path = c.req.path;
-    const bodyToken = c.req.query('token') || '';
     const prefix = options.keyPrefix || 'rl';
 
-    // Chave composta para não penalizar redes compartilhadas injustamente
-    const rateLimitKey = `${prefix}:${ip}:${path}:${bodyToken}`;
+    // Chave por prefixo + IP + path (sem query param para impedir bypass via ?token=...)
+    const rateLimitKey = `${prefix}:${ip}:${path}`;
 
     try {
       const currentCountStr = await kv.get(rateLimitKey);
@@ -48,8 +47,8 @@ export function rateLimiter(options: RateLimitOptions): MiddlewareHandler<{ Bind
 
       c.header('X-RateLimit-Limit', options.limit.toString());
       c.header('X-RateLimit-Remaining', Math.max(0, options.limit - (currentCount + 1)).toString());
-    } catch {
-      // Em caso de instabilidade pontual do KV, permite continuar
+    } catch (err: any) {
+      console.warn('[RATELIMIT] Erro ao consultar/atualizar KV:', err?.message || err);
     }
 
     await next();
@@ -92,10 +91,11 @@ export async function checkOtpBruteForceBlock(
     }
 
     // Bloco expirou — limpa a chave
-    await kv.delete(key).catch(() => {});
+    await kv.delete(key).catch((err) => console.warn('[RATELIMIT] Falha ao remover chave expirada:', err));
     return null;
-  } catch {
-    return null; // Falha silenciosa — não bloqueia o fluxo em instabilidade do KV
+  } catch (err: any) {
+    console.warn('[RATELIMIT] Falha ao checar bloqueio OTP no KV:', err?.message || err);
+    return null;
   }
 }
 
@@ -107,8 +107,8 @@ export async function setOtpBruteForceBlock(kv: KVNamespace, documentId: string)
   try {
     const key = `${OTP_BLOCK_KEY_PREFIX}:${documentId}`;
     await kv.put(key, Date.now().toString(), { expirationTtl: OTP_BLOCK_TTL_SECONDS });
-  } catch {
-    // Falha silenciosa — o bloqueio no DB ainda protege
+  } catch (err: any) {
+    console.warn('[RATELIMIT] Falha ao gravar bloqueio OTP no KV:', err?.message || err);
   }
 }
 
@@ -118,7 +118,7 @@ export async function setOtpBruteForceBlock(kv: KVNamespace, documentId: string)
 export async function clearOtpBruteForceBlock(kv: KVNamespace, documentId: string): Promise<void> {
   try {
     await kv.delete(`${OTP_BLOCK_KEY_PREFIX}:${documentId}`);
-  } catch {
-    // Falha silenciosa
+  } catch (err: any) {
+    console.warn('[RATELIMIT] Falha ao limpar bloqueio OTP no KV:', err?.message || err);
   }
 }

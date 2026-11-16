@@ -6,7 +6,6 @@ import {
   RevokeConsentSchema,
   maskCPF,
   formatCPF,
-  maskName,
   maskEmail,
   getInitials,
   calcularIdade,
@@ -26,6 +25,8 @@ import {
 } from '../../src/lib/crypto.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
 import { verifyTurnstileToken } from '../utils/turnstile.ts';
+import { sendTransactionalEmail } from '../utils/email.ts';
+import { escapeHtml } from '../../src/lib/email-templates.ts';
 import { GeradorPdfTermoSesi } from '../../src/lib/pades/GeradorPdfTermoSesi.ts';
 import { computeLogRowHash } from '../../src/lib/audit-chain.ts';
 import {
@@ -275,20 +276,22 @@ signerRouter.post('/check-student', rateLimiter({ limit: 20, windowSeconds: 60, 
         validationCode,
         existingValidationCode: validationCode,
         signedAt: existing.signed_at,
-        signerNameMasked: existing.parent_name ? maskName(existing.parent_name) : 'Responsável Legal',
-        minorName: cleanName || getInitials(existing.minor_name),
+        minorName: getInitials(existing.minor_name),
       });
     }
 
     // Se não há assinatura ativa, verifica se o consentimento foi formalmente revogado/cancelado
     const revokedQuery = `
-      SELECT d.id, d.status, d.minor_name, d.revoked_at, d.revoked_reason, d.cancelled_at, d.cancellation_reason
+      SELECT d.id, d.status, d.minor_name, d.revoked_at, d.cancelled_at
       FROM documents d
       WHERE d.status IN ('revoked', 'CANCELADO_POR_ERRO', 'cancelled_error')
         AND (${cleanCpf && cleanCpf.length === 11 ? 'd.minor_cpf = ? OR d.minor_cpf_bindex_sha256 = ?' : 'LOWER(d.minor_name) = LOWER(?) AND d.minor_birth_date = ?'})
       ORDER BY d.created_at DESC LIMIT 1
     `;
-    const revoked = await db.prepare(revokedQuery).bind(...params).first<any>().catch(() => null);
+    const revoked = await db.prepare(revokedQuery).bind(...params).first<any>().catch((err) => {
+      console.warn('[CHECK_STUDENT_REVOKED_WARN]', err?.message || err);
+      return null;
+    });
 
     if (revoked) {
       return c.json({
@@ -296,9 +299,8 @@ signerRouter.post('/check-student', rateLimiter({ limit: 20, windowSeconds: 60, 
         hasExistingSignature: false,
         isRevoked: true,
         status: 'revoked',
-        minorName: cleanName || getInitials(revoked.minor_name),
+        minorName: getInitials(revoked.minor_name),
         revokedAt: revoked.revoked_at || revoked.cancelled_at,
-        reason: revoked.revoked_reason || revoked.cancellation_reason || 'Revogado a pedido do responsável / cancelado administrativamente',
       });
     }
   } catch (e) {
@@ -473,12 +475,11 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   }
 
   // ── Validação Anti-Robô (Cloudflare Turnstile) ───────────────
-  // Valida token Turnstile apenas se enviado pelo cliente. Não bloqueia usuários legítimos.
   const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
   const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
-  if (turnstileToken && turnstileSecret) {
+  if (turnstileSecret) {
     const cfData = extractCloudflareClientData(c);
-    const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip);
+    const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip, c.env.APP_ENV);
     if (!turnstileCheck.success) {
       return c.json({
         success: false,
@@ -499,8 +500,8 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   }
 
   let doc = await db.prepare(
-    "SELECT * FROM documents WHERE (access_token = ? OR id = ? OR access_token LIKE ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1"
-  ).bind(token, token, `%${token}%`).first<DocumentRecord>();
+    "SELECT * FROM documents WHERE (access_token = ? OR id = ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1"
+  ).bind(token, token).first<DocumentRecord>();
 
   if (!doc) {
     const template = await db.prepare('SELECT * FROM document_templates WHERE is_active = 1 ORDER BY version DESC LIMIT 1').first<any>();
@@ -683,6 +684,16 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
 
   const isDev = (c.env as any).APP_ENV === 'development';
 
+  if (!emailSent && !isDev) {
+    return c.json({
+      success: false,
+      channel: 'email',
+      email_sent: false,
+      error: 'Não foi possível enviar o código OTP por e-mail no momento. Verifique o endereço informado e tente novamente.',
+      code: 'OTP_EMAIL_DELIVERY_FAILED',
+    }, 502);
+  }
+
   return c.json({
     success: true,
     channel: 'email',
@@ -811,12 +822,10 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const cfData = extractCloudflareClientData(c);
 
   // ── Validação Anti-Robô (Cloudflare Turnstile) ───────────────
-  // A assinatura é autenticada por OTP de 6 dígitos enviado por e-mail com limite de 3 tentativas,
-  // rate limiting e bloqueio anti-força-bruta no KV. Valida Turnstile apenas se fornecido.
   const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
   const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
-  if (turnstileToken && turnstileSecret) {
-    const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip);
+  if (turnstileSecret) {
+    const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip, c.env.APP_ENV);
     if (!turnstileCheck.success) {
       return c.json({
         success: false,
@@ -861,9 +870,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     `SELECT d.*, t.title as template_title, t.procedure_description, t.content_markdown, t.consent_text_version, t.content_sha256 as template_content_sha256
      FROM documents d
      LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-     WHERE (d.access_token = ? OR d.id = ? OR d.access_token LIKE ?) AND d.status = 'pending'
+     WHERE (d.access_token = ? OR d.id = ?) AND d.status = 'pending'
      ORDER BY d.created_at DESC LIMIT 1`
-  ).bind(token, token, `%${token}%`).first<any>();
+  ).bind(token, token).first<any>();
 
   if (!doc) {
     return c.json({ success: false, error: 'Documento não encontrado ou já assinado.', code: 'DOC_NOT_FOUND' }, 404);
@@ -993,6 +1002,27 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const textToHash = `${doc.content_markdown || ''}\n${signer_name}\n${signer_cpf}\n${parsed.data.minor_name || doc.minor_name}\n${parsed.data.minor_birth_date || doc.minor_birth_date}`;
   const docParentHash = await sha256(textToHash);
 
+  const deviceMetadataJson = JSON.stringify({
+    user_agent_parsed: formatUserAgent(userAgent),
+    screen_resolution: device_fingerprint_data?.screen_resolution || null,
+    os_name: device_fingerprint_data?.os_name || null,
+    browser_language: device_fingerprint_data?.browser_language || null,
+    timezone: device_fingerprint_data?.timezone || cfData.timezone,
+    color_depth: device_fingerprint_data?.color_depth || null,
+    cf_ip: cfData.ip,
+    cf_city: cfData.city,
+    cf_region: cfData.region,
+    cf_country: cfData.country,
+    cf_latitude: cfData.latitude,
+    cf_longitude: cfData.longitude,
+    cf_asn: cfData.asnOrg ? `${cfData.asnOrg} (AS${cfData.asnNumber})` : null,
+    cf_tls: cfData.tlsVersion || null,
+    cf_tls_cipher: cfData.tlsCipher || null,
+    cf_colo: cfData.colo || null,
+    cf_ray: cfData.rayId || null,
+    captured_at: new Date().toISOString(),
+  });
+
   const auditRowInput: AuditLogRowInput = {
     id: auditLogId,
     document_id: doc.id,
@@ -1013,26 +1043,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     otp_verified_at: signedAtIso,
     otp_email_message_id: doc.otp_email_message_id,
     doc_parent_hash_sha256: docParentHash,
-    device_metadata: JSON.stringify({
-      user_agent_parsed: formatUserAgent(userAgent),
-      screen_resolution: device_fingerprint_data?.screen_resolution || null,
-      os_name: device_fingerprint_data?.os_name || null,
-      browser_language: device_fingerprint_data?.browser_language || null,
-      timezone: device_fingerprint_data?.timezone || cfData.timezone,
-      color_depth: device_fingerprint_data?.color_depth || null,
-      cf_ip: cfData.ip,
-      cf_city: cfData.city,
-      cf_region: cfData.region,
-      cf_country: cfData.country,
-      cf_latitude: cfData.latitude,
-      cf_longitude: cfData.longitude,
-      cf_asn: cfData.asnOrg ? `${cfData.asnOrg} (AS${cfData.asnNumber})` : null,
-      cf_tls: cfData.tlsVersion || null,
-      cf_tls_cipher: cfData.tlsCipher || null,
-      cf_colo: cfData.colo || null,
-      cf_ray: cfData.rayId || null,
-      captured_at: new Date().toISOString(),
-    }),
+    device_metadata: deviceMetadataJson,
   };
 
   const logRowHash = await computeLogRowHash(auditRowInput);
@@ -1116,16 +1127,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     signerEmail: parsed.data.signer_email,
   });
 
-  if (bucket) {
-    await bucket.put(manifestR2Key, JSON.stringify(manifestData, null, 2), {
-      httpMetadata: { contentType: 'application/json' },
-    });
-    // Salva o PDF no Cloudflare R2
-    await bucket.put(pdfR2Key, pdfBytes, {
-      httpMetadata: { contentType: 'application/pdf' },
-    });
-  }
-
   let minorCpfBindex: string | null = null;
 
   try {
@@ -1135,7 +1136,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
 
     const cleanEmail = parsed.data.signer_email?.trim().toLowerCase();
     const parentEmailBindex = cleanEmail
-      ? await hmacSha256(cleanEmail, c.env.OTP_PEPPER || 'bindex_secret')
+      ? await hmacSha256(cleanEmail, pepper)
       : null;
 
     // Pilar 1 — Privacy by Design: CPF do menor criptografado com AES-GCM-256
@@ -1145,7 +1146,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       : null;
     // Blind Index HMAC-SHA256 para buscas seguras sem expor o CPF (LGPD)
     minorCpfBindex = rawMinorCpfForEncrypt
-      ? await hmacSha256(rawMinorCpfForEncrypt, c.env.OTP_PEPPER || 'bindex_minor_cpf')
+      ? await hmacSha256(rawMinorCpfForEncrypt, pepper)
       : null;
 
     const batch = await db.batch([
@@ -1184,7 +1185,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         signedAtIso,
         doc.otp_email_message_id,
         docParentHash,
-        formatUserAgent(userAgent),
+        deviceMetadataJson,
         logRowHash
       ),
       db.prepare(
@@ -1218,7 +1219,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
         parentEmailBindex,
         parsed.data.minor_name || doc.minor_name || null,
         parsed.data.minor_birth_date || doc.minor_birth_date || null,
-        parsed.data.minor_cpf ? formatCPF(parsed.data.minor_cpf) : null,
+        parsed.data.minor_cpf ? maskCPF(parsed.data.minor_cpf) : null,
         minorCpfEncrypted,
         minorCpfBindex,
         parsed.data.minor_series || null,
@@ -1240,10 +1241,20 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     if ((batch[1] as any).meta?.changes === 0) {
       throw new Error('Falha ao atualizar status do documento: concorrência ou status alterado.');
     }
+
+    if (bucket) {
+      await bucket.put(manifestR2Key, JSON.stringify(manifestData, null, 2), {
+        httpMetadata: { contentType: 'application/json' },
+      });
+      await bucket.put(pdfR2Key, pdfBytes, {
+        httpMetadata: { contentType: 'application/pdf' },
+      });
+    }
   } catch (err: any) {
+    console.error('[SIGN_TRANSACTION_ERROR]', err?.message || err);
     return c.json({
       success: false,
-      error: `Erro ao processar assinatura atômica: ${err.message}`,
+      error: 'Erro ao processar assinatura atômica. Tente novamente.',
       code: 'SIGNING_TRANSACTION_FAILED',
     }, 500);
   }
@@ -1279,42 +1290,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       console.warn('[SIGNER_BG] Aviso ao expirar rascunhos residuais:', cleanupErr);
     }
 
-    // 2. Integração com SMS-MEDCO (Supabase)
-    try {
-      const supabaseUrl = (c.env as any).SUPABASE_URL;
-      const supabaseKey = (c.env as any).SUPABASE_SECRET_KEY || (c.env as any).SUPABASE_SERVICE_ROLE_KEY;
-
-      if (supabaseUrl && supabaseKey && parsed.data.minor_cpf) {
-        const cleanCpf = parsed.data.minor_cpf.replace(/\D/g, '');
-        const formattedCpf = formatCPF(cleanCpf);
-        const queryParam = `or=(cpf.eq.${encodeURIComponent(cleanCpf)},cpf.eq.${encodeURIComponent(formattedCpf)})`;
-
-        const response = await fetch(`${supabaseUrl}/rest/v1/patients?${queryParam}`, {
-          method: 'PATCH',
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal',
-          },
-          body: JSON.stringify({ 
-            tcle_accepted_at: signedAtIso || new Date().toISOString(),
-            tcle_protocol: validationCode,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.warn(`[Catraki] Falha ao sincronizar com sms-medco (Status ${response.status}):`, errorText);
-        } else {
-          console.log(`[Catraki] Consentimento sincronizado no sms-medco com sucesso (Protocolo: ${validationCode})`);
-        }
-      }
-    } catch (syncError) {
-      console.error('[Catraki] Erro de rede ao sincronizar com sms-medco:', syncError);
-    }
-
-    // 3. Disparo do E-mail Oficial de Comprovante de Assinatura com anexo PDF
+    // 2. Disparo do E-mail Oficial de Comprovante de Assinatura com anexo PDF
     const targetEmail = parsed.data.signer_email;
     if (targetEmail) {
       const resendApiKey = (c.env as any).RESEND_API_KEY;
@@ -1444,7 +1420,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
  * POST /api/signer/revoke
  * Revogação fundamentada de consentimento (LGPD Art. 18)
  */
-signerRouter.post('/revoke', async (c) => {
+signerRouter.post('/revoke', rateLimiter({ limit: 10, windowSeconds: 300, keyPrefix: 'revoke' }), async (c) => {
   const body = await c.req.json();
   const parsed = RevokeConsentSchema.safeParse(body);
 
@@ -1453,13 +1429,41 @@ signerRouter.post('/revoke', async (c) => {
   }
 
   const { token, reason } = parsed.data;
+  const providedSignerCpf = typeof (body as any)?.signer_cpf === 'string' ? (body as any).signer_cpf.replace(/\D/g, '') : '';
   const db = c.env.DB;
 
   if (!db) {
     return c.json({ success: false, error: 'Serviço de banco de dados indisponível.', code: 'DB_UNAVAILABLE' }, 503);
   }
 
-  const doc = await db.prepare('SELECT * FROM documents WHERE access_token = ? OR id = ?').bind(token, token).first<DocumentRecord>();
+  // Busca prioritariamente pelo access_token secreto; se buscar por id público, exige confirmação de CPF do signatário
+  let doc = await db.prepare('SELECT * FROM documents WHERE access_token = ?').bind(token).first<DocumentRecord>();
+  if (!doc) {
+    const byId = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(token).first<DocumentRecord>();
+    if (byId) {
+      const masterKeyCheck = c.env.ENCRYPTION_KEY_V1;
+      const auditRow = await db.prepare('SELECT signer_cpf_encrypted FROM audit_logs WHERE document_id = ? LIMIT 1')
+        .bind(byId.id)
+        .first<{ signer_cpf_encrypted: string }>();
+      let cpfVerified = false;
+      if (providedSignerCpf.length === 11 && auditRow?.signer_cpf_encrypted && masterKeyCheck) {
+        try {
+          const decryptedCpf = (await decryptAesGcm(auditRow.signer_cpf_encrypted, masterKeyCheck)).replace(/\D/g, '');
+          cpfVerified = constantTimeEqual(providedSignerCpf, decryptedCpf);
+        } catch (err: any) {
+          console.warn('[REVOKE_CPF_VERIFY_WARN]', err?.message || err);
+        }
+      }
+      if (!cpfVerified) {
+        return c.json({
+          success: false,
+          error: 'Para revogar usando o protocolo do documento, informe o CPF do responsável signatário para validação de identidade.',
+          code: 'IDENTITY_VERIFICATION_REQUIRED',
+        }, 403);
+      }
+      doc = byId;
+    }
+  }
   if (!doc) {
     return c.json({ success: false, error: 'Documento não localizado.', code: 'DOC_NOT_FOUND' }, 404);
   }
@@ -1509,28 +1513,13 @@ signerRouter.post('/revoke', async (c) => {
       if (doc.id) {
         await kv.put(`revoked:${doc.id}`, revokedAtIso, { expirationTtl: ttl });
       }
-    } catch {}
+    } catch (err: any) {
+      console.warn('[REVOKE_KV_DENYLIST_WARN]', err?.message || err);
+    }
   }
 
   // Registro na Trilha de Auditoria de Cancelamento/Revogação (Marco Civil / LGPD)
   try {
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS document_cancellation_audits (
-        id TEXT PRIMARY KEY,
-        document_id TEXT NOT NULL,
-        cancelled_at DATETIME NOT NULL,
-        ip_address TEXT NOT NULL,
-        user_agent TEXT NOT NULL,
-        cancelled_by_user_id TEXT NOT NULL,
-        cancelled_by_user_email TEXT NOT NULL,
-        cancelled_by_role TEXT NOT NULL,
-        justification TEXT NOT NULL,
-        document_manifest_sha256 TEXT,
-        log_row_hash TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `).run().catch(() => {});
-
     const cancelId = `REVOKED-${Date.now()}-${doc.id.substring(0, 8)}`;
     const rowHash = await sha256(`${cancelId}|${doc.id}|${revokedAtIso}|${clientIp}|${doc.parent_name || 'Titular'}|${reason}`);
 
@@ -1551,7 +1540,7 @@ signerRouter.post('/revoke', async (c) => {
       reason,
       doc.content_sha256 || null,
       rowHash
-    ).run().catch(() => {});
+    ).run();
   } catch (e) {
     console.error('Falha ao registrar auditoria de revogação:', e);
   }
@@ -1564,16 +1553,14 @@ signerRouter.post('/revoke', async (c) => {
   if (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' && masterKey) {
     try {
       targetEmail = await decryptAesGcm(doc.parent_email_encrypted, masterKey);
-    } catch {}
-  }
-
-  if (!targetEmail && (doc as any).parent_email && (doc as any).parent_email.includes('@')) {
-    targetEmail = (doc as any).parent_email;
+    } catch (err: any) {
+      console.warn('[REVOKE_EMAIL_DECRYPT_WARN]', err?.message || err);
+    }
   }
 
   if (targetEmail && targetEmail.includes('@')) {
     const formattedDate = new Date(revokedAtIso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    const validationCode = doc.content_sha256 
+    const validationCode = doc.content_sha256
       ? `CATRAKI-${doc.content_sha256.substring(0, 4).toUpperCase()}-${doc.content_sha256.substring(doc.content_sha256.length - 4).toUpperCase()}`
       : `DOC-${doc.id.substring(0, 8).toUpperCase()}`;
 
@@ -1595,15 +1582,15 @@ signerRouter.post('/revoke', async (c) => {
         </span>
       </div>
       <p style="font-size: 13px; line-height: 1.6; margin: 0 0 14px 0;">
-        Prezado(a) <strong>${doc.parent_name || 'Responsável Legal'}</strong>,
+        Prezado(a) <strong>${escapeHtml(doc.parent_name || 'Responsável Legal')}</strong>,
       </p>
       <p style="font-size: 13px; line-height: 1.6; margin: 0 0 16px 0;">
-        Confirmamos que o consentimento previamente outorgado referente ao(à) estudante <strong>${doc.minor_name || 'Estudante'}</strong> foi <strong>REVOGADO</strong> com sucesso em nossos registros.
+        Confirmamos que o consentimento previamente outorgado referente ao(à) estudante <strong>${escapeHtml(doc.minor_name || 'Estudante')}</strong> foi <strong>REVOGADO</strong> com sucesso em nossos registros.
       </p>
       <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 14px; margin-bottom: 18px; font-size: 12px;">
-        <p style="margin: 0 0 6px 0;"><strong>Identificador:</strong> <span style="font-family: monospace;">${validationCode}</span></p>
-        <p style="margin: 0 0 6px 0;"><strong>Data/Hora do Cancelamento:</strong> ${formattedDate}</p>
-        <p style="margin: 0;"><strong>Motivo Declarado:</strong> ${reason}</p>
+        <p style="margin: 0 0 6px 0;"><strong>Identificador:</strong> <span style="font-family: monospace;">${escapeHtml(validationCode)}</span></p>
+        <p style="margin: 0 0 6px 0;"><strong>Data/Hora do Cancelamento:</strong> ${escapeHtml(formattedDate)}</p>
+        <p style="margin: 0;"><strong>Motivo Declarado:</strong> ${escapeHtml(reason)}</p>
       </div>
       <p style="font-size: 12px; color: #475569; line-height: 1.6;">
         A partir deste momento, nenhum novo atendimento médico preventivo ou triagem clínica será realizado para o estudante sem uma nova autorização formal.
@@ -1616,110 +1603,13 @@ signerRouter.post('/revoke', async (c) => {
 </body>
 </html>`;
 
-    const resendApiKey = (c.env as any).RESEND_API_KEY;
-    const fromAddress = (c.env as any).EMAIL_FROM || 'Plataforma Catraki <autorizacoes@catraki.com.br>';
-
-    try {
-      if (resendApiKey) {
-        let resendResp = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: fromAddress,
-            to: [targetEmail],
-            subject: `Escola Cidadã — Consentimento Revogado`,
-            html: revokeHtml,
-          }),
-        });
-
-        if (!resendResp.ok) {
-          resendResp = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${resendApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              from: 'Plataforma Catraki <onboarding@resend.dev>',
-              to: [targetEmail],
-            subject: `Escola Cidadã — Consentimento Revogado`,
-              html: revokeHtml,
-            }),
-          });
-        }
-
-        if (resendResp.ok) {
-          emailDispatched = true;
-        }
-      }
-
-      if (!emailDispatched) {
-        const mcResp = await fetch('https://api.mailchannels.net/tx/v1/send', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            personalizations: [{ to: [{ email: targetEmail }] }],
-            from: {
-              email: 'autorizacoes@catraki.com.br',
-              name: 'Plataforma Catraki',
-            },
-            subject: `[Plataforma Catraki] Comprovante de Revogação de Consentimento — ${doc.minor_name || 'Estudante'}`,
-            content: [{
-              type: 'text/html',
-              value: revokeHtml,
-            }],
-          }),
-        });
-
-        if (mcResp.ok) {
-          emailDispatched = true;
-        }
-      }
-    } catch {}
+    const emailRes = await sendTransactionalEmail(c.env, {
+      to: targetEmail,
+      subject: `Escola Cidadã — Consentimento Revogado`,
+      html: revokeHtml,
+    });
+    emailDispatched = emailRes.sent;
   }
-
-  // --- SINCRONIZAÇÃO AUTOMÁTICA DE REVOGAÇÃO COM SMS-MEDCO (Supabase) ---
-  try {
-    const supabaseUrl = (c.env as any).SUPABASE_URL;
-    const supabaseKey = (c.env as any).SUPABASE_SECRET_KEY || (c.env as any).SUPABASE_SERVICE_ROLE_KEY;
-
-    let minorCpfForSync: string | null = null;
-    const docAny = doc as any;
-    if (docAny.minor_cpf_encrypted && masterKey) {
-      try {
-        minorCpfForSync = await decryptAesGcm(docAny.minor_cpf_encrypted, masterKey);
-      } catch {}
-    } else if (docAny.minor_cpf && !docAny.minor_cpf.includes('*')) {
-      minorCpfForSync = docAny.minor_cpf;
-    }
-
-    if (supabaseUrl && supabaseKey && minorCpfForSync) {
-      const cleanCpf = minorCpfForSync.replace(/\D/g, '');
-      const formattedCpf = formatCPF(cleanCpf);
-      const queryParam = `or=(cpf.eq.${encodeURIComponent(cleanCpf)},cpf.eq.${encodeURIComponent(formattedCpf)})`;
-
-      await fetch(`${supabaseUrl}/rest/v1/patients?${queryParam}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal',
-        },
-        body: JSON.stringify({
-          tcle_accepted_at: null,
-          tcle_protocol: null,
-        }),
-      });
-      console.log(`[Catraki] Consentimento revogado no Supabase do SMS-MEDCO para doc ${doc.id}`);
-    }
-  } catch (syncErr) {
-    console.error('[Catraki] Erro ao sincronizar revogação com SMS-MEDCO:', syncErr);
-  }
-  // --- FIM DA SINCRONIZAÇÃO ---
 
   return c.json({
     success: true,

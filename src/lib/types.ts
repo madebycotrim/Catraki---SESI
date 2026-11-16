@@ -17,7 +17,9 @@ export type SignerRelationship =
   | 'Tio / Tia'
   | 'Outro'
   | 'Outro Responsável Legal'
-  | 'Próprio Estudante (Maior de Idade)'; // CC/2002 Art. 5º — plena capacidade civil aos 18 anos
+  | 'Próprio Estudante'
+  | 'Próprio Estudante (Maior de Idade)' // CC/2002 Art. 5º — plena capacidade civil aos 18 anos
+  | 'Próprio(a) Estudante (Maior de Idade)';
 
 export type IdentityMethod = 'declaracao_responsavel' | 'declaracao_titular';
 
@@ -291,6 +293,7 @@ export interface Env {
   DB: D1Database;
   BUCKET_DOCS: R2Bucket;
   KV_RATE_LIMIT: KVNamespace;
+  DOCS_KV?: KVNamespace;
   APP_ENV?: string;
   DEFAULT_KEY_VERSION?: string;
   SESI_INSTITUTION_NAME?: string;
@@ -298,6 +301,11 @@ export interface Env {
   ENCRYPTION_KEY_V1?: string;
   OTP_PEPPER?: string;
   JWT_ADMIN_SECRET?: string;
+  BULK_CHECK_API_KEY?: string;
+  CRON_SECRET?: string;
+  MICROSOFT_CLIENT_ID?: string;
+  MICROSOFT_TENANT_ID?: string;
+  ALLOWED_EMAIL_DOMAINS?: string;
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
   TURNSTILE_HOSTNAMES?: string;

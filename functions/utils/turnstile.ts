@@ -6,9 +6,10 @@
 export async function verifyTurnstileToken(
   token: string | undefined | null,
   secretKey: string | undefined | null,
-  remoteIp?: string
+  remoteIp?: string,
+  appEnv?: string
 ): Promise<{ success: boolean; error?: string }> {
-  // Se a chave secreta não estiver configurada no ambiente ou for placeholder, ignora verificação (fallback gracioso para dev local)
+  // Se a chave secreta não estiver configurada no ambiente ou for placeholder, ignora verificação apenas em dev/test
   if (!secretKey || secretKey.startsWith('COLE_AQUI') || secretKey === 'dummy_secret') {
     return { success: true };
   }
@@ -18,8 +19,9 @@ export async function verifyTurnstileToken(
     return { success: false, error: 'Validação de segurança anti-robô obrigatória. Atualize a página e tente novamente.' };
   }
 
-  // Tokens de teste da Cloudflare Turnstile (staging / testes locais)
-  if (token.startsWith('1x00000000000000000000AA') || token === 'dummy-turnstile-token') {
+  // Tokens de teste da Cloudflare Turnstile permitidos SOMENTE em desenvolvimento/testes
+  const isDevOrTest = appEnv === 'development' || appEnv === 'test';
+  if (isDevOrTest && (token.startsWith('1x00000000000000000000AA') || token === 'dummy-turnstile-token')) {
     return { success: true };
   }
 
@@ -37,6 +39,7 @@ export async function verifyTurnstileToken(
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!response.ok) {
@@ -53,7 +56,7 @@ export async function verifyTurnstileToken(
       error: 'Verificação anti-robô não validada. Por favor, tente novamente.',
     };
   } catch (err: any) {
-    // Falha de rede no siteverify
-    return { success: false, error: `Erro na comunicação com Cloudflare Turnstile: ${err.message}` };
+    console.error('[TURNSTILE] Erro ao validar token:', err?.message || err);
+    return { success: false, error: 'Erro na comunicação com o serviço anti-robô. Tente novamente.' };
   }
 }

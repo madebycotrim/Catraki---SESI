@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import {
   CreateTemplateSchema,
   CreateDocumentSchema,
@@ -6,6 +7,7 @@ import {
   LogAdminExportSchema,
   generateUniqueDocId,
   formatCPF,
+  maskCPF,
   formatBrasiliaDateTime,
 } from '../../src/lib/schemas.ts';
 import {
@@ -277,16 +279,21 @@ adminRouter.get('/documents', async (c) => {
     const instQuery = await db.prepare('SELECT id, name, short_name FROM institutions').all<any>().catch(() => ({ results: [] }));
     const instList = (instQuery.results || []) as any[];
 
+    const user = c.get('user');
+    const canViewFullCpf = user?.role === 'admin_master' || user?.role === 'dpo';
+
     const results = await Promise.all((docs.results || []).map(async (doc: any) => {
       if (doc.minor_cpf_encrypted && c.env.ENCRYPTION_KEY_V1) {
         try {
           const raw = await decryptAesGcm(doc.minor_cpf_encrypted, c.env.ENCRYPTION_KEY_V1);
           if (raw && raw.replace(/\D/g, '').length === 11) {
-            doc.minor_cpf = formatCPF(raw);
+            doc.minor_cpf = canViewFullCpf ? formatCPF(raw) : maskCPF(raw);
           }
-        } catch {}
+        } catch (err: any) {
+          console.warn('[ADMIN_DOCS_DECRYPT_WARN]', err?.message || err);
+        }
       } else if (doc.minor_cpf && !doc.minor_cpf.includes('*')) {
-        doc.minor_cpf = formatCPF(doc.minor_cpf);
+        doc.minor_cpf = canViewFullCpf ? formatCPF(doc.minor_cpf) : maskCPF(doc.minor_cpf);
       }
 
       if (!doc.institution_id || !doc.institution_name) {
@@ -300,11 +307,18 @@ adminRouter.get('/documents', async (c) => {
           doc.institution_short_name = matchedInst.short_name;
         }
       }
+
+      // Nunca expõe hashes OTP ou envelopes criptografados brutos na listagem
+      delete doc.otp_secret_hash;
+      delete doc.parent_email_encrypted;
+      delete doc.parent_phone_encrypted;
+      delete doc.minor_cpf_encrypted;
       return doc;
     }));
 
     return c.json({ success: true, documents: results });
   } catch (err: any) {
+    console.error('[ADMIN_DOCS_QUERY_ERROR]', err?.message || err);
     try {
       const fallbackWhere = includeExpired ? '' : "WHERE status != 'expired'";
       const fallbackDocs = await db.prepare(
@@ -321,7 +335,9 @@ adminRouter.get('/documents', async (c) => {
             if (raw && raw.replace(/\D/g, '').length === 11) {
               doc.minor_cpf = formatCPF(raw);
             }
-          } catch {}
+          } catch (decryptErr: any) {
+            console.warn('[ADMIN_DOCS_FALLBACK_DECRYPT_WARN]', decryptErr?.message || decryptErr);
+          }
         } else if (doc.minor_cpf && !doc.minor_cpf.includes('*')) {
           doc.minor_cpf = formatCPF(doc.minor_cpf);
         }
@@ -337,12 +353,17 @@ adminRouter.get('/documents', async (c) => {
             doc.institution_short_name = matchedInst.short_name;
           }
         }
+        delete doc.otp_secret_hash;
+        delete doc.parent_email_encrypted;
+        delete doc.parent_phone_encrypted;
+        delete doc.minor_cpf_encrypted;
         return doc;
       }));
 
       return c.json({ success: true, documents: results });
     } catch (fallbackErr: any) {
-      return c.json({ success: true, documents: [] });
+      console.error('[ADMIN_DOCS_FALLBACK_ERROR]', fallbackErr?.message || fallbackErr);
+      return c.json({ success: false, error: 'Erro ao consultar documentos no banco de dados.' }, 500);
     }
   }
 });
@@ -470,8 +491,12 @@ adminRouter.post('/documents', requireAuth(['admin_master', 'operador']), async 
 
   const parentEmailEncrypted = await encryptAesGcm(parent_email, masterKey, 1);
   const parentPhoneEncrypted = await encryptAesGcm(parent_phone, masterKey, 1);
+  const pepper = c.env.OTP_PEPPER;
+  if (!pepper) {
+    return c.json({ success: false, error: 'Configuração de segurança incompleta (OTP_PEPPER ausente).' }, 500);
+  }
   // Blind index determinístico para buscas seguras sob sigilo (LGPD Art. 11/18)
-  const parentEmailBindex = await hmacSha256(parent_email.trim().toLowerCase(), c.env.OTP_PEPPER || 'bindex_secret');
+  const parentEmailBindex = await hmacSha256(parent_email.trim().toLowerCase(), pepper);
 
   const expiresAt = new Date(Date.now() + expires_in_days * 86400000).toISOString();
   const retentionExpiresAt = new Date(Date.now() + template.retention_days * 86400000).toISOString();
@@ -875,46 +900,6 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
     ).bind(cancelledAtIso, doc.id).run().catch(() => {});
   }
 
-  // --- SINCRONIZAÇÃO AUTOMÁTICA DE CANCELAMENTO/REVOGAÇÃO COM SMS-MEDCO (Supabase) ---
-  try {
-    const supabaseUrl = (c.env as any).SUPABASE_URL;
-    const supabaseKey = (c.env as any).SUPABASE_SECRET_KEY || (c.env as any).SUPABASE_SERVICE_ROLE_KEY;
-    const masterKey = c.env.ENCRYPTION_KEY_V1;
-
-    let minorCpfForSync: string | null = null;
-    if (doc.minor_cpf_encrypted && masterKey) {
-      try {
-        minorCpfForSync = await decryptAesGcm(doc.minor_cpf_encrypted, masterKey);
-      } catch {}
-    } else if (doc.minor_cpf && !doc.minor_cpf.includes('*')) {
-      minorCpfForSync = doc.minor_cpf;
-    }
-
-    if (supabaseUrl && supabaseKey && minorCpfForSync) {
-      const cleanCpf = minorCpfForSync.replace(/\D/g, '');
-      const formattedCpf = formatCPF(cleanCpf);
-      const queryParam = `or=(cpf.eq.${encodeURIComponent(cleanCpf)},cpf.eq.${encodeURIComponent(formattedCpf)})`;
-
-      await fetch(`${supabaseUrl}/rest/v1/patients?${queryParam}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal',
-        },
-        body: JSON.stringify({
-          tcle_accepted_at: null,
-          tcle_protocol: null,
-        }),
-      });
-      console.log(`[Catraki Admin] Consentimento cancelado no Supabase do SMS-MEDCO para doc ${doc.id}`);
-    }
-  } catch (syncErr) {
-    console.error('[Catraki Admin] Erro ao sincronizar cancelamento com SMS-MEDCO:', syncErr);
-  }
-  // --- FIM DA SINCRONIZAÇÃO ---
-
   return c.json({
     success: true,
     document_id: doc.id,
@@ -941,77 +926,77 @@ adminRouter.post('/documents/:id/cancel', requireAuth(['admin_master', 'operador
  * DELETE /api/admin/documents/:id/hard-delete
  * Exclui permanentemente um documento de teste e suas tabelas correlatas.
  */
-adminRouter.delete('/documents/:id/hard-delete', requireAuth(['admin_master', 'operador']), async (c) => {
+adminRouter.delete('/documents/:id/hard-delete', requireAuth(['admin_master']), async (c) => {
+  const user = c.get('user');
   const id = c.req.param('id');
   const db = c.env.DB;
-  const kv = (c.env as any).DOCS_KV;
+  const kv = c.env.KV_RATE_LIMIT || (c.env as any).DOCS_KV;
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
 
   if (!db) {
     return c.json({ success: false, error: 'Banco de dados indisponível.' }, 503);
   }
 
-  const doc = await db.prepare('SELECT id, status, access_token, minor_cpf FROM documents WHERE id = ?').bind(id).first<any>();
+  const doc = await db.prepare('SELECT id, status, access_token FROM documents WHERE id = ?').bind(id).first<any>();
   if (!doc) {
-    return c.json({ success: false, error: 'Documento não localizado para exclusão definitiva.', code: 'DOC_NOT_FOUND' }, 404);
+    return c.json({ success: false, error: 'Documento não localizado para exclusão.', code: 'DOC_NOT_FOUND' }, 404);
   }
 
   if (doc.status === 'signed') {
     return c.json({
       success: false,
-      error: 'VIOLAÇÃO DE CUSTÓDIA: Documentos com status AUTORIZADO (signed) não podem ser excluídos diretamente. É obrigatório revogar ou anular o documento antes de efetuar a exclusão.',
+      error: 'VIOLAÇÃO DE CUSTÓDIA: Documentos com status AUTORIZADO (signed) não podem ser excluídos diretamente. É obrigatório revogar ou anular o documento antes.',
       code: 'CANNOT_DELETE_SIGNED_DOC'
     }, 400);
   }
 
   try {
-    // 1. Desativa temporariamente as triggers de proteção física
-    await db.prepare('DROP TRIGGER IF EXISTS prevent_document_delete').run().catch(() => null);
-    await db.prepare('DROP TRIGGER IF EXISTS prevent_audit_delete').run().catch(() => null);
-    await db.prepare('DROP TRIGGER IF EXISTS prevent_cancellation_audit_delete').run().catch(() => null);
+    // Anonimização LGPD + invalidação sem remover triggers físicas de imutabilidade em produção
+    await db.prepare(
+      `UPDATE documents
+       SET status = 'cancelled_error',
+           minor_name = 'EXCLUIDO_ADMIN_' || substr(id, 1, 8),
+           minor_series = NULL,
+           minor_class = NULL,
+           minor_turn = NULL,
+           parent_name = 'EXCLUIDO_ADMIN',
+           parent_email_encrypted = 'EXCLUIDO',
+           parent_phone_encrypted = 'EXCLUIDO',
+           parent_email_bindex_sha256 = NULL,
+           minor_cpf_encrypted = NULL,
+           minor_cpf_bindex_sha256 = NULL,
+           minor_cpf = NULL,
+           otp_secret_hash = NULL,
+           cancelled_at = COALESCE(cancelled_at, datetime('now')),
+           cancellation_reason = COALESCE(cancellation_reason, 'Exclusão/Anonimização administrativa (Master)')
+       WHERE id = ?`
+    ).bind(id).run();
 
-    // 2. Executa a exclusão de todas as dependências e do documento
-    await db.prepare('DELETE FROM document_cancellation_audits WHERE document_id = ?').bind(id).run().catch(() => null);
-    await db.prepare('DELETE FROM audit_logs WHERE document_id = ?').bind(id).run().catch(() => null);
-    await db.prepare('DELETE FROM documents WHERE id = ?').bind(id).run();
-
-    // 3. Remove do KV se existir
     if (kv && doc.access_token) {
-      await kv.delete(`token:${doc.access_token}`).catch(() => null);
+      await kv.put(`revoked:${doc.access_token}`, new Date().toISOString(), { expirationTtl: 60 * 60 * 24 * 365 * 5 }).catch((e: any) => {
+        console.warn('[HARD_DELETE_KV_WARN]', e?.message || e);
+      });
     }
 
-    // 4. Restaura as triggers de segurança para produção
-    await db.prepare(`
-      CREATE TRIGGER IF NOT EXISTS prevent_document_delete
-      BEFORE DELETE ON documents
-      BEGIN
-        SELECT RAISE(ABORT, 'VIOLAÇÃO LEGAL (LGPD/Marco Civil/Lei 14.063): É expressamente proibida a exclusão física (DELETE) de documentos ou autorizações. Utilize o cancelamento de estado com status CANCELADO_POR_ERRO para preservar a cadeia de custódia e evidências digitais.');
-      END;
-    `).run().catch(() => null);
-
-    await db.prepare(`
-      CREATE TRIGGER IF NOT EXISTS prevent_audit_delete
-      BEFORE DELETE ON audit_logs
-      BEGIN
-        SELECT RAISE(ABORT, 'VIOLAÇÃO DE SEGURANÇA: Registros de logs de auditoria não podem ser apagados sob hipótese alguma.');
-      END;
-    `).run().catch(() => null);
-
-    await db.prepare(`
-      CREATE TRIGGER IF NOT EXISTS prevent_cancellation_audit_delete
-      BEFORE DELETE ON document_cancellation_audits
-      BEGIN
-        SELECT RAISE(ABORT, 'VIOLAÇÃO DE SEGURANÇA: Registros de auditoria de cancelamento não podem ser apagados sob hipótese alguma.');
-      END;
-    `).run().catch(() => null);
+    await logAdminAction(
+      db,
+      user,
+      'ADMIN_ANONYMIZE_DELETE',
+      `documents/${id}`,
+      JSON.stringify({ previous_status: doc.status }),
+      clientIp,
+      userAgent
+    );
 
     return c.json({
       success: true,
       document_id: id,
-      message: 'Registro de teste excluído definitivamente do banco de dados.',
+      message: 'Registro anonimizado e invalidado com preservação das triggers de custódia.',
     });
   } catch (err: any) {
-    console.error('[Catraki Admin] Erro ao excluir documento definitivamente:', err);
-    return c.json({ success: false, error: `Erro ao excluir definitivamente: ${err?.message || 'Erro interno'}` }, 500);
+    console.error('[Catraki Admin] Erro ao anonimizar/excluir documento:', err?.message || err);
+    return c.json({ success: false, error: 'Erro interno ao processar exclusão.' }, 500);
   }
 });
 
@@ -1037,7 +1022,7 @@ adminRouter.get('/documents/:id/parent-email', requireAuth(['admin_master', 'ope
 
   try {
     const doc = await db.prepare(
-      `SELECT parent_email_encrypted, parent_name, parent_email FROM documents WHERE id = ?`
+      `SELECT parent_email_encrypted, parent_name FROM documents WHERE id = ?`
     ).bind(id).first<any>();
 
     if (!doc) {
@@ -1094,10 +1079,10 @@ adminRouter.get('/documents/:id/certificate', requireAuth(['admin_master', 'oper
 
   // Busca o documento e sua trilha de auditoria completa
   const doc = await db.prepare(
-    `SELECT d.*, t.title as template_title, t.procedure_description, i.name as institution_name
+    `SELECT d.*, t.title as template_title, t.procedure_description, COALESCE(d.institution_name, i.name) as institution_name
      FROM documents d
      LEFT JOIN document_templates t ON d.template_id = t.id AND d.template_version = t.version
-     LEFT JOIN institutions i ON d.created_by_admin LIKE '%' || i.id || '%'
+     LEFT JOIN institutions i ON d.institution_id = i.id
      WHERE d.id = ?`
   ).bind(id).first<any>();
 
@@ -1606,18 +1591,23 @@ adminRouter.get('/lgpd-requests', requireAuth(['admin_master', 'dpo']), async (c
   return c.json({ success: true, requests: requests.results || [] });
 });
 
+const LgpdRespondSchema = z.object({
+  status: z.enum(['pending', 'in_analysis', 'completed', 'rejected']),
+  response_notes: z.string().trim().min(5, 'Parecer do DPO deve ter pelo menos 5 caracteres').max(2000),
+});
+
 adminRouter.post('/lgpd-requests/:id/respond', requireAuth(['admin_master', 'dpo']), async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
-  const body = await c.req.json();
-  const { status, response_notes } = body;
-  const db = c.env.DB;
-  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
-  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
-
-  if (!status || !response_notes) {
-    return c.json({ success: false, error: 'Status e parecer do DPO são obrigatórios.' }, 400);
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = LgpdRespondSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Dados inválidos.' }, 400);
   }
+  const { status, response_notes } = parsed.data;
+  const db = c.env.DB;
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
 
   const existing = await db.prepare('SELECT * FROM lgpd_requests WHERE id = ?').bind(id).first<LgpdRequestRecord>();
   if (!existing) {
@@ -1663,17 +1653,25 @@ adminRouter.get('/institutions', requireAuth(['operador', 'admin_master', 'dpo']
   return c.json({ success: true, institutions: list.results });
 });
 
+const InstitutionUpsertSchema = z.object({
+  id: z.string().trim().min(2).max(64),
+  name: z.string().trim().min(3).max(200),
+  short_name: z.string().trim().min(2).max(60),
+  city: z.string().trim().max(100).optional(),
+  state: z.string().trim().max(2).optional(),
+});
+
 adminRouter.post('/institutions', requireAuth(['admin_master', 'operador']), async (c) => {
   const user = c.get('user');
   const body = await c.req.json().catch(() => ({}));
-  const { id, name, short_name, city, state } = body;
-  const db = c.env.DB;
-  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
-  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
-
-  if (!id || !name || !short_name) {
-    return c.json({ success: false, error: 'Identificador (Slug), Nome Completo e Sigla são obrigatórios.' }, 400);
+  const parsed = InstitutionUpsertSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Identificador (Slug), Nome Completo e Sigla são obrigatórios.' }, 400);
   }
+  const { id, name, short_name, city, state } = parsed.data;
+  const db = c.env.DB;
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
 
   const cleanSlug = id.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
 

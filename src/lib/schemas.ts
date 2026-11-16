@@ -148,9 +148,12 @@ export function formatUserAgent(ua?: string): string {
 export function generateUniqueDocId(prefix = 'DOC'): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
-  const datePart = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
-  const timePart = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  return `${prefix}-${datePart}-${timePart}`;
+  const datePart = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}`;
+  const timePart = `${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}`;
+  const rnd = new Uint8Array(2);
+  crypto.getRandomValues(rnd);
+  const suffix = Array.from(rnd, (b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+  return `${prefix}-${datePart}-${timePart}-${suffix}`;
 }
 
 /**
@@ -255,14 +258,14 @@ export function calcularIdade(dataNascimento: string | Date, dataReferencia: Dat
     if (cleanStr.includes('/')) {
       const parts = cleanStr.split('/');
       if (parts.length === 3) {
-        birth = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+        birth = new Date(Date.UTC(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10)));
       } else {
         birth = new Date(cleanStr);
       }
     } else if (cleanStr.includes('-')) {
       const parts = cleanStr.split('-');
       if (parts.length === 3 && parts[0].length === 4) {
-        birth = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        birth = new Date(Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
       } else {
         birth = new Date(cleanStr);
       }
@@ -276,9 +279,9 @@ export function calcularIdade(dataNascimento: string | Date, dataReferencia: Dat
   if (!birth || isNaN(birth.getTime())) return 0;
   if (birth > dataReferencia) return 0;
 
-  let age = dataReferencia.getFullYear() - birth.getFullYear();
-  const m = dataReferencia.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && dataReferencia.getDate() < birth.getDate())) {
+  let age = dataReferencia.getUTCFullYear() - birth.getUTCFullYear();
+  const m = dataReferencia.getUTCMonth() - birth.getUTCMonth();
+  if (m < 0 || (m === 0 && dataReferencia.getUTCDate() < birth.getUTCDate())) {
     age--;
   }
   return Math.max(0, age);
@@ -333,7 +336,7 @@ export function formatBrasiliaDateTime(
 // ============================================================================
 
 export const FullNameSchema = z.string()
-  .min(3, 'Nome deve ter no mínimo 3 caracteres')
+  .min(5, 'Nome deve ter no mínimo 5 caracteres')
   .max(150, 'Nome não pode exceder 150 caracteres')
   .refine((val) => isValidFullName(val), {
     message: 'Nome completo inválido ou fictício. Digite nome e sobrenome reais sem repetições excessivas.',
@@ -431,7 +434,10 @@ export const SignDocumentSchema = z.object({
   }).optional(),
   signature_png_base64: z.string()
     .min(10, 'Assinatura obrigatória')
-    .refine((val) => val.startsWith('data:image/png;base64,') || val.length < 500000, {
+    .refine((val) => val.startsWith('data:image/png;base64,'), {
+      message: 'A assinatura deve estar no formato PNG base64 válido',
+    })
+    .refine((val) => val.length <= 500000, {
       message: 'A imagem da assinatura excede o limite máximo permitido de 500KB',
     }),
   consent_lgpd_art11_art14: z.literal(true, {

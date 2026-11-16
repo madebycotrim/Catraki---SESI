@@ -6,3 +6,12 @@ compatibility_date = "2026-08-20"
 binding = "DB"
 database_name = "catraki_db"
 database_id = "6eb79bdf-0ae6-4e87-b0f0-bb802c5f1d98"
+
+# Configure os IDs reais no Cloudflare Dashboard ou antes de rodar wrangler pages deploy:
+# [[kv_namespaces]]
+# binding = "KV_RATE_LIMIT"
+# id = "SEU_KV_NAMESPACE_ID"
+#
+# [[r2_buckets]]
+# binding = "BUCKET_DOCS"
+# bucket_name = "catraki-docs"

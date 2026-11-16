@@ -38,11 +38,17 @@ authMicrosoftRouter.post('/microsoft/login-url', async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const redirectUri = body.redirectUri || 'https://catraki.com.br/admin/callback';
 
-    const clientId = (c.env as any).MICROSOFT_CLIENT_ID || '00000000-0000-0000-0000-000000000000';
+    const clientId = (c.env as any).MICROSOFT_CLIENT_ID;
+    if (!clientId || clientId === '00000000-0000-0000-0000-000000000000') {
+      return c.json({ success: false, error: 'Provedor Microsoft Entra ID não configurado no servidor.' }, 500);
+    }
     const tenantId = (c.env as any).MICROSOFT_TENANT_ID || 'common';
 
-    // 1. Gera State para proteção contra CSRF
+    // 1. Gera State para proteção contra CSRF e armazena no KV (TTL 10 min)
     const state = generateSecureToken(24);
+    if (c.env.KV_RATE_LIMIT) {
+      await c.env.KV_RATE_LIMIT.put(`oauth_state:${state}`, '1', { expirationTtl: 600 });
+    }
 
     // 2. Gera PKCE RFC 7636: Code Verifier e Code Challenge (Base64URL SHA-256)
     const codeVerifier = generatePkceVerifier();
@@ -60,7 +66,8 @@ authMicrosoftRouter.post('/microsoft/login-url', async (c) => {
       codeVerifier,
     });
   } catch (err: any) {
-    return c.json({ success: false, error: 'Falha ao iniciar autenticação Microsoft.', details: err.message }, 500);
+    console.error('[AUTH_MS_LOGIN_URL_ERROR]', err?.message || err);
+    return c.json({ success: false, error: 'Falha ao iniciar autenticação Microsoft.' }, 500);
   }
 });
 
@@ -70,14 +77,28 @@ authMicrosoftRouter.post('/microsoft/login-url', async (c) => {
  */
 authMicrosoftRouter.post('/microsoft/callback', async (c) => {
   try {
-    const { code, codeVerifier, redirectUri } = await c.req.json<{
+    const { code, codeVerifier, redirectUri, state } = await c.req.json<{
       code: string;
       codeVerifier: string;
       redirectUri: string;
+      state?: string;
     }>();
 
     if (!code) {
       return c.json({ success: false, error: 'Código de autorização da Microsoft ausente.' }, 400);
+    }
+
+    // Valida CSRF state no servidor quando KV estiver disponível
+    if (c.env.KV_RATE_LIMIT) {
+      if (!state) {
+        return c.json({ success: false, error: 'Parâmetro state OAuth ausente.' }, 400);
+      }
+      const stateKey = `oauth_state:${state}`;
+      const validState = await c.env.KV_RATE_LIMIT.get(stateKey);
+      if (!validState) {
+        return c.json({ success: false, error: 'Sessão OAuth expirada ou inválida (state CSRF).' }, 403);
+      }
+      await c.env.KV_RATE_LIMIT.delete(stateKey);
     }
 
     const clientId = (c.env as any).MICROSOFT_CLIENT_ID;
@@ -118,19 +139,15 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
           'Origin': clientOrigin,
         },
         body: tokenParams.toString(),
+        signal: AbortSignal.timeout(8000),
       });
 
       if (!tokenResp.ok) {
-        const errText = await tokenResp.text();
-        let parsedErr: any = null;
-        try {
-          parsedErr = JSON.parse(errText);
-        } catch {}
-        const errorDesc = parsedErr?.error_description || parsedErr?.error || errText;
+        const errText = await tokenResp.text().catch(() => '');
+        console.warn('[AUTH_MS_TOKEN_ERROR]', tokenResp.status, errText.slice(0, 200));
         return c.json({
           success: false,
-          error: `Falha na validação Microsoft: ${errorDesc}`,
-          details: errText,
+          error: 'Falha na validação da sessão junto à Microsoft.',
         }, 401);
       }
 
@@ -140,14 +157,14 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
       // 2. Consulta Microsoft Graph API (/v1.0/me)
       const graphResp = await fetch('https://graph.microsoft.com/v1.0/me', {
         headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(8000),
       });
 
       if (!graphResp.ok) {
-        const graphErr = await graphResp.text();
+        console.warn('[AUTH_MS_GRAPH_ERROR]', graphResp.status);
         return c.json({
           success: false,
-          error: `Não foi possível obter dados do perfil no Microsoft 365: ${graphErr}`,
-          details: graphErr,
+          error: 'Não foi possível obter dados do perfil no Microsoft 365.',
         }, 401);
       }
 
@@ -177,53 +194,51 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
       );
     }
 
-    // 4. Determina papel RBAC e validação de aprovação prévia no banco D1
+    // 4. Determina papel RBAC e validação de aprovação prévia no banco D1 (fail-closed)
     let role: AdminRole = 'operador';
-    let isActive = 1;
 
-    if (c.env.DB) {
-      try {
-        const existingUser = await c.env.DB.prepare(
-          'SELECT id, role, is_active FROM admin_users WHERE LOWER(email) = ?'
-        ).bind(userProfile.email.toLowerCase().trim()).first<{ id: string; role: string; is_active: number }>();
+    if (!c.env.DB) {
+      return c.json({ success: false, error: 'Banco de dados indisponível para validar autorização.' }, 503);
+    }
 
-        if (existingUser) {
-          if (existingUser.is_active === 0) {
-            return c.json({
-              success: false,
-              error: `Acesso Bloqueado: A conta do usuário (${userProfile.email}) está inativa ou aguardando aprovação pelo Administrador Master.`,
-              code: 'ACCOUNT_DEACTIVATED',
-            }, 403);
-          }
-          if (existingUser.role) {
-            role = existingUser.role as AdminRole;
-          }
-          // Atualiza dados e último login
-          await c.env.DB.prepare(
-            `UPDATE admin_users SET name = ?, last_login_at = datetime('now') WHERE LOWER(email) = ?`
-          ).bind(userProfile.name, userProfile.email.toLowerCase().trim()).run();
-        } else {
-          // Princípio do Menor Privilégio (RBAC): novos usuários institucionais exigem aprovação do Master
-          const isMasterEmail = userProfile.email.toLowerCase().trim() === 'mateus.cotrim@sistemafibra.org.br';
-          role = isMasterEmail ? 'admin_master' : 'operador';
-          isActive = isMasterEmail ? 1 : 0;
+    try {
+      const existingUser = await c.env.DB.prepare(
+        'SELECT id, role, is_active FROM admin_users WHERE LOWER(email) = ?'
+      ).bind(userProfile.email.toLowerCase().trim()).first<{ id: string; role: string; is_active: number }>();
 
-          await c.env.DB.prepare(
-            `INSERT INTO admin_users (id, name, email, password_hash, role, is_active, last_login_at)
-             VALUES (?, ?, ?, 'MICROSOFT_SSO_OAUTH', ?, ?, datetime('now'))`
-          ).bind(userProfile.id || `MS-${Date.now()}`, userProfile.name, userProfile.email, role, isActive).run();
-
-          if (!isActive) {
-            return c.json({
-              success: false,
-              error: `Conta institucional criada com sucesso, porém aguardando liberação de acesso pelo Administrador Master. Entre em contato com a equipe de gestão para ativação do seu perfil (${role}).`,
-              code: 'ACCOUNT_PENDING_APPROVAL',
-            }, 403);
-          }
+      if (existingUser) {
+        if (existingUser.is_active === 0) {
+          return c.json({
+            success: false,
+            error: `Acesso Bloqueado: A conta do usuário (${userProfile.email}) está inativa ou aguardando aprovação pelo Administrador Master.`,
+            code: 'ACCOUNT_DEACTIVATED',
+          }, 403);
         }
-      } catch (err: any) {
-        console.error('[AUTH_MS_DB_ERROR]', err);
+        if (existingUser.role) {
+          role = existingUser.role as AdminRole;
+        }
+        await c.env.DB.prepare(
+          `UPDATE admin_users SET name = ?, last_login_at = datetime('now') WHERE LOWER(email) = ?`
+        ).bind(userProfile.name, userProfile.email.toLowerCase().trim()).run();
+      } else {
+        // Princípio do Menor Privilégio (RBAC): todo novo usuário entra como operador inativo até aprovação do Master
+        role = 'operador';
+        const isActive = 0;
+
+        await c.env.DB.prepare(
+          `INSERT INTO admin_users (id, name, email, password_hash, role, is_active, last_login_at)
+           VALUES (?, ?, ?, 'MICROSOFT_SSO_OAUTH', ?, ?, datetime('now'))`
+        ).bind(userProfile.id || `MS-${Date.now()}`, userProfile.name, userProfile.email, role, isActive).run();
+
+        return c.json({
+          success: false,
+          error: `Conta institucional criada com sucesso, porém aguardando liberação de acesso pelo Administrador Master.`,
+          code: 'ACCOUNT_PENDING_APPROVAL',
+        }, 403);
       }
+    } catch (err: any) {
+      console.error('[AUTH_MS_DB_ERROR]', err?.message || err);
+      return c.json({ success: false, error: 'Erro ao validar permissões do usuário no banco de dados.' }, 503);
     }
 
     // 6. Emite JWT com validade de 8 horas
@@ -251,7 +266,8 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
       },
     });
   } catch (err: any) {
-    return c.json({ success: false, error: 'Erro ao processar callback da Microsoft.', details: err.message }, 500);
+    console.error('[AUTH_MS_CALLBACK_ERROR]', err?.message || err);
+    return c.json({ success: false, error: 'Erro ao processar callback da Microsoft.' }, 500);
   }
 });
 
@@ -274,6 +290,15 @@ authMicrosoftRouter.get('/me', async (c) => {
 
   if (!payload) {
     return c.json({ success: false, error: 'Sessão inválida ou expirada.' }, 401);
+  }
+
+  if (c.env.DB && payload.email) {
+    const dbUser = await c.env.DB.prepare(
+      'SELECT is_active, role FROM admin_users WHERE LOWER(email) = ?'
+    ).bind(payload.email.toLowerCase().trim()).first<{ is_active: number; role: string }>();
+    if (!dbUser || dbUser.is_active === 0) {
+      return c.json({ success: false, error: 'Conta desativada ou não autorizada.', code: 'ACCOUNT_DEACTIVATED' }, 403);
+    }
   }
 
   return c.json({

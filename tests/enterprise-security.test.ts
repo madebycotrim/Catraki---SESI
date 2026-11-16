@@ -105,10 +105,13 @@ describe('Enterprise Security & Compliance', () => {
       expect(res.error).toBeDefined();
     });
 
-    it('deve aceitar token de teste oficial da Cloudflare (1x00000000000000000000AA)', async () => {
+    it('deve aceitar token de teste oficial da Cloudflare apenas em development/test e rejeitar em produção', async () => {
       const { verifyTurnstileToken } = await import('../functions/utils/turnstile.ts');
-      const res = await verifyTurnstileToken('1x00000000000000000000AA', '0x4AAAAAAAPRODSECRETKEY123');
-      expect(res.success).toBe(true);
+      const prodRes = await verifyTurnstileToken('1x00000000000000000000AA', '0x4AAAAAAAPRODSECRETKEY123', '1.2.3.4', 'production');
+      expect(prodRes.success).toBe(false);
+
+      const devRes = await verifyTurnstileToken('1x00000000000000000000AA', '0x4AAAAAAAPRODSECRETKEY123', '1.2.3.4', 'development');
+      expect(devRes.success).toBe(true);
     });
   });
 

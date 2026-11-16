@@ -15,6 +15,7 @@ import { calcularIdade, maskCPF } from '../../lib/schemas.ts';
 import type { SignerRelationship } from '../../lib/types.ts';
 import { ConsentOptions } from './ConsentOptions.tsx';
 import { OtpSignatureModal } from './OtpSignatureModal.tsx';
+import { TurnstileWidget } from '../common/TurnstileWidget.tsx';
 import { useOtpVerification } from '../../hooks/useOtpVerification.ts';
 
 interface Step3OtpAndSignatureProps {
@@ -70,6 +71,8 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   // Estados de Submissão e Erro
   const [submittingSign, setSubmittingSign] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
+  const [turnstileToken, setTurnstileToken] = useState('');
 
   // Hook isolado para máquina de estados do OTP
   const {
@@ -94,6 +97,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
     signerPhone: identityData.signerPhone,
     schoolSlug: schoolSlug || institutionId,
     institutionName,
+    turnstileToken,
   });
 
   // Geolocalização e IP reais do cliente via Cloudflare edge
@@ -220,6 +224,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         user_agent: navigator.userAgent,
         identity_method: identityData.identityMethod,
         termos_versao: '1.0.2026',
+        turnstile_token: turnstileToken || undefined,
       });
 
       if (resp.success) {
@@ -454,6 +459,17 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               </div>
             </div>
           </div>
+
+          {turnstileSiteKey && (
+            <div className="mt-4 flex justify-center">
+              <TurnstileWidget
+                siteKey={turnstileSiteKey}
+                onVerify={(tk) => setTurnstileToken(tk)}
+                onExpire={() => setTurnstileToken('')}
+                onError={() => setTurnstileToken('')}
+              />
+            </div>
+          )}
 
           {errorMessage && (
             <div className="p-3.5 sm:p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-center gap-3 mt-4 shadow-xs">

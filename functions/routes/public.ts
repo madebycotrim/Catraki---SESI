@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { LgpdRequestPublicSchema, maskCPF, getInitials, maskName } from '../../src/lib/schemas.ts';
-import { encryptAesGcm, maskIpAddress, hmacSha256 } from '../../src/lib/crypto.ts';
+import { encryptAesGcm, maskIpAddress, hmacSha256, constantTimeEqual } from '../../src/lib/crypto.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
 import type { Env, PublicValidationResponse } from '../../src/lib/types.ts';
@@ -473,16 +473,14 @@ publicRouter.get('/validate/:query', async (c) => {
     return c.json({ success: true, validation: response });
   } catch (err: any) {
     console.error('[VALIDATE_ROUTE_ERROR]', {
-      query: c.req.param('query'),
+      queryLength: c.req.param('query')?.length || 0,
       error: err?.message || String(err),
-      stack: err?.stack,
     });
     return c.json({
       success: false,
       valid: false,
       error: 'Não foi possível validar o documento no momento. Verifique os dados digitados e tente novamente.',
       code: 'VALIDATION_ERROR',
-      details: err?.message,
     }, 500);
   }
 });
@@ -525,7 +523,8 @@ publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, 
       message: 'Sua solicitação fundamentada na LGPD (Lei 13.709/2018) foi registrada e encaminhada ao Encarregado pelo Tratamento de Dados Pessoais (DPO) do SESI.',
     });
   } catch (err: any) {
-    return c.json({ success: false, error: 'Erro ao registrar solicitação LGPD.', details: err?.message }, 500);
+    console.error('[LGPD_REQUEST_ERROR]', err?.message || err);
+    return c.json({ success: false, error: 'Erro ao registrar solicitação LGPD.' }, 500);
   }
 });
 
@@ -647,16 +646,28 @@ publicRouter.get('/dossier/:query', async (c) => {
 
     return c.json({ success: true, dossier });
   } catch (err: any) {
-    return c.json({ success: false, error: 'Erro ao gerar dossiê forense.', details: err?.message }, 500);
+    console.error('[DOSSIER_ERROR]', err?.message || err);
+    return c.json({ success: false, error: 'Erro ao gerar dossiê forense.' }, 500);
   }
 });
 
 /**
  * POST /api/public/batch-check
- * Validação de consentimento / TCLE em lote de alta performance para o SMS-MEDCO
+ * Validação de consentimento / TCLE em lote para o SMS-MEDCO (protegida por x-api-key)
  */
 publicRouter.post('/batch-check', async (c) => {
   try {
+    const apiKey = c.req.header('x-api-key') || '';
+    const expectedKey = c.env?.BULK_CHECK_API_KEY;
+    if (!expectedKey || !constantTimeEqual(apiKey, expectedKey)) {
+      return c.json({ success: false, error: 'Acesso negado. Chave de API inválida.', code: 'UNAUTHORIZED_API_KEY' }, 401);
+    }
+
+    const pepper = c.env?.OTP_PEPPER;
+    if (!pepper) {
+      return c.json({ success: false, error: 'Configuração de segurança incompleta no servidor.', code: 'SERVER_MISCONFIGURED' }, 503);
+    }
+
     const body = await c.req.json().catch(() => ({}));
     const cpfs: string[] = Array.isArray(body.cpfs) ? body.cpfs : [];
     const db = c.env?.DB;
@@ -664,8 +675,6 @@ publicRouter.post('/batch-check', async (c) => {
     if (!db || cpfs.length === 0) {
       return c.json({ success: true, results: {}, total: 0 });
     }
-
-    const pepper = c.env?.OTP_PEPPER || 'SESI_OTP_PEPPER_SECRET_KEY_PROD_98765';
     const results: Record<string, {
       authorized: boolean;
       status: string;
@@ -692,7 +701,10 @@ publicRouter.post('/batch-check', async (c) => {
          WHERE d.status = 'signed' 
            AND (d.minor_cpf = ? OR d.minor_cpf_bindex_sha256 = ?)
          ORDER BY a.signed_at DESC LIMIT 1`
-      ).bind(maskCPF(cleanCpf), minorCpfBindex).first<any>().catch(() => null);
+      ).bind(maskCPF(cleanCpf), minorCpfBindex).first<any>().catch((e) => {
+        console.warn('[BATCH_CHECK_DB_WARN]', e?.message || e);
+        return null;
+      });
 
       if (existing) {
         const validationCode = existing.manifest_sha256
@@ -715,7 +727,10 @@ publicRouter.post('/batch-check', async (c) => {
            WHERE (minor_cpf = ? OR minor_cpf_bindex_sha256 = ?)
              AND status IN ('revoked', 'CANCELADO_POR_ERRO', 'cancelled_error')
            ORDER BY created_at DESC LIMIT 1`
-        ).bind(maskCPF(cleanCpf), minorCpfBindex).first<any>().catch(() => null);
+        ).bind(maskCPF(cleanCpf), minorCpfBindex).first<any>().catch((e) => {
+          console.warn('[BATCH_CHECK_REVOKED_WARN]', e?.message || e);
+          return null;
+        });
 
         if (revoked) {
           results[rawCpf] = {
@@ -738,7 +753,8 @@ publicRouter.post('/batch-check', async (c) => {
 
     return c.json({ success: true, results, count: Object.keys(results).length });
   } catch (err: any) {
-    return c.json({ success: false, error: 'Erro ao processar validação em lote.', details: err?.message }, 500);
+    console.error('[BATCH_CHECK_ERROR]', err?.message || err);
+    return c.json({ success: false, error: 'Erro ao processar validação em lote.' }, 500);
   }
 });
 

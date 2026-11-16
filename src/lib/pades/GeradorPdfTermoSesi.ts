@@ -106,7 +106,9 @@ export class GeradorPdfTermoSesi {
     try {
       const logoBytes = Uint8Array.from(atob(LOGO_BASE64), (c) => c.charCodeAt(0));
       logoCatrakiImg = await pdfDoc.embedPng(logoBytes);
-    } catch {}
+    } catch (err) {
+      console.warn('[PDF] Falha ao incorporar logo Catraki:', err);
+    }
 
     // Formatação de data da assinatura no Horário Oficial de Brasília
     const dataHoraStr = formatBrasiliaDateTime(dados.dataAssinatura || new Date());
@@ -175,7 +177,9 @@ export class GeradorPdfTermoSesi {
 
     // 2. Parágrafo de Apresentação e Qualificação (com Controladores CNPJ e Lógica de Maioridade ECA vs CC)
     y -= 16;
-    const cpfIntro = dados.cpfResponsavelCompleto || dados.minorCpfCompleto || dados.cpfResponsavelMascarado || dados.minorCpfMascarado || '***.***.***-**';
+    const cpfIntro = isMaior
+      ? (dados.minorCpfCompleto || dados.cpfResponsavelCompleto || dados.minorCpfMascarado || dados.cpfResponsavelMascarado || '***.***.***-**')
+      : (dados.cpfResponsavelCompleto || dados.minorCpfCompleto || dados.cpfResponsavelMascarado || dados.minorCpfMascarado || '***.***.***-**');
     const textoIntro = isMaior
       ? `Eu, ${dados.nomeMenor}, portador(a) do CPF ${cpfIntro}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante "${nomeProjeto}", realizado por ${controladoresStr}. Manifesto meu consentimento livre, informado e inequívoco, aplicável ao tratamento de dados sensíveis conforme o Art. 11, I e Art. 18 da LGPD (Lei nº 13.709/2018) e autorização de imagem (Art. 20 da Lei nº 10.406/2002 - Código Civil), para os itens selecionados abaixo:`
       : `Eu, ${dados.nomeResponsavel}, portador(a) do CPF ${cpfIntro}, na qualidade de responsável legal do(a) estudante ${dados.nomeMenor}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante "${nomeProjeto}", realizado por ${controladoresStr}. Manifesto meu consentimento livre, informado e inequívoco, nos termos do Art. 14 e Art. 18 da LGPD (Lei nº 13.709/2018) e do Art. 17 do ECA (Lei nº 8.069/1990), para os itens selecionados abaixo:`;
@@ -203,8 +207,9 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 12;
-    const linhasDescricao = this.quebrarTexto(dados.descricaoProcedimento, 92);
+    const linhasDescricao = this.quebrarTexto(dados.descricaoProcedimento, 92).slice(0, 5);
     for (const linha of linhasDescricao) {
+      if (y < 140) break;
       page1.drawText(linha, {
         x: margemEsquerda,
         y,
@@ -406,7 +411,9 @@ export class GeradorPdfTermoSesi {
         font: fontBold,
         color: corPreto,
       });
-    } catch {}
+    } catch (err) {
+      console.warn('[PDF] Falha ao gerar QR Code da folha 1:', err);
+    }
 
     // Linha de assinatura
     y -= 38;
@@ -730,7 +737,7 @@ export class GeradorPdfTermoSesi {
       });
 
       y2 -= 12;
-      const linkValidacao = `https://catraki.com.br/validar/${validationCode}`;
+      const linkValidacao = `https://www.catraki.com.br/validar/${validationCode}`;
       page2.drawText('Para validar a autenticidade deste documento e confirmar que o arquivo é verdadeiro, acesse:', {
         x: margemEsquerda,
         y: y2,
@@ -772,7 +779,9 @@ export class GeradorPdfTermoSesi {
           borderWidth: 0.5,
         });
         page2.drawImage(qrImage, { x: qrX, y: qrY, width: QR_SIZE, height: QR_SIZE });
-      } catch {}
+      } catch (err) {
+        console.warn('[PDF] Falha ao gerar QR Code da folha 2:', err);
+      }
 
       // 5. AVISO DE INTEGRIDADE JURÍDICA E LGPD
       y2 -= 32;

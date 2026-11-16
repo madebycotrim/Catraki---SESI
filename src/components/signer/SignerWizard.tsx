@@ -132,21 +132,22 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
 
   // Cenário 3: O documento já foi assinado
   if (documentData && (documentData.status === 'signed' || documentData.status === 'concluido' || documentData.already_signed)) {
+    const validatorRef = documentData.validation_code || documentData.manifest_sha256 || documentData.content_sha256;
     return (
       <StatusAlertScreen
         scenario="already_signed"
         documentTitle={documentData.procedure_title || documentData.title || 'Termo de Consentimento - Saúde em Movimento'}
-        downloadUrl={documentData.pdf_url || `/validar/${documentData.content_sha256 || documentData.id}`}
+        downloadUrl={documentData.pdf_url || `/validar/${validatorRef || documentData.id}`}
         onPrimaryAction={() => {
-          if (documentData.content_sha256) {
-            onNavigateToValidator(documentData.content_sha256);
+          if (validatorRef) {
+            onNavigateToValidator(validatorRef);
           } else if (onChangeSchool) {
             onChangeSchool();
           } else {
             window.location.href = schoolSlug ? `/autorizar/${schoolSlug}` : '/';
           }
         }}
-        primaryActionLabel={documentData.content_sha256 ? 'Validar assinatura' : 'Voltar ao início'}
+        primaryActionLabel={validatorRef ? 'Validar assinatura' : 'Voltar ao início'}
       />
     );
   }
@@ -172,7 +173,11 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
   }
 
   // Cenário 1: Documento cancelado ou link indisponível
-  if (errorMessage || !documentData || documentData.status === 'cancelado_por_erro' || documentData.status === 'revogado') {
+  if (
+    errorMessage ||
+    !documentData ||
+    ['CANCELADO_POR_ERRO', 'cancelled_error', 'revoked', 'cancelado_por_erro', 'revogado'].includes(documentData.status)
+  ) {
     return (
       <StatusAlertScreen
         scenario="cancelled_link"

@@ -8,6 +8,7 @@ interface UseOtpVerificationParams {
   signerPhone?: string;
   schoolSlug?: string;
   institutionName?: string;
+  turnstileToken?: string;
 }
 
 /**
@@ -21,6 +22,7 @@ export function useOtpVerification({
   signerPhone,
   schoolSlug,
   institutionName,
+  turnstileToken,
 }: UseOtpVerificationParams) {
   const [otpSent, setOtpSent] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -56,7 +58,7 @@ export function useOtpVerification({
         'email',
         signerEmail || undefined,
         minorName || undefined,
-        undefined,
+        turnstileToken || undefined,
         signerPhone || undefined,
         schoolSlug || undefined,
         institutionName || undefined
@@ -87,7 +89,7 @@ export function useOtpVerification({
     } finally {
       setOtpSending(false);
     }
-  }, [token, signerEmail, minorName, signerPhone]);
+  }, [token, signerEmail, minorName, signerPhone, schoolSlug, institutionName, turnstileToken]);
 
   return {
     otpSent,

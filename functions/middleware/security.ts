@@ -94,8 +94,8 @@ export const accessLogger: MiddlewareHandler = async (c, next) => {
           (id, ip_address, user_agent, endpoint_path, http_method, status_code, session_token_hash, retention_until, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+180 days'), datetime('now'))`
       ).bind(logId, ip, userAgent, endpointPath, httpMethod, statusCode, sessionTokenHash).run();
-    } catch {
-      // Falha silenciosa — log de acesso nunca deve interromper o fluxo principal
+    } catch (err: any) {
+      console.warn('[ACCESS_LOGGER] Falha ao gravar log de acesso:', err?.message || err);
     }
   })());
 };

@@ -75,14 +75,45 @@ export async function verifyAuditChain(rows: AuditLogRow[]): Promise<ChainVerifi
     return {
       isValid: true,
       totalBlocks: 0,
-      merkleRoot: await sha256('EMPTY_CHAIN'),
+      merkleRoot: await computeMerkleRoot([]),
     };
   }
 
-  // Ordena cronologicamente por created_at / signed_at
-  const sortedRows = [...rows].sort((a, b) => 
-    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  // Ordena seguindo o encadeamento prev_log_hash quando possível (desempate seguro de timestamps idênticos)
+  const byTime = [...rows].sort((a, b) => {
+    const dt = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    return dt !== 0 ? dt : a.id.localeCompare(b.id);
+  });
+
+  const genesisIndex = byTime.findIndex(
+    (r) => r.prev_log_hash === null || r.prev_log_hash === GENESIS_PREV_HASH
   );
+  let sortedRows: AuditLogRow[];
+  if (genesisIndex !== -1) {
+    const byPrev = new Map<string, AuditLogRow[]>();
+    for (const r of byTime) {
+      if (r.prev_log_hash && r.prev_log_hash !== GENESIS_PREV_HASH) {
+        const list = byPrev.get(r.prev_log_hash) || [];
+        list.push(r);
+        byPrev.set(r.prev_log_hash, list);
+      }
+    }
+    const ordered: AuditLogRow[] = [];
+    const visited = new Set<string>();
+    let current: AuditLogRow | undefined = byTime[genesisIndex];
+    while (current && !visited.has(current.id)) {
+      ordered.push(current);
+      visited.add(current.id);
+      const nextList = byPrev.get(current.log_row_hash);
+      current = nextList && nextList.length === 1 ? nextList[0] : undefined;
+    }
+    for (const r of byTime) {
+      if (!visited.has(r.id)) ordered.push(r);
+    }
+    sortedRows = ordered;
+  } else {
+    sortedRows = byTime;
+  }
 
   let expectedPrevHash: string | null = null;
   const validHashes: string[] = [];

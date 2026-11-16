@@ -90,9 +90,11 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
     });
   };
 
-  // Sync tempSelected whenever popover opens or options/selectedValues change
+  const wasOpenRef = useRef(false);
+
+  // Sync tempSelected only when popover opens (prevents resetting user selection on parent re-renders)
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpenRef.current) {
       if (selectedValues === null) {
         setTempSelected(new Set(options.map(o => o.value)));
       } else {
@@ -101,6 +103,7 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
       setSearchTerm('');
       updatePosition();
     }
+    wasOpenRef.current = isOpen;
   }, [isOpen, selectedValues, options]);
 
   // Keep popover aligned on scroll and resize
@@ -275,6 +278,10 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({
       {isOpen && popoverCoords && typeof document !== 'undefined' && createPortal(
         <div
           ref={popoverRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Filtrar ${title}`}
+          onKeyDown={(e) => { if (e.key === 'Escape') setIsOpen(false); }}
           onClick={(e) => e.stopPropagation()}
           className="fixed z-[99999] bg-white rounded-2xl shadow-2xl border border-slate-200/95 p-3.5 space-y-3 font-sans normal-case text-left animate-in fade-in zoom-in-95 duration-150 flex flex-col"
           style={{

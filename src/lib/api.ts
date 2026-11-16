@@ -1,11 +1,9 @@
 import {
   sha256,
   canonicalJson,
-  generatePkceVerifier,
-  generatePkceChallenge,
 } from './crypto.ts';
 import { computeLogRowHash, verifyAuditChain } from './audit-chain.ts';
-import { maskCPF, formatCPF, maskName, getInitials, generateUniqueDocId, formatUserAgent } from './schemas.ts';
+import { maskCPF, maskName, getInitials, generateUniqueDocId, formatUserAgent } from './schemas.ts';
 import type {
   DocumentRecord,
   DocumentTemplate,
@@ -346,10 +344,12 @@ export const apiClient = {
     // Fallback local em storage/sessionStorage
     const docs = getDocuments();
     const logs = getAuditLogs();
+    const cleanCpfHash = cleanCpf && cleanCpf.length === 11 ? await sha256(cleanCpf) : '';
 
     const signedDoc = docs.find((d) => {
       if (d.status !== 'signed') return false;
-      const dCpf = ((d as any).minor_cpf_raw || (d as any).minor_cpf || '').replace(/\D/g, '');
+      if (cleanCpfHash && (d as any).minor_cpf_hash === cleanCpfHash) return true;
+      const dCpf = ((d as any).minor_cpf || '').replace(/\D/g, '');
       if (cleanCpf && cleanCpf.length === 11 && dCpf === cleanCpf) return true;
       if (
         cleanName &&
@@ -387,8 +387,6 @@ export const apiClient = {
   },
 
   /**
-   * Envia documentos para revisão manual
-  /**
    * Solicita envio de OTP por e-mail com código real e verificação anti-bot Turnstile
    */
   async requestOtp(
@@ -406,34 +404,26 @@ export const apiClient = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, channel, email, minor_name, turnstile_token, phone, school_slug, institution_name }),
+        signal: AbortSignal.timeout(15000),
       });
       return await resp.json();
-    } catch {}
-
-    const docs = getDocuments();
-    const doc = docs.find((d) => d.access_token === token || d.id === token);
-    if (!doc) return { success: false, error: 'Documento indisponível.' };
-
-    if (school_slug) (doc as any).institution_id = school_slug;
-    if (institution_name) (doc as any).institution_name = institution_name;
-
-    const devOtp = '123456';
-    doc.otp_secret_hash = devOtp;
-    doc.otp_attempts = 0;
-    doc.otp_resend_count += 1;
-    (doc as any).otp_requested_at = new Date().toISOString();
-    (doc as any).otp_email_message_id = 'mock-resend-id-' + Date.now();
-    (doc as any).otp_delivery_status = 'sent';
-    
-    setDocuments(docs);
-
-    return {
-      success: true,
-      channel: 'email',
-      expires_in_seconds: 300,
-      simulated_otp: devOtp,
-      message: 'Código de verificação de 6 dígitos enviado para o e-mail do responsável legal.',
-    };
+    } catch (err: any) {
+      if (typeof window === 'undefined') {
+        const docs = getDocuments();
+        const doc = docs.find((d) => d.access_token === token || d.id === token);
+        if (!doc) return { success: false, error: 'Documento indisponível.' };
+        if (school_slug) (doc as any).institution_id = school_slug;
+        if (institution_name) (doc as any).institution_name = institution_name;
+        const devOtp = '123456';
+        doc.otp_secret_hash = devOtp;
+        doc.otp_attempts = 0;
+        doc.otp_resend_count += 1;
+        setDocuments(docs);
+        return { success: true, channel: 'email', expires_in_seconds: 300, simulated_otp: devOtp };
+      }
+      console.error('[API] Erro ao solicitar OTP:', err?.message || err);
+      return { success: false, error: 'Falha de comunicação com o servidor ao enviar código OTP. Tente novamente.' };
+    }
   },
 
   /**
@@ -445,21 +435,22 @@ export const apiClient = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, otp_code }),
+        signal: AbortSignal.timeout(15000),
       });
       return await resp.json();
-    } catch {}
-
-    const docs = getDocuments();
-    const doc = docs.find((d) => d.access_token === token || d.id === token);
-    if (!doc) return { success: false, error: 'Documento indisponível.' };
-
-    if (otp_code === '123456' || doc.otp_secret_hash === otp_code) {
-      return { success: true, verified: true, message: 'Identidade e código 2FA confirmados.' };
+    } catch (err: any) {
+      if (typeof window === 'undefined') {
+        const docs = getDocuments();
+        const doc = docs.find((d) => d.access_token === token || d.id === token);
+        if (!doc) return { success: false, error: 'Documento indisponível.' };
+        if (otp_code === '123456' || doc.otp_secret_hash === otp_code) {
+          return { success: true, verified: true, message: 'Identidade e código 2FA confirmados.' };
+        }
+        return { success: false, error: 'Código incorreto.' };
+      }
+      console.error('[API] Erro ao validar OTP:', err?.message || err);
+      return { success: false, error: 'Falha de comunicação com o servidor ao validar código OTP. Tente novamente.' };
     }
-
-    doc.otp_attempts += 1;
-    setDocuments(docs);
-    return { success: false, error: `Código incorreto. Tentativas restantes: ${Math.max(0, 3 - doc.otp_attempts)}` };
   },
 
   /**
@@ -497,6 +488,7 @@ export const apiClient = {
     identity_method?: 'declaracao_responsavel' | 'declaracao_titular';
     termos_versao?: string;
     device_fingerprint_data?: any;
+    turnstile_token?: string;
   }): Promise<any> {
     // Função auxiliar: persiste auth_image/health/data e instituição no localStorage
     // independente de qual caminho processa a assinatura (backend ou mock local)
@@ -664,8 +656,8 @@ export const apiClient = {
       doc.minor_name = payload.minor_name;
     }
     if (payload.minor_cpf) {
-      (doc as any).minor_cpf = formatCPF(payload.minor_cpf);
-      (doc as any).minor_cpf_raw = payload.minor_cpf.replace(/\D/g, '');
+      (doc as any).minor_cpf = maskCPF(payload.minor_cpf);
+      (doc as any).minor_cpf_hash = await sha256(payload.minor_cpf.replace(/\D/g, ''));
     }
     // Sempre persiste os campos de autorização — nunca condicionado a truthy
     // ('no' é string truthy em JS mas representa negativa explícita)
@@ -1426,7 +1418,7 @@ export const apiClient = {
       document: {
         id: docId,
         access_token: token,
-        sign_url: `/assinar/${token}`,
+        sign_url: `/autorizar/${token}`,
         template_title: tmpl.title,
       },
       message: 'Termo de autorização emitido com sucesso.',
@@ -1670,32 +1662,37 @@ export const apiClient = {
       if (resp.status === 401 && this.getAdminToken()) {
         this.logoutAdmin();
       }
-    } catch {}
+    } catch (err: any) {
+      console.warn('[API] Falha ao buscar solicitações LGPD:', err?.message || err);
+    }
 
-    const raw = typeof window !== 'undefined' ? localStorage.getItem('catraki_lgpd_requests') : null;
-    return raw ? JSON.parse(raw) : [];
+    return getLgpdRequests();
   },
 
   async respondLgpdRequest(id: string, status: string, response_notes: string): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/admin/lgpd-requests/${id}/respond`, {
         method: 'POST',
-        headers: this.getAuthHeaders(),
+        headers: {
+          ...this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ status, response_notes }),
+        signal: AbortSignal.timeout(15000),
       });
       if (resp.ok) return await resp.json();
       if (resp.status === 401 && this.getAdminToken()) {
         this.logoutAdmin();
       }
-    } catch {}
+    } catch (err: any) {
+      console.warn('[API] Falha ao responder solicitação LGPD:', err?.message || err);
+    }
 
     // Fallback local
-    const raw = typeof window !== 'undefined' ? localStorage.getItem('catraki_lgpd_requests') : null;
-    let list = raw ? JSON.parse(raw) : [];
-    list = list.map((item: any) => item.id === id ? { ...item, status, response_notes, resolved_at: new Date().toISOString() } : item);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('catraki_lgpd_requests', JSON.stringify(list));
-    }
+    const list = getLgpdRequests().map((item: any) =>
+      item.id === id ? { ...item, status, response_notes, resolved_at: new Date().toISOString() } : item
+    );
+    setLgpdRequests(list);
     return { success: true, message: 'Solicitação LGPD atualizada com sucesso no banco de custódia.' };
   },
 
@@ -1707,12 +1704,18 @@ export const apiClient = {
     try {
       const resp = await fetch(`${API_BASE}/admin/audit/export-log`, {
         method: 'POST',
-        headers: this.getAuthHeaders(),
+        headers: {
+          ...this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10000),
       });
       if (resp.ok) return await resp.json();
-    } catch {}
-    return { success: true };
+    } catch (err: any) {
+      console.warn('[API] Falha ao registrar log de exportação:', err?.message || err);
+    }
+    return { success: false };
   },
 
   // ==========================================================================
@@ -1823,30 +1826,13 @@ export const apiClient = {
         }
         return data;
       }
-    } catch {}
-
-    // Fallback local se a API estiver offline
-    const state = `state_${Date.now()}`;
-    const codeVerifier = generatePkceVerifier();
-    const codeChallenge = await generatePkceChallenge(codeVerifier);
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('ms_code_verifier', codeVerifier);
-      sessionStorage.setItem('ms_state', state);
-      sessionStorage.setItem('ms_redirect_uri', callbackUrl);
-      try {
-        localStorage.setItem('ms_code_verifier', codeVerifier);
-        localStorage.setItem('ms_state', state);
-        localStorage.setItem('ms_redirect_uri', callbackUrl);
-      } catch {}
+    } catch (err: any) {
+      console.warn('[API] Falha ao iniciar login Microsoft:', err?.message || err);
     }
 
     return {
-      success: true,
-      authUrl: `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=00000000-0000-0000-0000-000000000000&response_type=code&redirect_uri=${encodeURIComponent(
-        callbackUrl
-      )}&response_mode=query&scope=openid%20profile%20email%20User.Read&state=${state}&code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=S256&prompt=select_account`,
-      state,
-      codeVerifier,
+      success: false,
+      error: 'Não foi possível iniciar o login Microsoft Entra ID. Verifique a conexão com o servidor.',
     };
   },
 
@@ -1857,13 +1843,13 @@ export const apiClient = {
     const savedVerifier =
       codeVerifier ||
       (typeof window !== 'undefined'
-        ? sessionStorage.getItem('ms_code_verifier') || localStorage.getItem('ms_code_verifier')
+        ? sessionStorage.getItem('ms_code_verifier')
         : '') ||
       '';
     const callbackUrl =
       redirectUri ||
       (typeof window !== 'undefined'
-        ? sessionStorage.getItem('ms_redirect_uri') || localStorage.getItem('ms_redirect_uri') || `${window.location.origin}/admin/callback`
+        ? sessionStorage.getItem('ms_redirect_uri') || `${window.location.origin}/admin/callback`
         : 'https://catraki.com.br/admin/callback');
 
     try {
@@ -1876,6 +1862,7 @@ export const apiClient = {
           codeVerifier: savedVerifier,
           redirectUri: callbackUrl,
         }),
+        signal: AbortSignal.timeout(15000),
       });
 
       const data = (await resp.json()) as any;
@@ -1884,24 +1871,13 @@ export const apiClient = {
         return data;
       }
       return data || { success: false, error: 'Falha ao autenticar com a Microsoft.' };
-    } catch {}
-
-    // Simulação / Fallback
-    const mockUser = {
-      id: 'MS-USR-01',
-      name: 'Gestor Institucional (SESI DF)',
-      email: 'gestor.sesi@sesi.org.br',
-      role: 'admin_master',
-      auth_provider: 'Microsoft Entra ID (M365)',
-    };
-    const mockToken = `mock_jwt_${Date.now()}`;
-    this.setAdminSession(mockToken, mockUser);
-
-    return {
-      success: true,
-      token: mockToken,
-      user: mockUser,
-    };
+    } catch (err: any) {
+      console.error('[API] Erro no callback Microsoft:', err?.message || err);
+      return {
+        success: false,
+        error: 'Erro de comunicação ao validar autenticação com a Microsoft.',
+      };
+    }
   },
 
   /**

@@ -112,8 +112,22 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, cla
   };
 
   const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
-    handleClear(); // Limpa ao redimensionar para evitar distorções de escala
+    const savedDataUrl = hasDrawn && canvasRef.current ? canvasRef.current.toDataURL('image/png') : null;
+    setIsFullscreen((prev) => !prev);
+    if (savedDataUrl) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const canvas = canvasRef.current;
+          const ctx = canvas?.getContext('2d');
+          if (!canvas || !ctx) return;
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          };
+          img.src = savedDataUrl;
+        });
+      });
+    }
   };
 
   const padContent = (

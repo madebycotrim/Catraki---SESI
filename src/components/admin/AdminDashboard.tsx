@@ -491,7 +491,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleDeactivateSchool = async (id: string) => {
     if (confirm('Deseja desativar esta instituição do catálogo de rotas ativas?')) {
-      await apiClient.deleteAdminInstitution(id);
+      const res = await apiClient.deleteAdminInstitution(id);
+      if (res?.success === false) {
+        alert(res.error || 'Erro ao desativar instituição.');
+        return;
+      }
       fetchInstitutions();
     }
   };
@@ -1090,6 +1094,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   /**
@@ -1143,6 +1148,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err: any) {
       alert(`Erro ao gerar arquivo ZIP: ${err.message}`);
     } finally {
@@ -1954,7 +1960,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {(isSigned || isCancelled) && (
                                 <button
                                   onClick={async () => {
-                                    await apiClient.downloadDocumentCertificate(auth.id);
+                                    const ok = await apiClient.downloadDocumentCertificate(auth.id);
+                                    if (!ok) {
+                                      alert('Não foi possível baixar o comprovante PDF no momento.');
+                                    }
                                   }}
                                   className="inline-flex items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-600 text-xs font-bold transition-all cursor-pointer active:scale-95"
                                   title="Baixar Comprovante de Aceite PDF"

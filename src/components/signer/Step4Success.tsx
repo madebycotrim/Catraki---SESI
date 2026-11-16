@@ -282,7 +282,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                 <strong className="text-xs sm:text-sm text-slate-800 font-bold block">
                   {signResult.geo_city
                     ? `${signResult.geo_city}${signResult.geo_region ? `, ${signResult.geo_region}` : ''}`
-                    : 'Brasília, DF, Brasil'}
+                    : 'Localização não informada pelo provedor'}
                 </strong>
               </div>
 

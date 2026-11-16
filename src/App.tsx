@@ -8,9 +8,10 @@ import { AdminDashboard } from './components/admin/AdminDashboard.tsx';
 import { AdminLogin } from './components/admin/AdminLogin.tsx';
 import { PrivacyPolicy } from './components/common/PrivacyPolicy.tsx';
 import { TermsOfUse } from './components/common/TermsOfUse.tsx';
+import { RevocationPortal } from './components/revocation/RevocationPortal.tsx';
 import { apiClient } from './lib/api.ts';
 
-export type AppView = 'school-select' | 'no-school-error' | 'signer' | 'validator' | 'admin' | 'privacy' | 'terms';
+export type AppView = 'school-select' | 'no-school-error' | 'signer' | 'validator' | 'admin' | 'privacy' | 'terms' | 'revoke';
 
 export function App() {
   const [currentView, setCurrentView] = useState<AppView>('school-select');
@@ -97,11 +98,10 @@ export function App() {
       } else if (path === '/validar') {
         setActiveValidatorHash('');
         setCurrentView('validator');
-      } else if (path === '/revogar') {
-        setActiveSchoolSlug('');
-        setActiveSignerToken('');
-        setCurrentView('school-select');
-        window.history.replaceState({}, '', '/');
+      } else if (path.startsWith('/revogar')) {
+        const revToken = path.replace(/^\/revogar\/?/, '').trim();
+        setActiveSignerToken(revToken);
+        setCurrentView('revoke');
       } else if (path === '/termos') {
         setCurrentView('terms');
       } else if (path === '/privacidade') {
@@ -153,7 +153,7 @@ export function App() {
     }
   };
 
-  const isPublicView = currentView === 'school-select' || currentView === 'no-school-error' || currentView === 'signer' || currentView === 'validator' || currentView === 'privacy' || currentView === 'terms';
+  const isPublicView = currentView === 'school-select' || currentView === 'no-school-error' || currentView === 'signer' || currentView === 'validator' || currentView === 'privacy' || currentView === 'terms' || currentView === 'revoke';
 
   return (
     <div className="min-h-screen flex flex-col bg-[#edf1f5] text-slate-800 font-sans selection:bg-blue-500 selection:text-white">
@@ -161,7 +161,7 @@ export function App() {
       {/* Header Superior - Oculto para pais (visão pública) */}
       {!isPublicView && (
         <Header 
-          currentView={currentView as any} 
+          currentView={currentView} 
           onNavigate={(v) => {
             if (v === 'admin') navegarParaView('admin', '/admin');
             else if (v === 'signer') {
@@ -172,6 +172,7 @@ export function App() {
               }
             }
             else if (v === 'validator') navegarParaView('validator', '/validar');
+            else if (v === 'revoke') navegarParaView('revoke', '/revogar');
           }} 
         />
       )}
@@ -249,6 +250,15 @@ export function App() {
         {currentView === 'terms' && (
           <div className="w-full px-2 sm:px-6 md:px-8 py-2 sm:py-4 max-w-4xl mx-auto">
             <TermsOfUse onBack={() => (activeSchoolSlug ? navigateToSigner(activeSchoolSlug, activeSchoolSlug) : navigateToSchoolSelect())} />
+          </div>
+        )}
+
+        {currentView === 'revoke' && (
+          <div className="w-full px-2 sm:px-6 md:px-8 py-2 sm:py-4 max-w-3xl mx-auto">
+            <RevocationPortal
+              token={activeSignerToken}
+              onBack={navigateToSchoolSelect}
+            />
           </div>
         )}
 

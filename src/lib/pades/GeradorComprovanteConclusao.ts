@@ -294,8 +294,11 @@ export class GeradorComprovanteConclusao {
       page.drawText(tsFormatted, { x: PAGE_W - MARGIN - fontRegular.widthOfTextAtSize(tsFormatted, 7) - 4, y, size: 7, font: fontRegular, color: COR_CINZA });
       novaLinha(11);
 
-      page.drawText(ev.descricao, { x: MARGIN + 15, y, size: 7, font: fontRegular, color: COR_CINZA });
-      novaLinha(10);
+      const descLines = quebrarTexto(ev.descricao || '', 85);
+      for (const descLine of descLines) {
+        page.drawText(descLine, { x: MARGIN + 15, y, size: 7, font: fontRegular, color: COR_CINZA });
+        novaLinha(10);
+      }
 
       if (ev.ip) {
         const ipVer = ev.ip.includes(':') ? ' (IPv6)' : (ev.ip !== 'Não informado' ? ' (IPv4)' : '');
@@ -318,7 +321,7 @@ export class GeradorComprovanteConclusao {
 
     // ── QR CODE DE VALIDAÇÃO ───────────────────────────────────────────────
     checkPage(140);
-    const baseUrl = dados.validationBaseUrl || 'https://catraki.com.br/validar';
+    const baseUrl = dados.validationBaseUrl || 'https://www.catraki.com.br/validar';
     const validationUrl = `${baseUrl}/${dados.validationCode}`;
 
     try {
@@ -348,7 +351,8 @@ export class GeradorComprovanteConclusao {
       novaLinha(11);
       page.drawText('O QR Code ao lado leva diretamente à página de validação.', { x: MARGIN, y, size: 7, font: fontRegular, color: COR_CINZA });
       novaLinha(50);
-    } catch {
+    } catch (err) {
+      console.warn('[PDF] Falha ao gerar QR Code do comprovante:', err);
       novaLinha(10);
     }
 

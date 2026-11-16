@@ -35,7 +35,8 @@ import {
   Sparkles,
   SlidersHorizontal,
   HelpCircle,
-  Trash2
+  Trash2,
+  Pencil
 } from 'lucide-react';
 import JSZip from 'jszip';
 import { GeradorPdfTermoSesi } from '../../lib/pades/GeradorPdfTermoSesi.ts';
@@ -162,6 +163,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [authorizations, setAuthorizations] = useState<any[]>([]);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [showNewSchoolModal, setShowNewSchoolModal] = useState(false);
+  const [editingSchoolId, setEditingSchoolId] = useState<string | null>(null);
   const [showSchoolSelectModal, setShowSchoolSelectModal] = useState(true);
   const [schoolModalSearch, setSchoolModalSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -445,6 +447,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
+  const handleOpenCreateSchool = () => {
+    setEditingSchoolId(null);
+    setSchoolFormError('');
+    setNewSchoolData({ id: '', name: '', short_name: '', city: '', state: 'DF' });
+    setShowNewSchoolModal(true);
+  };
+
+  const handleOpenEditSchool = (inst: Institution) => {
+    setEditingSchoolId(inst.id);
+    setSchoolFormError('');
+    setNewSchoolData({
+      id: inst.id,
+      name: inst.name || '',
+      short_name: inst.short_name || '',
+      city: inst.city || '',
+      state: inst.state || 'DF',
+    });
+    setShowNewSchoolModal(true);
+  };
+
   const handleCreateSchool = async (e: React.FormEvent) => {
     e.preventDefault();
     setSchoolFormError('');
@@ -453,37 +475,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       return;
     }
 
-    const generatedSlug = (newSchoolData.id || newSchoolData.short_name)
-      .toLowerCase()
-      .trim()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9_-]/g, '-');
-
-    if (!generatedSlug || generatedSlug === '-') {
-      setSchoolFormError('Sigla ou identificador inválido para gerar a URL.');
-      return;
-    }
-
     setIsSubmittingSchool(true);
     try {
-      const res = await apiClient.createAdminInstitution({
-        id: generatedSlug,
-        name: newSchoolData.name.trim(),
-        short_name: newSchoolData.short_name.trim(),
-        city: newSchoolData.city.trim(),
-        state: newSchoolData.state.trim().toUpperCase() || 'DF',
-      });
+      let res: any;
+      if (editingSchoolId) {
+        res = await apiClient.updateAdminInstitution(editingSchoolId, {
+          name: newSchoolData.name.trim(),
+          short_name: newSchoolData.short_name.trim(),
+          city: newSchoolData.city.trim(),
+          state: newSchoolData.state.trim().toUpperCase() || 'DF',
+        });
+      } else {
+        const generatedSlug = (newSchoolData.id || newSchoolData.short_name)
+          .toLowerCase()
+          .trim()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9_-]/g, '-');
+
+        if (!generatedSlug || generatedSlug === '-') {
+          setSchoolFormError('Sigla ou identificador inválido para gerar a URL.');
+          setIsSubmittingSchool(false);
+          return;
+        }
+
+        res = await apiClient.createAdminInstitution({
+          id: generatedSlug,
+          name: newSchoolData.name.trim(),
+          short_name: newSchoolData.short_name.trim(),
+          city: newSchoolData.city.trim(),
+          state: newSchoolData.state.trim().toUpperCase() || 'DF',
+        });
+      }
 
       if (res.success) {
         setShowNewSchoolModal(false);
+        setEditingSchoolId(null);
         setNewSchoolData({ id: '', name: '', short_name: '', city: '', state: 'DF' });
         await fetchInstitutions();
       } else {
-        setSchoolFormError(res.error || 'Erro ao cadastrar escola no servidor.');
+        setSchoolFormError(res.error || 'Erro ao salvar escola no servidor.');
       }
     } catch (err: any) {
-      setSchoolFormError(err.message || 'Falha de conexão ao tentar cadastrar escola.');
+      setSchoolFormError(err.message || 'Falha de conexão ao tentar salvar escola.');
     } finally {
       setIsSubmittingSchool(false);
     }
@@ -2108,10 +2142,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => {
-                setSchoolFormError('');
-                setShowNewSchoolModal(true);
-              }}
+              onClick={handleOpenCreateSchool}
               className="shrink-0 px-4 py-2.5 bg-[#004b8d] hover:bg-[#003666] text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer self-stretch sm:self-auto justify-center"
             >
               <Plus className="w-4 h-4" />
@@ -2139,13 +2170,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           {inst.city} - {inst.state}
                         </span>
                       </div>
-                      <button
-                        onClick={() => handleDeactivateSchool(inst.id)}
-                        className="text-slate-400 hover:text-rose-700 transition-colors px-2 py-1 rounded-lg text-xs font-semibold hover:bg-rose-50 cursor-pointer"
-                        title="Desativar rota desta escola"
-                      >
-                        <span>Desativar</span>
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditSchool(inst)}
+                          className="text-slate-500 hover:text-[#004b8d] transition-colors px-2 py-1 rounded-lg text-xs font-semibold hover:bg-blue-50 cursor-pointer flex items-center gap-1"
+                          title="Editar dados desta escola"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          <span>Editar</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeactivateSchool(inst.id)}
+                          className="text-slate-400 hover:text-rose-700 transition-colors px-2 py-1 rounded-lg text-xs font-semibold hover:bg-rose-50 cursor-pointer"
+                          title="Desativar rota desta escola"
+                        >
+                          <span>Desativar</span>
+                        </button>
+                      </div>
                     </div>
 
                     <h3 className="font-bold text-slate-900 text-base leading-snug">
@@ -2400,12 +2443,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-slate-900 text-base">Cadastrar Nova Escola</h2>
-                  <p className="text-xs text-slate-500">Crie um link exclusivo para uma instituição</p>
+                  <h2 className="font-bold text-slate-900 text-base">
+                    {editingSchoolId ? 'Editar Cadastro da Escola' : 'Cadastrar Nova Escola'}
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    {editingSchoolId ? 'Atualize o nome, sigla ou localização da unidade escolar' : 'Crie um link exclusivo para uma instituição'}
+                  </p>
                 </div>
               </div>
               <button 
-                onClick={() => setShowNewSchoolModal(false)}
+                type="button"
+                aria-label="Fechar modal"
+                onClick={() => {
+                  setShowNewSchoolModal(false);
+                  setEditingSchoolId(null);
+                }}
                 className="text-slate-400 hover:text-slate-600 text-lg font-bold p-1.5 rounded-xl hover:bg-slate-100 cursor-pointer"
               >
                 ✕
@@ -2460,10 +2512,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     id="school-id-slug"
                     name="schoolSlug"
                     type="text"
+                    disabled={!!editingSchoolId}
                     placeholder="Ex: ced03 (opcional)"
                     value={newSchoolData.id}
                     onChange={(e) => setNewSchoolData({ ...newSchoolData, id: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl font-mono focus:outline-none focus:border-[#004b8d]"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl font-mono focus:outline-none focus:border-[#004b8d] disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -2501,7 +2554,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <button
                   type="button"
                   disabled={isSubmittingSchool}
-                  onClick={() => setShowNewSchoolModal(false)}
+                  onClick={() => {
+                    setShowNewSchoolModal(false);
+                    setEditingSchoolId(null);
+                  }}
                   className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer text-center disabled:opacity-50"
                 >
                   Cancelar
@@ -2512,7 +2568,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-[#004b8d] hover:bg-[#003666] text-white rounded-xl transition-colors shadow-xs cursor-pointer text-center disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isSubmittingSchool && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{isSubmittingSchool ? 'Salvando...' : 'Salvar Escola e Gerar Link'}</span>
+                  <span>
+                    {isSubmittingSchool
+                      ? 'Salvando...'
+                      : editingSchoolId
+                        ? 'Salvar Alterações'
+                        : 'Salvar Escola e Gerar Link'}
+                  </span>
                 </button>
               </div>
             </form>

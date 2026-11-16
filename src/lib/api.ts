@@ -1620,6 +1620,34 @@ export const apiClient = {
     }
   },
 
+  async updateAdminInstitution(id: string, data: Partial<Institution>): Promise<any> {
+    try {
+      const resp = await fetch(`${API_BASE}/admin/institutions/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(data),
+        signal: AbortSignal.timeout(15000),
+      });
+      const resData: any = await resp.json().catch(() => ({}));
+      if (resp.ok) {
+        return resData;
+      }
+      if (resp.status === 401 && this.getAdminToken()) {
+        this.logoutAdmin();
+        return { success: false, error: 'Sessão expirada. Por favor, faça login novamente.' };
+      }
+      return {
+        success: false,
+        error: resData.error || `Erro ${resp.status}: Falha ao atualizar instituição no servidor.`,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: `Erro de rede ao conectar com o servidor: ${err.message || 'Falha de conexão.'}`,
+      };
+    }
+  },
+
   async deleteAdminInstitution(id: string): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/admin/institutions/${id}`, {

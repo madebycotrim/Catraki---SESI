@@ -114,4 +114,51 @@ describe('Admin Router & Crons Integration', () => {
     expect(executedQueries.some((q) => q.includes("SET status = 'expired'"))).toBe(true);
     expect(executedQueries.some((q) => q.includes('DELETE FROM application_access_logs'))).toBe(true);
   });
+
+  it('PUT /api/admin/institutions/:id deve atualizar o cadastro da escola e registrar auditoria', async () => {
+    const masterToken = await makeToken('admin_master');
+    let updatedParams: any[] = [];
+    const mockDb = {
+      prepare: (sql: string) => ({
+        bind: (...args: any[]) => ({
+          first: async () => {
+            if (sql.includes('FROM admin_users')) return { is_active: 1, role: 'admin_master' };
+            if (sql.includes('FROM institutions')) {
+              return { id: 'cemeit', name: 'Nome Antigo', short_name: 'CEMEIT', city: 'Taguatinga', state: 'DF' };
+            }
+            return null;
+          },
+          run: async () => {
+            if (sql.startsWith('UPDATE institutions')) {
+              updatedParams = args;
+            }
+            return { meta: { changes: 1 } };
+          },
+        }),
+      }),
+    };
+
+    const res = await adminRouter.fetch(
+      new Request('http://localhost/institutions/cemeit', {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${masterToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: 'CEMEIT — Nome Corrigido',
+          short_name: 'CEMEIT',
+          city: 'Taguatinga',
+          state: 'DF',
+        }),
+      }),
+      { DB: mockDb, JWT_ADMIN_SECRET: jwtSecret } as any
+    );
+
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as any;
+    expect(data.success).toBe(true);
+    expect(data.institution.name).toBe('CEMEIT — Nome Corrigido');
+    expect(updatedParams[0]).toBe('CEMEIT — Nome Corrigido');
+  });
 });

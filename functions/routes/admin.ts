@@ -1698,10 +1698,70 @@ adminRouter.post('/institutions', requireAuth(['admin_master', 'operador']), asy
       message: 'Instituição / Escola cadastrada com sucesso.',
     });
   } catch (err: any) {
+    console.error('[ADMIN_INSTITUTION_CREATE_ERROR]', err?.message || err);
     return c.json({
       success: false,
-      error: `Falha ao registrar escola no banco de dados: ${err.message}`,
+      error: 'Falha ao registrar escola no banco de dados.',
     }, 500);
+  }
+});
+
+const InstitutionUpdateSchema = z.object({
+  name: z.string().trim().min(3, 'Nome completo deve ter pelo menos 3 caracteres').max(200),
+  short_name: z.string().trim().min(2, 'Sigla deve ter pelo menos 2 caracteres').max(60),
+  city: z.string().trim().max(100).optional(),
+  state: z.string().trim().max(2).optional(),
+});
+
+adminRouter.put('/institutions/:id', requireAuth(['admin_master', 'operador']), async (c) => {
+  const user = c.get('user');
+  const id = c.req.param('id').trim().toLowerCase();
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = InstitutionUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Dados inválidos para atualização.' }, 400);
+  }
+  const { name, short_name, city, state } = parsed.data;
+  const db = c.env.DB;
+  const clientIp = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
+  const userAgent = c.req.header('user-agent') || 'Catraki Admin';
+
+  try {
+    const existing = await db.prepare('SELECT id, name, short_name, city, state FROM institutions WHERE id = ?').bind(id).first<any>();
+    if (!existing) {
+      return c.json({ success: false, error: 'Escola não encontrada.' }, 404);
+    }
+
+    const updatedCity = city?.trim() || existing.city || 'Brasília';
+    const updatedState = state?.trim().toUpperCase() || existing.state || 'DF';
+
+    await db.prepare(
+      `UPDATE institutions
+       SET name = ?, short_name = ?, city = ?, state = ?
+       WHERE id = ?`
+    ).bind(name.trim(), short_name.trim(), updatedCity, updatedState, id).run();
+
+    await logAdminAction(
+      db,
+      user,
+      'INSTITUTION_UPDATE',
+      `institution:${id}`,
+      JSON.stringify({
+        previous: { name: existing.name, short_name: existing.short_name, city: existing.city, state: existing.state },
+        updated: { name: name.trim(), short_name: short_name.trim(), city: updatedCity, state: updatedState },
+      }),
+      clientIp,
+      userAgent
+    );
+
+    return c.json({
+      success: true,
+      institution: { id, name: name.trim(), short_name: short_name.trim(), city: updatedCity, state: updatedState },
+      message: 'Cadastro da escola atualizado com sucesso.',
+    });
+  } catch (err: any) {
+    console.error('[ADMIN_INSTITUTION_UPDATE_ERROR]', err?.message || err);
+    return c.json({ success: false, error: 'Falha ao atualizar escola no banco de dados.' }, 500);
   }
 });
 

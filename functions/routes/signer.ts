@@ -917,7 +917,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
 
       return c.json({
         success: false,
-        error: `Este(a) estudante já possui uma autorização médica ativa e assinada (Código: ${vCode}).`,
+        error: `Este(a) estudante já possui uma autorização para atendimento em saúde ativa e assinada (Código: ${vCode}).`,
         code: 'STUDENT_ALREADY_SIGNED',
         existing_validation_code: vCode,
       }, 409);
@@ -1440,7 +1440,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     validation_url: `/validar/${validationCode}`,
     email_dispatched: true,
     target_email: parsed.data.signer_email,
-    message: 'Autorização médica assinada eletronicamente com sucesso e comprovante PDF agendado para envio.',
+    message: 'Autorização para atendimento em saúde e termo de consentimento assinados eletronicamente com sucesso.',
   });
 });
 

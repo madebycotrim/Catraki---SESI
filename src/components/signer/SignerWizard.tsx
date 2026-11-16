@@ -232,6 +232,14 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
             minorTurn: formData.minorTurn,
           }}
           onSuccess={(result) => {
+            if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+              try {
+                const draftKey = `catraki_form_draft_${institution?.id || 'default'}`;
+                sessionStorage.removeItem(draftKey);
+              } catch {
+                // Ignora falha ao limpar rascunho
+              }
+            }
             setSignResult(result);
             setStep(4);
           }}

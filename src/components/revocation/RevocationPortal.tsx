@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AlertOctagon, CheckCircle2, Loader2, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
+import { formatCPF } from '../../lib/schemas.ts';
 
 interface RevocationPortalProps {
   token: string;
@@ -8,6 +9,8 @@ interface RevocationPortalProps {
 }
 
 export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBack }) => {
+  const [docToken, setDocToken] = useState(token || '');
+  const [signerCpf, setSignerCpf] = useState('');
   const [reason, setReason] = useState('');
   const [confirmedConsequences, setConfirmedConsequences] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -15,6 +18,12 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleRevoke = async () => {
+    const cleanToken = docToken.trim();
+    if (!cleanToken || cleanToken.length < 16) {
+      setErrorMessage('Informe o protocolo do documento (DOC-...) ou token de acesso válido.');
+      return;
+    }
+
     if (!reason.trim() || reason.trim().length < 10) {
       setErrorMessage('Por favor, descreva o motivo da revogação (mínimo de 10 caracteres).');
       return;
@@ -29,7 +38,7 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
     setErrorMessage('');
 
     try {
-      const resp = await apiClient.revokeConsent(token, reason);
+      const resp = await apiClient.revokeConsent(cleanToken, reason.trim(), signerCpf || undefined);
       if (resp.success) {
         setRevokedSuccess(true);
       } else {
@@ -121,6 +130,37 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
               <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-2">
                 2. MOTIVO E DECLARAÇÃO DE REVOGAÇÃO
               </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label htmlFor="field-revocation-token" className="block text-xs font-bold uppercase text-slate-700">
+                    Protocolo ou Token do Documento <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="field-revocation-token"
+                    type="text"
+                    value={docToken}
+                    onChange={(e) => setDocToken(e.target.value)}
+                    placeholder="Ex: DOC-20260904-120000-ABCD"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="field-revocation-cpf" className="block text-xs font-bold uppercase text-slate-700">
+                    CPF do Responsável Signatário
+                  </label>
+                  <input
+                    id="field-revocation-cpf"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={14}
+                    value={signerCpf}
+                    onChange={(e) => setSignerCpf(formatCPF(e.target.value))}
+                    placeholder="000.000.000-00"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20"
+                  />
+                </div>
+              </div>
 
               <div className="space-y-2">
                 <label htmlFor="field-revocation-reason" className="block text-xs font-bold uppercase text-slate-700">

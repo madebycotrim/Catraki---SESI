@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, AlertTriangle, AlertCircle, Loader2, FileSearch, UserCheck, GraduationCap } from 'lucide-react';
 import { isValidCPF, isValidFullName, calcularIdade, formatStudentSeries } from '../../lib/schemas.ts';
 import { apiClient } from '../../lib/api.ts';
@@ -34,19 +34,43 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
   onBack,
   onNavigateToValidator,
 }) => {
-  const [formData, setFormData] = useState<FormData>({
-    minorName: initialData?.minorName || '',
-    minorBirthDate: initialData?.minorBirthDate || '',
-    minorCpf: initialData?.minorCpf || '',
-    minorSeries: formatStudentSeries(initialData?.minorSeries || ''),
-    minorClass: initialData?.minorClass || '',
-    minorTurn: initialData?.minorTurn || '',
-    signerName: initialData?.signerName || '',
-    signerCpf: initialData?.signerCpf || '',
-    signerPhone: initialData?.signerPhone || '',
-    signerEmail: initialData?.signerEmail || '',
-    signerRelationship: initialData?.signerRelationship || '',
+  const draftKey = `catraki_form_draft_${institution?.id || 'default'}`;
+
+  const [formData, setFormData] = useState<FormData>(() => {
+    let saved: Partial<FormData> = {};
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      try {
+        const raw = sessionStorage.getItem(draftKey);
+        if (raw) saved = JSON.parse(raw);
+      } catch {
+        // Ignora rascunho corrompido
+      }
+    }
+    return {
+      minorName: initialData?.minorName || saved.minorName || '',
+      minorBirthDate: initialData?.minorBirthDate || saved.minorBirthDate || '',
+      minorCpf: initialData?.minorCpf || '',
+      minorSeries: formatStudentSeries(initialData?.minorSeries || saved.minorSeries || ''),
+      minorClass: initialData?.minorClass || saved.minorClass || '',
+      minorTurn: (initialData?.minorTurn || saved.minorTurn || '') as FormData['minorTurn'],
+      signerName: initialData?.signerName || saved.signerName || '',
+      signerCpf: initialData?.signerCpf || '',
+      signerPhone: initialData?.signerPhone || saved.signerPhone || '',
+      signerEmail: initialData?.signerEmail || saved.signerEmail || '',
+      signerRelationship: (initialData?.signerRelationship || saved.signerRelationship || '') as FormData['signerRelationship'],
+    };
   });
+
+  // Persiste rascunho em sessionStorage (sem CPFs por privacidade/LGPD)
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') return;
+    try {
+      const { minorCpf: _mc, signerCpf: _sc, ...safeDraft } = formData;
+      sessionStorage.setItem(draftKey, JSON.stringify(safeDraft));
+    } catch {
+      // Ignora erro de quota do sessionStorage
+    }
+  }, [formData, draftKey]);
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [duplicateInfo, setDuplicateInfo] = useState<DuplicateStudentCheckResponse | null>(null);
@@ -768,7 +792,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   </div>
                   
                   <p className="text-xs sm:text-sm text-amber-900 leading-relaxed m-0">
-                    O(A) estudante <strong>{duplicateInfo.minorName || formData.minorName}</strong> já possui uma autorização médica e termo de consentimento assinado e válido no sistema, emitido por <strong>{duplicateInfo.signerNameMasked || 'Responsável Legal'}</strong> em {new Date(duplicateInfo.signedAt || new Date()).toLocaleDateString('pt-BR')}.
+                    O(A) estudante <strong>{duplicateInfo.minorName || formData.minorName}</strong> já possui uma autorização para atendimento em saúde e termo de consentimento assinado e válido no sistema, emitido por <strong>{duplicateInfo.signerNameMasked || 'Responsável Legal'}</strong> em {new Date(duplicateInfo.signedAt || new Date()).toLocaleDateString('pt-BR')}.
                   </p>
                   
                   <div className="p-2.5 bg-amber-100/70 rounded-xl border border-amber-200 text-[11px] sm:text-xs text-amber-900 leading-normal">

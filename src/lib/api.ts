@@ -315,7 +315,7 @@ export const apiClient = {
   },
 
   /**
-   * Verifica se o estudante já possui uma autorização médica válida e assinada (Prevenção de Duplicidade)
+   * Verifica se o estudante já possui uma autorização para atendimento em saúde válida e assinada (Prevenção de Duplicidade)
    */
   async checkStudentDuplicate(params: {
     minor_cpf: string;
@@ -688,15 +688,21 @@ export const apiClient = {
   /**
    * Revoga consentimento nos termos da LGPD
    */
-  async revokeConsent(token: string, reason: string): Promise<any> {
+  async revokeConsent(token: string, reason: string, signerCpf?: string): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/signer/revoke`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, reason, confirm_legal_consequence: true }),
+        body: JSON.stringify({
+          token,
+          reason,
+          confirm_legal_consequence: true,
+          signer_cpf: signerCpf ? signerCpf.replace(/\D/g, '') : undefined,
+        }),
+        signal: AbortSignal.timeout(15000),
       });
+      const data = (await resp.json().catch(() => ({}))) as any;
       if (resp.ok) {
-        const data = (await resp.json()) as any;
         const docs = getDocuments();
         const doc = docs.find((d) => d.access_token === token || d.id === token);
         if (doc) {
@@ -707,7 +713,20 @@ export const apiClient = {
         }
         return data;
       }
-    } catch {}
+      return {
+        success: false,
+        error: data?.error || 'Não foi possível revogar a autorização.',
+        code: data?.code,
+      };
+    } catch (err: any) {
+      if (typeof window !== 'undefined') {
+        console.error('[API] Erro ao revogar consentimento:', err?.message || err);
+        return {
+          success: false,
+          error: 'Falha de comunicação com o servidor ao tentar revogar. Tente novamente.',
+        };
+      }
+    }
 
     const docs = getDocuments();
     const doc = docs.find((d) => d.access_token === token || d.id === token);

@@ -33,7 +33,7 @@ interface TurnstileWidgetProps {
   className?: string;
 }
 
-export const TURNSTILE_SITE_KEY = '0x4AAAAAAEXS51wjeYSoRWAc';
+export const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
 
 export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
   siteKey = TURNSTILE_SITE_KEY,
@@ -58,8 +58,11 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
   onExpireRef.current = onExpire;
 
   useEffect(() => {
+    if (!siteKey) return;
     let isMounted = true;
-    let pollTimer: any = null;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let pollAttempts = 0;
+    const MAX_POLL_ATTEMPTS = 40; // ~6s timeout se o script for bloqueado
 
     const renderTurnstile = () => {
       if (!isMounted || !containerRef.current || !window.turnstile) return;
@@ -99,9 +102,15 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
       renderTurnstile();
     } else {
       pollTimer = setInterval(() => {
+        pollAttempts++;
         if (window.turnstile) {
-          clearInterval(pollTimer);
+          if (pollTimer) clearInterval(pollTimer);
           renderTurnstile();
+        } else if (pollAttempts >= MAX_POLL_ATTEMPTS) {
+          if (pollTimer) clearInterval(pollTimer);
+          if (isMounted && onErrorRef.current) {
+            onErrorRef.current();
+          }
         }
       }, 150);
     }
@@ -112,11 +121,13 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
       if (widgetIdRef.current && window.turnstile) {
         try {
           window.turnstile.remove(widgetIdRef.current);
-        } catch {}
+        } catch (err) {
+          console.warn('Turnstile cleanup warning:', err);
+        }
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, action, theme]); // Apenas reexecuta se a chave, ação ou tema mudarem
+  }, [siteKey, action, theme]);
 
   return (
     <div className={`flex justify-center items-center my-2 min-h-[65px] ${className}`}>

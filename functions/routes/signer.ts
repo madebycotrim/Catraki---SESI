@@ -693,10 +693,102 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
 
 
 /**
+ * Valida o OTP de um documento no back-end com proteção contra força bruta (KV + D1) e expiração.
+ */
+async function validateDocumentOtp(
+  db: D1Database,
+  kv: KVNamespace | undefined,
+  doc: DocumentRecord,
+  otpCode: string,
+  pepper: string
+): Promise<{ ok: true } | { ok: false; status: 400 | 429; body: Record<string, any> }> {
+  if (!doc || !doc.otp_secret_hash) {
+    return { ok: false, status: 400, body: { success: false, error: 'Código de verificação não solicitado.', code: 'OTP_NOT_REQUESTED' } };
+  }
+
+  if (kv) {
+    const block = await checkOtpBruteForceBlock(kv, doc.id);
+    if (block) {
+      return {
+        ok: false,
+        status: 429,
+        body: {
+          success: false,
+          error: `Acesso bloqueado por segurança após múltiplas tentativas incorretas. Aguarde ${Math.ceil(block.retryAfterSeconds / 60)} minuto(s) e tente novamente, ou solicite um novo código OTP.`,
+          code: 'OTP_BRUTE_FORCE_BLOCKED',
+          blocked_until: block.blockedUntil,
+          retry_after_seconds: block.retryAfterSeconds,
+        },
+      };
+    }
+  }
+
+  if (doc.otp_attempts >= 3) {
+    if (kv) await setOtpBruteForceBlock(kv, doc.id);
+    return {
+      ok: false,
+      status: 400,
+      body: {
+        success: false,
+        error: 'Número máximo de tentativas de código incorreto excedido (3). Solicite um novo código de verificação.',
+        code: 'OTP_BLOCKED',
+      },
+    };
+  }
+
+  if (doc.otp_expires_at) {
+    const expiryTime = new Date(
+      doc.otp_expires_at.includes('T')
+        ? doc.otp_expires_at
+        : doc.otp_expires_at.replace(' ', 'T') + 'Z'
+    ).getTime();
+
+    if (!isNaN(expiryTime) && expiryTime < Date.now()) {
+      return {
+        ok: false,
+        status: 400,
+        body: {
+          success: false,
+          error: 'O código de verificação expirou (validade de 5 minutos). Solicite um novo código.',
+          code: 'OTP_EXPIRED',
+        },
+      };
+    }
+  }
+
+  const computedOtpHash = await hmacSha256(otpCode, pepper);
+  if (!constantTimeEqual(doc.otp_secret_hash, computedOtpHash)) {
+    const newAttempts = (doc.otp_attempts || 0) + 1;
+    await db.prepare('UPDATE documents SET otp_attempts = otp_attempts + 1 WHERE id = ?').bind(doc.id).run();
+    const remaining = 3 - newAttempts;
+
+    if (newAttempts >= 3 && kv) {
+      await setOtpBruteForceBlock(kv, doc.id);
+    }
+
+    return {
+      ok: false,
+      status: 400,
+      body: {
+        success: false,
+        error: remaining <= 0
+          ? 'Número máximo de tentativas excedido. Acesso bloqueado por 15 minutos. Solicite um novo código após o período de bloqueio.'
+          : `Código de verificação incorreto. Tentativas restantes: ${remaining}`,
+        code: 'OTP_INVALID',
+        remaining_attempts: Math.max(0, remaining),
+      },
+    };
+  }
+
+  if (kv) await clearOtpBruteForceBlock(kv, doc.id);
+  return { ok: true };
+}
+
+/**
  * POST /api/signer/otp/verify
  * Validação de OTP em tempo constante com bloqueio anti-força-bruta no KV (15 min)
  */
-signerRouter.post('/otp/verify', async (c) => {
+signerRouter.post('/otp/verify', rateLimiter({ limit: 10, windowSeconds: 300, keyPrefix: 'otp_verify' }), async (c) => {
   const body = await c.req.json();
   const parsed = OtpVerifySchema.safeParse(body);
 
@@ -714,76 +806,14 @@ signerRouter.post('/otp/verify', async (c) => {
   }
 
   const doc = await db.prepare("SELECT * FROM documents WHERE (access_token = ? OR id = ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1").bind(token, token).first<DocumentRecord>();
-  if (!doc || !doc.otp_secret_hash) {
+  if (!doc) {
     return c.json({ success: false, error: 'Código de verificação não solicitado.', code: 'OTP_NOT_REQUESTED' }, 400);
   }
 
-  // ── Verificação de Bloqueio Anti-Força-Bruta (KV Temporal — 15 minutos) ────────
-  // Independente de IP: bloqueia por documentId, resistindo a troca de rede/VPN.
-  if (kv) {
-    const block = await checkOtpBruteForceBlock(kv, doc.id);
-    if (block) {
-      return c.json({
-        success: false,
-        error: `Acesso bloqueado por segurança após múltiplas tentativas incorretas. Aguarde ${Math.ceil(block.retryAfterSeconds / 60)} minuto(s) e tente novamente, ou solicite um novo código OTP.`,
-        code: 'OTP_BRUTE_FORCE_BLOCKED',
-        blocked_until: block.blockedUntil,
-        retry_after_seconds: block.retryAfterSeconds,
-      }, 429);
-    }
+  const otpCheck = await validateDocumentOtp(db, kv, doc, otp_code, pepper);
+  if (!otpCheck.ok) {
+    return c.json(otpCheck.body, otpCheck.status);
   }
-
-  if (doc.otp_attempts >= 3) {
-    // Garantia extra: se chegou aqui sem o bloco KV (ex: KV indisponível), aplica bloqueio agora
-    if (kv) await setOtpBruteForceBlock(kv, doc.id);
-    return c.json({
-      success: false,
-      error: 'Número máximo de tentativas de código incorreto excedido (3). Solicite um novo código de verificação.',
-      code: 'OTP_BLOCKED',
-    }, 400);
-  }
-
-  if (doc.otp_expires_at) {
-    const expiryTime = new Date(
-      doc.otp_expires_at.includes('T') 
-        ? doc.otp_expires_at 
-        : doc.otp_expires_at.replace(' ', 'T') + 'Z'
-    ).getTime();
-
-    if (!isNaN(expiryTime) && expiryTime < Date.now()) {
-      return c.json({
-        success: false,
-        error: 'O código de verificação expirou (validade de 5 minutos). Solicite um novo código.',
-        code: 'OTP_EXPIRED'
-      }, 400);
-    }
-  }
-
-  const computedOtpHash = await hmacSha256(otp_code, pepper);
-  const isValid = constantTimeEqual(doc.otp_secret_hash, computedOtpHash);
-
-  if (!isValid) {
-    const newAttempts = doc.otp_attempts + 1;
-    await db.prepare('UPDATE documents SET otp_attempts = otp_attempts + 1 WHERE id = ?').bind(doc.id).run();
-    const remaining = 3 - newAttempts;
-
-    // ── 3º erro: grava bloqueio de 15 min no KV ────────────────────────────────
-    if (newAttempts >= 3 && kv) {
-      await setOtpBruteForceBlock(kv, doc.id);
-    }
-
-    return c.json({
-      success: false,
-      error: remaining <= 0
-        ? 'Número máximo de tentativas excedido. Acesso bloqueado por 15 minutos. Solicite um novo código após o período de bloqueio.'
-        : `Código de verificação incorreto. Tentativas restantes: ${remaining}`,
-      code: 'OTP_INVALID',
-      remaining_attempts: Math.max(0, remaining),
-    }, 400);
-  }
-
-  // Sucesso: limpa o bloqueio KV (boa prática — libera o documento para futuras opções)
-  if (kv) await clearOtpBruteForceBlock(kv, doc.id);
 
   return c.json({
     success: true,
@@ -850,20 +880,60 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     return c.json({ success: false, error: 'Documento não encontrado ou já assinado.', code: 'DOC_NOT_FOUND' }, 404);
   }
 
+  // Validações obrigatórias no back-end (não confiar apenas no front-end)
+  if (parsed.data.auth_health !== 'yes') {
+    return c.json({
+      success: false,
+      error: 'A autorização dos atendimentos de saúde é obrigatória para registrar o termo.',
+      code: 'HEALTH_CONSENT_REQUIRED',
+    }, 400);
+  }
+  if (parsed.data.auth_data !== 'yes') {
+    return c.json({
+      success: false,
+      error: 'A autorização de tratamento de dados pessoais (LGPD) é obrigatória para registrar o termo.',
+      code: 'DATA_CONSENT_REQUIRED',
+    }, 400);
+  }
+
   const birthDateStr = parsed.data.minor_birth_date || doc.minor_birth_date;
   let isMaiorDeIdade = false;
-  if (birthDateStr) {
-    const age = calcularIdade(birthDateStr, new Date());
-    if (age < 14) {
-      return c.json({
-        success: false,
-        error: 'O estudante deve possuir no mínimo 14 anos de idade para participar do projeto.',
-        code: 'UNDERAGE_STUDENT',
-      }, 400);
-    }
-    if (age >= 18) {
-      isMaiorDeIdade = true;
-    }
+  if (!birthDateStr) {
+    return c.json({
+      success: false,
+      error: 'Data de nascimento do estudante é obrigatória.',
+      code: 'INVALID_BIRTH_DATE',
+    }, 400);
+  }
+
+  const age = calcularIdade(birthDateStr, new Date());
+  if (isNaN(age) || age < 0 || age > 120) {
+    return c.json({
+      success: false,
+      error: 'Data de nascimento do estudante inválida.',
+      code: 'INVALID_BIRTH_DATE',
+    }, 400);
+  }
+  if (age < 14) {
+    return c.json({
+      success: false,
+      error: 'O estudante deve possuir no mínimo 14 anos de idade para participar do projeto.',
+      code: 'UNDERAGE_STUDENT',
+    }, 400);
+  }
+  if (age >= 18) {
+    isMaiorDeIdade = true;
+  }
+
+  const isSelfSignerRelationship =
+    signer_relationship === 'Próprio Estudante (Maior de Idade)' ||
+    signer_relationship === 'Próprio(a) Estudante (Maior de Idade)';
+  if (!isMaiorDeIdade && isSelfSignerRelationship) {
+    return c.json({
+      success: false,
+      error: 'Estudante menor de 18 anos não pode assinar como próprio responsável.',
+      code: 'MINOR_CANNOT_SELF_SIGN',
+    }, 400);
   }
 
   if (doc.status === 'signed') {
@@ -896,12 +966,12 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     }
   }
 
-  const computedOtpHash = await hmacSha256(otp_code, pepper);
-  if (!doc.otp_secret_hash || !constantTimeEqual(doc.otp_secret_hash, computedOtpHash)) {
-    return c.json({ success: false, error: 'Código de autenticação 2FA inválido ou expirado.', code: 'OTP_INVALID' }, 400);
+  const otpCheck = await validateDocumentOtp(db, c.env.KV_RATE_LIMIT, doc, otp_code, pepper);
+  if (!otpCheck.ok) {
+    return c.json(otpCheck.body, otpCheck.status);
   }
 
-  const identityMethod = 'declaracao_responsavel';
+  const identityMethod = isMaiorDeIdade ? 'declaracao_titular' : 'declaracao_responsavel';
 
   const ipAddress = cfData.ip;
   const userAgent = cfData.userAgent;

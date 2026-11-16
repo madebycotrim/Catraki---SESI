@@ -154,11 +154,11 @@ export class GeradorComprovanteConclusao {
     page.drawText('PLATAFORMA CATRAKI', {
       x: MARGIN, y: PAGE_H - 28, size: 9, font: fontBold, color: rgb(1, 1, 1),
     });
-    page.drawText('COMPROVANTE DE CONCLUSÃO DE ASSINATURA ELETRÔNICA SIMPLES', {
-      x: MARGIN, y: PAGE_H - 44, size: 8, font: fontBold, color: rgb(0.85, 0.92, 1),
+    page.drawText('COMPROVANTE DE ACEITE E ASSINATURA ELETRÔNICA', {
+      x: MARGIN, y: PAGE_H - 44, size: 8.5, font: fontBold, color: rgb(0.85, 0.92, 1),
     });
-    page.drawText('Assinatura Eletrônica Simples nos termos do Art. 10, § 2º da MP nº 2.200-2/2001 e Art. 4º, I da Lei Federal nº 14.063/2020.', {
-      x: MARGIN, y: PAGE_H - 58, size: 6, font: fontRegular, color: rgb(0.75, 0.85, 1),
+    page.drawText('Assinatura Eletrônica Simples — Lei Federal nº 14.063/2020 e MP nº 2.200-2/2001.', {
+      x: MARGIN, y: PAGE_H - 58, size: 6.5, font: fontRegular, color: rgb(0.75, 0.85, 1),
     });
 
     // Código de validação no cabeçalho
@@ -181,16 +181,12 @@ export class GeradorComprovanteConclusao {
       : dados.documentStatus.toUpperCase();
     const statusColor = dados.documentStatus === 'signed' ? COR_VERDE : COR_VERMELHO;
 
-    page.drawRectangle({ x: MARGIN, y: y - 36, width: CONTENT_W, height: 44, color: COR_FUNDO_CLARO, borderColor: COR_AZUL_SESI, borderWidth: 0.5 });
-    page.drawText('STATUS DO DOCUMENTO:', { x: MARGIN + 8, y: y - 12, size: 7.5, font: fontBold, color: COR_PRETO });
-    page.drawText(statusLabel, { x: MARGIN + 130, y: y - 12, size: 8.5, font: fontBold, color: statusColor });
-    page.drawText(`ID: ${dados.documentId}`, { x: MARGIN + 320, y: y - 12, size: 7, font: fontMono, color: COR_CINZA });
-    
-    // Hash no topo da área do status sem truncar
-    page.drawText('HASH IDENTIFICADOR (SHA-256):', { x: MARGIN + 8, y: y - 28, size: 7, font: fontBold, color: COR_CINZA });
-    page.drawText(dados.manifestSha256 || 'PENDENTE DE ASSINATURA', { x: MARGIN + 160, y: y - 28, size: 6.5, font: fontMono, color: COR_PRETO });
-    
-    novaLinha(52);
+    page.drawRectangle({ x: MARGIN, y: y - 22, width: CONTENT_W, height: 28, color: COR_FUNDO_CLARO, borderColor: COR_AZUL_SESI, borderWidth: 0.5 });
+    page.drawText('STATUS:', { x: MARGIN + 8, y: y - 12, size: 7.5, font: fontBold, color: COR_PRETO });
+    page.drawText(statusLabel, { x: MARGIN + 55, y: y - 12, size: 8.5, font: fontBold, color: statusColor });
+    page.drawText(`ID: ${dados.documentId}`, { x: MARGIN + 275, y: y - 12, size: 7, font: fontMono, color: COR_CINZA });
+
+    novaLinha(36);
 
     // ── DADOS DO DOCUMENTO E DO SIGNATÁRIO ─────────────────────────────────
     page.drawText('IDENTIFICAÇÃO DO SIGNATÁRIO E DO PROCESSO', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
@@ -235,34 +231,25 @@ export class GeradorComprovanteConclusao {
     novaLinha(6);
 
     // ── HASHES CRIPTOGRÁFICOS ──────────────────────────────────────────────
-    checkPage(120);
-    page.drawText('REGISTRO CRIPTOGRÁFICO DE INTEGRIDADE (SHA-256 — MP 2.200-2/2001 E LEI 14.063/2020)', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
+    checkPage(95);
+    page.drawText('REGISTRO CRIPTOGRÁFICO DE INTEGRIDADE (SHA-256)', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
     novaLinha(12);
     drawLine(MARGIN, y, PAGE_W - MARGIN, y);
     novaLinha(10);
 
-    const hashFields = [
-      ['Hash do Manifesto (SHA-256)', dados.manifestSha256],
-      ['Hash do Conteúdo TCLE (SHA-256)', dados.contentSha256],
-      ['Hash da Linha de Auditoria', dados.logRowHash],
-      ['Hash do Bloco Anterior', dados.prevLogHash || 'GÊNESIS (Primeiro Registro)'],
-      ['Raiz de Merkle da Cadeia', dados.merkleRoot || '(calculada no próximo cron)'],
+    const hashFields: Array<[string, string]> = [
+      ['Hash do Manifesto', dados.manifestSha256 || 'PENDENTE'],
+      ['Hash da Auditoria', dados.logRowHash || '—'],
+      ['Bloco Anterior (Chain)', dados.prevLogHash || 'GÊNESIS (Primeiro Registro)'],
     ];
+    if (dados.merkleRoot) {
+      hashFields.push(['Raiz de Merkle', dados.merkleRoot]);
+    }
 
     for (const [label, value] of hashFields) {
       page.drawText(`${label}:`, { x: MARGIN, y, size: 7, font: fontBold, color: COR_CINZA });
-      novaLinha(11);
-      // Quebra o hash em linha
-      const MAX_CHARS = 95;
-      const strValue = String(value);
-      if (strValue.length > MAX_CHARS) {
-        page.drawText(strValue.slice(0, MAX_CHARS), { x: MARGIN + 8, y, size: 6.5, font: fontMono, color: COR_PRETO });
-        novaLinha(9);
-        page.drawText(strValue.slice(MAX_CHARS), { x: MARGIN + 8, y, size: 6.5, font: fontMono, color: COR_PRETO });
-      } else {
-        page.drawText(strValue, { x: MARGIN + 8, y, size: 6.5, font: fontMono, color: COR_PRETO });
-      }
-      novaLinha(14);
+      page.drawText(String(value).slice(0, 88), { x: MARGIN + 115, y, size: 6.4, font: fontMono, color: COR_PRETO });
+      novaLinha(13);
     }
 
     novaLinha(6);
@@ -299,24 +286,11 @@ export class GeradorComprovanteConclusao {
         page.drawText(descLine, { x: MARGIN + 15, y, size: 7, font: fontRegular, color: COR_CINZA });
         novaLinha(10);
       }
-
-      if (ev.ip) {
-        const ipVer = ev.ip.includes(':') ? ' (IPv6)' : (ev.ip !== 'Não informado' ? ' (IPv4)' : '');
-        page.drawText(`IP: ${ev.ip}${ipVer}`, { x: MARGIN + 15, y, size: 6.5, font: fontMono, color: rgb(0.5, 0.5, 0.5) });
-        novaLinha(9);
-      }
-      if (ev.user_agent) {
-        const uaLines = quebrarTexto(ev.user_agent, 75);
-        for (const uaL of uaLines) {
-          page.drawText(`Navegador: ${uaL}`, { x: MARGIN + 15, y, size: 6.2, font: fontRegular, color: rgb(0.5, 0.5, 0.5) });
-          novaLinha(8);
-        }
-      }
       if (ev.geo) {
-        page.drawText(`Geo: ${ev.geo}`, { x: MARGIN + 15, y, size: 6.5, font: fontRegular, color: rgb(0.5, 0.5, 0.5) });
+        page.drawText(`Localidade: ${ev.geo}`, { x: MARGIN + 15, y, size: 6.5, font: fontRegular, color: rgb(0.5, 0.5, 0.5) });
         novaLinha(9);
       }
-      novaLinha(6);
+      novaLinha(5);
     }
 
     // ── QR CODE DE VALIDAÇÃO ───────────────────────────────────────────────
@@ -356,35 +330,24 @@ export class GeradorComprovanteConclusao {
       novaLinha(10);
     }
 
-    // ── RODAPÉ JURÍDICO & DISCLAIMER OBRIGATÓRIO (MÓDULO 4) ────────────────
-    checkPage(100);
+    // ── RODAPÉ JURÍDICO ENXUTO ─────────────────────────────────────────────
+    checkPage(65);
     drawLine(MARGIN, y, PAGE_W - MARGIN, y);
-    novaLinha(14);
-
-    page.drawText('REGISTRO DE ACEITE E HISTÓRICO DE AUDITORIA', { x: MARGIN, y, size: 7.5, font: fontBold, color: COR_PRETO });
-    novaLinha(11);
+    novaLinha(12);
 
     const disclaimer = [
-      'Este Comprovante de Conclusão e Registro de Assinatura Eletrônica Simples é gerado automaticamente pela Plataforma Catraki,',
-      'contendo o identificador SHA-256 e o histórico temporal registrado no momento da confirmação do aceite eletrônico por e-mail (OTP).',
-      'O presente registro atesta a manifestação da vontade para os devidos fins de controle institucional e conformidade.',
-      '',
-      'BASE LEGAL: Lei Federal nº 14.063/2020 (Assinatura Eletrônica Simples); MP nº 2.200-2/2001 (Art. 10, § 2º);',
-      'Código Civil (Arts. 104 e 107); LGPD — Lei nº 13.709/2018 (Arts. 11 e 14); Marco Civil da Internet (Lei nº 12.965/2014).',
-      '',
-      'A Plataforma Catraki atua exclusivamente como infraestrutura tecnológica para registro de logs e emissão de comprovantes,',
-      'não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes.',
+      'Comprovante gerado automaticamente com hash SHA-256 e registro temporal de confirmação por OTP.',
+      'Base legal: Lei nº 14.063/2020, MP nº 2.200-2/2001 (Art. 10, § 2º), LGPD (Lei nº 13.709/2018) e Marco Civil (Lei nº 12.965/2014).',
     ];
 
     for (const line of disclaimer) {
-      if (!line) { novaLinha(4); continue; }
-      page.drawText(line, { x: MARGIN, y, size: 6.2, font: fontRegular, color: COR_CINZA });
-      novaLinha(9.5);
+      page.drawText(line, { x: MARGIN, y, size: 6.4, font: fontRegular, color: COR_CINZA });
+      novaLinha(10);
     }
 
-    novaLinha(6);
-    page.drawText(`Gerado em: ${formatarDataBr(new Date().toISOString())} | Plataforma Catraki — Infraestrutura Tecnológica`, {
-      x: MARGIN, y, size: 6, font: fontRegular, color: rgb(0.6, 0.6, 0.65),
+    novaLinha(4);
+    page.drawText(`Gerado em: ${formatarDataBr(new Date().toISOString())} | Plataforma Catraki`, {
+      x: MARGIN, y, size: 6.2, font: fontRegular, color: rgb(0.55, 0.55, 0.6),
     });
 
     return await pdfDoc.save();

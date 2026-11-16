@@ -4,19 +4,52 @@ export interface SignaturePadProps {
   onSave: (base64Png: string) => void;
   onClear: () => void;
   className?: string;
+  mode?: 'inline' | 'landscape-step';
+  onBackStep?: () => void;
+  onConfirmStep?: (base64Png: string) => void;
+  submittingStep?: boolean;
+  stepError?: string;
 }
 
 /**
  * Componente isolado para captura de assinatura manual via Canvas HTML5.
- * Suporta toque em dispositivos móveis, mouse em desktop e modo tela cheia.
+ * Suporta toque em dispositivos móveis, mouse em desktop, tela cheia e etapa dedicada em modo paisagem.
  * Princípio SOLID: Responsabilidade Única (SRP) para captura e geração de imagem da assinatura.
  */
-export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, className = '' }) => {
+export const SignaturePad: React.FC<SignaturePadProps> = ({
+  onSave,
+  onClear,
+  className = '',
+  mode = 'inline',
+  onBackStep,
+  onConfirmStep,
+  submittingStep = false,
+  stepError = '',
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPortrait, setIsPortrait] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false
+  );
+
+  const isLandscapeStep = mode === 'landscape-step';
+  const isPortraitRotated = isLandscapeStep && isPortrait;
+
+  useEffect(() => {
+    if (!isLandscapeStep) return;
+    const handleResize = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, [isLandscapeStep]);
 
   // Ajusta a resolução e o tamanho real do canvas com base no container
   useEffect(() => {
@@ -24,13 +57,16 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, cla
     const container = containerRef.current;
     if (!canvas || !container) return;
 
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
-  }, [isFullscreen]);
+    const raf = requestAnimationFrame(() => {
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [isFullscreen, isLandscapeStep, isPortrait]);
 
-  // Trava o scroll da página no modo tela cheia para evitar rolagem indesejada durante o desenho
+  // Trava o scroll da página no modo tela cheia / etapa paisagem para evitar rolagem indesejada durante o desenho
   useEffect(() => {
-    if (isFullscreen) {
+    if (isFullscreen || isLandscapeStep) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -38,25 +74,35 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, cla
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isFullscreen]);
+  }, [isFullscreen, isLandscapeStep]);
 
   const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
 
+    let clientX = 0;
+    let clientY = 0;
     if ('touches' in e) {
       if (e.touches.length === 0) return { x: 0, y: 0 };
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top,
-      };
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
     } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    if (isPortraitRotated) {
       return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
+        x: ((clientY - rect.top) / (rect.height || 1)) * canvas.width,
+        y: ((rect.right - clientX) / (rect.width || 1)) * canvas.height,
       };
     }
+
+    return {
+      x: ((clientX - rect.left) / (rect.width || 1)) * canvas.width,
+      y: ((clientY - rect.top) / (rect.height || 1)) * canvas.height,
+    };
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -68,7 +114,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, cla
     if (!ctx) return;
 
     ctx.strokeStyle = '#034b7f';
-    ctx.lineWidth = isFullscreen ? 3.5 : 2.5;
+    ctx.lineWidth = isFullscreen || isLandscapeStep ? 3.5 : 2.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -134,7 +180,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, cla
     <div
       ref={containerRef}
       className={`border-dashed border-slate-300 rounded-lg overflow-hidden bg-slate-50 relative group select-none ${
-        isFullscreen ? 'w-full h-full border-0 rounded-none' : 'h-[120px] w-full border-2'
+        isFullscreen || isLandscapeStep ? 'w-full h-full border-0 rounded-none' : 'h-[120px] w-full border-2'
       }`}
     >
       {/* Marca d'água probatória */}
@@ -162,6 +208,87 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, cla
       )}
     </div>
   );
+
+  if (isLandscapeStep) {
+    const rotatedStyle: React.CSSProperties | undefined = isPortraitRotated
+      ? {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100dvh',
+          height: '100vw',
+          transform: 'rotate(90deg) translateY(-100%)',
+          transformOrigin: 'top left',
+        }
+      : undefined;
+
+    return (
+      <div
+        style={rotatedStyle}
+        className={`${isPortraitRotated ? '' : 'fixed inset-0'} z-[9999] bg-white flex flex-col`}
+      >
+        {/* Barra Superior da Etapa 2 (Paisagem) */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 bg-slate-50 shadow-sm z-50 shrink-0 gap-2">
+          <div className="flex items-center gap-2.5">
+            {onBackStep && (
+              <button
+                type="button"
+                onClick={onBackStep}
+                disabled={submittingStep}
+                className="text-[11px] font-bold text-slate-600 uppercase px-3 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Voltar
+              </button>
+            )}
+            <div>
+              <span className="block font-extrabold text-xs sm:text-sm text-[#004b8d] uppercase tracking-wider leading-tight">
+                2. Assinatura Manual
+              </span>
+              <span className="block text-[10px] text-slate-500 leading-tight">
+                Assine com o dedo na área abaixo
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {hasDrawn && (
+              <button
+                type="button"
+                onClick={handleClear}
+                disabled={submittingStep}
+                className="text-[11px] font-bold text-red-600 uppercase px-3 py-2 bg-red-50 rounded-lg hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Limpar
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={!hasDrawn || submittingStep}
+              onClick={() => {
+                const canvas = canvasRef.current;
+                if (!canvas || !hasDrawn) return;
+                const base64 = canvas.toDataURL('image/png');
+                onSave(base64);
+                onConfirmStep?.(base64);
+              }}
+              className="text-[11px] font-bold text-white uppercase px-4 py-2 bg-[#034b7f] rounded-lg hover:bg-blue-900 transition-colors cursor-pointer disabled:bg-slate-300 disabled:text-slate-500"
+            >
+              {submittingStep ? 'Finalizando...' : 'Confirmar e Concluir'}
+            </button>
+          </div>
+        </div>
+
+        {stepError && (
+          <div className="px-4 py-2 bg-red-50 border-b border-red-200 text-red-700 text-xs font-semibold text-center shrink-0">
+            {stepError}
+          </div>
+        )}
+
+        {/* Área de Desenho Expandida em Modo Paisagem */}
+        <div className="flex-1 relative bg-slate-100 min-h-0">{padContent}</div>
+      </div>
+    );
+  }
 
   if (isFullscreen) {
     return (

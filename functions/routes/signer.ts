@@ -24,7 +24,6 @@ import {
   canonicalJson,
 } from '../../src/lib/crypto.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
-import { verifyTurnstileToken } from '../utils/turnstile.ts';
 import { sendTransactionalEmail } from '../utils/email.ts';
 import { escapeHtml } from '../../src/lib/email-templates.ts';
 import { GeradorPdfTermoSesi } from '../../src/lib/pades/GeradorPdfTermoSesi.ts';
@@ -474,21 +473,6 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Parâmetros inválidos.', code: 'VALIDATION_ERROR' }, 400);
   }
 
-  // ── Validação Anti-Robô (Cloudflare Turnstile, quando enviado pelo cliente) ──
-  const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
-  const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
-  if (turnstileSecret && turnstileToken) {
-    const cfData = extractCloudflareClientData(c);
-    const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip, c.env.APP_ENV);
-    if (!turnstileCheck.success) {
-      return c.json({
-        success: false,
-        error: turnstileCheck.error || 'Verificação de segurança anti-robô falhou. Por favor, recarregue e tente novamente.',
-        code: 'TURNSTILE_FAILED',
-      }, 403);
-    }
-  }
-
   const { token, email: providedEmail, minor_name: providedMinorName, school_slug, institution_id } = parsed.data;
 
   const db = c.env.DB;
@@ -823,20 +807,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const { token, otp_code, signer_name, signer_cpf, signer_relationship, signature_png_base64, client_fingerprint } = parsed.data;
   const cfData = extractCloudflareClientData(c);
 
-  // ── Validação Anti-Robô (Cloudflare Turnstile) ───────────────
-  const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
-  const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
-  if (turnstileSecret) {
-    const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip, c.env.APP_ENV);
-    if (!turnstileCheck.success) {
-      return c.json({
-        success: false,
-        error: turnstileCheck.error || 'Verificação de segurança anti-robô falhou para assinatura.',
-        code: 'TURNSTILE_FAILED',
-      }, 403);
-    }
-  }
-
   // device_fingerprint_data: dados adicionais de impressão digital do dispositivo
   // Capturado pelo frontend (captureDeviceFingerprint) e enviado junto à assinatura.
   // Conformidade: Art. 10, MP 2.200-2/2001 — prova material de autoria da assinatura.
@@ -941,13 +911,18 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
 
   const signedAtIso = new Date().toISOString();
 
-  const signaturePngSha256 = await sha256(signature_png_base64);
+  const hasDrawnSignature = Boolean(signature_png_base64 && signature_png_base64.trim().length > 0);
+  const signaturePngSha256 = await sha256(
+    hasDrawnSignature ? signature_png_base64! : `ELETRONICA_OTP:${doc.id}:${signedAtIso}`
+  );
   const contentSha256AtSigning = doc.content_sha256 || doc.template_content_sha256;
   const cpfMasked = maskCPF(signer_cpf);
 
   // Blind Index e envelopes criptográficos preparados antes da transação com retry
   const signerCpfEncrypted = await encryptAesGcm(signer_cpf, masterKey, 1);
-  const signaturePngEncrypted = await encryptAesGcm(signature_png_base64, masterKey, 1);
+  const signaturePngEncrypted = hasDrawnSignature
+    ? await encryptAesGcm(signature_png_base64!, masterKey, 1)
+    : 'ASSINATURA_ELETRONICA_OTP';
 
   const manifestData = {
     document_id: doc.id,

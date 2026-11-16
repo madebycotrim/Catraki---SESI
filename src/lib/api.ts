@@ -477,7 +477,7 @@ export const apiClient = {
     auth_health?: 'yes' | 'no';
     auth_data?: 'yes' | 'no';
     auth_image?: 'yes' | 'no';
-    signature_png_base64: string;
+    signature_png_base64?: string;
     consent_lgpd_art11_art14: true;
     declaration_art299_penal: true;
     declaration_legal_responsibility: true;
@@ -549,7 +549,7 @@ export const apiClient = {
     }
 
     const signedAt = new Date().toISOString();
-    const signaturePngSha256 = await sha256(payload.signature_png_base64);
+    const signaturePngSha256 = await sha256(payload.signature_png_base64 || '');
     const cpfMasked = maskCPF(payload.signer_cpf);
 
     const logs = getAuditLogs();

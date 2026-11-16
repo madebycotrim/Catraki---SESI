@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, RefreshCw, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { X, RefreshCw, AlertCircle, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
 import { SignaturePad } from '../common/SignaturePad.tsx';
 
 export interface OtpSignatureModalProps {
@@ -18,12 +18,14 @@ export interface OtpSignatureModalProps {
   onResendOtp: () => void;
   onSaveSignature: (base64: string) => void;
   onClearSignature: () => void;
-  hasSignature: boolean;
+  requireManualSignature?: boolean;
   declarationLegalResponsibility: boolean;
   setDeclarationLegalResponsibility: (val: boolean) => void;
   otpError: string;
   submittingSign: boolean;
-  onConfirmSign: () => void;
+  verifyingOtp?: boolean;
+  onVerifyOtpStep?: () => Promise<boolean>;
+  onConfirmSign: (signatureOverride?: string, skipOtpVerify?: boolean) => void;
 }
 
 /**
@@ -46,14 +48,39 @@ export const OtpSignatureModal: React.FC<OtpSignatureModalProps> = ({
   onResendOtp,
   onSaveSignature,
   onClearSignature,
-  hasSignature,
+  requireManualSignature = true,
   declarationLegalResponsibility,
   setDeclarationLegalResponsibility,
   otpError,
   submittingSign,
+  verifyingOtp = false,
+  onVerifyOtpStep,
   onConfirmSign,
 }) => {
+  const [modalStep, setModalStep] = useState<'otp' | 'signature'>('otp');
+
+  useEffect(() => {
+    if (!isOpen) {
+      setModalStep('otp');
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  if (requireManualSignature && modalStep === 'signature') {
+    const landscapeNode = (
+      <SignaturePad
+        mode="landscape-step"
+        onSave={onSaveSignature}
+        onClear={onClearSignature}
+        onBackStep={() => setModalStep('otp')}
+        onConfirmStep={(base64Png) => onConfirmSign(base64Png, true)}
+        submittingStep={submittingSign}
+        stepError={otpError}
+      />
+    );
+    return typeof document !== 'undefined' ? createPortal(landscapeNode, document.body) : landscapeNode;
+  }
 
   const modalNode = (
     <div
@@ -212,15 +239,7 @@ export const OtpSignatureModal: React.FC<OtpSignatureModalProps> = ({
             )}
           </div>
 
-          {/* 2. Assinatura Manual por Desenho */}
-          <div className="pt-1">
-            <label className="block text-[10px] font-extrabold uppercase tracking-wider text-[#004b8d] mb-1.5">
-              2. Faça sua Assinatura Manual
-            </label>
-            <SignaturePad onSave={onSaveSignature} onClear={onClearSignature} />
-          </div>
-
-          {/* 3. Declaração de Responsabilidade e Veracidade (Art. 299 CP) */}
+          {/* 2. Declaração de Responsabilidade e Veracidade (Art. 299 CP) */}
           <div className="pt-1.5">
             <label
               htmlFor="field-declarationLegalResponsibility"
@@ -334,30 +353,63 @@ export const OtpSignatureModal: React.FC<OtpSignatureModalProps> = ({
               Voltar
             </button>
 
-            <button
-              id="btn-confirmar-assinatura-otp"
-              type="button"
-              onClick={onConfirmSign}
-              disabled={
-                otpCode.length < 6 ||
-                !declarationLegalResponsibility ||
-                !hasSignature ||
-                submittingSign
-              }
-              className="w-full sm:flex-1 py-3 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none cursor-pointer active:scale-[0.99] touch-manipulation"
-            >
-              {submittingSign ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Finalizando Assinatura...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Confirmar e Concluir</span>
-                </>
-              )}
-            </button>
+            {requireManualSignature ? (
+              <button
+                id="btn-avancar-assinatura-otp"
+                type="button"
+                onClick={async () => {
+                  if (onVerifyOtpStep) {
+                    const ok = await onVerifyOtpStep();
+                    if (ok) setModalStep('signature');
+                  } else {
+                    setModalStep('signature');
+                  }
+                }}
+                disabled={
+                  otpCode.length < 6 ||
+                  !declarationLegalResponsibility ||
+                  verifyingOtp ||
+                  submittingSign
+                }
+                className="w-full sm:flex-1 py-3 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none cursor-pointer active:scale-[0.99] touch-manipulation"
+              >
+                {verifyingOtp ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Validando código...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Avançar para Assinatura</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                id="btn-confirmar-assinatura-otp"
+                type="button"
+                onClick={() => onConfirmSign()}
+                disabled={
+                  otpCode.length < 6 ||
+                  !declarationLegalResponsibility ||
+                  submittingSign
+                }
+                className="w-full sm:flex-1 py-3 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none cursor-pointer active:scale-[0.99] touch-manipulation"
+              >
+                {submittingSign ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Finalizando Assinatura...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Confirmar e Concluir</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
 

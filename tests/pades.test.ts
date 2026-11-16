@@ -82,4 +82,28 @@ describe('Geração de Documentos de Assinatura Eletrônica (TCLE e Comprovante)
     const certHash = await sha256(pdfCertificado);
     expect(certHash).toHaveLength(64);
   });
+
+  it('deve gerar Cartaz A4 personalizado em PDF com QR Code para a unidade escolar', async () => {
+    const { GeradorCartazEscolaPdf } = await import('../src/lib/pades/index.ts');
+    const pdfBytes = await GeradorCartazEscolaPdf.gerarCartaz({
+      institution: {
+        id: 'cemeit',
+        name: 'CEMEIT - Centro de Ensino Médio Escola Industrial de Taguatinga',
+        short_name: 'CEMEIT',
+        city: 'Taguatinga',
+        state: 'DF',
+        is_active: true,
+      },
+      baseUrl: 'https://www.catraki.com.br',
+    });
+
+    expect(pdfBytes).toBeDefined();
+    expect(pdfBytes.length).toBeGreaterThan(2000);
+
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+    expect(pdfDoc.getPageCount()).toBe(1);
+    const firstPage = pdfDoc.getPage(0);
+    expect(Math.round(firstPage.getWidth())).toBe(595);
+    expect(Math.round(firstPage.getHeight())).toBe(842);
+  });
 });

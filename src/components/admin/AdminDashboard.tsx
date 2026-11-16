@@ -40,8 +40,7 @@ import {
   QrCode
 } from 'lucide-react';
 import JSZip from 'jszip';
-import QRCode from 'qrcode';
-import { GeradorPdfTermoSesi } from '../../lib/pades/GeradorPdfTermoSesi.ts';
+import { GeradorPdfTermoSesi, GeradorCartazEscolaPdf } from '../../lib/pades/index.ts';
 import { apiClient } from '../../lib/api.ts';
 import { parseUtcDate, formatBrasiliaDateTime, formatCPF, formatStudentSeries, formatStudentSeriesClass } from '../../lib/schemas.ts';
 import type { Institution } from '../../lib/types.ts';
@@ -721,20 +720,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleDownloadSchoolQrCode = async (inst: Institution) => {
     try {
-      const url = `${window.location.origin}/autorizar/${inst.id}`;
-      const dataUrl = await QRCode.toDataURL(url, {
-        width: 512,
-        margin: 2,
-        color: { dark: '#004b8d', light: '#ffffff' },
+      const pdfBytes = await GeradorCartazEscolaPdf.gerarCartaz({
+        institution: inst,
+        baseUrl: window.location.origin,
       });
+      const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `qrcode_${inst.id}.png`;
+      link.href = url;
+      link.download = `cartaz_qrcode_${inst.id}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err: any) {
-      setRevocationSuccessToast(`Falha ao gerar QR Code da escola: ${err?.message || 'Erro interno'}`);
+      setRevocationSuccessToast(`Falha ao gerar Cartaz PDF da escola: ${err?.message || 'Erro interno'}`);
     }
   };
 
@@ -2248,10 +2248,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       type="button"
                       onClick={() => handleDownloadSchoolQrCode(inst)}
                       className="py-2.5 px-3 rounded-xl bg-white border border-slate-300 hover:bg-blue-50 hover:text-[#004b8d] hover:border-blue-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
-                      title="Baixar QR Code para cartaz/impressão"
+                      title="Baixar cartaz A4 personalizado em PDF com QR Code para impressão"
                     >
                       <QrCode className="w-4 h-4" />
-                      <span>QR Code</span>
+                      <span>Cartaz PDF</span>
                     </button>
 
                     <button

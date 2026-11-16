@@ -979,7 +979,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const textToHash = `${doc.content_markdown || ''}\n${signer_name}\n${signer_cpf}\n${parsed.data.minor_name || doc.minor_name}\n${parsed.data.minor_birth_date || doc.minor_birth_date}`;
   const docParentHash = await sha256(textToHash);
 
-  const deviceMetadataJson = JSON.stringify({
+  const deviceMetadataPayload: Record<string, any> = {
     user_agent_parsed: formatUserAgent(userAgent),
     screen_resolution: device_fingerprint_data?.screen_resolution || null,
     os_name: device_fingerprint_data?.os_name || null,
@@ -998,7 +998,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     cf_colo: cfData.colo || null,
     cf_ray: cfData.rayId || null,
     captured_at: new Date().toISOString(),
-  });
+  };
+
+  let deviceMetadataJson = JSON.stringify(deviceMetadataPayload);
 
   const auditRowInput: AuditLogRowInput = {
     id: auditLogId,
@@ -1022,9 +1024,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     doc_parent_hash_sha256: docParentHash,
     device_metadata: deviceMetadataJson,
   };
-
-  const logRowHash = await computeLogRowHash({ ...auditRowInput, prev_log_hash: null });
-  // (logRowHash definitivo será calculado dentro do loop atômico com prevLogHash atualizado)
 
   const pdfR2Key = `signed-pdfs/${doc.id}/${manifestSha256}.pdf`;
   const manifestR2Key = `manifests/${doc.id}/${manifestSha256}.json`;
@@ -1102,6 +1101,13 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     assinaturaPngBase64: signature_png_base64,
     signerEmail: parsed.data.signer_email,
   });
+
+  // Hash SHA-256 do arquivo PDF final para verificação bit-a-bit no validador público
+  const pdfSha256 = await sha256(pdfBytes);
+  deviceMetadataPayload.pdf_sha256 = pdfSha256;
+  deviceMetadataJson = JSON.stringify(deviceMetadataPayload);
+  auditRowInput.device_metadata = deviceMetadataJson;
+  const logRowHash = await computeLogRowHash({ ...auditRowInput, prev_log_hash: null });
 
   let minorCpfBindex: string | null = null;
 
@@ -1389,7 +1395,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
                 { type: 'text/plain', value: emailText },
                 { type: 'text/html', value: emailHtml },
               ],
-              attachments: [{ content: pdfBase64, type: 'application/pdf', filename: `comprovante-assinatura-${doc.id}.pdf` }],
+              attachments: [{ content: pdfBase64, type: 'application/pdf', filename: `Termo-Consentimento-${validationCode}.pdf` }],
             }),
           });
         } catch (mcErr: any) {
@@ -1412,6 +1418,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     document_id: doc.id,
     validation_code: validationCode,
     manifest_sha256: manifestSha256,
+    pdf_sha256: pdfSha256,
     log_row_hash: logRowHash,
     signed_at_utc: signedAtIso,
     ip_address: ipAddress,

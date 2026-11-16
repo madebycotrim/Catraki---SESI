@@ -428,15 +428,26 @@ publicRouter.get('/validate/:query', async (c) => {
       ? `${codePrefix}-${manifest.substring(0, 4).toUpperCase()}-${manifest.substring(Math.max(0, manifest.length - 4)).toUpperCase()}`
       : `${codePrefix}-${hexPrefix.toUpperCase() || '0000'}-${hexSuffix.toUpperCase() || '0000'}`;
 
+    let parsedPdfSha256: string | null = null;
+    if (record.device_metadata && typeof record.device_metadata === 'string') {
+      try {
+        const meta = JSON.parse(record.device_metadata);
+        if (typeof meta?.pdf_sha256 === 'string') {
+          parsedPdfSha256 = meta.pdf_sha256;
+        }
+      } catch {}
+    }
+
     const response: PublicValidationResponse = {
       valid: !isCancelledError && record.doc_status !== 'revoked',
       validation_code: validationCode,
-      legal_notice: 'Assinatura Eletrônica Simples — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei Federal nº 14.063/2020 (Art. 4º, I); Código Civil (Arts. 104 e 107); LGPD (Lei nº 13.709/2018); ECA Art. 17; Art. 299 CP',
-      signature_type: 'Assinatura Eletrônica Simples — Art. 10, § 2º da MP nº 2.200-2/2001 e Art. 4º, I da Lei nº 14.063/2020',
+      legal_notice: 'Assinatura Eletrônica Simples — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei Federal nº 14.063/2020 (Art. 4º, I); Código Civil (Arts. 104 e 107); CPC (Arts. 190, 411 e 441); LGPD (Lei nº 13.709/2018); ECA Art. 17; Art. 299 CP',
+      signature_type: 'Assinatura Eletrônica Simples — Art. 4º, I da Lei nº 14.063/2020 e Art. 10, § 2º da MP nº 2.200-2/2001',
       document_id: record.document_id || record.id || 'DOC-PENDENTE',
       manifest_sha256: record.manifest_sha256 || manifest,
       content_sha256: record.content_sha256_at_signing || record.content_sha256 || 'SHA256-PENDING',
       signature_png_sha256: record.signature_png_sha256 || manifest,
+      pdf_sha256: parsedPdfSha256,
       signed_at_utc: record.signed_at || record.created_at || new Date().toISOString(),
       signer_name: maskName(record.signer_name || 'Responsável Legal'),
       signer_cpf_masked: record.signer_cpf_masked || '***.***.***-**',

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { apiClient } from '../../lib/api.ts';
+import { sha256 } from '../../lib/crypto.ts';
 import { formatUserAgent, formatBrasiliaDateTime, formatStudentSeries } from '../../lib/schemas.ts';
 import type { PublicValidationResponse } from '../../lib/types.ts';
 
@@ -34,6 +35,9 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
   const [errorMessage, setErrorMessage] = useState('');
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [pdfCheckStatus, setPdfCheckStatus] = useState<'idle' | 'match' | 'mismatch' | 'unavailable'>('idle');
+  const [pdfCheckedHash, setPdfCheckedHash] = useState<string>('');
+  const [pdfCheckedName, setPdfCheckedName] = useState<string>('');
 
   useEffect(() => {
     if (initialHash && initialHash.trim().length > 0) {
@@ -186,7 +190,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
             COMPROVANTE DE ACEITE ELETRÔNICO
           </h1>
           <p className="text-xs text-slate-500 mt-1 mb-0">
-            Registro de Assinatura Eletrônica Simples (Lei Federal nº 14.063/2020)
+            Registro de Assinatura Eletrônica Simples (Lei Federal nº 14.063/2020, Art. 4º, I)
           </p>
         </div>
 
@@ -628,7 +632,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
                       Assinatura Eletrônica Simples
                     </span>
                     <span className="text-[9.5px] font-bold text-slate-500">
-                      Lei Federal nº 14.063/2020 • Art. 10, § 2º MP 2.200-2/2001
+                      Lei Federal nº 14.063/2020 (Art. 4º, I) • Art. 10, § 2º MP 2.200-2/2001
                     </span>
                   </div>
                   <div className="p-3 bg-white rounded-lg border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -662,6 +666,56 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
                         Resumo criptográfico imutável que garante a integridade e inviolabilidade do documento assinado.
                       </span>
                     </div>
+
+                    {validationResult.pdf_sha256 && (
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                        <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <FileCheck2 className="w-3.5 h-3.5 text-sesi-primary" /> Integridade do Arquivo PDF (SHA-256)
+                        </span>
+                        <div className="font-mono text-[10px] font-bold text-slate-700 break-all select-all bg-white p-2 rounded-lg border border-slate-200">
+                          {validationResult.pdf_sha256}
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1">
+                          <label className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 border border-blue-200 text-sesi-primary text-[11px] font-bold rounded-lg cursor-pointer transition-colors">
+                            <FileCheck2 className="w-3.5 h-3.5" />
+                            <span>Conferir Arquivo PDF Baixado</span>
+                            <input
+                              type="file"
+                              accept="application/pdf,.pdf"
+                              className="sr-only"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setPdfCheckedName(file.name);
+                                const buf = new Uint8Array(await file.arrayBuffer());
+                                const computed = await sha256(buf);
+                                setPdfCheckedHash(computed);
+                                if (!validationResult.pdf_sha256) {
+                                  setPdfCheckStatus('unavailable');
+                                } else if (computed.toLowerCase() === validationResult.pdf_sha256.toLowerCase()) {
+                                  setPdfCheckStatus('match');
+                                } else {
+                                  setPdfCheckStatus('mismatch');
+                                }
+                              }}
+                            />
+                          </label>
+                          <span className="text-[10px] text-slate-400">
+                            Verificação local no navegador (o arquivo não é enviado).
+                          </span>
+                        </div>
+                        {pdfCheckStatus === 'match' && (
+                          <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
+                            ✓ Arquivo <strong>{pdfCheckedName}</strong> íntegro e autêntico (SHA-256 idêntico ao PDF original).
+                          </div>
+                        )}
+                        {pdfCheckStatus === 'mismatch' && (
+                          <div className="p-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-[11px] font-semibold">
+                            ⚠ Atenção: o arquivo <strong>{pdfCheckedName}</strong> possui hash diferente ({pdfCheckedHash.slice(0, 16)}...) e não corresponde ao PDF original registrado.
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center text-center">

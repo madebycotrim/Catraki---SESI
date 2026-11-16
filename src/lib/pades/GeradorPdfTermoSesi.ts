@@ -510,7 +510,7 @@ export class GeradorPdfTermoSesi {
     });
 
     y -= 9.5;
-    page1.drawText('Assinatura Eletrônica Simples — Plataforma Catraki (Art. 10, § 2º, MP 2.200-2/2001 e Lei nº 14.063/2020)', {
+    page1.drawText('Assinatura Eletrônica Simples — Plataforma Catraki (Art. 4º, I, Lei nº 14.063/2020 e Art. 10, § 2º, MP 2.200-2/2001)', {
       x: margemEsquerda,
       y,
       size: 7,
@@ -583,7 +583,7 @@ export class GeradorPdfTermoSesi {
         color: corAzulSesi,
       });
 
-      page2.drawText('Assinatura eletrônica simples realizada nos termos da Lei Federal nº 14.063/2020 e Art. 10, § 2º da MP nº 2.200-2/2001.', {
+      page2.drawText('Assinatura eletrônica simples realizada nos termos da Lei Federal nº 14.063/2020 (Art. 4º, I) e Art. 10, § 2º da MP nº 2.200-2/2001.', {
         x: xCabecalho2,
         y: y2 - 17,
         size: 5.8,

@@ -157,7 +157,7 @@ export class GeradorComprovanteConclusao {
     page.drawText('COMPROVANTE DE ACEITE E ASSINATURA ELETRÔNICA', {
       x: MARGIN, y: PAGE_H - 44, size: 8.5, font: fontBold, color: rgb(0.85, 0.92, 1),
     });
-    page.drawText('Assinatura Eletrônica Simples — Lei Federal nº 14.063/2020 e MP nº 2.200-2/2001.', {
+    page.drawText('Assinatura Eletrônica Simples — Lei Federal nº 14.063/2020 (Art. 4º, I) e MP nº 2.200-2/2001 (Art. 10, § 2º).', {
       x: MARGIN, y: PAGE_H - 58, size: 6.5, font: fontRegular, color: rgb(0.75, 0.85, 1),
     });
 

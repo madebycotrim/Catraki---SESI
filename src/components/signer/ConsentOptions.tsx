@@ -175,7 +175,7 @@ export const ConsentOptions: React.FC<ConsentOptionsProps> = ({
           </div>
           <span className="text-xs sm:text-[13px] text-slate-900 font-bold leading-relaxed">
             <strong>Declaro que li e concordo</strong> com este Termo de Consentimento e com o uso de
-            assinatura eletrônica simples (Lei Federal nº 14.063/2020 e MP nº 2.200-2/2001),
+            assinatura eletrônica simples (Art. 4º, I da Lei Federal nº 14.063/2020, Art. 10, § 2º da MP nº 2.200-2/2001 e Art. 190 do CPC),
             confirmando a veracidade de todas as declarações prestadas, sob as penas da lei.{' '}
             <span className="text-red-500 font-bold">* (Obrigatório)</span>
           </span>

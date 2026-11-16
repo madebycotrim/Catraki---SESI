@@ -221,6 +221,7 @@ export interface PublicValidationResponse {
   manifest_sha256: string;
   content_sha256: string;
   signature_png_sha256: string;
+  pdf_sha256?: string | null;
   signed_at_utc: string;
   signer_name: string;
   signer_cpf_masked: string;

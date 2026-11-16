@@ -360,7 +360,7 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                   Assinatura Eletrônica Simples
                 </span>
                 <span className="text-[9.5px] font-bold text-slate-500">
-                  Lei Federal nº 14.063/2020 • Art. 10, § 2º MP 2.200-2/2001
+                  Lei Federal nº 14.063/2020 (Art. 4º, I) • Art. 10, § 2º MP 2.200-2/2001
                 </span>
               </div>
               <div className="p-3 bg-white rounded-lg border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">

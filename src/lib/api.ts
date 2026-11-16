@@ -489,6 +489,7 @@ export const apiClient = {
     termos_versao?: string;
     device_fingerprint_data?: any;
     turnstile_token?: string;
+    guardianship_reference?: string;
   }): Promise<any> {
     // Função auxiliar: persiste auth_image/health/data e instituição no localStorage
     // independente de qual caminho processa a assinatura (backend ou mock local)
@@ -1802,6 +1803,7 @@ export const apiClient = {
   // ==========================================================================
 
   _authErrorListeners: [] as Array<() => void>,
+  _inMemoryAdminToken: null as string | null,
 
   addAuthErrorListener(listener: () => void): () => void {
     this._authErrorListeners.push(listener);
@@ -1811,13 +1813,14 @@ export const apiClient = {
   },
 
   getAdminToken(): string | null {
+    if (this._inMemoryAdminToken) return this._inMemoryAdminToken;
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem('catraki_admin_jwt');
+    return sessionStorage.getItem('catraki_admin_jwt');
   },
 
   getCurrentAdminUser(): any | null {
     if (typeof window === 'undefined') return null;
-    const raw = localStorage.getItem('catraki_admin_user');
+    const raw = sessionStorage.getItem('catraki_admin_user');
     if (!raw) return null;
     try {
       return JSON.parse(raw);
@@ -1827,17 +1830,32 @@ export const apiClient = {
   },
 
   setAdminSession(token: string, user: any): void {
+    this._inMemoryAdminToken = token;
     if (typeof window === 'undefined') return;
-    localStorage.setItem('catraki_admin_jwt', token);
-    localStorage.setItem('catraki_admin_user', JSON.stringify(user));
+    sessionStorage.setItem('catraki_admin_jwt', token);
+    sessionStorage.setItem('catraki_admin_user', JSON.stringify(user));
+    try {
+      localStorage.removeItem('catraki_admin_jwt');
+      localStorage.removeItem('catraki_admin_user');
+    } catch {
+      // Ignora falha ao limpar chave legada
+    }
   },
 
   logoutAdmin(): void {
+    this._inMemoryAdminToken = null;
     if (typeof window === 'undefined') return;
-    localStorage.removeItem('catraki_admin_jwt');
-    localStorage.removeItem('catraki_admin_user');
+    sessionStorage.removeItem('catraki_admin_jwt');
+    sessionStorage.removeItem('catraki_admin_user');
+    try {
+      localStorage.removeItem('catraki_admin_jwt');
+      localStorage.removeItem('catraki_admin_user');
+    } catch {
+      // Ignora falha ao limpar chave legada
+    }
     sessionStorage.removeItem('ms_code_verifier');
     sessionStorage.removeItem('ms_state');
+    fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
     this._authErrorListeners.forEach((l) => {
       try {
         l();

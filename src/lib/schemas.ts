@@ -451,6 +451,7 @@ export const SignDocumentSchema = z.object({
   }),
   client_fingerprint: z.string().max(256).optional(),
   termos_versao: z.string().max(32).optional(),
+  guardianship_reference: z.string().trim().max(200).optional(),
   device_fingerprint_data: z.object({
     screen_resolution: z.string().optional(),
     os_name: z.string().optional(),

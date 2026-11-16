@@ -118,6 +118,10 @@
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_audit_logs_prev_hash_unique
+    ON audit_logs(prev_log_hash)
+    WHERE prev_log_hash IS NOT NULL;
+
   -- 5. Gestão de Usuários Administrativos com RBAC
   CREATE TABLE IF NOT EXISTS admin_users (
     id TEXT PRIMARY KEY,

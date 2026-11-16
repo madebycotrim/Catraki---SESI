@@ -2274,7 +2274,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* MODAL: ESCOLHA DE UNIDADE ESCOLAR APÓS LOGIN */}
       {showSchoolSelectModal && (typeof document !== 'undefined' ? createPortal(
-        <div className="fixed inset-0 z-[120] bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-0 m-0 overflow-y-auto animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Selecionar unidade escolar"
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowSchoolSelectModal(false); }}
+          className="fixed inset-0 z-[120] bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-0 m-0 overflow-y-auto animate-in fade-in duration-200"
+        >
           <div className="bg-white rounded-3xl max-w-2xl w-[calc(100%-2rem)] sm:w-full mx-4 p-4 sm:p-6 shadow-2xl flex flex-col gap-3 sm:gap-3.5 border border-slate-200 my-auto max-h-[92vh]">
             
             {/* Cabeçalho do Modal */}
@@ -2477,7 +2483,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* MODAL: CADASTRAR NOVA ESCOLA */}
       {showNewSchoolModal && (typeof document !== 'undefined' ? createPortal(
-        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-0 m-0 overflow-y-auto animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={editingSchoolId ? 'Editar Cadastro da Escola' : 'Cadastrar Nova Escola'}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && !isSubmittingSchool) {
+              setShowNewSchoolModal(false);
+              setEditingSchoolId(null);
+            }
+          }}
+          className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-0 m-0 overflow-y-auto animate-in fade-in duration-200"
+        >
           <div className="bg-white rounded-3xl max-w-lg w-[calc(100%-2rem)] sm:w-full mx-4 p-6 sm:p-7 shadow-2xl space-y-5 border border-slate-200 my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
@@ -2645,6 +2662,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* MODAL DE REVOGAÇÃO / ANULAÇÃO DE DOCUMENTO */}
       {showRevocationModal && selectedAuthToRevoke && (typeof document !== 'undefined' ? createPortal(
         <div 
+          role="dialog"
+          aria-modal="true"
+          aria-label="Anulação administrativa de documento"
+          onKeyDown={(e) => { if (e.key === 'Escape' && !isRevoking) setShowRevocationModal(false); }}
           className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-0 m-0 animate-in fade-in duration-200 overflow-y-auto"
           onClick={() => !isRevoking && setShowRevocationModal(false)}
         >
@@ -2839,6 +2860,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* MODAL: FICHA CADASTRAL E DE COMPROVANTE DO ESTUDANTE — FOLHA A4 (PADRÃO TIMBRADO CATRAKI / SESI) */}
       {showDetailsModal && selectedAuthForDetails && (typeof document !== 'undefined' ? createPortal(
         <div 
+          role="dialog"
+          aria-modal="true"
+          aria-label="Ficha cadastral e comprovante do estudante"
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowDetailsModal(false); }}
           className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-0 m-0 animate-in fade-in duration-200 overflow-y-auto"
           onClick={() => setShowDetailsModal(false)}
         >
@@ -3118,6 +3143,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* MODAL: REENVIAR E-MAIL */}
       {showResendEmailModal && selectedAuthForResendEmail && (typeof document !== 'undefined' ? createPortal(
         <div 
+          role="dialog"
+          aria-modal="true"
+          aria-label="Reenviar notificação por e-mail"
+          onKeyDown={(e) => { if (e.key === 'Escape' && !isResendingEmail) setShowResendEmailModal(false); }}
           className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-0 m-0 animate-in fade-in duration-200 overflow-y-auto"
           onClick={() => setShowResendEmailModal(false)}
         >
@@ -3244,6 +3273,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* MODAL: EXCLUSÃO DEFINITIVA DE TESTE (HARD DELETE) */}
       {showHardDeleteModal && selectedAuthToHardDelete && (typeof document !== 'undefined' ? createPortal(
         <div 
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirmar exclusão de registro"
+          onKeyDown={(e) => { if (e.key === 'Escape' && !isHardDeleting) setShowHardDeleteModal(false); }}
           className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-0 m-0 animate-in fade-in duration-200 overflow-y-auto"
           onClick={() => setShowHardDeleteModal(false)}
         >

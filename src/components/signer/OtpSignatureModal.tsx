@@ -282,7 +282,7 @@ export const OtpSignatureModal: React.FC<OtpSignatureModalProps> = ({
                     >
                       Política de Privacidade
                     </a>
-                    , autorizando a emissão eletrônica.{' '}
+                    , admitindo como válida esta assinatura eletrônica e seus registros probatórios (Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020 e Art. 190 do CPC).{' '}
                     <span className="text-red-500 font-bold">*</span>
                   </>
                 ) : (
@@ -308,7 +308,7 @@ export const OtpSignatureModal: React.FC<OtpSignatureModalProps> = ({
                     >
                       Política de Privacidade
                     </a>
-                    , autorizando a emissão eletrônica.{' '}
+                    , admitindo como válida esta assinatura eletrônica e seus registros probatórios (Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020 e Art. 190 do CPC).{' '}
                     <span className="text-red-500 font-bold">*</span>
                   </>
                 )}

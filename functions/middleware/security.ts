@@ -1,5 +1,9 @@
 import { MiddlewareHandler } from 'hono';
 import { sha256 } from '../../src/lib/crypto.ts';
+import { handleScheduled } from '../crons/index.ts';
+
+let lastOpportunisticCronAt = 0;
+const CRON_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 horas
 
 /**
  * Middleware de cabeçalhos estritos de segurança (OWASP Top 10 + LGPD)
@@ -94,6 +98,13 @@ export const accessLogger: MiddlewareHandler = async (c, next) => {
           (id, ip_address, user_agent, endpoint_path, http_method, status_code, session_token_hash, retention_until, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+180 days'), datetime('now'))`
       ).bind(logId, ip, userAgent, endpointPath, httpMethod, statusCode, sessionTokenHash).run();
+
+      // Execução oportunista em background das rotinas regulatórias (LGPD Art. 16 e Marco Civil Art. 15) a cada 6h
+      const nowMs = Date.now();
+      if (nowMs - lastOpportunisticCronAt > CRON_INTERVAL_MS) {
+        lastOpportunisticCronAt = nowMs;
+        await handleScheduled(c.env as any);
+      }
     } catch (err: any) {
       console.warn('[ACCESS_LOGGER] Falha ao gravar log de acesso:', err?.message || err);
     }

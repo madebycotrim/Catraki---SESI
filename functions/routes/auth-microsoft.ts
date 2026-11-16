@@ -254,6 +254,11 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
       jwtSecret
     );
 
+    c.header(
+      'Set-Cookie',
+      `sesi_admin_token=${token}; HttpOnly; Secure; SameSite=Strict; Path=/api; Max-Age=28800`
+    );
+
     return c.json({
       success: true,
       token,
@@ -277,11 +282,17 @@ authMicrosoftRouter.post('/microsoft/callback', async (c) => {
  */
 authMicrosoftRouter.get('/me', async (c) => {
   const authHeader = c.req.header('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  let token = '';
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  } else {
+    const cookieHeader = c.req.header('Cookie') || '';
+    const match = cookieHeader.match(/sesi_admin_token=([^;]+)/);
+    if (match) token = match[1];
+  }
+  if (!token) {
     return c.json({ success: false, error: 'Não autenticado.' }, 401);
   }
-
-  const token = authHeader.substring(7);
   const secret = c.env.JWT_ADMIN_SECRET;
   if (!secret) {
     return c.json({ success: false, error: 'Configuração de segurança do servidor incompleta (JWT_ADMIN_SECRET ausente).', code: 'SERVER_MISCONFIGURED' }, 500);
@@ -310,4 +321,12 @@ authMicrosoftRouter.get('/me', async (c) => {
       role: payload.role,
     },
   });
+});
+
+authMicrosoftRouter.post('/logout', (c) => {
+  c.header(
+    'Set-Cookie',
+    'sesi_admin_token=; HttpOnly; Secure; SameSite=Strict; Path=/api; Max-Age=0'
+  );
+  return c.json({ success: true });
 });

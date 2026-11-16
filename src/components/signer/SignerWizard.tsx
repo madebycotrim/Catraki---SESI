@@ -230,6 +230,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
             minorSeries: formData.minorSeries,
             minorClass: formData.minorClass,
             minorTurn: formData.minorTurn,
+            guardianshipReference: formData.guardianshipReference,
           }}
           onSuccess={(result) => {
             if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {

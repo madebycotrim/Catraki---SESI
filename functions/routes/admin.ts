@@ -160,6 +160,11 @@ adminRouter.post('/auth/login', rateLimiter({ limit: 5, windowSeconds: 900, keyP
     userAgent
   );
 
+  c.header(
+    'Set-Cookie',
+    `sesi_admin_token=${token}; HttpOnly; Secure; SameSite=Strict; Path=/api; Max-Age=28800`
+  );
+
   return c.json({
     success: true,
     token,

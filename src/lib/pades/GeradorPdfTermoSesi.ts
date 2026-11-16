@@ -804,13 +804,22 @@ export class GeradorPdfTermoSesi {
 
       y2 -= 10;
       const textoIntegridadeLegal = isMaior
-        ? 'Em conformidade com o Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020, Arts. 104 e 107 do CC, Arts. 411 e 441 do CPC, Arts. 7º, 11, I e 18 da LGPD, e Art. 20 do CC.'
-        : 'Em conformidade com o Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020, Arts. 104 e 107 do CC, Arts. 411 e 441 do CPC, Arts. 7º, 11, 14 e 18 da LGPD, e Art. 17 do ECA.';
+        ? 'Em conformidade com o Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020, Arts. 104 e 107 do CC, Arts. 190, 411 e 441 do CPC, Arts. 7º, 11, I e 18 da LGPD, e Art. 20 do CC.'
+        : 'Em conformidade com o Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020, Arts. 104 e 107 do CC, Arts. 190, 411 e 441 do CPC, Arts. 7º, 11, 14 e 18 da LGPD, e Art. 17 do ECA.';
 
       page2.drawText(textoIntegridadeLegal, {
         x: margemEsquerda,
         y: y2,
-        size: 7,
+        size: 6.8,
+        font: fontRegular,
+        color: corCinzaEscuro,
+      });
+
+      y2 -= 9.5;
+      page2.drawText('As partes admitem expressamente como válido este meio eletrônico de comprovação de autoria e integridade (MP 2.200-2/2001, Art. 10, § 2º e CPC, Art. 190).', {
+        x: margemEsquerda,
+        y: y2,
+        size: 6.8,
         font: fontRegular,
         color: corCinzaEscuro,
       });

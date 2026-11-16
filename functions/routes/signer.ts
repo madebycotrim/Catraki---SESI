@@ -967,6 +967,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       cpf_masked: cpfMasked,
       relationship: signer_relationship,
       identity_method: identityMethod,
+      guardianship_reference: parsed.data.guardianship_reference || null,
     },
     minor: {
       name_hash: await sha256(doc.minor_name || 'Estudante'),
@@ -990,6 +991,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       : 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020; Código Civil (Arts. 104, 107 e 225); CPC (Arts. 411 e 441); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
     consent_text_version: doc.consent_text_version,
     termos_versao: parsed.data.termos_versao || '1.0.2026',
+    electronic_proof_convention: 'Admitida pelas partes como válida nos termos do Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020 e Art. 190 do CPC',
   };
 
   const manifestSha256 = await sha256(canonicalJson(manifestData));
@@ -1165,13 +1167,13 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
           db.prepare(
             `INSERT INTO audit_logs (
               id, document_id, prev_log_hash, signed_at, signer_name,
-              signer_cpf_encrypted, signer_cpf_masked, signer_relationship, identity_method,
+              signer_cpf_encrypted, signer_cpf_masked, signer_relationship, guardianship_doc_r2_key, identity_method,
               signature_png_encrypted, signature_png_sha256, key_version, ip_address, user_agent,
               geo_city, geo_region, geo_country, client_fingerprint,
               content_sha256_at_signing, consent_text_version, manifest_sha256,
               otp_requested_at, otp_verified_at, otp_email_message_id, doc_parent_hash_sha256, device_metadata,
               log_row_hash, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
           ).bind(
             auditLogId,
             doc.id,
@@ -1181,6 +1183,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
             signerCpfEncrypted,
             cpfMasked,
             signer_relationship,
+            parsed.data.guardianship_reference || null,
             identityMethod,
             signaturePngEncrypted,
             signaturePngSha256,

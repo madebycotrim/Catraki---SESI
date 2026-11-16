@@ -37,6 +37,7 @@ interface Step3OtpAndSignatureProps {
     minorSeries?: string;
     minorClass?: string;
     minorTurn?: string;
+    guardianshipReference?: string;
   };
   onSuccess: (signResult: any) => void;
   onBack: () => void;
@@ -225,6 +226,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         identity_method: identityData.identityMethod,
         termos_versao: '1.0.2026',
         turnstile_token: turnstileToken || undefined,
+        guardianship_reference: identityData.guardianshipReference || undefined,
       });
 
       if (resp.success) {

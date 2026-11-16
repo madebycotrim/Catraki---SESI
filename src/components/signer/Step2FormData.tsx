@@ -17,6 +17,7 @@ interface FormData {
   signerPhone: string;
   signerEmail: string;
   signerRelationship: SignerRelationship | '';
+  guardianshipReference?: string;
 }
 
 interface Step2FormDataProps {
@@ -58,6 +59,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
       signerPhone: initialData?.signerPhone || saved.signerPhone || '',
       signerEmail: initialData?.signerEmail || saved.signerEmail || '',
       signerRelationship: (initialData?.signerRelationship || saved.signerRelationship || '') as FormData['signerRelationship'],
+      guardianshipReference: initialData?.guardianshipReference || saved.guardianshipReference || '',
     };
   });
 
@@ -148,6 +150,11 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
       // 3. Vínculo com o Responsável (sempre obrigatório)
       if (!formData.signerRelationship) {
         newErrors.signerRelationship = 'Selecione o seu vínculo ou grau de parentesco com o estudante.';
+      } else if (
+        ['Tutor(a) Legal', 'Responsável por Guarda Judicial', 'Avô/Avó', 'Tio/Tia'].includes(formData.signerRelationship) &&
+        (!formData.guardianshipReference || formData.guardianshipReference.trim().length < 5)
+      ) {
+        newErrors.guardianshipReference = 'Informe a referência do termo de guarda, tutela ou declaração de responsabilidade (mínimo 5 caracteres).';
       }
     }
 
@@ -506,6 +513,30 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   </span>
                 )}
               </div>
+
+              {['Tutor(a) Legal', 'Responsável por Guarda Judicial', 'Avô/Avó', 'Tio/Tia'].includes(formData.signerRelationship) && (
+                <div className="flex flex-col gap-1 md:col-span-2 bg-blue-50/40 p-3 rounded-xl border border-blue-200/80">
+                  <label htmlFor="field-guardianshipReference" className="text-[10px] sm:text-xs font-bold text-slate-700 uppercase">
+                    Identificação do Termo de Guarda, Tutela ou Representação Legal (LGPD Art. 14, § 5º)
+                  </label>
+                  <input
+                    id="field-guardianshipReference"
+                    type="text"
+                    name="guardianshipReference"
+                    value={formData.guardianshipReference || ''}
+                    onChange={handleChange}
+                    maxLength={160}
+                    className={`w-full px-3 py-2 text-base sm:text-xs border rounded-lg bg-white focus:outline-none transition-colors ${errors.guardianshipReference ? 'border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-300 focus:border-sesi-primary focus:ring-1 focus:ring-sesi-primary'}`}
+                    placeholder="Ex: Nº do processo/termo de guarda ou declaração de responsabilidade familiar"
+                  />
+                  {errors.guardianshipReference && (
+                    <span className="text-[11px] font-semibold text-red-600 flex items-center gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                      <span>{errors.guardianshipReference}</span>
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div className="flex flex-col gap-1">
                 <label htmlFor="field-signerPhone" className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase">

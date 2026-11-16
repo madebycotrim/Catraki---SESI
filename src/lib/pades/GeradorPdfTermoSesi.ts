@@ -462,6 +462,33 @@ export class GeradorPdfTermoSesi {
       } catch (e) {
         console.error('Erro ao embutir assinatura no PDF:', e);
       }
+    } else {
+      // Selo institucional de assinatura eletrônica (quando assinado pelo computador sem desenho manual)
+      const boxW = 250;
+      const boxH = 30;
+      page1.drawRectangle({
+        x: margemEsquerda,
+        y: y + 3,
+        width: boxW,
+        height: boxH,
+        color: rgb(0.95, 0.97, 0.99),
+        borderColor: corAzulSesi,
+        borderWidth: 0.75,
+      });
+      page1.drawText('ASSINATURA ELETRÔNICA CONFIRMADA VIA E-MAIL (OTP 2FA)', {
+        x: margemEsquerda + 8,
+        y: y + 21,
+        size: 6.4,
+        font: fontBold,
+        color: corAzulSesi,
+      });
+      page1.drawText(`Protocolo: ${validationCode}  •  Registro: ${dataHoraStr}`, {
+        x: margemEsquerda + 8,
+        y: y + 10,
+        size: 6.2,
+        font: fontMono,
+        color: corCinzaEscuro,
+      });
     }
 
     page1.drawLine({
@@ -634,12 +661,19 @@ export class GeradorPdfTermoSesi {
 
       const localizacaoStr = dados.geoLocalizacaoCompleta
         || [dados.geoCidade, dados.geoEstado, dados.geoPais].filter(Boolean).join(', ')
-        || 'Brasília, DF, Brasil';
+        || 'Localização não informada';
+
+      const modalidadeAssinatura = dados.assinaturaPngBase64 && dados.assinaturaPngBase64.startsWith('data:image/')
+        ? 'Assinatura Eletrônica (OTP 2FA + Rubrica Manual)'
+        : 'Assinatura Eletrônica (OTP 2FA via E-mail)';
 
       const tableItems: Array<{ label: string; values: string[] }> = [
-        { label: 'Nome', values: [nomeSignatarioFolha2] },
+        { label: 'Nome do Signatário', values: [nomeSignatarioFolha2] },
         { label: 'CPF (Completo)', values: [cpfCompletoSignatario] },
         { label: 'E-mail', values: [dados.signerEmail || 'Não informado'] },
+        { label: 'Estudante Vinculado', values: [dados.nomeMenor] },
+        ...(dados.nomeEscola ? [{ label: 'Unidade Escolar', values: this.quebrarTexto(dados.nomeEscola, 60) }] : []),
+        { label: 'Modalidade', values: [modalidadeAssinatura] },
         { label: 'IP de Acesso', values: [ipFormatado] },
         { label: 'Geolocalização / Rede', values: [localizacaoStr] },
         ...(dados.provedorAsn ? [{ label: 'Provedor / ASN', values: [dados.provedorAsn] }] : []),
@@ -717,52 +751,73 @@ export class GeradorPdfTermoSesi {
         color: corPreto,
       });
 
-      // 4. VALIDAÇÃO PÚBLICA / QR CODE
-      y2 -= 22;
-      page2.drawText('VALIDAÇÃO DE AUTENTICIDADE', {
+      // 4. VALIDAÇÃO PÚBLICA / QR CODE (Card estruturado sem sobreposição)
+      y2 -= 18;
+      const QR_SIZE = 74;
+      const cardHeight = 90;
+      const cardWidth = width - margemEsquerda - margemDireita;
+      const cardBottomY = y2 - cardHeight;
+
+      page2.drawRectangle({
         x: margemEsquerda,
-        y: y2,
-        size: 9.5,
+        y: cardBottomY,
+        width: cardWidth,
+        height: cardHeight,
+        color: rgb(0.97, 0.98, 0.99),
+        borderColor: corAzulSesi,
+        borderWidth: 0.6,
+      });
+
+      const qrX = width - margemDireita - QR_SIZE - 8;
+      const qrY = cardBottomY + (cardHeight - QR_SIZE) / 2;
+
+      let textY = y2 - 14;
+      page2.drawText('VALIDAÇÃO DE AUTENTICIDADE', {
+        x: margemEsquerda + 10,
+        y: textY,
+        size: 9,
         font: fontBold,
         color: corPreto,
       });
 
-      y2 -= 14;
+      textY -= 13;
       page2.drawText(`Código de Validação Pública: ${validationCode}`, {
-        x: margemEsquerda,
-        y: y2,
+        x: margemEsquerda + 10,
+        y: textY,
         size: 8.5,
         font: fontBold,
         color: corAzulSesi,
       });
 
-      y2 -= 12;
+      textY -= 12;
       const linkValidacao = `https://www.catraki.com.br/validar/${validationCode}`;
-      page2.drawText('Para validar a autenticidade deste documento e confirmar que o arquivo é verdadeiro, acesse:', {
-        x: margemEsquerda,
-        y: y2,
-        size: 8,
-        font: fontRegular,
-        color: corPreto,
-      });
-      y2 -= 11;
+      const textoValidacao = this.quebrarTexto(
+        'Para confirmar a autenticidade deste documento, aponte a câmera para o QR Code ou acesse:',
+        64
+      );
+      for (const linhaVal of textoValidacao) {
+        page2.drawText(linhaVal, {
+          x: margemEsquerda + 10,
+          y: textY,
+          size: 7.5,
+          font: fontRegular,
+          color: corPreto,
+        });
+        textY -= 10;
+      }
+
       page2.drawText(linkValidacao, {
-        x: margemEsquerda,
-        y: y2,
-        size: 8,
+        x: margemEsquerda + 10,
+        y: textY,
+        size: 7.5,
         font: fontMono,
         color: corAzulSesi,
       });
 
-      // QR Code ao lado
-      const QR_SIZE = 75;
-      const qrX = width - margemDireita - QR_SIZE;
-      const qrY = y2 - 10;
-
       try {
         const qrDataUrl = await QRCode.toDataURL(linkValidacao, {
           errorCorrectionLevel: 'M',
-          width: 100,
+          width: 120,
           margin: 1,
         });
         const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
@@ -770,12 +825,12 @@ export class GeradorPdfTermoSesi {
         const qrImage = await pdfDoc.embedPng(qrBytes);
 
         page2.drawRectangle({
-          x: qrX - 4,
-          y: qrY - 4,
-          width: QR_SIZE + 8,
-          height: QR_SIZE + 8,
-          color: rgb(0.97, 0.98, 0.99),
-          borderColor: corAzulSesi,
+          x: qrX - 3,
+          y: qrY - 3,
+          width: QR_SIZE + 6,
+          height: QR_SIZE + 6,
+          color: rgb(1, 1, 1),
+          borderColor: corCinzaLinha,
           borderWidth: 0.5,
         });
         page2.drawImage(qrImage, { x: qrX, y: qrY, width: QR_SIZE, height: QR_SIZE });
@@ -783,8 +838,8 @@ export class GeradorPdfTermoSesi {
         console.warn('[PDF] Falha ao gerar QR Code da folha 2:', err);
       }
 
-      // 5. AVISO DE INTEGRIDADE JURÍDICA E LGPD
-      y2 -= 32;
+      // 5. AVISO DE INTEGRIDADE JURÍDICA E LGPD (sempre abaixo do card de QR Code)
+      y2 = cardBottomY - 16;
       page2.drawText('AVISO DE INTEGRIDADE E CONFORMIDADE LEGAL:', {
         x: margemEsquerda,
         y: y2,
@@ -797,7 +852,7 @@ export class GeradorPdfTermoSesi {
       page2.drawText('Este documento foi selado criptograficamente com resumo SHA-256. Qualquer tentativa de alteração invalidará os hashes.', {
         x: margemEsquerda,
         y: y2,
-        size: 7.5,
+        size: 7.3,
         font: fontRegular,
         color: corPreto,
       });
@@ -807,22 +862,30 @@ export class GeradorPdfTermoSesi {
         ? 'Em conformidade com o Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020, Arts. 104 e 107 do CC, Arts. 190, 411 e 441 do CPC, Arts. 7º, 11, I e 18 da LGPD, e Art. 20 do CC.'
         : 'Em conformidade com o Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020, Arts. 104 e 107 do CC, Arts. 190, 411 e 441 do CPC, Arts. 7º, 11, 14 e 18 da LGPD, e Art. 17 do ECA.';
 
-      page2.drawText(textoIntegridadeLegal, {
-        x: margemEsquerda,
-        y: y2,
-        size: 6.8,
-        font: fontRegular,
-        color: corCinzaEscuro,
-      });
+      for (const linhaLegal of this.quebrarTexto(textoIntegridadeLegal, 96)) {
+        page2.drawText(linhaLegal, {
+          x: margemEsquerda,
+          y: y2,
+          size: 6.8,
+          font: fontRegular,
+          color: corCinzaEscuro,
+        });
+        y2 -= 9.5;
+      }
 
-      y2 -= 9.5;
-      page2.drawText('As partes admitem expressamente como válido este meio eletrônico de comprovação de autoria e integridade (MP 2.200-2/2001, Art. 10, § 2º e CPC, Art. 190).', {
-        x: margemEsquerda,
-        y: y2,
-        size: 6.8,
-        font: fontRegular,
-        color: corCinzaEscuro,
-      });
+      for (const linhaConv of this.quebrarTexto(
+        'As partes admitem expressamente como válido este meio eletrônico de comprovação de autoria e integridade (MP 2.200-2/2001, Art. 10, § 2º e CPC, Art. 190).',
+        96
+      )) {
+        page2.drawText(linhaConv, {
+          x: margemEsquerda,
+          y: y2,
+          size: 6.8,
+          font: fontRegular,
+          color: corCinzaEscuro,
+        });
+        y2 -= 9.5;
+      }
 
       // 6. DISCLAIMER OBRIGATÓRIO DA PLATAFORMA CATRAKI (MÓDULO 4)
       y2 -= 16;

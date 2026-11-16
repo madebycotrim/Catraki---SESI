@@ -284,7 +284,11 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
       if (resp.success) {
         setOtpSent(false);
         setShowOtpModal(false);
-        onSuccess({ ...resp, otp_channel: 'email' });
+        onSuccess({
+          ...resp,
+          otp_channel: 'email',
+          has_manual_signature: Boolean(effectiveSignature),
+        });
       } else {
         const errMsg =
           resp.error ||

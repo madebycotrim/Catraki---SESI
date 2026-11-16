@@ -1346,7 +1346,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
               subject: emailSubject,
               html: emailHtml,
               text: emailText,
-              attachments: [{ filename: `comprovante-assinatura-${doc.id}.pdf`, content: pdfBase64 }],
+              attachments: [{ filename: `Termo-Consentimento-${validationCode}.pdf`, content: pdfBase64 }],
             }),
           });
 
@@ -1364,7 +1364,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
                 subject: emailSubject,
                 html: emailHtml,
                 text: emailText,
-                attachments: [{ filename: `comprovante-assinatura-${doc.id}.pdf`, content: pdfBase64 }],
+                attachments: [{ filename: `Termo-Consentimento-${validationCode}.pdf`, content: pdfBase64 }],
               }),
             });
           }

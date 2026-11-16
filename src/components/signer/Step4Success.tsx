@@ -26,6 +26,7 @@ interface Step4SuccessProps {
     validation_url: string;
     message: string;
     otp_channel?: string;
+    has_manual_signature?: boolean;
   };
   signerName: string;
   signerRelationship?: string;
@@ -343,6 +344,12 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                   <FileText className="w-3.5 h-3.5 text-slate-500" />
                   Rede de borda Cloudflare
                 </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200/80 rounded-lg text-[11px] font-semibold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" />
+                  {signResult.has_manual_signature
+                    ? 'Rubrica manuscrita capturada'
+                    : 'Assinatura eletrônica sem rubrica manual'}
+                </span>
               </div>
             </div>
 
@@ -462,7 +469,11 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
                 <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
                 <div>
                   <span className="text-slate-500 block text-[9px] font-bold uppercase tracking-wider mb-0.5">Autoria</span>
-                  <span className="text-slate-700 font-semibold">Assinatura manuscrita na tela + IP e Horário</span>
+                  <span className="text-slate-700 font-semibold">
+                    {signResult.has_manual_signature
+                      ? 'Assinatura manuscrita na tela + OTP + IP e Horário'
+                      : 'Confirmação via E-mail (OTP 2FA) + IP e Horário'}
+                  </span>
                 </div>
               </div>
               <div className="bg-white p-2.5 border border-slate-200 rounded-lg flex items-start gap-2">

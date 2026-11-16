@@ -474,10 +474,10 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Parâmetros inválidos.', code: 'VALIDATION_ERROR' }, 400);
   }
 
-  // ── Validação Anti-Robô (Cloudflare Turnstile) ───────────────
+  // ── Validação Anti-Robô (Cloudflare Turnstile, quando enviado pelo cliente) ──
   const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
   const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
-  if (turnstileSecret) {
+  if (turnstileSecret && turnstileToken) {
     const cfData = extractCloudflareClientData(c);
     const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip, c.env.APP_ENV);
     if (!turnstileCheck.success) {
@@ -566,7 +566,10 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   let emailError = '';
   let resendMessageId = '';
 
-  const targetEmail = providedEmail || (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' ? await decryptAesGcm(doc.parent_email_encrypted, masterKey) : null);
+  const decryptedEmail = doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL'
+    ? await decryptAesGcm(doc.parent_email_encrypted, masterKey).catch(() => null)
+    : null;
+  const targetEmail = providedEmail || decryptedEmail;
   if (targetEmail) {
     const resendApiKey = (c.env as any).RESEND_API_KEY;
     const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
@@ -653,8 +656,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     }
   }
 
-  const targetEmailForMask = providedEmail || (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' ? await decryptAesGcm(doc.parent_email_encrypted, masterKey).catch(() => '') : '');
-  const maskedDestination = maskEmail(targetEmailForMask);
+  const maskedDestination = maskEmail(targetEmail || '');
 
   let messageId = `Enviado para ${maskedDestination || 'e-mail do responsável'} (simulated)`;
   let deliveryStatus = 'simulated';

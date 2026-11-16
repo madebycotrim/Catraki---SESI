@@ -21,7 +21,7 @@ declare global {
       getResponse: (widgetId?: string) => string;
     };
   }
-}
+} 
 
 interface TurnstileWidgetProps {
   siteKey?: string;

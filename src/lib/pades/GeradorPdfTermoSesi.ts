@@ -156,287 +156,213 @@ export class GeradorPdfTermoSesi {
       color: corCinzaEscuro,
     });
 
-    // Numeração de Página ABNT + Protocolo (Canto Superior Direito)
-    const folha1Label = 'Folha 1 / 2';
-    page1.drawText(folha1Label, {
-      x: width - margemDireita - fontBold.widthOfTextAtSize(folha1Label, 8),
+    // Numeração de Página ABNT (Canto Superior Direito)
+    page1.drawText('Folha 1 / 2', {
+      x: width - margemDireita - 48,
       y: y - 5,
       size: 8,
       font: fontBold,
       color: corCinzaEscuro,
     });
-    page1.drawText(`Protocolo: ${validationCode}`, {
-      x: width - margemDireita - fontMono.widthOfTextAtSize(`Protocolo: ${validationCode}`, 7),
-      y: y - 16,
-      size: 7,
-      font: fontMono,
-      color: corAzulSesi,
-    });
 
-    y -= 28;
+    y -= 30;
 
     // Linha divisória superior
     page1.drawLine({
       start: { x: margemEsquerda, y },
       end: { x: width - margemDireita, y },
-      thickness: 1.5,
+      thickness: 1.2,
       color: corAzulSesi,
     });
 
-    // Quadro Resumo de Identificação das Partes (Design Executivo)
-    y -= 10;
-    const resumoH = 44;
-    const contentWidth = width - margemEsquerda - margemDireita;
-    page1.drawRectangle({
-      x: margemEsquerda,
-      y: y - resumoH,
-      width: contentWidth,
-      height: resumoH,
-      color: rgb(0.97, 0.98, 0.99),
-      borderColor: corCinzaLinha,
-      borderWidth: 0.6,
-    });
-    page1.drawLine({
-      start: { x: margemEsquerda + contentWidth / 2, y: y - 4 },
-      end: { x: margemEsquerda + contentWidth / 2, y: y - resumoH + 4 },
-      thickness: 0.5,
-      color: corCinzaLinha,
-    });
-
+    // 2. Parágrafo de Apresentação e Qualificação (com Controladores CNPJ e Lógica de Maioridade ECA vs CC)
+    y -= 16;
     const cpfIntro = isMaior
       ? (dados.minorCpfCompleto || dados.cpfResponsavelCompleto || dados.minorCpfMascarado || dados.cpfResponsavelMascarado || '***.***.***-**')
       : (dados.cpfResponsavelCompleto || dados.minorCpfCompleto || dados.cpfResponsavelMascarado || dados.minorCpfMascarado || '***.***.***-**');
-
-    // Coluna Esquerda: Estudante / Titular
-    page1.drawText(isMaior ? 'TITULAR (ESTUDANTE MAIOR DE IDADE)' : 'ESTUDANTE / BENEFICIÁRIO(A)', {
-      x: margemEsquerda + 8,
-      y: y - 11,
-      size: 6.5,
-      font: fontBold,
-      color: corAzulSesi,
-    });
-    page1.drawText(dados.nomeMenor.slice(0, 38), {
-      x: margemEsquerda + 8,
-      y: y - 22,
-      size: 8,
-      font: fontBold,
-      color: corPreto,
-    });
-    const estudanteSub = `Nasc.: ${dados.dataNascimentoMenor}${dados.nomeEscola ? ` • ${dados.nomeEscola.slice(0, 26)}` : ''}`;
-    page1.drawText(estudanteSub, {
-      x: margemEsquerda + 8,
-      y: y - 33,
-      size: 6.8,
-      font: fontRegular,
-      color: corCinzaEscuro,
-    });
-
-    // Coluna Direita: Responsável / Signatário
-    const colDirX = margemEsquerda + contentWidth / 2 + 10;
-    page1.drawText(isMaior ? 'SIGNATÁRIO (PRÓPRIO ESTUDANTE)' : 'RESPONSÁVEL LEGAL (SIGNATÁRIO)', {
-      x: colDirX,
-      y: y - 11,
-      size: 6.5,
-      font: fontBold,
-      color: corAzulSesi,
-    });
-    const nomeSig = (isMaior ? dados.nomeMenor : dados.nomeResponsavel).slice(0, 38);
-    page1.drawText(nomeSig, {
-      x: colDirX,
-      y: y - 22,
-      size: 8,
-      font: fontBold,
-      color: corPreto,
-    });
-    page1.drawText(`CPF: ${cpfIntro} • Vínculo: ${isMaior ? 'Titular' : dados.parentesco}`, {
-      x: colDirX,
-      y: y - 33,
-      size: 6.8,
-      font: fontRegular,
-      color: corCinzaEscuro,
-    });
-
-    y -= resumoH + 12;
-
-    // 2. Parágrafo de Apresentação e Qualificação (com Controladores CNPJ e Lógica de Maioridade ECA vs CC)
     const textoIntro = isMaior
       ? `Eu, ${dados.nomeMenor}, portador(a) do CPF ${cpfIntro}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante "${nomeProjeto}", realizado por ${controladoresStr}. Manifesto meu consentimento livre, informado e inequívoco, aplicável ao tratamento de dados sensíveis conforme o Art. 11, I e Art. 18 da LGPD (Lei nº 13.709/2018) e autorização de imagem (Art. 20 da Lei nº 10.406/2002 - Código Civil), para os itens selecionados abaixo:`
       : `Eu, ${dados.nomeResponsavel}, portador(a) do CPF ${cpfIntro}, na qualidade de responsável legal do(a) estudante ${dados.nomeMenor}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante "${nomeProjeto}", realizado por ${controladoresStr}. Manifesto meu consentimento livre, informado e inequívoco, nos termos do Art. 14 e Art. 18 da LGPD (Lei nº 13.709/2018) e do Art. 17 do ECA (Lei nº 8.069/1990), para os itens selecionados abaixo:`;
 
-    const linhasIntro = this.quebrarTexto(textoIntro, 94);
+    const linhasIntro = this.quebrarTexto(textoIntro, 92);
     for (let i = 0; i < linhasIntro.length; i++) {
       page1.drawText(linhasIntro[i], {
-        x: margemEsquerda + (i === 0 ? 22 : 0), // Recuo ABNT no 1º parágrafo
+        x: margemEsquerda + (i === 0 ? 25 : 0), // Recuo ABNT no 1º parágrafo
         y,
-        size: 8.2,
+        size: 8.5,
         font: fontRegular,
         color: corPreto,
       });
-      y -= 10.8;
+      y -= 11.5;
     }
 
     // 3. Seção 1: DO OBJETO E ATENDIMENTO DE SAÚDE
-    y -= 6;
-    page1.drawRectangle({ x: margemEsquerda, y: y - 3, width: 3, height: 11, color: corAzulSesi });
+    y -= 8;
     page1.drawText(`1. DO PROCEDIMENTO: ${dados.tituloProcedimento.toUpperCase()}`, {
-      x: margemEsquerda + 8,
+      x: margemEsquerda,
       y,
-      size: 9,
+      size: 9.5,
       font: fontBold,
-      color: corAzulSesi,
+      color: corPreto,
     });
 
-    y -= 11;
-    const linhasDescricao = this.quebrarTexto(dados.descricaoProcedimento, 95).slice(0, 4);
+    y -= 12;
+    const linhasDescricao = this.quebrarTexto(dados.descricaoProcedimento, 92).slice(0, 5);
     for (const linha of linhasDescricao) {
       if (y < 140) break;
       page1.drawText(linha, {
         x: margemEsquerda,
         y,
-        size: 7.8,
+        size: 8,
         font: fontRegular,
         color: corPreto,
       });
-      y -= 10;
+      y -= 10.5;
     }
 
     // 4. Seção 2: AUTORIZAÇÕES E CONSENTIMENTO GRANULAR
-    y -= 6;
+    y -= 8;
     const tituloSecao2 = isMaior
-      ? '2. AUTORIZAÇÕES E CONSENTIMENTO (LGPD ARTS. 11, I E 18 • CÓDIGO CIVIL ART. 20)'
-      : '2. AUTORIZAÇÕES E CONSENTIMENTO (LGPD ARTS. 14 E 18 • ECA ART. 17)';
+      ? '2. AUTORIZAÇÕES E CONSENTIMENTO (ART. 11, I E ART. 18 DA LEI Nº 13.709/2018 E ART. 20 DO CÓDIGO CIVIL)'
+      : '2. AUTORIZAÇÕES E CONSENTIMENTO (ART. 14 E ART. 18 DA LEI Nº 13.709/2018 E ART. 17 DO ECA)';
 
-    page1.drawRectangle({ x: margemEsquerda, y: y - 3, width: 3, height: 11, color: corAzulSesi });
     page1.drawText(tituloSecao2, {
-      x: margemEsquerda + 8,
-      y,
-      size: 8.8,
-      font: fontBold,
-      color: corAzulSesi,
-    });
-
-    const desenharBadgeStatus = (autorizado: boolean, linhaY: number) => {
-      const texto = autorizado ? 'AUTORIZADO' : 'NÃO AUTORIZADO';
-      const corTexto = autorizado ? corVerde : corVermelho;
-      const corFundo = autorizado ? rgb(0.93, 0.98, 0.95) : rgb(0.99, 0.94, 0.94);
-      const badgeW = fontBold.widthOfTextAtSize(texto, 7.2) + 12;
-      const badgeX = width - margemDireita - badgeW;
-      page1.drawRectangle({
-        x: badgeX,
-        y: linhaY - 2.5,
-        width: badgeW,
-        height: 12,
-        color: corFundo,
-        borderColor: corTexto,
-        borderWidth: 0.5,
-      });
-      page1.drawText(texto, {
-        x: badgeX + 6,
-        y: linhaY + 0.5,
-        size: 7.2,
-        font: fontBold,
-        color: corTexto,
-      });
-    };
-
-    // Item A: Saúde
-    y -= 14;
-    page1.drawText('a) Circuito de Saúde e Especialidades:', {
       x: margemEsquerda,
       y,
-      size: 8.3,
+      size: 9,
       font: fontBold,
       color: corPreto,
     });
-    desenharBadgeStatus(dados.autorizacaoSaude, y);
+
+    // Item A: Saúde
+    y -= 13;
+    page1.drawText('a) Circuito de Saúde e Especialidades: ', {
+      x: margemEsquerda,
+      y,
+      size: 8.5,
+      font: fontBold,
+      color: corPreto,
+    });
+
+    const statusSaudeText = dados.autorizacaoSaude ? '[ AUTORIZADO ]' : '[ NÃO AUTORIZADO ]';
+    const statusSaudeColor = dados.autorizacaoSaude ? corVerde : corVermelho;
+
+    page1.drawText(statusSaudeText, {
+      x: margemEsquerda + 175,
+      y,
+      size: 8.5,
+      font: fontBold,
+      color: statusSaudeColor,
+    });
 
     y -= 11;
     const descSaude = '— Fica autorizada a realização de triagens preventivas e avaliações clínicas integradas no circuito móvel do projeto: Oftalmologia, Odontologia, Fonoaudiologia (Audiometria), Terapia Comunitária Integrativa e Oficinas de Alimentação Saudável (Nutrição), durante o turno escolar.';
-    const linhasDescSaude = this.quebrarTexto(descSaude, 96);
+    const linhasDescSaude = this.quebrarTexto(descSaude, 94);
     for (const linha of linhasDescSaude) {
       page1.drawText(linha, {
-        x: margemEsquerda + 10,
+        x: margemEsquerda + 12,
         y,
-        size: 7.4,
+        size: 7.5,
         font: fontRegular,
         color: corPreto,
       });
-      y -= 9.2;
+      y -= 9.5;
     }
 
     // Item B: Dados Pessoais (LGPD Art. 14 para menores vs Art. 11, I para maiores)
     y -= 5;
     const labelDados = isMaior
-      ? 'b) Tratamento de Dados Pessoais e Sensíveis (LGPD, Art. 11, I e Art. 18):'
-      : 'b) Tratamento de Dados Pessoais do Menor (LGPD, Art. 14 e Art. 18):';
+      ? 'b) Tratamento de Dados Pessoais e Sensíveis (LGPD, Art. 11, I e Art. 18): '
+      : 'b) Tratamento de Dados Pessoais do Menor (LGPD, Art. 14 e Art. 18): ';
 
     page1.drawText(labelDados, {
       x: margemEsquerda,
       y,
-      size: 8.3,
+      size: 8.5,
       font: fontBold,
       color: corPreto,
     });
-    desenharBadgeStatus(dados.autorizacaoDados, y);
+
+    const statusDadosText = dados.autorizacaoDados ? '[ AUTORIZADO ]' : '[ NÃO AUTORIZADO ]';
+    const statusDadosColor = dados.autorizacaoDados ? corVerde : corVermelho;
+
+    const xOffsetStatusDados = isMaior ? 285 : 245;
+    page1.drawText(statusDadosText, {
+      x: margemEsquerda + xOffsetStatusDados,
+      y,
+      size: 8.5,
+      font: fontBold,
+      color: statusDadosColor,
+    });
 
     y -= 11;
     const descDados = isMaior
-      ? '— Autorizo a coleta e o tratamento dos meus dados pessoais e dados de saúde para fins exclusivos de identificação e validação legal da permissão de atendimento, garantido o direito de acesso e revogação a qualquer tempo (Art. 18, LGPD, em catraki.com.br/revogar).'
-      : '— Autorizo a coleta e o processamento dos dados pessoais informados para fins exclusivos de identificação e validação legal da permissão de atendimento do menor, garantido o direito de acesso e revogação a qualquer tempo (Art. 18, LGPD, em catraki.com.br/revogar).';
+      ? '— Autorizo a coleta e o tratamento dos meus dados pessoais e dados de saúde para fins exclusivos de identificação e validação legal da permissão de atendimento, garantido o direito de acesso e revogação (Art. 18, LGPD).'
+      : '— Autorizo a coleta e o processamento dos dados pessoais informados para fins exclusivos de identificação e validação legal da permissão de atendimento do menor, garantido o direito de acesso e revogação (Art. 18, LGPD).';
 
-    const linhasDescDados = this.quebrarTexto(descDados, 96);
+    const linhasDescDados = this.quebrarTexto(descDados, 94);
     for (const linha of linhasDescDados) {
       page1.drawText(linha, {
-        x: margemEsquerda + 10,
+        x: margemEsquerda + 12,
         y,
-        size: 7.4,
+        size: 7.5,
         font: fontRegular,
         color: corPreto,
       });
-      y -= 9.2;
+      y -= 9.5;
     }
 
     // Item C: Imagem e Voz (ECA Art. 17 para menores vs Código Civil Art. 20 para maiores)
     y -= 5;
     const labelImg = isMaior
-      ? 'c) Captação e Uso de Imagem e Voz (Art. 20 do Código Civil):'
-      : 'c) Captação e Uso de Imagem e Voz (ECA, Art. 17):';
+      ? 'c) Captação e Uso de Imagem e Voz (Art. 20 do Código Civil): '
+      : 'c) Captação e Uso de Imagem e Voz (ECA, Art. 17): ';
 
     page1.drawText(labelImg, {
       x: margemEsquerda,
       y,
-      size: 8.3,
+      size: 8.5,
       font: fontBold,
       color: corPreto,
     });
-    desenharBadgeStatus(dados.autorizacaoImagem, y);
 
-    y -= 11;
-    const descImg = '— Autorização de caráter gratuito para registro institucional e relatórios de prestação de contas do projeto, com vedação expressa de exploração comercial ou fins vexatórios.';
-    const linhasDescImg = this.quebrarTexto(descImg, 96);
-    for (const linha of linhasDescImg) {
-      page1.drawText(linha, {
-        x: margemEsquerda + 10,
-        y,
-        size: 7.4,
-        font: fontRegular,
-        color: corPreto,
-      });
-      y -= 9.2;
-    }
+    const statusImgText = dados.autorizacaoImagem ? '[ AUTORIZADO ]' : '[ NÃO AUTORIZADO ]';
+    const statusImgColor = dados.autorizacaoImagem ? corVerde : corVermelho;
 
-    // 5. Seção 3: DECLARAÇÃO DE VERACIDADE E ASSINATURA ELETRÔNICA
-    y -= 9;
-    page1.drawRectangle({ x: margemEsquerda, y: y - 3, width: 3, height: 11, color: corAzulSesi });
-    page1.drawText('3. DECLARAÇÃO DE VERACIDADE E ASSINATURA ELETRÔNICA', {
-      x: margemEsquerda + 8,
+    const xOffsetStatusImg = isMaior ? 260 : 225;
+    page1.drawText(statusImgText, {
+      x: margemEsquerda + xOffsetStatusImg,
       y,
-      size: 9,
+      size: 8.5,
       font: fontBold,
-      color: corAzulSesi,
+      color: statusImgColor,
     });
 
     y -= 11;
+    const descImg = '— Autorização de caráter gratuito para registro institucional e relatórios de prestação de contas do projeto, com vedação expressa de exploração comercial ou fins vexatórios.';
+    const linhasDescImg = this.quebrarTexto(descImg, 94);
+    for (const linha of linhasDescImg) {
+      page1.drawText(linha, {
+        x: margemEsquerda + 12,
+        y,
+        size: 7.5,
+        font: fontRegular,
+        color: corPreto,
+      });
+      y -= 9.5;
+    }
+
+    // 5. Seção 3: DECLARAÇÃO DE VERACIDADE E ASSINATURA ELETRÔNICA
+    y -= 12;
+    page1.drawText('3. DECLARAÇÃO E ASSINATURA ELETRÔNICA', {
+      x: margemEsquerda,
+      y,
+      size: 9.5,
+      font: fontBold,
+      color: corPreto,
+    });
+
+    y -= 12;
     const textoDeclaracao = isMaior
       ? 'Declaração de Veracidade: Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas e a identidade declarada são verdadeiras.'
       : 'Declaração de Veracidade: Declaro, sob as penas da lei (Art. 299 do Código Penal), que as informações prestadas são verdadeiras e que sou o responsável legal do menor.';
@@ -444,16 +370,16 @@ export class GeradorPdfTermoSesi {
     page1.drawText(textoDeclaracao, {
       x: margemEsquerda,
       y,
-      size: 7.4,
+      size: 7.5,
       font: fontRegular,
       color: corPreto,
     });
 
     y -= 9.5;
-    page1.drawText('As partes admitem como válido este meio eletrônico (Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020 e Art. 190 do CPC).', {
+    page1.drawText('Registro eletrônico com eficácia probatória nos termos do Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020 e Arts. 104 e 107 do CC.', {
       x: margemEsquerda,
       y,
-      size: 7.2,
+      size: 7.5,
       font: fontRegular,
       color: corCinzaEscuro,
     });
@@ -666,51 +592,24 @@ export class GeradorPdfTermoSesi {
       });
 
       page2.drawText('Folha 2 / 2', {
-        x: width - margemDireita - fontBold.widthOfTextAtSize('Folha 2 / 2', 8),
+        x: width - margemDireita - 48,
         y: y2 - 5,
         size: 8,
         font: fontBold,
         color: corCinzaEscuro,
       });
 
-      y2 -= 28;
+      y2 -= 30;
 
       page2.drawLine({
         start: { x: margemEsquerda, y: y2 },
         end: { x: width - margemDireita, y: y2 },
-        thickness: 1.5,
-        color: corAzulSesi,
-      });
-
-      // Banner de Status Forense no Topo da Folha 2
-      y2 -= 28;
-      page2.drawRectangle({
-        x: margemEsquerda,
-        y: y2,
-        width: width - margemEsquerda - margemDireita,
-        height: 22,
-        color: rgb(0.93, 0.98, 0.95),
-        borderColor: corVerde,
-        borderWidth: 0.6,
-      });
-      page2.drawText('STATUS: DOCUMENTO ASSINADO E SELADO CRIPTOGRAFICAMENTE (VÁLIDO)', {
-        x: margemEsquerda + 8,
-        y: y2 + 7.5,
-        size: 7.5,
-        font: fontBold,
-        color: corVerde,
-      });
-      const protoLabel = `Protocolo: ${validationCode}`;
-      page2.drawText(protoLabel, {
-        x: width - margemDireita - fontMono.widthOfTextAtSize(protoLabel, 7.5) - 8,
-        y: y2 + 7.5,
-        size: 7.5,
-        font: fontMono,
+        thickness: 1.2,
         color: corAzulSesi,
       });
 
       // HASH IDENTIFICADOR (SHA-256) SEM TRUNCAMENTO
-      y2 -= 15;
+      y2 -= 16;
       page2.drawText('HASH IDENTIFICADOR DO MANIFESTO (SHA-256):', {
         x: margemEsquerda,
         y: y2,

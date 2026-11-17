@@ -164,6 +164,7 @@ export interface LgpdRequestRecord {
   requester_name: string;
   requester_cpf_masked: string;
   requester_email_encrypted: string;
+  requester_email?: string | null;
   request_type: LgpdRequestType;
   details: string;
   privacy_policy_version?: string | null;

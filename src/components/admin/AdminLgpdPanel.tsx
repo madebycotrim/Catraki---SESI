@@ -12,7 +12,25 @@ import {
 import { apiClient } from '../../lib/api.ts';
 import type { LgpdRequestRecord } from '../../lib/types.ts';
 
-export const AdminLgpdPanel: React.FC = () => {
+const REQUEST_TYPE_LABELS: Record<string, string> = {
+  access_export: 'Acesso e Exportação de Dados',
+  deletion_anonymization: 'Eliminação / Anonimização',
+  rectification: 'Correção de Dados',
+  revocation_appeal: 'Revisão / Esclarecimento',
+};
+
+const REQUEST_STATUS_META: Record<string, { label: string; classes: string }> = {
+  pending: { label: 'Pendente', classes: 'bg-amber-100 text-amber-900 border border-amber-200' },
+  in_analysis: { label: 'Em Análise', classes: 'bg-blue-100 text-blue-900 border border-blue-200' },
+  completed: { label: 'Concluído', classes: 'bg-emerald-100 text-emerald-900 border border-emerald-200' },
+  rejected: { label: 'Indeferido', classes: 'bg-rose-100 text-rose-900 border border-rose-200' },
+};
+
+interface AdminLgpdPanelProps {
+  onRequestsUpdated?: () => void;
+}
+
+export const AdminLgpdPanel: React.FC<AdminLgpdPanelProps> = ({ onRequestsUpdated }) => {
   const [identifier, setIdentifier] = useState('');
   const [anonymizeReason, setAnonymizeReason] = useState('');
   const [confirmAnonymize, setConfirmAnonymize] = useState(false);
@@ -34,8 +52,9 @@ export const AdminLgpdPanel: React.FC = () => {
     try {
       const list = await apiClient.fetchLgpdRequests();
       setRequests(Array.isArray(list) ? list : []);
+      onRequestsUpdated?.();
     } catch {
-      setRequests([]);
+      setFeedbackError('Não foi possível carregar as solicitações LGPD do servidor.');
     } finally {
       setLoadingRequests(false);
     }
@@ -283,18 +302,32 @@ export const AdminLgpdPanel: React.FC = () => {
           <div className="space-y-3">
             {requests.map((req) => {
               const daysLeft = getDaysRemaining(req.response_deadline_at, req.created_at);
+              const statusMeta = REQUEST_STATUS_META[req.status] || {
+                label: req.status,
+                classes: 'bg-slate-200 text-slate-800',
+              };
+              const typeLabel = REQUEST_TYPE_LABELS[req.request_type] || req.request_type;
+
               return (
-                <div key={req.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2 text-xs">
+                <div key={req.id} className="p-3.5 sm:p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2 text-xs">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <strong className="text-slate-900">{req.requester_name}</strong>{' '}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-mono text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded">
+                        {req.id}
+                      </span>
+                      <strong className="text-slate-900">{req.requester_name}</strong>
                       <span className="font-mono text-slate-500">({req.requester_cpf_masked})</span>
-                      <span className="ml-2 px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 font-bold text-[10px] uppercase">
-                        {req.request_type}
+                      {req.requester_email && (
+                        <span className="font-mono text-[11px] text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded">
+                          {req.requester_email}
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 font-bold text-[10px]">
+                        {typeLabel}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {req.status === 'pending' && daysLeft !== null && (
+                      {(req.status === 'pending' || req.status === 'in_analysis') && daysLeft !== null && (
                         <span
                           className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
                             daysLeft <= 3 ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
@@ -303,22 +336,31 @@ export const AdminLgpdPanel: React.FC = () => {
                           {daysLeft >= 0 ? `${daysLeft} dia(s) restante(s)` : 'Prazo vencido'}
                         </span>
                       )}
-                      <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 font-bold text-[10px] uppercase">
-                        {req.status}
+                      <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase ${statusMeta.classes}`}>
+                        {statusMeta.label}
                       </span>
                     </div>
                   </div>
-                  <p className="m-0 text-slate-700">{req.details}</p>
-                  {req.privacy_policy_version && (
-                    <p className="m-0 text-[11px] text-slate-500 font-mono">
-                      Política aceita: v{req.privacy_policy_version} em{' '}
-                      {req.privacy_policy_accepted_at ? new Date(req.privacy_policy_accepted_at).toLocaleString('pt-BR') : '-'}
-                    </p>
+                  <p className="m-0 text-slate-700 leading-relaxed">{req.details}</p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                    <span>
+                      Recebida em: <strong>{req.created_at ? new Date(req.created_at).toLocaleString('pt-BR') : '-'}</strong>
+                    </span>
+                    {req.privacy_policy_version && (
+                      <span className="font-mono">
+                        Política v{req.privacy_policy_version} ({req.privacy_policy_accepted_at ? new Date(req.privacy_policy_accepted_at).toLocaleString('pt-BR') : '-'})
+                      </span>
+                    )}
+                  </div>
+                  {req.response_notes && (
+                    <div className="p-2.5 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-700">
+                      <strong className="text-slate-900">Parecer do DPO:</strong> {req.response_notes}
+                    </div>
                   )}
 
                   {respondingId === req.id ? (
                     <div className="pt-2 space-y-2 border-t border-slate-200">
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <select
                           value={responseStatus}
                           onChange={(e) => setResponseStatus(e.target.value as any)}
@@ -354,16 +396,31 @@ export const AdminLgpdPanel: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRespondingId(req.id);
-                        setResponseNotes(req.response_notes || '');
-                      }}
-                      className="text-[#034b7f] font-bold underline cursor-pointer"
-                    >
-                      Responder / Atualizar Parecer
-                    </button>
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRespondingId(req.id);
+                          setResponseNotes(req.response_notes || '');
+                        }}
+                        className="text-[#034b7f] font-bold underline cursor-pointer"
+                      >
+                        Responder / Atualizar Parecer
+                      </button>
+                      {req.requester_email && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIdentifier(req.requester_email || '');
+                            setAnonymizeReason(req.id);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="text-emerald-700 font-bold underline cursor-pointer"
+                        >
+                          Carregar E-mail na Busca (Exportar / Anonimizar)
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               );

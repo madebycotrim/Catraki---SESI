@@ -25,7 +25,6 @@ import {
   canonicalJson,
 } from '../../src/lib/crypto.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
-import { verifyTurnstileToken } from '../utils/turnstile.ts';
 import { sendTransactionalEmail } from '../utils/email.ts';
 import { escapeHtml } from '../../src/lib/email-templates.ts';
 import { GeradorPdfTermoSesi } from '../../src/lib/pades/GeradorPdfTermoSesi.ts';
@@ -1543,19 +1542,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
  */
 signerRouter.post('/revoke', rateLimiter({ limit: 10, windowSeconds: 300, keyPrefix: 'revoke' }), async (c) => {
   const body = await c.req.json();
-  const cfData = extractCloudflareClientData(c);
-  const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
-  if (turnstileSecret) {
-    const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
-    const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip, c.env.APP_ENV);
-    if (!turnstileCheck.success) {
-      return c.json({
-        success: false,
-        error: turnstileCheck.error || 'Verificação de segurança anti-robô falhou para revogação.',
-        code: 'TURNSTILE_FAILED',
-      }, 403);
-    }
-  }
   const parsed = RevokeConsentSchema.safeParse(body);
 
   if (!parsed.success) {

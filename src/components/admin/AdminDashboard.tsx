@@ -173,6 +173,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [schoolModalSearch, setSchoolModalSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(25);
+  const [pendingLgpdCount, setPendingLgpdCount] = useState(0);
 
   const handleSelectSchoolFromModal = (schoolId: string) => {
     setSelectedInstitution(schoolId);
@@ -436,9 +437,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  const fetchLgpdBadgeCount = async () => {
+    if (currentUser?.role !== 'admin_master' && currentUser?.role !== 'dpo') return;
+    try {
+      const list = await apiClient.fetchLgpdRequests();
+      const openCount = (Array.isArray(list) ? list : []).filter(
+        (r) => r.status === 'pending' || r.status === 'in_analysis'
+      ).length;
+      setPendingLgpdCount(openCount);
+    } catch {
+      // ignore
+    }
+  };
+
   useEffect(() => {
     fetchData();
     fetchInstitutions();
+    fetchLgpdBadgeCount();
   }, []);
 
   const handleCopySchoolLink = (slug: string) => {
@@ -1464,6 +1479,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
+      {/* Notificação de Solicitações LGPD Pendentes */}
+      {pendingLgpdCount > 0 && activeTab !== 'lgpd' && (currentUser?.role === 'admin_master' || currentUser?.role === 'dpo') && (
+        <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-start sm:items-center gap-2.5 text-amber-950 text-xs sm:text-sm">
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+            <div>
+              <strong>{pendingLgpdCount} solicitação(ões) LGPD de Titular aguardando análise.</strong>{' '}
+              <span className="text-amber-800">Prazo legal de resposta: até 15 dias (Art. 19, II da LGPD).</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('lgpd')}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shrink-0 cursor-pointer transition-colors self-start sm:self-center"
+          >
+            Abrir LGPD / Titulares
+          </button>
+        </div>
+      )}
+
       {/* ━━ 3. TABS PRINCIPAIS E AÇÕES ━━ */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
         
@@ -1514,6 +1549,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             >
               <ShieldCheck className="w-4 h-4 shrink-0" />
               <span>LGPD / Titulares</span>
+              {pendingLgpdCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white">
+                  {pendingLgpdCount}
+                </span>
+              )}
             </button>
           )}
         </div>
@@ -2355,7 +2395,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {activeTab === 'lgpd' && (currentUser?.role === 'admin_master' || currentUser?.role === 'dpo') && (
-        <AdminLgpdPanel />
+        <AdminLgpdPanel onRequestsUpdated={fetchLgpdBadgeCount} />
       )}
 
       {/* ━━ 7. MODAIS INTEGRADOS ━━ */}

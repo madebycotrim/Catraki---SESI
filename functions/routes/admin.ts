@@ -1643,11 +1643,29 @@ adminRouter.post('/audit/export-log', requireAuth(['admin_master', 'dpo', 'opera
 
 adminRouter.get('/lgpd-requests', requireAuth(['admin_master', 'dpo']), async (c) => {
   const db = c.env.DB;
+  const masterKey = c.env.ENCRYPTION_KEY_V1;
   const requests = await db.prepare(
     'SELECT * FROM lgpd_requests ORDER BY created_at DESC'
-  ).all<LgpdRequestRecord>();
+  ).all<LgpdRequestRecord>().catch(() => ({ results: [] as LgpdRequestRecord[] }));
 
-  return c.json({ success: true, requests: requests.results || [] });
+  const enriched = await Promise.all(
+    (requests.results || []).map(async (row) => {
+      let decryptedEmail: string | null = null;
+      if (masterKey && row.requester_email_encrypted && !row.requester_email_encrypted.startsWith('ANONIMIZADO')) {
+        try {
+          decryptedEmail = await decryptAesGcm(row.requester_email_encrypted, masterKey);
+        } catch {
+          decryptedEmail = null;
+        }
+      }
+      return {
+        ...row,
+        requester_email: decryptedEmail,
+      };
+    })
+  );
+
+  return c.json({ success: true, requests: enriched });
 });
 
 const LgpdRespondSchema = z.object({

@@ -3,7 +3,8 @@ import { LgpdRequestPublicSchema, maskCPF, getInitials, maskName } from '../../s
 import { encryptAesGcm, maskIpAddress, hmacSha256, constantTimeEqual } from '../../src/lib/crypto.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
-import { verifyTurnstileToken } from '../utils/turnstile.ts';
+import { sendTransactionalEmail } from '../utils/email.ts';
+import { escapeHtml } from '../../src/lib/email-templates.ts';
 import { PRIVACY_POLICY_VERSION, LGPD_RESPONSE_DEADLINE_DAYS } from '../../src/lib/lgpd.ts';
 import type { Env, PublicValidationResponse } from '../../src/lib/types.ts';
 
@@ -487,19 +488,6 @@ publicRouter.get('/validate/:query', async (c) => {
 publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, keyPrefix: 'lgpd_pub' }), async (c) => {
   try {
     const body = await c.req.json();
-    const cfData = extractCloudflareClientData(c);
-    const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
-    if (turnstileSecret) {
-      const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
-      const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip, c.env.APP_ENV);
-      if (!turnstileCheck.success) {
-        return c.json({
-          success: false,
-          error: turnstileCheck.error || 'Verificação de segurança anti-robô falhou.',
-          code: 'TURNSTILE_FAILED',
-        }, 403);
-      }
-    }
     const parsed = LgpdRequestPublicSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -546,14 +534,13 @@ publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, 
     const cpfBindex = pepper ? await hmacSha256(cleanCpf, pepper) : null;
     const emailBindex = pepper ? await hmacSha256(cleanEmail, pepper) : null;
 
-    await db.prepare(
-      `INSERT INTO lgpd_requests (
+    const insertSql = `INSERT INTO lgpd_requests (
         id, requester_name, requester_cpf_masked, requester_cpf_bindex_sha256,
         requester_email_encrypted, requester_email_bindex_sha256,
         request_type, details, privacy_policy_version, privacy_policy_accepted_at,
         response_deadline_at, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now'))`
-    ).bind(
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now'))`;
+    const insertArgs = [
       requestId,
       requester_name,
       cpfMasked,
@@ -564,8 +551,76 @@ publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, 
       details,
       policyVersion,
       policyAcceptedAt,
-      deadlineIso
-    ).run();
+      deadlineIso,
+    ];
+
+    try {
+      await db.prepare(insertSql).bind(...insertArgs).run();
+    } catch (insertErr: any) {
+      // Garante criação da tabela caso o D1 ainda não tenha recebido a migração
+      await db.prepare(
+        `CREATE TABLE IF NOT EXISTS lgpd_requests (
+          id TEXT PRIMARY KEY,
+          requester_name TEXT NOT NULL,
+          requester_cpf_masked TEXT NOT NULL,
+          requester_cpf_bindex_sha256 TEXT,
+          requester_email_encrypted TEXT NOT NULL,
+          requester_email_bindex_sha256 TEXT,
+          request_type TEXT NOT NULL,
+          details TEXT NOT NULL,
+          privacy_policy_version TEXT,
+          privacy_policy_accepted_at TEXT,
+          response_deadline_at TEXT,
+          status TEXT DEFAULT 'pending',
+          response_notes TEXT,
+          created_at TEXT NOT NULL,
+          resolved_at TEXT
+        )`
+      ).run();
+      await db.prepare(insertSql).bind(...insertArgs).run();
+    }
+
+    // Notifica o titular e o DPO por e-mail sem bloquear a resposta HTTP
+    const sendNotifications = async () => {
+      try {
+        const dpoEmail = (c.env as any)?.SUPPORT_EMAIL || 'suporte@catraki.com.br';
+        await sendTransactionalEmail(c.env, {
+          to: cleanEmail,
+          subject: `[Catraki LGPD] Protocolo ${requestId} recebido`,
+          html: `<p>Olá, <strong>${escapeHtml(requester_name)}</strong>.</p>
+<p>Sua solicitação fundamentada na LGPD (Art. 18) foi registrada sob o protocolo <strong>${escapeHtml(requestId)}</strong>.</p>
+<p>Prazo legal de resposta: <strong>até ${LGPD_RESPONSE_DEADLINE_DAYS} dias</strong>.</p>`,
+          text: `Protocolo LGPD ${requestId} registrado. Prazo legal de resposta: ate ${LGPD_RESPONSE_DEADLINE_DAYS} dias.`,
+        });
+        if (dpoEmail && dpoEmail.toLowerCase() !== cleanEmail) {
+          await sendTransactionalEmail(c.env, {
+            to: dpoEmail,
+            subject: `[Catraki Admin • LGPD] Nova solicitação de titular (${requestId})`,
+            html: `<p>Nova solicitação LGPD recebida no Portal do Titular:</p>
+<ul>
+  <li><strong>Protocolo:</strong> ${escapeHtml(requestId)}</li>
+  <li><strong>Solicitante:</strong> ${escapeHtml(requester_name)} (${escapeHtml(cpfMasked)})</li>
+  <li><strong>Tipo:</strong> ${escapeHtml(request_type)}</li>
+  <li><strong>Prazo Legal:</strong> ${LGPD_RESPONSE_DEADLINE_DAYS} dias</li>
+</ul>
+<p>Acesse o painel administrativo na aba <strong>LGPD / Titulares</strong> para analisar e responder.</p>`,
+            text: `Nova solicitacao LGPD ${requestId} de ${requester_name} (${request_type}). Acesse a aba LGPD / Titulares no painel administrativo.`,
+          });
+        }
+      } catch (mailErr) {
+        console.warn('[LGPD_REQUEST_EMAIL_WARN]', mailErr);
+      }
+    };
+
+    try {
+      if (c.executionCtx && typeof c.executionCtx.waitUntil === 'function') {
+        c.executionCtx.waitUntil(sendNotifications());
+      } else {
+        void sendNotifications();
+      }
+    } catch {
+      void sendNotifications();
+    }
 
     return c.json({
       success: true,

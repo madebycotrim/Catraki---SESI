@@ -984,26 +984,44 @@ adminRouter.delete('/documents/:id/hard-delete', requireAuth(['admin_master']), 
   }
 
   try {
-    // Anonimização LGPD + invalidação sem remover triggers físicas de imutabilidade em produção
-    await db.prepare(
-      `UPDATE documents
-       SET status = 'cancelled_error',
-           minor_name = 'EXCLUIDO_ADMIN_' || substr(id, 1, 8),
-           minor_series = NULL,
-           minor_class = NULL,
-           minor_turn = NULL,
-           parent_name = 'EXCLUIDO_ADMIN',
-           parent_email_encrypted = 'EXCLUIDO',
-           parent_phone_encrypted = 'EXCLUIDO',
-           parent_email_bindex_sha256 = NULL,
-           minor_cpf_encrypted = NULL,
-           minor_cpf_bindex_sha256 = NULL,
-           minor_cpf = NULL,
-           otp_secret_hash = NULL,
-           cancelled_at = COALESCE(cancelled_at, datetime('now')),
-           cancellation_reason = COALESCE(cancellation_reason, 'Exclusão/Anonimização administrativa (Master)')
-       WHERE id = ?`
-    ).bind(id).run();
+    const targetStatus = (doc.status === 'CANCELADO_POR_ERRO' || doc.status === 'cancelled_error')
+      ? doc.status
+      : 'CANCELADO_POR_ERRO';
+
+    // Anonimização LGPD + invalidação preservando triggers de imutabilidade e compatibilidade de schema
+    try {
+      await db.prepare(
+        `UPDATE documents
+         SET status = ?,
+             minor_name = 'EXCLUIDO_ADMIN_' || substr(id, 1, 8),
+             minor_series = NULL,
+             minor_class = NULL,
+             minor_turn = NULL,
+             parent_name = 'EXCLUIDO_ADMIN',
+             parent_email_encrypted = 'EXCLUIDO',
+             parent_phone_encrypted = 'EXCLUIDO',
+             parent_email_bindex_sha256 = NULL,
+             minor_cpf_encrypted = NULL,
+             minor_cpf_bindex_sha256 = NULL,
+             minor_cpf = NULL,
+             otp_secret_hash = NULL,
+             cancelled_at = COALESCE(cancelled_at, datetime('now')),
+             cancellation_reason = COALESCE(cancellation_reason, 'Exclusão/Anonimização administrativa (Master)')
+         WHERE id = ?`
+      ).bind(targetStatus, id).run();
+    } catch {
+      // Fallback para schemas legados sem colunas opcionais
+      await db.prepare(
+        `UPDATE documents
+         SET status = ?,
+             minor_name = 'EXCLUIDO_ADMIN_' || substr(id, 1, 8),
+             parent_name = 'EXCLUIDO_ADMIN',
+             parent_email_encrypted = 'EXCLUIDO',
+             parent_phone_encrypted = 'EXCLUIDO',
+             otp_secret_hash = NULL
+         WHERE id = ?`
+      ).bind(targetStatus, id).run();
+    }
 
     if (kv && doc.access_token) {
       await kv.put(`revoked:${doc.access_token}`, new Date().toISOString(), { expirationTtl: 60 * 60 * 24 * 365 * 5 }).catch((e: any) => {
@@ -1019,7 +1037,7 @@ adminRouter.delete('/documents/:id/hard-delete', requireAuth(['admin_master']), 
       JSON.stringify({ previous_status: doc.status }),
       clientIp,
       userAgent
-    );
+    ).catch((e: any) => console.warn('[HARD_DELETE_AUDIT_WARN]', e?.message || e));
 
     return c.json({
       success: true,
@@ -1028,7 +1046,7 @@ adminRouter.delete('/documents/:id/hard-delete', requireAuth(['admin_master']), 
     });
   } catch (err: any) {
     console.error('[Catraki Admin] Erro ao anonimizar/excluir documento:', err?.message || err);
-    return c.json({ success: false, error: 'Erro interno ao processar exclusão.' }, 500);
+    return c.json({ success: false, error: 'Erro interno ao processar exclusão.', details: err?.message }, 500);
   }
 });
 

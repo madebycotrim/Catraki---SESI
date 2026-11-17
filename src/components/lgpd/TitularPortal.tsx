@@ -373,6 +373,9 @@ export const TitularPortal: React.FC<TitularPortalProps> = ({ onBack, onNavigate
             </button>
           </div>
         )}
+
+        {/* Barra institucional azul sólida no final da folha A4 */}
+        <div className="absolute bottom-0 left-0 right-0 w-full h-3 bg-[#034b7f] overflow-hidden pointer-events-none z-10 leading-none" />
       </div>
     </div>
   );

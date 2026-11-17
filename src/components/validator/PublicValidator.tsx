@@ -40,6 +40,13 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
   const [pdfCheckedName, setPdfCheckedName] = useState<string>('');
 
   useEffect(() => {
+    if (!validationResult?.pdf_sha256 || !pdfCheckedHash) return;
+    setPdfCheckStatus(
+      pdfCheckedHash.toLowerCase() === validationResult.pdf_sha256.toLowerCase() ? 'match' : 'mismatch'
+    );
+  }, [validationResult, pdfCheckedHash]);
+
+  useEffect(() => {
     if (initialHash && initialHash.trim().length > 0) {
       setHashInput(initialHash);
       handleValidate(initialHash);
@@ -227,13 +234,29 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
                     type="text"
                     value={hashInput}
                     onChange={(e) => setHashInput(e.target.value)}
-                    placeholder="Digite ou cole o código de autenticidade (ex: CATRAKI-0AD2-2A49) ou hash SHA-256..."
+                    placeholder="Ex: CATRAKI-5595-0D62 ou hash SHA-256"
                     autoCapitalize="characters"
-                    className="w-full px-3.5 sm:px-4 py-3 bg-white border border-slate-300 rounded-xl font-mono text-xs sm:text-base uppercase text-slate-900 tracking-wider focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20 transition-all shadow-xs"
+                    className="w-full pl-3.5 sm:pl-4 pr-20 py-3 bg-white border border-slate-300 rounded-xl font-mono text-xs sm:text-sm uppercase text-slate-900 tracking-wider focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20 transition-all shadow-xs"
                   />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const clip = await navigator.clipboard.readText();
+                        if (clip && clip.trim()) {
+                          setHashInput(clip.trim());
+                          setErrorMessage('');
+                        }
+                      } catch {}
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 text-[11px] font-bold text-sesi-primary bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer"
+                    title="Colar código copiado"
+                  >
+                    Colar
+                  </button>
                 </div>
                  <p className="text-[11px] sm:text-xs text-slate-500 m-0 leading-relaxed">
-                   O código de autenticidade está impresso no rodapé do comprovante de assinatura. Você também pode obtê-lo escaneando o QR Code do documento com a câmera do celular.
+                   O código de autenticidade está no cabeçalho e no rodapé do comprovante (ou escaneie o QR Code com a câmera do celular).
                  </p>
               </div>
 
@@ -247,7 +270,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
               <button
                 type="submit"
                 disabled={loading || !hashInput.trim()}
-                className="w-full py-3.5 px-6 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 transition-colors shadow-md disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer active:scale-[0.99]"
+                className="w-full py-3.5 px-6 bg-sesi-primary hover:bg-blue-900 text-white font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 transition-colors shadow-md disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer active:scale-[0.99]"
               >
                 {loading ? (
                   <>
@@ -261,6 +284,55 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
                   </>
                 )}
               </button>
+
+              {/* Atalho para conferir o arquivo PDF diretamente */}
+              <div className="pt-2">
+                <div className="relative flex items-center justify-center my-2">
+                  <span className="h-px w-full bg-slate-200" />
+                  <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-white shrink-0">
+                    ou valide pelo arquivo PDF
+                  </span>
+                  <span className="h-px w-full bg-slate-200" />
+                </div>
+
+                <label className="mt-2 w-full py-2.5 px-4 bg-slate-50 hover:bg-blue-50/70 border border-dashed border-slate-300 hover:border-sesi-primary rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-slate-700 hover:text-sesi-primary transition-colors cursor-pointer">
+                  <FileCheck2 className="w-4 h-4 text-sesi-primary" />
+                  <span>Selecionar PDF baixado para validar</span>
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    className="sr-only"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setErrorMessage('');
+                      const buf = new Uint8Array(await file.arrayBuffer());
+                      const computed = await sha256(buf);
+                      setPdfCheckedName(file.name);
+                      setPdfCheckedHash(computed);
+
+                      const nameMatch = file.name.match(/(?:CATRAKI|SESI)-[A-F0-9]{4}-[A-F0-9]{4}/i);
+                      const rawText = new TextDecoder('latin1').decode(buf);
+                      const textMatch = rawText.match(/(?:CATRAKI|SESI)-[A-F0-9]{4}-[A-F0-9]{4}/i);
+                      const detectedCode = (nameMatch?.[0] || textMatch?.[0] || '').toUpperCase();
+
+                      if (detectedCode) {
+                        setHashInput(detectedCode);
+                        await handleValidate(detectedCode);
+                      } else {
+                        setErrorMessage('Não foi possível identificar o código automaticamente no PDF. Digite o código CATRAKI-XXXX-XXXX acima.');
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+
+              {/* Selo discreto de confiança e LGPD */}
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10.5px] text-slate-400">
+                <span className="inline-flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Status oficial</span>
+                <span className="inline-flex items-center gap-1"><Lock className="w-3.5 h-3.5 text-sesi-primary" /> Integridade SHA-256</span>
+                <span className="inline-flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-slate-500" /> Horário UTC-3</span>
+              </div>
             </form>
           </div>
         )}
@@ -749,11 +821,6 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
 
         {/* Rodapé limpo */}
         <div className="absolute bottom-0 left-0 right-0 w-full h-3 bg-blue-900 overflow-hidden pointer-events-none z-10 leading-none" />
-
-        {/* Número de página (canto superior direito ABNT) */}
-        <div className="absolute top-4 sm:top-9 right-4 sm:right-12 font-sans text-xs text-slate-400">
-          1
-        </div>
 
       </div>
     </div>

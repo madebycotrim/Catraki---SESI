@@ -26,7 +26,9 @@ import {
   getTransactionalCompletionEmailHtml,
   getTransactionalCompletionEmailText,
   getCompletionEmailSubject,
+  escapeHtml,
 } from '../../src/lib/email-templates.ts';
+import { sendTransactionalEmail } from '../utils/email.ts';
 import { verifyAuditChain } from '../../src/lib/audit-chain.ts';
 import { requireAuth, signJwt, JwtPayload } from '../middleware/auth.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
@@ -1713,6 +1715,53 @@ adminRouter.post('/lgpd-requests/:id/respond', requireAuth(['admin_master', 'dpo
     clientIp,
     userAgent
   );
+
+  // Notifica o titular por e-mail sobre o parecer do DPO (assíncrono / não bloqueante)
+  const notifyTitular = async () => {
+    try {
+      const masterKey = c.env.ENCRYPTION_KEY_V1;
+      if (
+        !masterKey ||
+        !existing.requester_email_encrypted ||
+        existing.requester_email_encrypted.startsWith('ANONIMIZADO')
+      ) {
+        return;
+      }
+      const titularEmail = await decryptAesGcm(existing.requester_email_encrypted, masterKey);
+      if (!titularEmail || !titularEmail.includes('@')) return;
+
+      const statusLabels: Record<string, string> = {
+        pending: 'Pendente',
+        in_analysis: 'Em Análise',
+        completed: 'Concluído',
+        rejected: 'Indeferido',
+      };
+      const statusLabel = statusLabels[status] || status;
+
+      await sendTransactionalEmail(c.env, {
+        to: titularEmail,
+        subject: `[Catraki LGPD] Atualização do protocolo ${id} (${statusLabel})`,
+        html: `<p>Olá, <strong>${escapeHtml(existing.requester_name)}</strong>.</p>
+<p>Sua solicitação LGPD (protocolo <strong>${escapeHtml(id)}</strong>) foi atualizada pelo Encarregado de Dados (DPO).</p>
+<p><strong>Status:</strong> ${escapeHtml(statusLabel)}</p>
+<p><strong>Parecer do DPO:</strong><br/>${escapeHtml(response_notes)}</p>
+<p style="font-size:12px;color:#64748b;">Em caso de dúvidas, entre em contato pelo canal de governança: suporte@catraki.com.br.</p>`,
+        text: `Protocolo LGPD ${id} - Status: ${statusLabel}\nParecer do DPO: ${response_notes}\nContato: suporte@catraki.com.br`,
+      });
+    } catch (mailErr) {
+      console.warn('[LGPD_RESPOND_EMAIL_WARN]', mailErr);
+    }
+  };
+
+  try {
+    if (c.executionCtx && typeof c.executionCtx.waitUntil === 'function') {
+      c.executionCtx.waitUntil(notifyTitular());
+    } else {
+      void notifyTitular();
+    }
+  } catch {
+    void notifyTitular();
+  }
 
   return c.json({
     success: true,

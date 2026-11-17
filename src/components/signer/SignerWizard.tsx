@@ -187,35 +187,63 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
   }
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6">
-      {/* Indicador de Progresso do Fluxo (Etapas 1 a 4) */}
+    <div className="w-full space-y-3 sm:space-y-4">
+      {/* Indicador de Progresso Editorial — Alinhado ao Padrão Folha A4 */}
       <nav aria-label="Etapas da autorização" className="max-w-4xl mx-auto px-1 sm:px-4 no-print">
-        <ol className="grid grid-cols-4 gap-1.5 sm:gap-2 bg-white/90 border border-slate-200 rounded-xl p-1.5 shadow-2xs">
-          {[
-            { num: 1, label: 'Boas-vindas' },
-            { num: 2, label: 'Dados' },
-            { num: 3, label: 'Assinatura' },
-            { num: 4, label: 'Comprovante' },
-          ].map((item) => {
-            const isCurrent = step === item.num;
-            const isDone = step > item.num;
-            return (
-              <li
-                key={item.num}
-                className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[10px] sm:text-xs font-bold transition-colors ${
-                  isCurrent
-                    ? 'bg-[#034b7f] text-white shadow-2xs'
-                    : isDone
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      : 'text-slate-400'
-                }`}
-              >
-                <span className="font-mono">{item.num}.</span>
-                <span className="truncate">{item.label}</span>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="bg-white border border-slate-200/90 border-t-[3px] border-t-[#034b7f] shadow-xs px-3 sm:px-6 py-2.5 sm:py-3">
+          <div className="flex items-center justify-between gap-2">
+            <ol className="flex-1 grid grid-cols-4 items-center gap-1 sm:gap-2">
+              {[
+                { num: 1, label: 'Boas-vindas' },
+                { num: 2, label: 'Dados' },
+                { num: 3, label: 'Assinatura' },
+                { num: 4, label: 'Comprovante' },
+              ].map((item, idx) => {
+                const isCurrent = step === item.num;
+                const isDone = step > item.num;
+                return (
+                  <li key={item.num} className="relative flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+                    {/* Linha conectora editorial entre etapas */}
+                    {idx > 0 && (
+                      <span
+                        aria-hidden="true"
+                        className={`hidden sm:block w-4 md:w-7 h-[1.5px] shrink-0 transition-colors ${
+                          isDone || isCurrent ? 'bg-[#034b7f]' : 'bg-slate-200'
+                        }`}
+                      />
+                    )}
+                    <span
+                      className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] font-bold font-mono shrink-0 transition-colors ${
+                        isCurrent
+                          ? 'bg-[#034b7f] text-white ring-2 ring-[#034b7f]/20'
+                          : isDone
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-slate-100 text-slate-400 border border-slate-300'
+                      }`}
+                    >
+                      {isDone ? '✓' : item.num}
+                    </span>
+                    <span
+                      className={`text-[10px] sm:text-xs tracking-tight truncate ${
+                        isCurrent
+                          ? 'font-extrabold text-[#034b7f]'
+                          : isDone
+                            ? 'font-semibold text-emerald-800'
+                            : 'font-medium text-slate-400'
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+
+            <span className="hidden md:inline-block text-[10px] font-mono uppercase tracking-wider text-slate-400 pl-3 border-l border-slate-200 shrink-0">
+              Folha {step}/4
+            </span>
+          </div>
+        </div>
       </nav>
 
       {/* Renderização Condicional da Etapa Atual */}

@@ -79,9 +79,19 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
 
   // Estados de Submissão e Erro
   const [submittingSign, setSubmittingSign] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
   const [turnstileToken, setTurnstileToken] = useState('');
+  const [isDesktopDevice] = useState<boolean>(() => {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+    const isMobileUa = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isCoarsePointerSmallScreen =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(pointer: coarse)').matches &&
+      window.innerWidth < 1024;
+    return !isMobileUa && !isCoarsePointerSmallScreen;
+  });
 
   // Hook isolado para máquina de estados do OTP
   const {
@@ -170,10 +180,50 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   };
 
   /**
+   * Valida o código OTP de 6 dígitos na Etapa 1 antes de avançar para a assinatura em tela cheia (mobile)
+   */
+  const handleVerifyOtpStep = async (): Promise<boolean> => {
+    const cleanOtp = otpCode.trim();
+    if (!cleanOtp || cleanOtp.length < 6) {
+      setOtpError('Por favor, digite o código de segurança completo de 6 dígitos enviado ao seu e-mail.');
+      return false;
+    }
+
+    if (!declarationLegalResponsibility) {
+      setOtpError(
+        isMaiorDeIdade
+          ? 'Por favor, confirme a declaração de veracidade das informações sob as penas da lei.'
+          : 'Para finalizar, confirme que você é o responsável legal e que todas as informações fornecidas são verdadeiras.'
+      );
+      return false;
+    }
+
+    setVerifyingOtp(true);
+    setOtpError('');
+    try {
+      const otpVerifyResp = await apiClient.verifyOtp(token, cleanOtp);
+      if (!otpVerifyResp.success) {
+        setOtpError(
+          otpVerifyResp.error ||
+            'O código informado está incorreto ou expirou. Verifique sua caixa de entrada e, se necessário, solicite um novo código.'
+        );
+        return false;
+      }
+      return true;
+    } catch {
+      setOtpError('Não foi possível validar o código agora. Tente novamente.');
+      return false;
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  /**
    * Valida o código OTP de 6 dígitos e submete a assinatura eletrônica com validade jurídica
    */
-  const handleVerifyAndFinalizeSign = async () => {
+  const handleVerifyAndFinalizeSign = async (signatureOverride?: string, skipOtpVerify = false) => {
     const cleanOtp = otpCode.trim();
+    const effectiveSignature = signatureOverride ?? signaturePngBase64;
     if (!cleanOtp || cleanOtp.length < 6) {
       setOtpError('Por favor, digite o código de segurança completo de 6 dígitos enviado ao seu e-mail.');
       return;
@@ -188,7 +238,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
       return;
     }
 
-    if (!signaturePngBase64) {
+    if (!isDesktopDevice && !effectiveSignature) {
       setOtpError('Por favor, faça o desenho da sua assinatura na área indicada antes de concluir.');
       return;
     }
@@ -197,15 +247,17 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
     setOtpError('');
 
     try {
-      // 1. Valida o código OTP informado
-      const otpVerifyResp = await apiClient.verifyOtp(token, cleanOtp);
-      if (!otpVerifyResp.success) {
-        setOtpError(
-          otpVerifyResp.error ||
-            'O código informado está incorreto ou expirou. Verifique sua caixa de entrada e, se necessário, solicite um novo código.'
-        );
-        setSubmittingSign(false);
-        return;
+      // 1. Valida o código OTP informado (se ainda não validado na Etapa 1)
+      if (!skipOtpVerify) {
+        const otpVerifyResp = await apiClient.verifyOtp(token, cleanOtp);
+        if (!otpVerifyResp.success) {
+          setOtpError(
+            otpVerifyResp.error ||
+              'O código informado está incorreto ou expirou. Verifique sua caixa de entrada e, se necessário, solicite um novo código.'
+          );
+          setSubmittingSign(false);
+          return;
+        }
       }
 
       // 2. Submete a assinatura probatória
@@ -229,7 +281,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         auth_health: authHealth ? 'yes' : 'no',
         auth_data: authData ? 'yes' : 'no',
         auth_image: authImage ? 'yes' : 'no',
-        signature_png_base64: signaturePngBase64,
+        signature_png_base64: effectiveSignature || undefined,
         consent_lgpd_art11_art14: true,
         declaration_art299_penal: true,
         declaration_legal_responsibility: true,
@@ -250,7 +302,11 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
       if (resp.success) {
         setOtpSent(false);
         setShowOtpModal(false);
-        onSuccess({ ...resp, otp_channel: 'email' });
+        onSuccess({
+          ...resp,
+          otp_channel: 'email',
+          has_manual_signature: Boolean(effectiveSignature),
+        });
       } else {
         const errMsg =
           resp.error ||
@@ -566,11 +622,13 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
           onResendOtp={requestOtpEmail}
           onSaveSignature={(base64) => setSignaturePngBase64(base64)}
           onClearSignature={() => setSignaturePngBase64('')}
-          hasSignature={!!signaturePngBase64}
+          requireManualSignature={!isDesktopDevice}
           declarationLegalResponsibility={declarationLegalResponsibility}
           setDeclarationLegalResponsibility={setDeclarationLegalResponsibility}
           otpError={otpError}
           submittingSign={submittingSign}
+          verifyingOtp={verifyingOtp}
+          onVerifyOtpStep={handleVerifyOtpStep}
           onConfirmSign={handleVerifyAndFinalizeSign}
         />
 

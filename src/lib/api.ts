@@ -477,7 +477,7 @@ export const apiClient = {
     auth_health?: 'yes' | 'no';
     auth_data?: 'yes' | 'no';
     auth_image?: 'yes' | 'no';
-    signature_png_base64: string;
+    signature_png_base64?: string;
     consent_lgpd_art11_art14: true;
     declaration_art299_penal: true;
     declaration_legal_responsibility: true;
@@ -552,7 +552,7 @@ export const apiClient = {
     }
 
     const signedAt = new Date().toISOString();
-    const signaturePngSha256 = await sha256(payload.signature_png_base64);
+    const signaturePngSha256 = await sha256(payload.signature_png_base64 || '');
     const cpfMasked = maskCPF(payload.signer_cpf);
 
     const logs = getAuditLogs();
@@ -956,8 +956,8 @@ export const apiClient = {
       validation: {
         valid: doc?.status !== 'CANCELADO_POR_ERRO' && (doc?.status as any) !== 'cancelled_error' && doc?.status !== 'revoked',
         validation_code: validationCode,
-        legal_notice: 'Assinatura Eletrônica Simples — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei Federal nº 14.063/2020 (Art. 4º, I); Código Civil (Arts. 104 e 107); LGPD (Lei nº 13.709/2018); ECA Art. 17; Art. 299 CP',
-        signature_type: 'Assinatura Eletrônica Simples — Art. 10, § 2º da MP nº 2.200-2/2001 e Art. 4º, I da Lei nº 14.063/2020',
+        legal_notice: 'Assinatura Eletrônica Simples — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei Federal nº 14.063/2020 (Art. 4º, I); Código Civil (Arts. 104 e 107); CPC (Arts. 190, 411 e 441); LGPD (Lei nº 13.709/2018); ECA Art. 17; Art. 299 CP',
+        signature_type: 'Assinatura Eletrônica Simples — Art. 4º, I da Lei nº 14.063/2020 e Art. 10, § 2º da MP nº 2.200-2/2001',
         document_id: audit.document_id,
         manifest_sha256: audit.manifest_sha256,
         content_sha256: audit.content_sha256_at_signing,

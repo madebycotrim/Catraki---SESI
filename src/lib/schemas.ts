@@ -433,13 +433,13 @@ export const SignDocumentSchema = z.object({
     nutricao: z.boolean().optional(),
   }).optional(),
   signature_png_base64: z.string()
-    .min(10, 'Assinatura obrigatória')
-    .refine((val) => val.startsWith('data:image/png;base64,'), {
+    .refine((val) => !val || val.startsWith('data:image/png;base64,'), {
       message: 'A assinatura deve estar no formato PNG base64 válido',
     })
-    .refine((val) => val.length <= 500000, {
+    .refine((val) => !val || val.length <= 500000, {
       message: 'A imagem da assinatura excede o limite máximo permitido de 500KB',
-    }),
+    })
+    .optional(),
   consent_lgpd_art11_art14: z.literal(true, {
     errorMap: () => ({ message: 'É obrigatório declarar consentimento expresso e específico nos termos dos Arts. 11 e 14 da LGPD' })
   }),

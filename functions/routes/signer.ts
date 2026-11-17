@@ -25,7 +25,6 @@ import {
   canonicalJson,
 } from '../../src/lib/crypto.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
-import { verifyTurnstileToken } from '../utils/turnstile.ts';
 import { sendTransactionalEmail } from '../utils/email.ts';
 import { escapeHtml } from '../../src/lib/email-templates.ts';
 import { GeradorPdfTermoSesi } from '../../src/lib/pades/GeradorPdfTermoSesi.ts';
@@ -475,21 +474,6 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Parâmetros inválidos.', code: 'VALIDATION_ERROR' }, 400);
   }
 
-  // ── Validação Anti-Robô (Cloudflare Turnstile) ───────────────
-  const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
-  const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
-  if (turnstileSecret) {
-    const cfData = extractCloudflareClientData(c);
-    const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip, c.env.APP_ENV);
-    if (!turnstileCheck.success) {
-      return c.json({
-        success: false,
-        error: turnstileCheck.error || 'Verificação de segurança anti-robô falhou. Por favor, recarregue e tente novamente.',
-        code: 'TURNSTILE_FAILED',
-      }, 403);
-    }
-  }
-
   const { token, email: providedEmail, minor_name: providedMinorName, school_slug, institution_id } = parsed.data;
 
   const db = c.env.DB;
@@ -567,7 +551,10 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
   let emailError = '';
   let resendMessageId = '';
 
-  const targetEmail = providedEmail || (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' ? await decryptAesGcm(doc.parent_email_encrypted, masterKey) : null);
+  const decryptedEmail = doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL'
+    ? await decryptAesGcm(doc.parent_email_encrypted, masterKey).catch(() => null)
+    : null;
+  const targetEmail = providedEmail || decryptedEmail;
   if (targetEmail) {
     const resendApiKey = (c.env as any).RESEND_API_KEY;
     const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
@@ -654,8 +641,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     }
   }
 
-  const targetEmailForMask = providedEmail || (doc.parent_email_encrypted && doc.parent_email_encrypted !== 'ENC_INITIAL' ? await decryptAesGcm(doc.parent_email_encrypted, masterKey).catch(() => '') : '');
-  const maskedDestination = maskEmail(targetEmailForMask);
+  const maskedDestination = maskEmail(targetEmail || '');
 
   let messageId = `Enviado para ${maskedDestination || 'e-mail do responsável'} (simulated)`;
   let deliveryStatus = 'simulated';
@@ -708,10 +694,102 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
 
 
 /**
+ * Valida o OTP de um documento no back-end com proteção contra força bruta (KV + D1) e expiração.
+ */
+async function validateDocumentOtp(
+  db: D1Database,
+  kv: KVNamespace | undefined,
+  doc: DocumentRecord,
+  otpCode: string,
+  pepper: string
+): Promise<{ ok: true } | { ok: false; status: 400 | 429; body: Record<string, any> }> {
+  if (!doc || !doc.otp_secret_hash) {
+    return { ok: false, status: 400, body: { success: false, error: 'Código de verificação não solicitado.', code: 'OTP_NOT_REQUESTED' } };
+  }
+
+  if (kv) {
+    const block = await checkOtpBruteForceBlock(kv, doc.id);
+    if (block) {
+      return {
+        ok: false,
+        status: 429,
+        body: {
+          success: false,
+          error: `Acesso bloqueado por segurança após múltiplas tentativas incorretas. Aguarde ${Math.ceil(block.retryAfterSeconds / 60)} minuto(s) e tente novamente, ou solicite um novo código OTP.`,
+          code: 'OTP_BRUTE_FORCE_BLOCKED',
+          blocked_until: block.blockedUntil,
+          retry_after_seconds: block.retryAfterSeconds,
+        },
+      };
+    }
+  }
+
+  if (doc.otp_attempts >= 3) {
+    if (kv) await setOtpBruteForceBlock(kv, doc.id);
+    return {
+      ok: false,
+      status: 400,
+      body: {
+        success: false,
+        error: 'Número máximo de tentativas de código incorreto excedido (3). Solicite um novo código de verificação.',
+        code: 'OTP_BLOCKED',
+      },
+    };
+  }
+
+  if (doc.otp_expires_at) {
+    const expiryTime = new Date(
+      doc.otp_expires_at.includes('T')
+        ? doc.otp_expires_at
+        : doc.otp_expires_at.replace(' ', 'T') + 'Z'
+    ).getTime();
+
+    if (!isNaN(expiryTime) && expiryTime < Date.now()) {
+      return {
+        ok: false,
+        status: 400,
+        body: {
+          success: false,
+          error: 'O código de verificação expirou (validade de 5 minutos). Solicite um novo código.',
+          code: 'OTP_EXPIRED',
+        },
+      };
+    }
+  }
+
+  const computedOtpHash = await hmacSha256(otpCode, pepper);
+  if (!constantTimeEqual(doc.otp_secret_hash, computedOtpHash)) {
+    const newAttempts = (doc.otp_attempts || 0) + 1;
+    await db.prepare('UPDATE documents SET otp_attempts = otp_attempts + 1 WHERE id = ?').bind(doc.id).run();
+    const remaining = 3 - newAttempts;
+
+    if (newAttempts >= 3 && kv) {
+      await setOtpBruteForceBlock(kv, doc.id);
+    }
+
+    return {
+      ok: false,
+      status: 400,
+      body: {
+        success: false,
+        error: remaining <= 0
+          ? 'Número máximo de tentativas excedido. Acesso bloqueado por 15 minutos. Solicite um novo código após o período de bloqueio.'
+          : `Código de verificação incorreto. Tentativas restantes: ${remaining}`,
+        code: 'OTP_INVALID',
+        remaining_attempts: Math.max(0, remaining),
+      },
+    };
+  }
+
+  if (kv) await clearOtpBruteForceBlock(kv, doc.id);
+  return { ok: true };
+}
+
+/**
  * POST /api/signer/otp/verify
  * Validação de OTP em tempo constante com bloqueio anti-força-bruta no KV (15 min)
  */
-signerRouter.post('/otp/verify', async (c) => {
+signerRouter.post('/otp/verify', rateLimiter({ limit: 10, windowSeconds: 300, keyPrefix: 'otp_verify' }), async (c) => {
   const body = await c.req.json();
   const parsed = OtpVerifySchema.safeParse(body);
 
@@ -729,76 +807,14 @@ signerRouter.post('/otp/verify', async (c) => {
   }
 
   const doc = await db.prepare("SELECT * FROM documents WHERE (access_token = ? OR id = ?) AND status = 'pending' ORDER BY created_at DESC LIMIT 1").bind(token, token).first<DocumentRecord>();
-  if (!doc || !doc.otp_secret_hash) {
+  if (!doc) {
     return c.json({ success: false, error: 'Código de verificação não solicitado.', code: 'OTP_NOT_REQUESTED' }, 400);
   }
 
-  // ── Verificação de Bloqueio Anti-Força-Bruta (KV Temporal — 15 minutos) ────────
-  // Independente de IP: bloqueia por documentId, resistindo a troca de rede/VPN.
-  if (kv) {
-    const block = await checkOtpBruteForceBlock(kv, doc.id);
-    if (block) {
-      return c.json({
-        success: false,
-        error: `Acesso bloqueado por segurança após múltiplas tentativas incorretas. Aguarde ${Math.ceil(block.retryAfterSeconds / 60)} minuto(s) e tente novamente, ou solicite um novo código OTP.`,
-        code: 'OTP_BRUTE_FORCE_BLOCKED',
-        blocked_until: block.blockedUntil,
-        retry_after_seconds: block.retryAfterSeconds,
-      }, 429);
-    }
+  const otpCheck = await validateDocumentOtp(db, kv, doc, otp_code, pepper);
+  if (!otpCheck.ok) {
+    return c.json(otpCheck.body, otpCheck.status);
   }
-
-  if (doc.otp_attempts >= 3) {
-    // Garantia extra: se chegou aqui sem o bloco KV (ex: KV indisponível), aplica bloqueio agora
-    if (kv) await setOtpBruteForceBlock(kv, doc.id);
-    return c.json({
-      success: false,
-      error: 'Número máximo de tentativas de código incorreto excedido (3). Solicite um novo código de verificação.',
-      code: 'OTP_BLOCKED',
-    }, 400);
-  }
-
-  if (doc.otp_expires_at) {
-    const expiryTime = new Date(
-      doc.otp_expires_at.includes('T') 
-        ? doc.otp_expires_at 
-        : doc.otp_expires_at.replace(' ', 'T') + 'Z'
-    ).getTime();
-
-    if (!isNaN(expiryTime) && expiryTime < Date.now()) {
-      return c.json({
-        success: false,
-        error: 'O código de verificação expirou (validade de 5 minutos). Solicite um novo código.',
-        code: 'OTP_EXPIRED'
-      }, 400);
-    }
-  }
-
-  const computedOtpHash = await hmacSha256(otp_code, pepper);
-  const isValid = constantTimeEqual(doc.otp_secret_hash, computedOtpHash);
-
-  if (!isValid) {
-    const newAttempts = doc.otp_attempts + 1;
-    await db.prepare('UPDATE documents SET otp_attempts = otp_attempts + 1 WHERE id = ?').bind(doc.id).run();
-    const remaining = 3 - newAttempts;
-
-    // ── 3º erro: grava bloqueio de 15 min no KV ────────────────────────────────
-    if (newAttempts >= 3 && kv) {
-      await setOtpBruteForceBlock(kv, doc.id);
-    }
-
-    return c.json({
-      success: false,
-      error: remaining <= 0
-        ? 'Número máximo de tentativas excedido. Acesso bloqueado por 15 minutos. Solicite um novo código após o período de bloqueio.'
-        : `Código de verificação incorreto. Tentativas restantes: ${remaining}`,
-      code: 'OTP_INVALID',
-      remaining_attempts: Math.max(0, remaining),
-    }, 400);
-  }
-
-  // Sucesso: limpa o bloqueio KV (boa prática — libera o documento para futuras opções)
-  if (kv) await clearOtpBruteForceBlock(kv, doc.id);
 
   return c.json({
     success: true,
@@ -828,20 +844,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     }, 400);
   }
   const cfData = extractCloudflareClientData(c);
-
-  // ── Validação Anti-Robô (Cloudflare Turnstile) ───────────────
-  const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
-  const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
-  if (turnstileSecret) {
-    const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip, c.env.APP_ENV);
-    if (!turnstileCheck.success) {
-      return c.json({
-        success: false,
-        error: turnstileCheck.error || 'Verificação de segurança anti-robô falhou para assinatura.',
-        code: 'TURNSTILE_FAILED',
-      }, 403);
-    }
-  }
 
   // device_fingerprint_data: dados adicionais de impressão digital do dispositivo
   // Capturado pelo frontend (captureDeviceFingerprint) e enviado junto à assinatura.
@@ -886,20 +888,60 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     return c.json({ success: false, error: 'Documento não encontrado ou já assinado.', code: 'DOC_NOT_FOUND' }, 404);
   }
 
+  // Validações obrigatórias no back-end (não confiar apenas no front-end)
+  if (parsed.data.auth_health !== 'yes') {
+    return c.json({
+      success: false,
+      error: 'A autorização dos atendimentos de saúde é obrigatória para registrar o termo.',
+      code: 'HEALTH_CONSENT_REQUIRED',
+    }, 400);
+  }
+  if (parsed.data.auth_data !== 'yes') {
+    return c.json({
+      success: false,
+      error: 'A autorização de tratamento de dados pessoais (LGPD) é obrigatória para registrar o termo.',
+      code: 'DATA_CONSENT_REQUIRED',
+    }, 400);
+  }
+
   const birthDateStr = parsed.data.minor_birth_date || doc.minor_birth_date;
   let isMaiorDeIdade = false;
-  if (birthDateStr) {
-    const age = calcularIdade(birthDateStr, new Date());
-    if (age < 14) {
-      return c.json({
-        success: false,
-        error: 'O estudante deve possuir no mínimo 14 anos de idade para participar do projeto.',
-        code: 'UNDERAGE_STUDENT',
-      }, 400);
-    }
-    if (age >= 18) {
-      isMaiorDeIdade = true;
-    }
+  if (!birthDateStr) {
+    return c.json({
+      success: false,
+      error: 'Data de nascimento do estudante é obrigatória.',
+      code: 'INVALID_BIRTH_DATE',
+    }, 400);
+  }
+
+  const age = calcularIdade(birthDateStr, new Date());
+  if (isNaN(age) || age < 0 || age > 120) {
+    return c.json({
+      success: false,
+      error: 'Data de nascimento do estudante inválida.',
+      code: 'INVALID_BIRTH_DATE',
+    }, 400);
+  }
+  if (age < 14) {
+    return c.json({
+      success: false,
+      error: 'O estudante deve possuir no mínimo 14 anos de idade para participar do projeto.',
+      code: 'UNDERAGE_STUDENT',
+    }, 400);
+  }
+  if (age >= 18) {
+    isMaiorDeIdade = true;
+  }
+
+  const isSelfSignerRelationship =
+    signer_relationship === 'Próprio Estudante (Maior de Idade)' ||
+    signer_relationship === 'Próprio(a) Estudante (Maior de Idade)';
+  if (!isMaiorDeIdade && isSelfSignerRelationship) {
+    return c.json({
+      success: false,
+      error: 'Estudante menor de 18 anos não pode assinar como próprio responsável.',
+      code: 'MINOR_CANNOT_SELF_SIGN',
+    }, 400);
   }
 
   if (doc.status === 'signed') {
@@ -932,12 +974,12 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     }
   }
 
-  const computedOtpHash = await hmacSha256(otp_code, pepper);
-  if (!doc.otp_secret_hash || !constantTimeEqual(doc.otp_secret_hash, computedOtpHash)) {
-    return c.json({ success: false, error: 'Código de autenticação 2FA inválido ou expirado.', code: 'OTP_INVALID' }, 400);
+  const otpCheck = await validateDocumentOtp(db, c.env.KV_RATE_LIMIT, doc, otp_code, pepper);
+  if (!otpCheck.ok) {
+    return c.json(otpCheck.body, otpCheck.status);
   }
 
-  const identityMethod = 'declaracao_responsavel';
+  const identityMethod = isMaiorDeIdade ? 'declaracao_titular' : 'declaracao_responsavel';
 
   const ipAddress = cfData.ip;
   const userAgent = cfData.userAgent;
@@ -951,13 +993,18 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const cleanSignerCpf = signer_cpf.replace(/\D/g, '');
   const signerCpfBindex = cleanSignerCpf ? await hmacSha256(cleanSignerCpf, pepper) : null;
 
-  const signaturePngSha256 = await sha256(signature_png_base64);
+  const hasDrawnSignature = Boolean(signature_png_base64 && signature_png_base64.trim().length > 0);
+  const signaturePngSha256 = await sha256(
+    hasDrawnSignature ? signature_png_base64! : `ELETRONICA_OTP:${doc.id}:${signedAtIso}`
+  );
   const contentSha256AtSigning = doc.content_sha256 || doc.template_content_sha256;
   const cpfMasked = maskCPF(signer_cpf);
 
   // Blind Index e envelopes criptográficos preparados antes da transação com retry
   const signerCpfEncrypted = await encryptAesGcm(signer_cpf, masterKey, 1);
-  const signaturePngEncrypted = await encryptAesGcm(signature_png_base64, masterKey, 1);
+  const signaturePngEncrypted = hasDrawnSignature
+    ? await encryptAesGcm(signature_png_base64!, masterKey, 1)
+    : 'ASSINATURA_ELETRONICA_OTP';
 
   const manifestData = {
     document_id: doc.id,
@@ -1018,7 +1065,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const textToHash = `${doc.content_markdown || ''}\n${signer_name}\n${signer_cpf}\n${parsed.data.minor_name || doc.minor_name}\n${parsed.data.minor_birth_date || doc.minor_birth_date}`;
   const docParentHash = await sha256(textToHash);
 
-  const deviceMetadataJson = JSON.stringify({
+  const deviceMetadataPayload: Record<string, any> = {
     user_agent_parsed: formatUserAgent(userAgent),
     screen_resolution: device_fingerprint_data?.screen_resolution || null,
     os_name: device_fingerprint_data?.os_name || null,
@@ -1037,7 +1084,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     cf_colo: cfData.colo || null,
     cf_ray: cfData.rayId || null,
     captured_at: new Date().toISOString(),
-  });
+  };
+
+  let deviceMetadataJson = JSON.stringify(deviceMetadataPayload);
 
   const auditRowInput: AuditLogRowInput = {
     id: auditLogId,
@@ -1061,9 +1110,6 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     doc_parent_hash_sha256: docParentHash,
     device_metadata: deviceMetadataJson,
   };
-
-  const logRowHash = await computeLogRowHash({ ...auditRowInput, prev_log_hash: null });
-  // (logRowHash definitivo será calculado dentro do loop atômico com prevLogHash atualizado)
 
   const pdfR2Key = `signed-pdfs/${doc.id}/${manifestSha256}.pdf`;
   const manifestR2Key = `manifests/${doc.id}/${manifestSha256}.json`;
@@ -1141,6 +1187,13 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     assinaturaPngBase64: signature_png_base64,
     signerEmail: parsed.data.signer_email,
   });
+
+  // Hash SHA-256 do arquivo PDF final para verificação bit-a-bit no validador público
+  const pdfSha256 = await sha256(pdfBytes);
+  deviceMetadataPayload.pdf_sha256 = pdfSha256;
+  deviceMetadataJson = JSON.stringify(deviceMetadataPayload);
+  auditRowInput.device_metadata = deviceMetadataJson;
+  const logRowHash = await computeLogRowHash({ ...auditRowInput, prev_log_hash: null });
 
   let minorCpfBindex: string | null = null;
 
@@ -1391,7 +1444,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
               subject: emailSubject,
               html: emailHtml,
               text: emailText,
-              attachments: [{ filename: `comprovante-assinatura-${doc.id}.pdf`, content: pdfBase64 }],
+              attachments: [{ filename: `Termo-Consentimento-${validationCode}.pdf`, content: pdfBase64 }],
             }),
           });
 
@@ -1409,7 +1462,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
                 subject: emailSubject,
                 html: emailHtml,
                 text: emailText,
-                attachments: [{ filename: `comprovante-assinatura-${doc.id}.pdf`, content: pdfBase64 }],
+                attachments: [{ filename: `Termo-Consentimento-${validationCode}.pdf`, content: pdfBase64 }],
               }),
             });
           }
@@ -1434,7 +1487,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
                 { type: 'text/plain', value: emailText },
                 { type: 'text/html', value: emailHtml },
               ],
-              attachments: [{ content: pdfBase64, type: 'application/pdf', filename: `comprovante-assinatura-${doc.id}.pdf` }],
+              attachments: [{ content: pdfBase64, type: 'application/pdf', filename: `Termo-Consentimento-${validationCode}.pdf` }],
             }),
           });
         } catch (mcErr: any) {
@@ -1457,6 +1510,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     document_id: doc.id,
     validation_code: validationCode,
     manifest_sha256: manifestSha256,
+    pdf_sha256: pdfSha256,
     log_row_hash: logRowHash,
     signed_at_utc: signedAtIso,
     ip_address: ipAddress,

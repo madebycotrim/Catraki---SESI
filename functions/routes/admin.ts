@@ -374,7 +374,7 @@ adminRouter.get('/documents', async (c) => {
   }
 });
 
-adminRouter.post('/documents/cleanup-pending', async (c) => {
+adminRouter.post('/documents/cleanup-pending', requireAuth(['admin_master', 'operador']), async (c) => {
   const db = c.env.DB;
   if (!db) {
     return c.json({ success: false, error: 'Banco de dados indisponível.' }, 503);

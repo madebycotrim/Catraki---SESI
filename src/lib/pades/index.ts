@@ -8,4 +8,4 @@
 
 export * from './GeradorPdfTermoSesi.ts';
 export * from './GeradorComprovanteConclusao.ts';
-export * from './GeradorCartazEscolaPdf.ts';
+export * from './GeradorCartazEscolaPdf.ts'; 

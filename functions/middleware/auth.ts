@@ -38,6 +38,12 @@ export async function verifyJwt(token: string, secret: string): Promise<JwtPaylo
     if (parts.length !== 3) return null;
 
     const [encodedHeader, encodedPayload, signature] = parts;
+    const headerJson = atob(encodedHeader.replace(/-/g, '+').replace(/_/g, '/'));
+    const header = JSON.parse(headerJson) as { alg?: string; typ?: string };
+    if (header.alg !== 'HS256' || (header.typ && header.typ !== 'JWT')) {
+      return null;
+    }
+
     const dataToSign = `${encodedHeader}.${encodedPayload}`;
     const expectedSignature = await hmacSha256(dataToSign, secret);
 
@@ -49,7 +55,7 @@ export async function verifyJwt(token: string, secret: string): Promise<JwtPaylo
     const payload = JSON.parse(payloadJson) as JwtPayload;
 
     const now = Math.floor(Date.now() / 1000);
-    if (payload.exp && payload.exp < now) {
+    if (typeof payload.exp !== 'number' || payload.exp <= now) {
       return null;
     }
 

@@ -144,6 +144,7 @@ export function App() {
   const navigateToSchoolSelect = () => {
     setActiveSchoolSlug('');
     setActiveSignerToken('');
+    setActiveValidatorHash('');
     navegarParaView('school-select', '/');
   };
 
@@ -152,6 +153,7 @@ export function App() {
       setActiveValidatorHash(hash);
       navegarParaView('validator', `/validar/${hash}`);
     } else {
+      setActiveValidatorHash('');
       navegarParaView('validator', '/validar');
     }
   };
@@ -174,7 +176,7 @@ export function App() {
                 navigateToSchoolSelect();
               }
             }
-            else if (v === 'validator') navegarParaView('validator', '/validar');
+            else if (v === 'validator') navigateToValidator();
             else if (v === 'revoke') navegarParaView('revoke', '/revogar');
           }} 
         />

@@ -21,6 +21,7 @@ import {
 import QRCode from 'qrcode';
 import { apiClient } from '../../lib/api.ts';
 import { sha256 } from '../../lib/crypto.ts';
+import { PRIVACY_POLICY_VERSION, LGPD_RESPONSE_DEADLINE_DAYS } from '../../lib/lgpd.ts';
 import { formatBrasiliaDateTime } from '../../lib/schemas.ts';
 import type { PublicValidationResponse } from '../../lib/types.ts';
 
@@ -435,23 +436,6 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
                   </span>
                 </div>
               </div>
-
-              <div className="text-center pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setValidationResult(null);
-                    setHashInput('');
-                    setErrorMessage('');
-                    setPdfCheckStatus('idle');
-                    setPdfCheckedHash('');
-                    setPdfCheckedName('');
-                  }}
-                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition-colors cursor-pointer"
-                >
-                  Consultar Outro Código
-                </button>
-              </div>
             </div>
           );
         })()}
@@ -692,30 +676,82 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
                 </span>
               </h3>
 
-              {/* Fatores de Autenticação (sem expor IP, navegador ou geolocalização) */}
-              <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-lg text-[11px] font-semibold">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  E-mail confirmado (OTP)
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-lg text-[11px] font-semibold">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  Identidade declarada (Art. 299 CP)
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200/80 rounded-lg text-[11px] font-semibold">
-                  <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" />
-                  Integridade SHA-256
-                </span>
+              {/* Como foi feito (processo técnico sem expor IP, dispositivo ou geolocalização — LGPD Art. 6º, III e Art. 46) */}
+              <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2.5 text-[11px]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="bg-slate-50/80 border border-slate-200/70 rounded-lg p-2.5">
+                    <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                      Como a Autoria foi Confirmada
+                    </span>
+                    <p className="text-slate-700 m-0 leading-snug">
+                      Validação em duas etapas com código único temporário (<strong>OTP</strong>) enviado por e-mail e declaração expressa de responsabilidade (Art. 299 CP), sem necessidade de certificado ICP-Brasil.
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50/80 border border-slate-200/70 rounded-lg p-2.5">
+                    <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                      Como a Integridade é Garantida
+                    </span>
+                    <p className="text-slate-700 m-0 leading-snug">
+                      Geração de resumo criptográfico <strong>SHA-256</strong> encadeado ao registro anterior (<strong>Bloco #{validationResult.chain_position}</strong>) com carimbo de data/hora UTC-3. Dados pessoais protegidos por criptografia <strong>AES-256-GCM</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Fatores de Autenticação (sem expor IP, navegador ou geolocalização) */}
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-lg text-[10.5px] font-semibold">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    E-mail confirmado (OTP)
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-lg text-[10.5px] font-semibold">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    Identidade declarada (Art. 299 CP)
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200/80 rounded-lg text-[10.5px] font-semibold">
+                    <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" />
+                    Cadeia imutável SHA-256
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-[10.5px] font-semibold">
+                    <Lock className="w-3 h-3 text-slate-500" />
+                    IP e dispositivo ocultados (LGPD Art. 6º, III)
+                  </span>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-stretch">
-                <div className="lg:col-span-3 space-y-2.5">
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                      Hash SHA-256 do Registro Eletrônico
-                    </span>
-                    <div className="font-mono text-[10px] sm:text-[11px] font-bold text-slate-800 break-all select-all leading-relaxed bg-white p-2 rounded-lg border border-slate-200">
-                      {validationResult.manifest_sha256}
+              <div className="grid grid-cols-1 print:grid-cols-4 gap-3 items-stretch">
+                <div className="print:col-span-3 space-y-2.5">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                        Hash SHA-256 do Registro Eletrônico (Manifesto)
+                      </span>
+                      <div className="font-mono text-[10px] sm:text-[11px] font-bold text-slate-800 break-all select-all leading-relaxed bg-white p-2 rounded-lg border border-slate-200">
+                        {validationResult.manifest_sha256}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                      {validationResult.content_sha256 && validationResult.content_sha256 !== 'SHA256-PENDING' && (
+                        <div>
+                          <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                            Hash do Conteúdo Assinado (SHA-256)
+                          </span>
+                          <div className="font-mono text-[9.5px] text-slate-700 break-all select-all bg-white p-2 rounded-lg border border-slate-200">
+                            {validationResult.content_sha256}
+                          </div>
+                        </div>
+                      )}
+                      {validationResult.prev_log_hash && (
+                        <div>
+                          <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                            Hash do Bloco Anterior (Cadeia)
+                          </span>
+                          <div className="font-mono text-[9.5px] text-slate-700 break-all select-all bg-white p-2 rounded-lg border border-slate-200">
+                            {validationResult.prev_log_hash}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -770,7 +806,7 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
                   )}
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                <div className="hidden print:flex bg-white border border-slate-200 rounded-xl p-3 flex-col items-center justify-center text-center">
                   {qrCodeDataUrl ? (
                     <img
                       src={qrCodeDataUrl}
@@ -789,40 +825,86 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
               </div>
             </div>
 
-            {/* Nota LGPD (Minimização & Direitos do Titular) + Aviso Institucional */}
-            <div className="space-y-2 pt-1">
-              <div className="bg-blue-50/50 border border-blue-200/80 rounded-xl p-3 text-[10.5px] text-slate-600 leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <strong className="text-slate-800">Privacidade e Minimização (LGPD — Art. 6º, III e Art. 14):</strong> Dados de rede, dispositivo e identificação escolar completa são ocultados da consulta pública. O titular ou responsável legal pode solicitar acesso integral, correção ou revogação a qualquer momento (Art. 18).
+            {/* 4. Informações Obrigatórias de Governança e Privacidade (LGPD — Art. 8º, 9º, 14, 18 e 41) */}
+            <div className="space-y-2">
+              <h3 className="text-[11px] sm:text-xs font-bold text-slate-900 uppercase tracking-wide m-0 border-b border-slate-200 pb-1.5 flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" />
+                  <span>4. Transparência e Informações Obrigatórias (LGPD)</span>
+                </span>
+                <span className="text-[10px] font-semibold text-slate-500 normal-case">
+                  Lei nº 13.709/2018 (Art. 9º)
+                </span>
+              </h3>
+
+              <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-3 sm:p-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-[11px] leading-relaxed">
+                <div className="bg-white border border-slate-200/80 rounded-lg p-2.5">
+                  <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                    Controladores (Art. 9º, III e VI)
+                  </span>
+                  <p className="text-slate-700 m-0">
+                    <strong>Universidade de Brasília (UnB)</strong> — CNPJ 00.038.174/0001-43<br />
+                    <strong>Serviço Social da Indústria (SESI-DF)</strong> — CNPJ 03.777.341/0001-08<br />
+                    <span className="text-[10px] text-slate-500">Operadora tecnológica: Plataforma Catraki (emissão e custódia criptográfica).</span>
+                  </p>
                 </div>
-                <a
-                  href="/titular"
-                  className="inline-flex items-center justify-center px-3 py-1.5 bg-white hover:bg-blue-50 text-sesi-primary border border-blue-200 rounded-lg text-[10.5px] font-bold whitespace-nowrap transition-colors shrink-0 no-underline print:hidden"
-                >
-                  Portal do Titular (LGPD)
-                </a>
+
+                <div className="bg-white border border-slate-200/80 rounded-lg p-2.5">
+                  <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                    Base Legal e Finalidade (Art. 7º, I; Art. 9º, I; Art. 14)
+                  </span>
+                  <p className="text-slate-700 m-0">
+                    Consentimento específico e destacado do titular ou responsável legal para triagens de saúde escolar (saúde: Art. 11, I) e registro jurídico do aceite (Lei nº 14.063/2020, Art. 4º, I). Consulta pública minimizada (Art. 6º, III).
+                  </p>
+                </div>
+
+                <div className="bg-white border border-slate-200/80 rounded-lg p-2.5">
+                  <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                    Forma, Duração e Política (Art. 9º, II)
+                  </span>
+                  <p className="text-slate-700 m-0">
+                    Armazenamento eletrônico criptografado (AES-256-GCM) com cadeia de auditoria SHA-256. Guarda legal por até <strong>20 anos</strong> (Res. CFM nº 1.821/2007) ou até revogação/eliminação. Política v{PRIVACY_POLICY_VERSION}.
+                  </p>
+                </div>
+
+                <div className="bg-white border border-slate-200/80 rounded-lg p-2.5">
+                  <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                    Compartilhamento e Responsabilidades (Art. 9º, V e VI)
+                  </span>
+                  <p className="text-slate-700 m-0">
+                    Acesso restrito às equipes clínicas e escolares da UnB/SESI-DF e provedores de infraestrutura sob proteção contratual. Sem comercialização ou cessão a terceiros estranhos ao projeto.
+                  </p>
+                </div>
+
+                <div className="sm:col-span-2 bg-white border border-blue-200/80 rounded-lg p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div>
+                    <span className="block text-[9.5px] font-bold text-blue-900 uppercase tracking-wider mb-0.5">
+                      Encarregado (DPO) e Direitos do Titular (Art. 9º, IV e VII; Art. 18; Art. 41)
+                    </span>
+                    <p className="text-slate-700 m-0">
+                      Contato DPO: <strong>suporte@catraki.com.br</strong> • Prazo legal de atendimento: <strong>até {LGPD_RESPONSE_DEADLINE_DAYS} dias</strong> (Art. 19, II). O titular pode solicitar acesso, correção, portabilidade, eliminação ou <strong>revogar este consentimento gratuitamente a qualquer momento</strong> (Art. 8º, § 5º).
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 shrink-0 print:hidden">
+                    <a
+                      href="/titular"
+                      className="inline-flex items-center justify-center px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-sesi-primary border border-blue-200 rounded-lg text-[10.5px] font-bold whitespace-nowrap transition-colors no-underline"
+                    >
+                      Portal do Titular
+                    </a>
+                    <a
+                      href="/revogar"
+                      className="inline-flex items-center justify-center px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10.5px] font-bold whitespace-nowrap transition-colors no-underline"
+                    >
+                      Revogar Consentimento
+                    </a>
+                  </div>
+                </div>
               </div>
 
               <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-[10px] text-slate-500 leading-relaxed">
                 <strong>Aviso Institucional:</strong> Os atendimentos clínicos e avaliações de saúde são de exclusiva responsabilidade das entidades realizadoras do projeto (SESI-DF e Faculdade de Ciências da Saúde da UnB). A Plataforma Catraki atua estritamente como ferramenta tecnológica para emissão e conferência eletrônica das autorizações.
               </div>
-            </div>
-
-            <div className="text-center pt-1 print:hidden">
-              <button
-                type="button"
-                onClick={() => {
-                  setValidationResult(null);
-                  setHashInput('');
-                  setErrorMessage('');
-                  setPdfCheckStatus('idle');
-                  setPdfCheckedHash('');
-                  setPdfCheckedName('');
-                }}
-                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition-colors cursor-pointer"
-              >
-                Consultar Outro Código
-              </button>
             </div>
           </div>
         )}

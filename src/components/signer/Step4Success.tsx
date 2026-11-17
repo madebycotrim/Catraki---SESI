@@ -6,7 +6,6 @@ import {
   Clock,
   Printer,
   MailCheck,
-  Download,
   AlertTriangle,
 } from 'lucide-react';
 import QRCode from 'qrcode';
@@ -89,17 +88,10 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 mb-4 px-1 no-print">
         <button
           onClick={handlePrintVoucher}
-          className="text-xs sm:text-sm font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
-        >
-          <Download className="w-4 h-4" />
-          <span>Salvar em PDF</span>
-        </button>
-        <button
-          onClick={handlePrintVoucher}
           className="text-xs sm:text-sm font-bold bg-sesi-primary hover:bg-blue-900 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
         >
           <Printer className="w-4 h-4" />
-          <span>Imprimir Comprovante (A4)</span>
+          <span>Imprimir / Salvar PDF (A4)</span>
         </button>
       </div>
 

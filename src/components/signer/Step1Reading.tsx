@@ -1,5 +1,6 @@
 import React from 'react';
-import { ChevronRight, Info, Eye, HelpCircle, AlertTriangle } from 'lucide-react';
+import { ChevronRight, Info, HelpCircle, AlertTriangle } from 'lucide-react';
+import { DocumentSheetLayout } from '../common/DocumentSheetLayout.tsx';
 import type { Institution } from '../../lib/types.ts';
 
 interface Step1ReadingProps {
@@ -19,44 +20,13 @@ interface Step1ReadingProps {
 }
 
 export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institution, onProceed }) => {
-
-  const dataHoje = new Intl.DateTimeFormat('pt-BR', {
-    day:   '2-digit',
-    month: 'long',
-    year:  'numeric',
-    timeZone: 'America/Sao_Paulo',
-  }).format(new Date());
-
   return (
-    <div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-1 sm:px-4 pb-10 pt-1">
-      {/* Folha A4 — Padrão ABNT Responsivo */}
-      <div className="document-sheet-a4">
-        {/* Cabeçalho com logo oficial */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 pb-4 border-b-2 sm:border-b-3 border-[#034b7f]">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <img
-              src="/catraki.png"
-              alt="Catraki"
-              className="h-8 sm:h-10 w-auto object-contain rounded"
-            />
-          </div>
-          <div className="text-left sm:text-right">
-            <p className="text-[10px] sm:text-[8.5pt] text-slate-500 m-0 uppercase tracking-wider font-semibold">
-              PLATAFORMA CATRAKI — ASSINATURA ELETRÔNICA
-            </p>
-            <p className="text-xs sm:text-[9pt] text-slate-800 m-0 font-bold">
-              Doc. nº {document.id}
-            </p>
-            {institution?.name && (
-              <p className="text-[11px] sm:text-[8.5pt] text-[#004b8d] m-0 font-bold">
-                {institution.name}
-              </p>
-            )}
-            <p className="text-[10px] sm:text-[8pt] text-slate-500 m-0">
-              {dataHoje}
-            </p>
-          </div>
-        </div>
+    <DocumentSheetLayout
+      subtitle="Termo de Consentimento (TCLE)"
+      docNumber={document.id}
+      institutionName={institution?.name}
+      pageNumber={1}
+    >
 
         {/* Título Principal */}
         <div className="text-center mb-6 sm:mb-8">
@@ -132,17 +102,6 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
             </ul>
           </div>
 
-          {/* Como proceder? */}
-          <div className="space-y-1.5 pt-1">
-            <h2 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 m-0">
-              <Eye className="w-4 h-4 text-sesi-primary shrink-0" />
-              <span>Como proceder?</span>
-            </h2>
-            <p className="leading-relaxed pl-2 sm:pl-6 text-slate-700 m-0 text-xs sm:text-sm">
-              Leia as próximas telas com atenção, marque as suas opções e, ao final, clique no botão de assinatura eletrônica para concluir o processo.
-            </p>
-          </div>
-
           <div className="bg-blue-50/70 border border-blue-200 p-3.5 sm:p-4 rounded-xl flex items-start gap-3 text-xs text-blue-900 mt-4 sm:mt-6 leading-relaxed">
             <HelpCircle className="w-5 h-5 shrink-0 text-blue-600 mt-0.5" />
             <div>
@@ -151,37 +110,24 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
             </div>
           </div>
 
-          {/* Aceite implícito de Termos e Botão */}
-          <div className="pt-4 sm:pt-5 border-t border-slate-200">
-            <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed m-0 mb-4 text-justify">
-              Ao clicar em <strong className="text-slate-700">Continuar</strong>, você declara que leu e concorda com os{' '}
+          <div className="pt-4 sm:pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-[11px] sm:text-xs text-slate-500 m-0">
+              Na etapa de assinatura você revisará e confirmará formalmente os{' '}
               <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Termos de Uso</a>{' '}e a{' '}
-              <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Política de Privacidade</a>{' '}
-              da Plataforma Catraki, <strong className="text-slate-600">consente com o uso de Assinatura Eletrônica</strong> para este documento (Art. 10, §2º, da MP nº 2.200-2/2001 c/c Lei nº 14.063/2020, Arts. 104 e 107 do Código Civil), e autoriza o registro dos dados técnicos desta sessão (endereço IP, e-mail e dispositivo) para fins de autenticação, em conformidade com a LGPD (Lei nº 13.709/2018).
+              <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#004b8d] hover:underline font-semibold">Política de Privacidade</a>.
             </p>
-            <div className="flex justify-end">
-              <button
-                id="btn-avancar-leitura"
-                type="button"
-                onClick={onProceed}
-                className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-[#004b8d] hover:bg-[#003666] text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer active:scale-[0.99] touch-manipulation relative z-20"
-              >
-                <span>Continuar para Preencher o Formulário</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              id="btn-avancar-leitura"
+              type="button"
+              onClick={onProceed}
+              className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-[#004b8d] hover:bg-[#003666] text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer active:scale-[0.99] touch-manipulation relative z-20 shrink-0"
+            >
+              <span>Continuar para Preencher o Formulário</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
-
-        {/* Barra institucional azul sólida no final da folha (Padronizada) */}
-        <div className="absolute bottom-0 left-0 right-0 h-2.5 sm:h-3.5 bg-[#034b7f] pointer-events-none z-10" />
-
-        {/* Número de página (canto superior direito ABNT) */}
-        <div className="absolute top-4 sm:top-9 right-4 sm:right-12 font-sans text-xs text-slate-400">
-          1
-        </div>
-      </div>
-    </div>
+    </DocumentSheetLayout>
   );
 };
 

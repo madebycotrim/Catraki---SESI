@@ -509,39 +509,6 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
                   </div>
                 </div>
               </div>
-
-              {/* Informação Legal de Privacidade */}
-              <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-150 space-y-2.5 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                <div className="flex items-start gap-2.5">
-                  <Mail className="w-4 h-4 text-sesi-primary shrink-0 mt-0.5" />
-                  <div className="space-y-1 text-justify">
-                    <strong className="text-slate-800 block">
-                      Confirmação de Segurança por E-mail:
-                    </strong>
-                    <p className="m-0 text-[11px] text-slate-500 pt-1">
-                      Ao assinar este documento, você declara ter lido e concordar com os nossos{' '}
-                      <a
-                        href="/termos"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[#004b8d] font-bold underline hover:text-blue-900"
-                      >
-                        Termos de Uso
-                      </a>{' '}
-                      e com a nossa{' '}
-                      <a
-                        href="/privacidade"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[#004b8d] font-bold underline hover:text-blue-900"
-                      >
-                        Política de Privacidade
-                      </a>
-                      .
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 

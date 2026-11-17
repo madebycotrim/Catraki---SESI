@@ -225,7 +225,7 @@ export const TitularPortal: React.FC<TitularPortalProps> = ({ onBack, onNavigate
                   value={requesterName}
                   onChange={(e) => setRequesterName(e.target.value)}
                   placeholder="Digite seu nome completo"
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-[#034b7f]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-base sm:text-sm focus:outline-none focus:border-[#034b7f]"
                 />
               </div>
 
@@ -241,7 +241,7 @@ export const TitularPortal: React.FC<TitularPortalProps> = ({ onBack, onNavigate
                   value={requesterCpf}
                   onChange={(e) => setRequesterCpf(formatCPF(e.target.value))}
                   placeholder="000.000.000-00"
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-mono focus:outline-none focus:border-[#034b7f]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-base sm:text-sm font-mono focus:outline-none focus:border-[#034b7f]"
                 />
               </div>
 
@@ -255,7 +255,7 @@ export const TitularPortal: React.FC<TitularPortalProps> = ({ onBack, onNavigate
                   value={requesterEmail}
                   onChange={(e) => setRequesterEmail(e.target.value)}
                   placeholder="seuemail@exemplo.com"
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-[#034b7f]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-base sm:text-sm focus:outline-none focus:border-[#034b7f]"
                 />
               </div>
             </div>
@@ -270,7 +270,7 @@ export const TitularPortal: React.FC<TitularPortalProps> = ({ onBack, onNavigate
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
                 placeholder="Informe o nome do estudante (se aplicável) e o que deseja consultar, corrigir ou anonimizar..."
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-[#034b7f]"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-base sm:text-sm focus:outline-none focus:border-[#034b7f]"
               />
             </div>
 

@@ -194,15 +194,15 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
           <div className="flex items-center justify-between gap-2">
             <ol className="flex-1 grid grid-cols-4 items-center gap-1 sm:gap-2">
               {[
-                { num: 1, label: 'Boas-vindas' },
-                { num: 2, label: 'Dados' },
-                { num: 3, label: 'Assinatura' },
-                { num: 4, label: 'Comprovante' },
+                { num: 1, label: 'Boas-vindas', shortLabel: 'Início' },
+                { num: 2, label: 'Dados', shortLabel: 'Dados' },
+                { num: 3, label: 'Assinatura', shortLabel: 'Assinar' },
+                { num: 4, label: 'Comprovante', shortLabel: 'Recibo' },
               ].map((item, idx) => {
                 const isCurrent = step === item.num;
                 const isDone = step > item.num;
                 return (
-                  <li key={item.num} className="relative flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+                  <li key={item.num} className="relative flex items-center justify-center sm:justify-start gap-1 sm:gap-2.5 min-w-0">
                     {/* Linha conectora editorial entre etapas */}
                     {idx > 0 && (
                       <span
@@ -224,7 +224,7 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
                       {isDone ? '✓' : item.num}
                     </span>
                     <span
-                      className={`text-[10px] sm:text-xs tracking-tight truncate ${
+                      className={`text-[11px] sm:text-xs tracking-tight truncate ${
                         isCurrent
                           ? 'font-extrabold text-[#034b7f]'
                           : isDone
@@ -232,7 +232,8 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
                             : 'font-medium text-slate-400'
                       }`}
                     >
-                      {item.label}
+                      <span className="sm:hidden">{item.shortLabel}</span>
+                      <span className="hidden sm:inline">{item.label}</span>
                     </span>
                   </li>
                 );

@@ -165,7 +165,7 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                     value={docToken}
                     onChange={(e) => setDocToken(e.target.value)}
                     placeholder="Ex: DOC-20260904-120000-ABCD"
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-base sm:text-sm font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -180,7 +180,7 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                     value={signerCpf}
                     onChange={(e) => setSignerCpf(formatCPF(e.target.value))}
                     placeholder="000.000.000-00"
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-base sm:text-sm font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20"
                   />
                 </div>
               </div>
@@ -196,7 +196,7 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                   onChange={(e) => setReason(e.target.value)}
                   rows={4}
                   placeholder="Descreva o motivo pelo qual deseja revogar esta autorização..."
-                  className="w-full px-3.5 sm:px-4 py-3 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20 transition-all shadow-xs"
+                  className="w-full px-3.5 sm:px-4 py-3 bg-white border border-slate-300 rounded-xl text-base sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20 transition-all shadow-xs"
                 />
                 <span className="text-[11px] sm:text-xs text-slate-500 block">Descreva em ao menos 10 caracteres.</span>
               </div>

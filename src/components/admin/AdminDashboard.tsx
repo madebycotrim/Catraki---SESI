@@ -883,8 +883,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     });
   }, [baseCriteriaFilteredAuths, subTab, selectedStatus]);
 
-  const totalSigned = authorizations.filter((a) => a.status === 'signed').length;
-  const signedPercentage = authorizations.length > 0 ? ((totalSigned / authorizations.length) * 100).toFixed(1) : '0';
+  // Escopo dos 3 primeiros KPIs: filtrado pela escola selecionada ou global quando "Todas as escolas"
+  const schoolScopedAuths = useMemo(() => {
+    if (selectedInstitution === 'all') return authorizations;
+    return authorizations.filter(
+      (auth) =>
+        auth.institutionId === selectedInstitution ||
+        (auth.institutionName && auth.institutionName.toLowerCase().includes(selectedInstitution.toLowerCase()))
+    );
+  }, [authorizations, selectedInstitution]);
+
+  const totalSigned = schoolScopedAuths.filter((a) => a.status === 'signed').length;
+  const signedPercentage = schoolScopedAuths.length > 0 ? ((totalSigned / schoolScopedAuths.length) * 100).toFixed(1) : '0';
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // ENGINE DE ALERTAS INTELIGENTES
@@ -1093,7 +1103,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     });
   }, [excelFilteredAuths, sortColumn, sortDirection, extractors]);
 
-  const totalImageAuthorized = filteredAuths.filter((a) => a.authImage && a.status === 'signed').length;
+  const totalImageAuthorized = schoolScopedAuths.filter((a) => a.authImage && a.status === 'signed').length;
 
   // Paginação
   const totalPages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(filteredAuths.length / pageSize));
@@ -1339,7 +1349,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Registros Filtrados</span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-black text-slate-900">{filteredAuths.length}</span>
-              <span className="text-xs text-slate-500 font-semibold">de {authorizations.length}</span>
+              <span className="text-xs text-slate-500 font-semibold">de {schoolScopedAuths.length}</span>
             </div>
             <span className="text-[11px] text-blue-600 font-medium flex items-center gap-1">
               <SlidersHorizontal className="w-3 h-3" />

@@ -1,7 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
-import QRCode from 'qrcode';
 import { LOGO_BASE64 } from './LogoBase64.ts';
 import { calcularIdade, formatBrasiliaDateTime } from '../schemas.ts';
+import { desenharQrCodeVetorial } from './qr-pdf.ts';
 
 export interface IDadosTermoPdf {
   tituloProcedimento: string;
@@ -40,6 +40,8 @@ export interface IDadosTermoPdf {
   instituicao1Cnpj?: string;
   instituicao2Nome?: string;
   instituicao2Cnpj?: string;
+  termosVersao?: string;
+  privacyPolicyVersion?: string;
 }
 
 /**
@@ -128,17 +130,18 @@ export class GeradorPdfTermoSesi {
 
     let y = height - 40;
 
-    // 1. Cabeçalho Institucional ABNT com Logo Catraki
-    if (logoCatrakiImg) {
+    // 1. Cabeçalho Institucional ABNT com Logo Catraki (preservando proporção original)
+    const logoDims = logoCatrakiImg ? logoCatrakiImg.scaleToFit(28, 28) : null;
+    if (logoCatrakiImg && logoDims) {
       page1.drawImage(logoCatrakiImg, {
         x: margemEsquerda,
-        y: y - 20,
-        width: 75,
-        height: 24,
+        y: y - 22,
+        width: logoDims.width,
+        height: logoDims.height,
       });
     }
 
-    const xCabecalhoTexto = logoCatrakiImg ? margemEsquerda + 85 : margemEsquerda;
+    const xCabecalhoTexto = logoDims ? margemEsquerda + logoDims.width + 10 : margemEsquerda;
 
     page1.drawText('PLATAFORMA CATRAKI', {
       x: xCabecalhoTexto,
@@ -156,210 +159,295 @@ export class GeradorPdfTermoSesi {
       color: corCinzaEscuro,
     });
 
-    // Numeração de Página ABNT (Canto Superior Direito)
-    page1.drawText('Folha 1 / 2', {
-      x: width - margemDireita - 48,
+    // Numeração de Página ABNT + Protocolo (Canto Superior Direito)
+    const folha1Label = 'Folha 1 / 2';
+    page1.drawText(folha1Label, {
+      x: width - margemDireita - fontBold.widthOfTextAtSize(folha1Label, 8),
       y: y - 5,
       size: 8,
       font: fontBold,
       color: corCinzaEscuro,
     });
+    const protoTop = `Protocolo: ${validationCode}`;
+    page1.drawText(protoTop, {
+      x: width - margemDireita - fontMono.widthOfTextAtSize(protoTop, 7),
+      y: y - 16,
+      size: 7,
+      font: fontMono,
+      color: corAzulSesi,
+    });
 
-    y -= 30;
+    y -= 28;
 
     // Linha divisória superior
     page1.drawLine({
       start: { x: margemEsquerda, y },
       end: { x: width - margemDireita, y },
-      thickness: 1.2,
+      thickness: 1.5,
       color: corAzulSesi,
     });
 
-    // 2. Parágrafo de Apresentação e Qualificação (com Controladores CNPJ e Lógica de Maioridade ECA vs CC)
-    y -= 16;
+    // Quadro Resumo de Identificação das Partes (2 colunas)
+    y -= 10;
+    const resumoH = 44;
+    const contentWidth = width - margemEsquerda - margemDireita;
+    page1.drawRectangle({
+      x: margemEsquerda,
+      y: y - resumoH,
+      width: contentWidth,
+      height: resumoH,
+      color: rgb(0.97, 0.98, 0.99),
+      borderColor: corCinzaLinha,
+      borderWidth: 0.6,
+    });
+    page1.drawLine({
+      start: { x: margemEsquerda + contentWidth / 2, y: y - 4 },
+      end: { x: margemEsquerda + contentWidth / 2, y: y - resumoH + 4 },
+      thickness: 0.5,
+      color: corCinzaLinha,
+    });
+
     const cpfIntro = isMaior
       ? (dados.minorCpfCompleto || dados.cpfResponsavelCompleto || dados.minorCpfMascarado || dados.cpfResponsavelMascarado || '***.***.***-**')
       : (dados.cpfResponsavelCompleto || dados.minorCpfCompleto || dados.cpfResponsavelMascarado || dados.minorCpfMascarado || '***.***.***-**');
-    const textoIntro = isMaior
-      ? `Eu, ${dados.nomeMenor}, portador(a) do CPF ${cpfIntro}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante "${nomeProjeto}", realizado por ${controladoresStr}. Manifesto meu consentimento livre, informado e inequívoco, aplicável ao tratamento de dados sensíveis conforme o Art. 11, I e Art. 18 da LGPD (Lei nº 13.709/2018) e autorização de imagem (Art. 20 da Lei nº 10.406/2002 - Código Civil), para os itens selecionados abaixo:`
-      : `Eu, ${dados.nomeResponsavel}, portador(a) do CPF ${cpfIntro}, na qualidade de responsável legal do(a) estudante ${dados.nomeMenor}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante "${nomeProjeto}", realizado por ${controladoresStr}. Manifesto meu consentimento livre, informado e inequívoco, nos termos do Art. 14 e Art. 18 da LGPD (Lei nº 13.709/2018) e do Art. 17 do ECA (Lei nº 8.069/1990), para os itens selecionados abaixo:`;
 
-    const linhasIntro = this.quebrarTexto(textoIntro, 92);
-    for (let i = 0; i < linhasIntro.length; i++) {
-      page1.drawText(linhasIntro[i], {
-        x: margemEsquerda + (i === 0 ? 25 : 0), // Recuo ABNT no 1º parágrafo
-        y,
-        size: 8.5,
-        font: fontRegular,
-        color: corPreto,
-      });
-      y -= 11.5;
-    }
-
-    // 3. Seção 1: DO OBJETO E ATENDIMENTO DE SAÚDE
-    y -= 8;
-    page1.drawText(`1. DO PROCEDIMENTO: ${dados.tituloProcedimento.toUpperCase()}`, {
-      x: margemEsquerda,
-      y,
-      size: 9.5,
+    page1.drawText(isMaior ? 'TITULAR (ESTUDANTE MAIOR DE IDADE)' : 'ESTUDANTE / BENEFICIÁRIO(A)', {
+      x: margemEsquerda + 8,
+      y: y - 11,
+      size: 6.5,
+      font: fontBold,
+      color: corAzulSesi,
+    });
+    page1.drawText(dados.nomeMenor.trim().slice(0, 38), {
+      x: margemEsquerda + 8,
+      y: y - 22,
+      size: 8,
       font: fontBold,
       color: corPreto,
     });
+    const estudanteSub = `Nasc.: ${dados.dataNascimentoMenor}${dados.nomeEscola ? ` • ${dados.nomeEscola.slice(0, 26)}` : ''}`;
+    page1.drawText(estudanteSub, {
+      x: margemEsquerda + 8,
+      y: y - 33,
+      size: 6.8,
+      font: fontRegular,
+      color: corCinzaEscuro,
+    });
 
-    y -= 12;
-    const linhasDescricao = this.quebrarTexto(dados.descricaoProcedimento, 92).slice(0, 5);
+    const colDirX = margemEsquerda + contentWidth / 2 + 10;
+    page1.drawText(isMaior ? 'SIGNATÁRIO (PRÓPRIO ESTUDANTE)' : 'RESPONSÁVEL LEGAL (SIGNATÁRIO)', {
+      x: colDirX,
+      y: y - 11,
+      size: 6.5,
+      font: fontBold,
+      color: corAzulSesi,
+    });
+    const nomeSig = (isMaior ? dados.nomeMenor : dados.nomeResponsavel).trim().slice(0, 38);
+    page1.drawText(nomeSig, {
+      x: colDirX,
+      y: y - 22,
+      size: 8,
+      font: fontBold,
+      color: corPreto,
+    });
+    page1.drawText(`CPF: ${cpfIntro} • Vínculo: ${isMaior ? 'Titular' : dados.parentesco}`, {
+      x: colDirX,
+      y: y - 33,
+      size: 6.8,
+      font: fontRegular,
+      color: corCinzaEscuro,
+    });
+
+    y -= resumoH + 12;
+
+    // 2. Parágrafo de Apresentação e Qualificação (com Controladores CNPJ e Lógica de Maioridade ECA vs CC)
+    const textoIntro = isMaior
+      ? `Eu, ${dados.nomeMenor.trim()}, portador(a) do CPF ${cpfIntro}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante "${nomeProjeto}", realizado por ${controladoresStr}. Manifesto meu consentimento livre, informado e inequívoco, aplicável ao tratamento de dados sensíveis conforme o Art. 11, I e Art. 18 da LGPD (Lei nº 13.709/2018) e autorização de imagem (Art. 20 da Lei nº 10.406/2002 - Código Civil), para os itens selecionados abaixo:`
+      : `Eu, ${dados.nomeResponsavel.trim()}, portador(a) do CPF ${cpfIntro}, na qualidade de responsável legal do(a) estudante ${dados.nomeMenor.trim()}, nascido(a) em ${dados.dataNascimentoMenor}, declaro que recebi as orientações sobre o projeto itinerante "${nomeProjeto}", realizado por ${controladoresStr}. Manifesto meu consentimento livre, informado e inequívoco, nos termos do Art. 14 e Art. 18 da LGPD (Lei nº 13.709/2018) e do Art. 17 do ECA (Lei nº 8.069/1990), para os itens selecionados abaixo:`;
+
+    const linhasIntro = this.quebrarTexto(textoIntro, 94);
+    for (let i = 0; i < linhasIntro.length; i++) {
+      page1.drawText(linhasIntro[i], {
+        x: margemEsquerda + (i === 0 ? 22 : 0),
+        y,
+        size: 8.2,
+        font: fontRegular,
+        color: corPreto,
+      });
+      y -= 10.8;
+    }
+
+    // 3. Seção 1: DO OBJETO E ATENDIMENTO DE SAÚDE
+    y -= 6;
+    page1.drawRectangle({ x: margemEsquerda, y: y - 3, width: 3, height: 11, color: corAzulSesi });
+    page1.drawText(`1. DO PROCEDIMENTO: ${dados.tituloProcedimento.toUpperCase()}`, {
+      x: margemEsquerda + 8,
+      y,
+      size: 9,
+      font: fontBold,
+      color: corAzulSesi,
+    });
+
+    y -= 11;
+    const linhasDescricao = this.quebrarTexto(dados.descricaoProcedimento, 95).slice(0, 4);
     for (const linha of linhasDescricao) {
       if (y < 140) break;
       page1.drawText(linha, {
         x: margemEsquerda,
         y,
-        size: 8,
+        size: 7.8,
         font: fontRegular,
         color: corPreto,
       });
-      y -= 10.5;
+      y -= 10;
     }
 
-    // 4. Seção 2: AUTORIZAÇÕES E CONSENTIMENTO GRANULAR
-    y -= 8;
+    // 4. Seção 2: OPÇÕES DE CONSENTIMENTO E DECLARAÇÃO MARCADAS
+    y -= 6;
     const tituloSecao2 = isMaior
-      ? '2. AUTORIZAÇÕES E CONSENTIMENTO (ART. 11, I E ART. 18 DA LEI Nº 13.709/2018 E ART. 20 DO CÓDIGO CIVIL)'
-      : '2. AUTORIZAÇÕES E CONSENTIMENTO (ART. 14 E ART. 18 DA LEI Nº 13.709/2018 E ART. 17 DO ECA)';
+      ? '2. OPÇÕES DE CONSENTIMENTO E DECLARAÇÃO MARCADAS (LGPD ARTS. 11, I E 18 • CC ART. 20)'
+      : '2. OPÇÕES DE CONSENTIMENTO E DECLARAÇÃO MARCADAS (LGPD ARTS. 14 E 18 • ECA ART. 17)';
 
+    page1.drawRectangle({ x: margemEsquerda, y: y - 3, width: 3, height: 11, color: corAzulSesi });
     page1.drawText(tituloSecao2, {
-      x: margemEsquerda,
+      x: margemEsquerda + 8,
+      y,
+      size: 8.6,
+      font: fontBold,
+      color: corAzulSesi,
+    });
+
+    const desenharBadgeStatus = (autorizado: boolean, linhaY: number, labelPositivo = 'AUTORIZADO', labelNegativo = 'NÃO AUTORIZADO') => {
+      const texto = autorizado ? labelPositivo : labelNegativo;
+      const corTexto = autorizado ? corVerde : corVermelho;
+      const corFundo = autorizado ? rgb(0.93, 0.98, 0.95) : rgb(0.99, 0.94, 0.94);
+      const badgeW = fontBold.widthOfTextAtSize(texto, 6.8) + 10;
+      const badgeX = width - margemDireita - badgeW;
+      page1.drawRectangle({
+        x: badgeX,
+        y: linhaY - 2.5,
+        width: badgeW,
+        height: 11.5,
+        color: corFundo,
+        borderColor: corTexto,
+        borderWidth: 0.5,
+      });
+      page1.drawText(texto, {
+        x: badgeX + 5,
+        y: linhaY + 0.5,
+        size: 6.8,
+        font: fontBold,
+        color: corTexto,
+      });
+    };
+
+    const desenharItemOpcao = (
+      titulo: string,
+      descricao: string,
+      marcado: boolean,
+      labelPositivo = 'AUTORIZADO',
+      labelNegativo = 'NÃO AUTORIZADO'
+    ) => {
+      y -= 13;
+      const checkPrefix = marcado ? '[x]' : '[ ]';
+      page1.drawText(`${checkPrefix} ${titulo}`, {
+        x: margemEsquerda,
+        y,
+        size: 8,
+        font: fontBold,
+        color: corPreto,
+      });
+      desenharBadgeStatus(marcado, y, labelPositivo, labelNegativo);
+
+      y -= 10;
+      for (const linha of this.quebrarTexto(descricao, 98)) {
+        page1.drawText(linha, {
+          x: margemEsquerda + 12,
+          y,
+          size: 7.1,
+          font: fontRegular,
+          color: corCinzaEscuro,
+        });
+        y -= 8.8;
+      }
+      y -= 2;
+    };
+
+    desenharItemOpcao(
+      'a) Atendimento Preventivo de Saúde (Circuito Móvel):',
+      'Autorização para triagens preventivas e avaliações clínicas nas especialidades de Oftalmologia, Odontologia, Fonoaudiologia (Audiometria), Terapia Comunitária Integrativa e Oficinas de Alimentação Saudável (Nutrição), durante o período escolar.',
+      dados.autorizacaoSaude
+    );
+
+    desenharItemOpcao(
+      isMaior
+        ? 'b) Tratamento de Dados Pessoais e Sensíveis (LGPD, Art. 11, I e Art. 18):'
+        : 'b) Tratamento de Dados Pessoais do Menor (LGPD, Art. 14 e Art. 18):',
+      isMaior
+        ? 'Autorização para coleta e tratamento de dados pessoais e dados de saúde exclusivamente para identificação e validação legal da permissão de atendimento, garantido o direito de acesso e revogação.'
+        : 'Autorização para coleta e processamento dos dados pessoais informados exclusivamente para identificação e validação legal da permissão de atendimento do menor, garantido o direito de acesso e revogação.',
+      dados.autorizacaoDados
+    );
+
+    desenharItemOpcao(
+      isMaior
+        ? 'c) Registro Fotográfico / Audiovisual (Código Civil, Art. 20 — Opcional):'
+        : 'c) Registro Fotográfico / Audiovisual (ECA, Art. 17 — Opcional):',
+      'Registro institucional e prestação de contas oficial do projeto Escola Cidadã — Saúde em Movimento (SESI-DF e UnB), vedada qualquer exploração comercial ou vexatória.',
+      dados.autorizacaoImagem
+    );
+
+    const versaoTermo = dados.termosVersao || '1.0.2026';
+    desenharItemOpcao(
+      `d) Aceite do Termo e Assinatura Eletrônica Simples (Versão ${versaoTermo}):`,
+      'Declaração de leitura, concordância com o Termo de Consentimento, adoção de assinatura eletrônica simples (Art. 4º, I da Lei nº 14.063/2020, Art. 10, § 2º da MP nº 2.200-2/2001 e Art. 190 do CPC) e veracidade sob as penas da lei (Art. 299 do Código Penal).',
+      true,
+      'ACEITO',
+      'PENDENTE'
+    );
+
+    const versaoPrivacidade = dados.privacyPolicyVersion || '1.1.2026';
+    desenharItemOpcao(
+      `e) Política de Privacidade e Registro de Aceite (Versão ${versaoPrivacidade}):`,
+      'Ciência e aceite integral da Política de Privacidade da Plataforma Catraki, autorizando o registro da data, hora e versão deste aceite em conformidade com a LGPD (Lei nº 13.709/2018).',
+      true,
+      'ACEITO',
+      'PENDENTE'
+    );
+
+    // 5. Seção 3: CONTROLADORES E DIREITOS DO TITULAR (LGPD ART. 18)
+    y -= 10;
+    page1.drawRectangle({ x: margemEsquerda, y: y - 3, width: 3, height: 11, color: corAzulSesi });
+    page1.drawText('3. CONTROLADORES, RETENÇÃO E DIREITOS DO TITULAR (LGPD)', {
+      x: margemEsquerda + 8,
       y,
       size: 9,
       font: fontBold,
-      color: corPreto,
-    });
-
-    // Item A: Saúde
-    y -= 13;
-    page1.drawText('a) Circuito de Saúde e Especialidades: ', {
-      x: margemEsquerda,
-      y,
-      size: 8.5,
-      font: fontBold,
-      color: corPreto,
-    });
-
-    const statusSaudeText = dados.autorizacaoSaude ? '[ AUTORIZADO ]' : '[ NÃO AUTORIZADO ]';
-    const statusSaudeColor = dados.autorizacaoSaude ? corVerde : corVermelho;
-
-    page1.drawText(statusSaudeText, {
-      x: margemEsquerda + 175,
-      y,
-      size: 8.5,
-      font: fontBold,
-      color: statusSaudeColor,
+      color: corAzulSesi,
     });
 
     y -= 11;
-    const descSaude = '— Fica autorizada a realização de triagens preventivas e avaliações clínicas integradas no circuito móvel do projeto: Oftalmologia, Odontologia, Fonoaudiologia (Audiometria), Terapia Comunitária Integrativa e Oficinas de Alimentação Saudável (Nutrição), durante o turno escolar.';
-    const linhasDescSaude = this.quebrarTexto(descSaude, 94);
-    for (const linha of linhasDescSaude) {
-      page1.drawText(linha, {
-        x: margemEsquerda + 12,
+    const textoLgpdResumo = `Controladores Conjuntos: ${controladoresStr}. Os dados são tratados exclusivamente para execução do projeto "${nomeProjeto}" e prestação de contas institucional. O titular/responsável pode exercer seus direitos de acesso, correção ou revogação do consentimento a qualquer momento (Art. 18 da LGPD) em https://www.catraki.com.br/revogar.`;
+    for (const linhaLgpd of this.quebrarTexto(textoLgpdResumo, 96)) {
+      page1.drawText(linhaLgpd, {
+        x: margemEsquerda,
         y,
-        size: 7.5,
+        size: 7.3,
         font: fontRegular,
-        color: corPreto,
+        color: corCinzaEscuro,
       });
       y -= 9.5;
     }
 
-    // Item B: Dados Pessoais (LGPD Art. 14 para menores vs Art. 11, I para maiores)
-    y -= 5;
-    const labelDados = isMaior
-      ? 'b) Tratamento de Dados Pessoais e Sensíveis (LGPD, Art. 11, I e Art. 18): '
-      : 'b) Tratamento de Dados Pessoais do Menor (LGPD, Art. 14 e Art. 18): ';
-
-    page1.drawText(labelDados, {
-      x: margemEsquerda,
+    // 6. Seção 4: DECLARAÇÃO DE VERACIDADE E ASSINATURA ELETRÔNICA
+    y -= 9;
+    page1.drawRectangle({ x: margemEsquerda, y: y - 3, width: 3, height: 11, color: corAzulSesi });
+    page1.drawText('4. DECLARAÇÃO DE VERACIDADE E ASSINATURA ELETRÔNICA', {
+      x: margemEsquerda + 8,
       y,
-      size: 8.5,
+      size: 9,
       font: fontBold,
-      color: corPreto,
-    });
-
-    const statusDadosText = dados.autorizacaoDados ? '[ AUTORIZADO ]' : '[ NÃO AUTORIZADO ]';
-    const statusDadosColor = dados.autorizacaoDados ? corVerde : corVermelho;
-
-    const xOffsetStatusDados = isMaior ? 285 : 245;
-    page1.drawText(statusDadosText, {
-      x: margemEsquerda + xOffsetStatusDados,
-      y,
-      size: 8.5,
-      font: fontBold,
-      color: statusDadosColor,
-    });
-
-    y -= 11;
-    const descDados = isMaior
-      ? '— Autorizo a coleta e o tratamento dos meus dados pessoais e dados de saúde para fins exclusivos de identificação e validação legal da permissão de atendimento, garantido o direito de acesso e revogação (Art. 18, LGPD).'
-      : '— Autorizo a coleta e o processamento dos dados pessoais informados para fins exclusivos de identificação e validação legal da permissão de atendimento do menor, garantido o direito de acesso e revogação (Art. 18, LGPD).';
-
-    const linhasDescDados = this.quebrarTexto(descDados, 94);
-    for (const linha of linhasDescDados) {
-      page1.drawText(linha, {
-        x: margemEsquerda + 12,
-        y,
-        size: 7.5,
-        font: fontRegular,
-        color: corPreto,
-      });
-      y -= 9.5;
-    }
-
-    // Item C: Imagem e Voz (ECA Art. 17 para menores vs Código Civil Art. 20 para maiores)
-    y -= 5;
-    const labelImg = isMaior
-      ? 'c) Captação e Uso de Imagem e Voz (Art. 20 do Código Civil): '
-      : 'c) Captação e Uso de Imagem e Voz (ECA, Art. 17): ';
-
-    page1.drawText(labelImg, {
-      x: margemEsquerda,
-      y,
-      size: 8.5,
-      font: fontBold,
-      color: corPreto,
-    });
-
-    const statusImgText = dados.autorizacaoImagem ? '[ AUTORIZADO ]' : '[ NÃO AUTORIZADO ]';
-    const statusImgColor = dados.autorizacaoImagem ? corVerde : corVermelho;
-
-    const xOffsetStatusImg = isMaior ? 260 : 225;
-    page1.drawText(statusImgText, {
-      x: margemEsquerda + xOffsetStatusImg,
-      y,
-      size: 8.5,
-      font: fontBold,
-      color: statusImgColor,
-    });
-
-    y -= 11;
-    const descImg = '— Autorização de caráter gratuito para registro institucional e relatórios de prestação de contas do projeto, com vedação expressa de exploração comercial ou fins vexatórios.';
-    const linhasDescImg = this.quebrarTexto(descImg, 94);
-    for (const linha of linhasDescImg) {
-      page1.drawText(linha, {
-        x: margemEsquerda + 12,
-        y,
-        size: 7.5,
-        font: fontRegular,
-        color: corPreto,
-      });
-      y -= 9.5;
-    }
-
-    // 5. Seção 3: DECLARAÇÃO DE VERACIDADE E ASSINATURA ELETRÔNICA
-    y -= 12;
-    page1.drawText('3. DECLARAÇÃO E ASSINATURA ELETRÔNICA', {
-      x: margemEsquerda,
-      y,
-      size: 9.5,
-      font: fontBold,
-      color: corPreto,
+      color: corAzulSesi,
     });
 
     y -= 12;
@@ -384,35 +472,31 @@ export class GeradorPdfTermoSesi {
       color: corCinzaEscuro,
     });
 
-    // Embed do QR Code de Validação Pública
+    // Embed do QR Code Vetorial de Validação Pública (funciona 100% em Edge/Workers sem Canvas)
     const urlValidacao = `https://www.catraki.com.br/validar/${validationCode}`;
-
     try {
-      const qrDataUrl = await QRCode.toDataURL(urlValidacao, {
-        margin: 1,
-        width: 80,
-        color: { dark: '#000000', light: '#ffffff' },
+      const qrSize1 = 70;
+      const qrX1 = width - margemDireita - qrSize1 - 4;
+      const qrY1 = y - 72;
+      page1.drawRectangle({
+        x: qrX1 - 4,
+        y: qrY1 - 14,
+        width: qrSize1 + 8,
+        height: qrSize1 + 18,
+        color: rgb(0.97, 0.98, 0.99),
+        borderColor: corCinzaLinha,
+        borderWidth: 0.6,
       });
-      const qrClean = qrDataUrl.replace(/^data:image\/png;base64,/, '');
-      const qrBytes = Uint8Array.from(atob(qrClean), (c) => c.charCodeAt(0));
-      const qrImage = await pdfDoc.embedPng(qrBytes);
-
-      page1.drawImage(qrImage, {
-        x: width - margemDireita - 75,
-        y: y - 62,
-        width: 70,
-        height: 70,
-      });
-
+      desenharQrCodeVetorial(page1, urlValidacao, qrX1, qrY1, qrSize1);
       page1.drawText('Validação Pública', {
-        x: width - margemDireita - 72,
-        y: y - 71,
-        size: 6.5,
+        x: qrX1 + 6,
+        y: qrY1 - 10,
+        size: 6.4,
         font: fontBold,
-        color: corPreto,
+        color: corAzulSesi,
       });
     } catch (err) {
-      console.warn('[PDF] Falha ao gerar QR Code da folha 1:', err);
+      console.warn('[PDF] Falha ao gerar QR Code vetorial da folha 1:', err);
     }
 
     // Linha de assinatura
@@ -441,11 +525,12 @@ export class GeradorPdfTermoSesi {
         const cleanPng = dados.assinaturaPngBase64.replace(/^data:image\/png;base64,/, '');
         const pngBytes = Uint8Array.from(atob(cleanPng), (c) => c.charCodeAt(0));
         const signatureImage = await pdfDoc.embedPng(pngBytes);
+        const sigDims = signatureImage.scaleToFit(150, 32);
         page1.drawImage(signatureImage, {
-          x: margemEsquerda + 20,
+          x: margemEsquerda + 16,
           y: y + 2,
-          width: 145,
-          height: 28,
+          width: sigDims.width,
+          height: sigDims.height,
         });
 
         // Marca d'água sobreposta à assinatura (inutiliza recortes e cópias forjadas)
@@ -563,17 +648,18 @@ export class GeradorPdfTermoSesi {
       const page2 = pdfDoc.addPage([595.28, 841.89]);
       let y2 = height - 40;
 
-      // Cabeçalho da página 2 com Logo Catraki
-      if (logoCatrakiImg) {
+      // Cabeçalho da página 2 com Logo Catraki (preservando proporção original)
+      const logoDims2 = logoCatrakiImg ? logoCatrakiImg.scaleToFit(28, 28) : null;
+      if (logoCatrakiImg && logoDims2) {
         page2.drawImage(logoCatrakiImg, {
           x: margemEsquerda,
-          y: y2 - 20,
-          width: 75,
-          height: 24,
+          y: y2 - 22,
+          width: logoDims2.width,
+          height: logoDims2.height,
         });
       }
 
-      const xCabecalho2 = logoCatrakiImg ? margemEsquerda + 85 : margemEsquerda;
+      const xCabecalho2 = logoDims2 ? margemEsquerda + logoDims2.width + 10 : margemEsquerda;
 
       page2.drawText('COMPROVANTE DE REGISTRO DE ASSINATURA ELETRÔNICA', {
         x: xCabecalho2,
@@ -723,8 +809,8 @@ export class GeradorPdfTermoSesi {
 
       y2 -= (alturaTabela + 12);
 
-      // 3. REGISTROS DE AUTENTICAÇÃO (2FA OTP)
-      page2.drawText('HISTÓRICO E AUTENTICAÇÃO DE DOIS FATORES (2FA OTP)', {
+      // 3. REGISTROS DE AUTENTICAÇÃO (2FA OTP) E ACEITES
+      page2.drawText('HISTÓRICO DE CONSENTIMENTOS E AUTENTICAÇÃO (2FA OTP)', {
         x: margemEsquerda,
         y: y2,
         size: 9.5,
@@ -732,21 +818,33 @@ export class GeradorPdfTermoSesi {
         color: corPreto,
       });
 
-      y2 -= 14;
+      y2 -= 13;
+      page2.drawText(
+        `[Passo 1] Aceites granulares registrados: Saúde (${dados.autorizacaoSaude ? 'Sim' : 'Não'}), Dados (${dados.autorizacaoDados ? 'Sim' : 'Não'}), Imagem (${dados.autorizacaoImagem ? 'Sim' : 'Não'}), Termo v${dados.termosVersao || '1.0.2026'}, Privacidade v${dados.privacyPolicyVersion || '1.1.2026'}`,
+        {
+          x: margemEsquerda,
+          y: y2,
+          size: 7.4,
+          font: fontRegular,
+          color: corPreto,
+        }
+      );
+
+      y2 -= 11;
       const reqDate = dados.otpRequestedAt ? formatBrasiliaDateTime(dados.otpRequestedAt) : 'Registrado no envio';
-      page2.drawText(`[Passo 1] Código de segurança de uso único (OTP 6 dígitos) enviado em: ${reqDate}`, {
+      page2.drawText(`[Passo 2] Código de segurança de uso único (OTP 6 dígitos) enviado em: ${reqDate}`, {
         x: margemEsquerda,
         y: y2,
-        size: 8,
+        size: 7.6,
         font: fontRegular,
         color: corPreto,
       });
 
-      y2 -= 12;
-      page2.drawText(`[Passo 2] Autenticação confirmada e assinatura eletrônica concluída em: ${dataHoraExata}`, {
+      y2 -= 11;
+      page2.drawText(`[Passo 3] Autenticação confirmada, assinatura registrada e selo SHA-256 gerado em: ${dataHoraExata}`, {
         x: margemEsquerda,
         y: y2,
-        size: 8,
+        size: 7.6,
         font: fontRegular,
         color: corPreto,
       });
@@ -815,15 +913,6 @@ export class GeradorPdfTermoSesi {
       });
 
       try {
-        const qrDataUrl = await QRCode.toDataURL(linkValidacao, {
-          errorCorrectionLevel: 'M',
-          width: 120,
-          margin: 1,
-        });
-        const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
-        const qrBytes = Uint8Array.from(atob(qrBase64), c => c.charCodeAt(0));
-        const qrImage = await pdfDoc.embedPng(qrBytes);
-
         page2.drawRectangle({
           x: qrX - 3,
           y: qrY - 3,
@@ -833,9 +922,9 @@ export class GeradorPdfTermoSesi {
           borderColor: corCinzaLinha,
           borderWidth: 0.5,
         });
-        page2.drawImage(qrImage, { x: qrX, y: qrY, width: QR_SIZE, height: QR_SIZE });
+        desenharQrCodeVetorial(page2, linkValidacao, qrX, qrY, QR_SIZE);
       } catch (err) {
-        console.warn('[PDF] Falha ao gerar QR Code da folha 2:', err);
+        console.warn('[PDF] Falha ao gerar QR Code vetorial da folha 2:', err);
       }
 
       // 5. AVISO DE INTEGRIDADE JURÍDICA E LGPD (sempre abaixo do card de QR Code)

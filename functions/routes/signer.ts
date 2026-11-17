@@ -1187,6 +1187,8 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
     otpVerifiedAt: new Date(signedAtIso),
     assinaturaPngBase64: signature_png_base64,
     signerEmail: parsed.data.signer_email,
+    termosVersao: parsed.data.termos_versao || '1.0.2026',
+    privacyPolicyVersion: '1.1.2026',
   });
 
   // Hash SHA-256 do arquivo PDF final para verificação bit-a-bit no validador público

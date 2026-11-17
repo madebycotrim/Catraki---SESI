@@ -1,6 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import QRCode from 'qrcode';
 import { formatBrasiliaDateTime } from '../schemas';
+import { desenharQrCodeVetorial } from './qr-pdf.ts';
 
 // ============================================================================
 // GERADOR DE COMPROVANTE DE CONCLUSÃO — RELATÓRIO FINAL DE AUDITORIA FORENSE
@@ -299,21 +299,12 @@ export class GeradorComprovanteConclusao {
     const validationUrl = `${baseUrl}/${dados.validationCode}`;
 
     try {
-      const qrDataUrl = await QRCode.toDataURL(validationUrl, {
-        errorCorrectionLevel: 'M',
-        width: 120,
-        margin: 1,
-      });
-      const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
-      const qrBytes = Uint8Array.from(atob(qrBase64), c => c.charCodeAt(0));
-      const qrImage = await pdfDoc.embedPng(qrBytes);
-
       const QR_SIZE = 90;
       const qrX = PAGE_W - MARGIN - QR_SIZE;
       const qrY = y - QR_SIZE;
 
       page.drawRectangle({ x: qrX - 6, y: qrY - 6, width: QR_SIZE + 12, height: QR_SIZE + 12, color: COR_FUNDO_CLARO, borderColor: COR_AZUL_SESI, borderWidth: 0.5 });
-      page.drawImage(qrImage, { x: qrX, y: qrY, width: QR_SIZE, height: QR_SIZE });
+      desenharQrCodeVetorial(page, validationUrl, qrX, qrY, QR_SIZE);
       page.drawText('Validar Autenticidade', { x: qrX - 2, y: qrY - 12, size: 6, font: fontBold, color: COR_AZUL_SESI });
 
       // Texto ao lado do QR

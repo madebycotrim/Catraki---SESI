@@ -3,6 +3,7 @@ import { LgpdRequestPublicSchema, maskCPF, getInitials, maskName } from '../../s
 import { encryptAesGcm, maskIpAddress, hmacSha256, constantTimeEqual } from '../../src/lib/crypto.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
+import { PRIVACY_POLICY_VERSION, LGPD_RESPONSE_DEADLINE_DAYS } from '../../src/lib/lgpd.ts';
 import type { Env, PublicValidationResponse } from '../../src/lib/types.ts';
 
 export const publicRouter = new Hono<{ Bindings: Env }>();
@@ -498,29 +499,74 @@ publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, 
       return c.json({ success: false, error: parsed.error.errors[0]?.message, code: 'VALIDATION_ERROR' }, 400);
     }
 
-    const { requester_name, requester_cpf, requester_email, request_type, details } = parsed.data;
+    const {
+      requester_name,
+      requester_cpf,
+      requester_email,
+      request_type,
+      details,
+      privacy_policy_accepted,
+      privacy_policy_version,
+      privacy_policy_accepted_at,
+    } = parsed.data;
+
+    if (privacy_policy_accepted === false) {
+      return c.json({
+        success: false,
+        error: 'O aceite da Política de Privacidade é obrigatório para registrar a solicitação.',
+        code: 'PRIVACY_POLICY_REQUIRED',
+      }, 400);
+    }
 
     const db = c.env?.DB;
     const masterKey = c.env?.ENCRYPTION_KEY_V1;
+    const pepper = c.env?.OTP_PEPPER;
 
     if (!masterKey || !db) {
       return c.json({ success: false, error: 'Configuração do servidor incompleta para processamento LGPD.', code: 'KEY_CONFIG_ERROR' }, 500);
     }
 
+    const nowIso = new Date().toISOString();
+    const deadlineIso = new Date(Date.now() + LGPD_RESPONSE_DEADLINE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const policyVersion = privacy_policy_version || PRIVACY_POLICY_VERSION;
+    const policyAcceptedAt = privacy_policy_accepted_at || nowIso;
+
     const requestId = `LGPD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const cpfMasked = maskCPF(requester_cpf);
-    const emailEncrypted = await encryptAesGcm(requester_email, masterKey, 1);
+    const cleanCpf = requester_cpf.replace(/\D/g, '');
+    const cleanEmail = requester_email.trim().toLowerCase();
+    const emailEncrypted = await encryptAesGcm(cleanEmail, masterKey, 1);
+    const cpfBindex = pepper ? await hmacSha256(cleanCpf, pepper) : null;
+    const emailBindex = pepper ? await hmacSha256(cleanEmail, pepper) : null;
 
     await db.prepare(
       `INSERT INTO lgpd_requests (
-        id, requester_name, requester_cpf_masked, requester_email_encrypted, request_type, details, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, 'pending', datetime('now'))`
-    ).bind(requestId, requester_name, cpfMasked, emailEncrypted, request_type, details).run();
+        id, requester_name, requester_cpf_masked, requester_cpf_bindex_sha256,
+        requester_email_encrypted, requester_email_bindex_sha256,
+        request_type, details, privacy_policy_version, privacy_policy_accepted_at,
+        response_deadline_at, status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now'))`
+    ).bind(
+      requestId,
+      requester_name,
+      cpfMasked,
+      cpfBindex,
+      emailEncrypted,
+      emailBindex,
+      request_type,
+      details,
+      policyVersion,
+      policyAcceptedAt,
+      deadlineIso
+    ).run();
 
     return c.json({
       success: true,
       protocol: requestId,
-      message: 'Sua solicitação fundamentada na LGPD (Lei 13.709/2018) foi registrada e encaminhada ao Encarregado pelo Tratamento de Dados Pessoais (DPO) do SESI.',
+      response_deadline_at: deadlineIso,
+      privacy_policy_version: policyVersion,
+      privacy_policy_accepted_at: policyAcceptedAt,
+      message: 'Sua solicitação fundamentada na LGPD (Lei 13.709/2018) foi registrada e encaminhada ao Encarregado pelo Tratamento de Dados Pessoais (DPO) do SESI. Prazo legal de resposta: até 15 dias.',
     });
   } catch (err: any) {
     console.error('[LGPD_REQUEST_ERROR]', err?.message || err);

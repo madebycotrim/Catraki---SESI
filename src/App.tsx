@@ -9,9 +9,10 @@ import { AdminLogin } from './components/admin/AdminLogin.tsx';
 import { PrivacyPolicy } from './components/common/PrivacyPolicy.tsx';
 import { TermsOfUse } from './components/common/TermsOfUse.tsx';
 import { RevocationPortal } from './components/revocation/RevocationPortal.tsx';
+import { TitularPortal } from './components/lgpd/TitularPortal.tsx';
 import { apiClient } from './lib/api.ts';
 
-export type AppView = 'school-select' | 'no-school-error' | 'signer' | 'validator' | 'admin' | 'privacy' | 'terms' | 'revoke';
+export type AppView = 'school-select' | 'no-school-error' | 'signer' | 'validator' | 'admin' | 'privacy' | 'terms' | 'revoke' | 'titular';
 
 export function App() {
   const [currentView, setCurrentView] = useState<AppView>('school-select');
@@ -106,6 +107,8 @@ export function App() {
         setCurrentView('terms');
       } else if (path === '/privacidade') {
         setCurrentView('privacy');
+      } else if (path === '/titular' || path === '/lgpd') {
+        setCurrentView('titular');
       } else if (path === '/admin') {
         setCurrentView('admin');
       } else {
@@ -153,7 +156,7 @@ export function App() {
     }
   };
 
-  const isPublicView = currentView === 'school-select' || currentView === 'no-school-error' || currentView === 'signer' || currentView === 'validator' || currentView === 'privacy' || currentView === 'terms' || currentView === 'revoke';
+  const isPublicView = currentView === 'school-select' || currentView === 'no-school-error' || currentView === 'signer' || currentView === 'validator' || currentView === 'privacy' || currentView === 'terms' || currentView === 'revoke' || currentView === 'titular';
 
   return (
     <div className="min-h-screen flex flex-col bg-[#edf1f5] text-slate-800 font-sans selection:bg-blue-500 selection:text-white">
@@ -243,7 +246,19 @@ export function App() {
 
         {currentView === 'privacy' && (
           <div className="w-full px-2 sm:px-6 md:px-8 py-2 sm:py-4 max-w-4xl mx-auto">
-            <PrivacyPolicy onBack={() => (activeSchoolSlug ? navigateToSigner(activeSchoolSlug, activeSchoolSlug) : navigateToSchoolSelect())} />
+            <PrivacyPolicy
+              onBack={() => (activeSchoolSlug ? navigateToSigner(activeSchoolSlug, activeSchoolSlug) : navigateToSchoolSelect())}
+              onNavigateToTitular={() => navegarParaView('titular', '/titular')}
+            />
+          </div>
+        )}
+
+        {currentView === 'titular' && (
+          <div className="w-full px-2 sm:px-6 md:px-8 py-2 sm:py-4 max-w-4xl mx-auto">
+            <TitularPortal
+              onBack={() => (activeSchoolSlug ? navigateToSigner(activeSchoolSlug, activeSchoolSlug) : navigateToSchoolSelect())}
+              onNavigateToPrivacy={() => navegarParaView('privacy', '/privacidade')}
+            />
           </div>
         )}
 

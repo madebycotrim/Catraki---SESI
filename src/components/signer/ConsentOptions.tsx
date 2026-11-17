@@ -1,4 +1,5 @@
 import React from 'react';
+import { PRIVACY_POLICY_VERSION } from '../../lib/lgpd.ts';
 
 export interface ConsentOptionsProps {
   authHealth: boolean;
@@ -9,6 +10,9 @@ export interface ConsentOptionsProps {
   setAuthImage: (val: boolean) => void;
   readAndAccept: boolean;
   setReadAndAccept: (val: boolean) => void;
+  privacyAccepted: boolean;
+  privacyAcceptedAt: string;
+  onTogglePrivacyAccepted: (val: boolean) => void;
   isMaiorDeIdade: boolean;
 }
 
@@ -29,6 +33,9 @@ export const ConsentOptions: React.FC<ConsentOptionsProps> = ({
   setAuthImage,
   readAndAccept,
   setReadAndAccept,
+  privacyAccepted,
+  privacyAcceptedAt,
+  onTogglePrivacyAccepted,
   isMaiorDeIdade,
 }) => {
   const CheckmarkIcon = () => (
@@ -178,6 +185,47 @@ export const ConsentOptions: React.FC<ConsentOptionsProps> = ({
             assinatura eletrônica simples (Lei Federal nº 14.063/2020 e MP nº 2.200-2/2001),
             confirmando a veracidade de todas as declarações prestadas, sob as penas da lei.{' '}
             <span className="text-red-500 font-bold">* (Obrigatório)</span>
+          </span>
+        </label>
+
+        {/* Campo 5: Aceite da Política de Privacidade com Versão, Data e Hora */}
+        <label className="flex items-start gap-3.5 cursor-pointer select-none p-4 sm:p-5 bg-blue-50/40 hover:bg-blue-50/70 transition-colors group">
+          <div className="relative pt-0.5 shrink-0">
+            <input
+              type="checkbox"
+              checked={privacyAccepted}
+              onChange={(e) => onTogglePrivacyAccepted(e.target.checked)}
+              className="sr-only"
+            />
+            <div
+              className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors group-focus-within:ring-2 group-focus-within:ring-[#004b8d] group-focus-within:ring-offset-1 ${
+                privacyAccepted
+                  ? 'border-[#004b8d]'
+                  : 'border-slate-300 bg-white group-hover:border-[#004b8d]'
+              }`}
+            >
+              {privacyAccepted && <CheckmarkIcon />}
+            </div>
+          </div>
+          <span className="text-xs sm:text-[13px] text-slate-900 font-medium leading-relaxed">
+            <strong>Li e aceito a Política de Privacidade</strong> (Versão{' '}
+            <span className="font-mono font-bold text-[#034b7f]">{PRIVACY_POLICY_VERSION}</span> —{' '}
+            <a
+              href="/privacidade"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#004b8d] font-bold underline hover:text-blue-900"
+              onClick={(e) => e.stopPropagation()}
+            >
+              ler na íntegra
+            </a>
+            ), autorizando o registro da data, hora e versão deste aceite para conformidade com a LGPD.{' '}
+            <span className="text-red-500 font-bold">* (Obrigatório)</span>
+            {privacyAccepted && privacyAcceptedAt && (
+              <span className="block mt-1 text-[11px] font-mono text-emerald-700 font-semibold">
+                ✓ Aceite registrado em {new Date(privacyAcceptedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Versão {PRIVACY_POLICY_VERSION})
+              </span>
+            )}
           </span>
         </label>
       </div>

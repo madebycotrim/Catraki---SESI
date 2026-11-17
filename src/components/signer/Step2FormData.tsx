@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, AlertTriangle, AlertCircle, Loader2, FileSearch, UserCheck, GraduationCap } from 'lucide-react';
 import { isValidCPF, isValidFullName, calcularIdade, formatStudentSeries } from '../../lib/schemas.ts';
+import { PRIVACY_POLICY_VERSION } from '../../lib/lgpd.ts';
 import { apiClient } from '../../lib/api.ts';
 import type { SignerRelationship, Institution, DuplicateStudentCheckResponse } from '../../lib/types.ts';
 
@@ -336,11 +337,25 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
 
         {/* Banner da Escola Ativa */}
         {institution?.name && (
-          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-blue-50 border border-blue-200/80 rounded-xl text-xs font-semibold text-[#004b8d] mb-5">
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-blue-50 border border-blue-200/80 rounded-xl text-xs font-semibold text-[#004b8d] mb-4">
             <GraduationCap className="w-4 h-4 shrink-0 text-[#004b8d]" />
             <span>Unidade Escolar: <strong className="font-bold">{institution.name}</strong> ({institution.city}/{institution.state})</span>
           </div>
         )}
+
+        {/* Finalidade da Coleta na Tela (LGPD Art. 6º, I e Art. 9º) */}
+        <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3.5 sm:p-4 mb-5 text-xs text-emerald-950 leading-relaxed">
+          <p className="font-bold text-emerald-900 uppercase tracking-wide text-[11px] m-0 mb-1">
+            Por que pedimos estes dados? (Finalidade — LGPD)
+          </p>
+          <p className="m-0 text-emerald-900">
+            <strong>Dados do Responsável (Nome, CPF, Vínculo, E-mail e Telefone):</strong> usados exclusivamente para comprovar quem está autorizando, enviar o código de segurança (2FA) e o comprovante PDF por e-mail, e permitir contato escolar em caso de necessidade.{' '}
+            <strong>Dados do Estudante (Nome, Nascimento, CPF, Série, Turma e Turno):</strong> usados para identificar corretamente o aluno na triagem preventiva do SESI-DF/UnB e evitar autorizações duplicadas. Consulte nossa{' '}
+            <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="underline font-bold text-[#034b7f]">
+              Política de Privacidade (Versão {PRIVACY_POLICY_VERSION})
+            </a>.
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-7">
           

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { AdminLgpdPanel } from './AdminLgpdPanel.tsx';
 import { 
   FileText, 
   Search, 
@@ -148,7 +149,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   currentUser,
   onLogout,
 }) => {
-  const [activeTab, setActiveTab] = useState<'authorizations' | 'schools'>('authorizations');
+  const [activeTab, setActiveTab] = useState<'authorizations' | 'schools' | 'lgpd'>('authorizations');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInstitution, setSelectedInstitution] = useState<string>('all');
   const [selectedImageOption, setSelectedImageOption] = useState<'all' | 'authorized' | 'not_authorized'>('all');
@@ -1432,6 +1433,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {institutions.length}
             </span>
           </button>
+
+          {(currentUser?.role === 'admin_master' || currentUser?.role === 'dpo') && (
+            <button
+              onClick={() => setActiveTab('lgpd')}
+              className={`px-5 py-2.5 text-xs font-bold flex items-center gap-2 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'lgpd'
+                  ? 'bg-white text-[#004b8d] shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span>LGPD / Titulares</span>
+            </button>
+          )}
         </div>
 
         {/* Botões de Exportação */}
@@ -2268,6 +2283,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             })}
           </div>
         </div>
+      )}
+
+      {activeTab === 'lgpd' && (currentUser?.role === 'admin_master' || currentUser?.role === 'dpo') && (
+        <AdminLgpdPanel />
       )}
 
       {/* ━━ 7. MODAIS INTEGRADOS ━━ */}

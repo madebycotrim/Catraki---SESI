@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { apiClient, captureDeviceFingerprint } from '../../lib/api.ts';
 import { calcularIdade, maskCPF } from '../../lib/schemas.ts';
+import { PRIVACY_POLICY_VERSION } from '../../lib/lgpd.ts';
 import type { SignerRelationship } from '../../lib/types.ts';
 import { ConsentOptions } from './ConsentOptions.tsx';
 import { OtpSignatureModal } from './OtpSignatureModal.tsx';
@@ -67,7 +68,14 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   const [authData, setAuthData] = useState(false);
   const [authImage, setAuthImage] = useState(false);
   const [readAndAccept, setReadAndAccept] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [privacyAcceptedAt, setPrivacyAcceptedAt] = useState('');
   const [declarationLegalResponsibility, setDeclarationLegalResponsibility] = useState(false);
+
+  const handleTogglePrivacyAccepted = (checked: boolean) => {
+    setPrivacyAccepted(checked);
+    setPrivacyAcceptedAt(checked ? new Date().toISOString() : '');
+  };
 
   // Estados de Submissão e Erro
   const [submittingSign, setSubmittingSign] = useState(false);
@@ -142,6 +150,13 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
     if (!readAndAccept) {
       setErrorMessage(
         'Por favor, confirme que você leu e concorda com as condições do Termo de Consentimento.'
+      );
+      return;
+    }
+
+    if (!privacyAccepted) {
+      setErrorMessage(
+        'Para prosseguir, leia e aceite a Política de Privacidade (Versão ' + PRIVACY_POLICY_VERSION + ').'
       );
       return;
     }
@@ -225,6 +240,9 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
         user_agent: navigator.userAgent,
         identity_method: identityData.identityMethod,
         termos_versao: '1.0.2026',
+        privacy_policy_accepted: true,
+        privacy_policy_version: PRIVACY_POLICY_VERSION,
+        privacy_policy_accepted_at: privacyAcceptedAt || new Date().toISOString(),
         turnstile_token: turnstileToken || undefined,
         guardianship_reference: identityData.guardianshipReference || undefined,
       });
@@ -344,11 +362,20 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
             setAuthImage={setAuthImage}
             readAndAccept={readAndAccept}
             setReadAndAccept={setReadAndAccept}
+            privacyAccepted={privacyAccepted}
+            privacyAcceptedAt={privacyAcceptedAt}
+            onTogglePrivacyAccepted={handleTogglePrivacyAccepted}
             isMaiorDeIdade={isMaiorDeIdade}
           />
 
           {/* Identificação do Signatário e Resguardo Legal */}
           <div className="pt-5 sm:pt-6 border-t border-slate-200 space-y-4">
+            <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-950 leading-relaxed">
+              <strong className="block text-[11px] uppercase tracking-wide text-emerald-900 mb-0.5">
+                Finalidade dos dados coletados nesta etapa (Assinatura Eletrônica):
+              </strong>
+              O código de 6 dígitos enviado por e-mail, sua assinatura manuscrita e os metadados técnicos do navegador/IP são coletados exclusivamente para comprovar a autoria, a integridade do documento e prevenir fraudes (Lei nº 14.063/2020 e MP nº 2.200-2/2001).
+            </div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1.5">
               <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#004b8d] m-0 flex items-center gap-2">
                 <Lock className="w-4 h-4 text-sesi-primary shrink-0" />
@@ -495,7 +522,7 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
               <button
                 type="button"
                 onClick={handleInitiateSign}
-                disabled={!authHealth || !authData || !readAndAccept || otpSending}
+                disabled={!authHealth || !authData || !readAndAccept || !privacyAccepted || otpSending}
                 className="w-full sm:w-auto px-6 py-3.5 sm:py-2.5 bg-sesi-primary hover:bg-blue-900 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none cursor-pointer"
               >
                 {otpSending ? (

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertOctagon, CheckCircle2, Loader2, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
 import { formatCPF } from '../../lib/schemas.ts';
+import { PRIVACY_POLICY_VERSION } from '../../lib/lgpd.ts';
 
 interface RevocationPortalProps {
   token: string;
@@ -13,6 +14,8 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
   const [signerCpf, setSignerCpf] = useState('');
   const [reason, setReason] = useState('');
   const [confirmedConsequences, setConfirmedConsequences] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [privacyAcceptedAt, setPrivacyAcceptedAt] = useState('');
   const [loading, setLoading] = useState(false);
   const [revokedSuccess, setRevokedSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -34,11 +37,20 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
       return;
     }
 
+    if (!privacyAccepted) {
+      setErrorMessage(`É obrigatório aceitar a Política de Privacidade (Versão ${PRIVACY_POLICY_VERSION}) para prosseguir.`);
+      return;
+    }
+
     setLoading(true);
     setErrorMessage('');
 
     try {
-      const resp = await apiClient.revokeConsent(cleanToken, reason.trim(), signerCpf || undefined);
+      const resp = await apiClient.revokeConsent(cleanToken, reason.trim(), signerCpf || undefined, {
+        privacy_policy_accepted: true,
+        privacy_policy_version: PRIVACY_POLICY_VERSION,
+        privacy_policy_accepted_at: privacyAcceptedAt || new Date().toISOString(),
+      });
       if (resp.success) {
         setRevokedSuccess(true);
       } else {
@@ -131,6 +143,13 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                 2. MOTIVO E DECLARAÇÃO DE REVOGAÇÃO
               </h3>
 
+              <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-950 leading-relaxed">
+                <strong className="block text-[11px] uppercase tracking-wide text-emerald-900 mb-0.5">
+                  Por que pedimos estes dados? (Finalidade — LGPD):
+                </strong>
+                O protocolo do documento e o CPF do responsável signatário são solicitados exclusivamente para confirmar que quem solicita a revogação é o titular legítimo da autorização, impedindo cancelamentos indevidos por terceiros.
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label htmlFor="field-revocation-token" className="block text-xs font-bold uppercase text-slate-700">
@@ -178,7 +197,7 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                 <span className="text-[11px] sm:text-xs text-slate-500 block">Descreva em ao menos 10 caracteres.</span>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 sm:p-5">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 sm:p-5 space-y-3">
                 <label htmlFor="field-confirm-consequences" className="flex items-start gap-3 cursor-pointer select-none">
                   <input
                     id="field-confirm-consequences"
@@ -191,6 +210,32 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                   <span className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium">
                      Estou ciente de que, ao confirmar a revogação, a participação do(a) estudante em novos atendimentos do projeto será suspensa. A coordenação da escola e a equipe de saúde do SESI-DF serão notificadas para atualização dos registros.
                    </span>
+                </label>
+
+                <label htmlFor="field-revoke-privacy" className="flex items-start gap-3 cursor-pointer select-none pt-3 border-t border-slate-200">
+                  <input
+                    id="field-revoke-privacy"
+                    type="checkbox"
+                    checked={privacyAccepted}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setPrivacyAccepted(checked);
+                      setPrivacyAcceptedAt(checked ? new Date().toISOString() : '');
+                    }}
+                    className="mt-0.5 w-5 h-5 min-w-[20px] rounded border-slate-400 text-sesi-primary focus:ring-sesi-primary cursor-pointer"
+                  />
+                  <span className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium">
+                    Li e aceito a{' '}
+                    <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#034b7f] font-bold underline">
+                      Política de Privacidade (Versão {PRIVACY_POLICY_VERSION})
+                    </a>{' '}
+                    com registro de data, hora e versão deste aceite. <span className="text-red-500 font-bold">*</span>
+                    {privacyAccepted && privacyAcceptedAt && (
+                      <span className="block mt-1 text-[11px] font-mono text-emerald-700 font-semibold">
+                        ✓ Aceite registrado em {new Date(privacyAcceptedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Versão {PRIVACY_POLICY_VERSION})
+                      </span>
+                    )}
+                  </span>
                 </label>
               </div>
 
@@ -206,7 +251,7 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                 <button
                   type="button"
                   onClick={handleRevoke}
-                  disabled={loading || !confirmedConsequences}
+                  disabled={loading || !confirmedConsequences || !privacyAccepted}
                   className="w-full sm:w-auto px-6 py-3.5 sm:py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-md disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer active:scale-[0.99]"
                 >
                   {loading ? (

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { PRIVACY_POLICY_VERSION } from '../../src/lib/lgpd.ts';
 import {
   OtpRequestSchema,
   OtpVerifySchema,
@@ -819,6 +820,13 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   }
 
   const { token, otp_code, signer_name, signer_cpf, signer_relationship, signature_png_base64, client_fingerprint } = parsed.data;
+  if (parsed.data.privacy_policy_accepted === false) {
+    return c.json({
+      success: false,
+      error: 'O aceite expresso da Política de Privacidade é obrigatório para concluir a assinatura.',
+      code: 'PRIVACY_POLICY_REQUIRED',
+    }, 400);
+  }
   const cfData = extractCloudflareClientData(c);
 
   // ── Validação Anti-Robô (Cloudflare Turnstile) ───────────────
@@ -938,6 +946,10 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
   const geoCountry = cfData.country;
 
   const signedAtIso = new Date().toISOString();
+  const privacyPolicyVersion = parsed.data.privacy_policy_version || PRIVACY_POLICY_VERSION;
+  const privacyPolicyAcceptedAt = parsed.data.privacy_policy_accepted_at || signedAtIso;
+  const cleanSignerCpf = signer_cpf.replace(/\D/g, '');
+  const signerCpfBindex = cleanSignerCpf ? await hmacSha256(cleanSignerCpf, pepper) : null;
 
   const signaturePngSha256 = await sha256(signature_png_base64);
   const contentSha256AtSigning = doc.content_sha256 || doc.template_content_sha256;
@@ -991,6 +1003,10 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       : 'MP 2.200-2/2001 Art. 10, §2º; Lei 14.063/2020; Código Civil (Arts. 104, 107 e 225); CPC (Arts. 411 e 441); LGPD (Lei 13.709/2018) Arts. 7º, I e II, 11, I, 14, §1º e 18; ECA Art. 17; Art. 299 CP; REsp 2.205.708/PR (STJ)',
     consent_text_version: doc.consent_text_version,
     termos_versao: parsed.data.termos_versao || '1.0.2026',
+    privacy_policy: {
+      version: privacyPolicyVersion,
+      accepted_at_utc: privacyPolicyAcceptedAt,
+    },
     electronic_proof_convention: 'Admitida pelas partes como válida nos termos do Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020 e Art. 190 do CPC',
   };
 
@@ -1226,7 +1242,10 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
                  doc_parent_hash_sha256 = ?,
                  access_token = ?,
                  institution_id = COALESCE(?, institution_id),
-                 institution_name = COALESCE(?, institution_name)
+                 institution_name = COALESCE(?, institution_name),
+                 privacy_policy_version = ?,
+                 privacy_policy_accepted_at = ?,
+                 signer_cpf_bindex_sha256 = COALESCE(?, signer_cpf_bindex_sha256)
              WHERE id = ? AND status = 'pending'`
           ).bind(
             signer_name,
@@ -1249,6 +1268,9 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
             finalAccessToken,
             finalSchoolId,
             resolvedSchoolName,
+            privacyPolicyVersion,
+            privacyPolicyAcceptedAt,
+            signerCpfBindex,
             doc.id
           ),
         ]);

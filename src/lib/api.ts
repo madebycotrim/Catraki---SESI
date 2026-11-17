@@ -488,6 +488,9 @@ export const apiClient = {
     identity_method?: 'declaracao_responsavel' | 'declaracao_titular';
     termos_versao?: string;
     device_fingerprint_data?: any;
+    privacy_policy_accepted?: boolean;
+    privacy_policy_version?: string;
+    privacy_policy_accepted_at?: string;
     turnstile_token?: string;
     guardianship_reference?: string;
   }): Promise<any> {
@@ -689,7 +692,12 @@ export const apiClient = {
   /**
    * Revoga consentimento nos termos da LGPD
    */
-  async revokeConsent(token: string, reason: string, signerCpf?: string): Promise<any> {
+  async revokeConsent(
+    token: string,
+    reason: string,
+    signerCpf?: string,
+    privacyAcceptance?: { privacy_policy_accepted: boolean; privacy_policy_version: string; privacy_policy_accepted_at: string }
+  ): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/signer/revoke`, {
         method: 'POST',
@@ -699,6 +707,7 @@ export const apiClient = {
           reason,
           confirm_legal_consequence: true,
           signer_cpf: signerCpf ? signerCpf.replace(/\D/g, '') : undefined,
+          ...(privacyAcceptance || {}),
         }),
         signal: AbortSignal.timeout(15000),
       });
@@ -1742,6 +1751,38 @@ export const apiClient = {
     );
     setLgpdRequests(list);
     return { success: true, message: 'Solicitação LGPD atualizada com sucesso no banco de custódia.' };
+  },
+
+  async exportTitularData(identifier: string): Promise<any> {
+    const resp = await fetch(`${API_BASE}/admin/lgpd/export`, {
+      method: 'POST',
+      headers: {
+        ...this.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ identifier }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (resp.status === 401 && this.getAdminToken()) {
+      this.logoutAdmin();
+    }
+    return await resp.json().catch(() => ({ success: false, error: 'Falha ao exportar dados do titular.' }));
+  },
+
+  async anonymizeTitularData(identifier: string, reason: string): Promise<any> {
+    const resp = await fetch(`${API_BASE}/admin/lgpd/anonymize`, {
+      method: 'POST',
+      headers: {
+        ...this.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ identifier, reason, confirmed: true }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (resp.status === 401 && this.getAdminToken()) {
+      this.logoutAdmin();
+    }
+    return await resp.json().catch(() => ({ success: false, error: 'Falha ao anonimizar dados do titular.' }));
   },
 
   // ==========================================================================

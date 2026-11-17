@@ -82,6 +82,9 @@ export interface DocumentRecord {
   created_at: string;
   // ── V3: Versionamento de Consentimento LGPD (migration_v3.sql) ─────────────
   terms_version?: string;        // Versão semântica do termo aceito (ex: "1.0")
+  privacy_policy_version?: string;
+  privacy_policy_accepted_at?: string | null;
+  signer_cpf_bindex_sha256?: string | null;
   token_sent_at?: string | null; // Timestamp de envio do link por e-mail/WhatsApp
   token_ttl_days?: number;       // Prazo de validade do link em dias (padrão: 3)
 }
@@ -163,6 +166,9 @@ export interface LgpdRequestRecord {
   requester_email_encrypted: string;
   request_type: LgpdRequestType;
   details: string;
+  privacy_policy_version?: string | null;
+  privacy_policy_accepted_at?: string | null;
+  response_deadline_at?: string | null;
   status: LgpdRequestStatus;
   response_notes?: string | null;
   created_at: string;

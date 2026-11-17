@@ -451,6 +451,9 @@ export const SignDocumentSchema = z.object({
   }),
   client_fingerprint: z.string().max(256).optional(),
   termos_versao: z.string().max(32).optional(),
+  privacy_policy_accepted: z.boolean().optional(),
+  privacy_policy_version: z.string().max(32).optional(),
+  privacy_policy_accepted_at: z.string().max(64).optional(),
   guardianship_reference: z.string().trim().max(200).optional(),
   device_fingerprint_data: z.object({
     screen_resolution: z.string().optional(),
@@ -474,6 +477,9 @@ export const RevokeConsentSchema = z.object({
   confirm_legal_consequence: z.literal(true, {
     errorMap: () => ({ message: 'É obrigatório declarar ciência de que a revogação não desfaz atos médicos já executados' })
   }),
+  privacy_policy_accepted: z.boolean().optional(),
+  privacy_policy_version: z.string().max(32).optional(),
+  privacy_policy_accepted_at: z.string().max(64).optional(),
 });
 
 export const LgpdRequestPublicSchema = z.object({
@@ -482,6 +488,9 @@ export const LgpdRequestPublicSchema = z.object({
   requester_email: z.string().email(),
   request_type: z.enum(['access', 'rectification', 'deletion', 'revocation_appeal']),
   details: z.string().min(15, 'Forneça detalhes suficientes sobre a sua solicitação').max(2000),
+  privacy_policy_accepted: z.boolean().optional(),
+  privacy_policy_version: z.string().max(32).optional(),
+  privacy_policy_accepted_at: z.string().max(64).optional(),
 });
 
 export const CancelDocumentErrorSchema = z.object({

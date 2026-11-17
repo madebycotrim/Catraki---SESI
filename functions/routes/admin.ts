@@ -30,6 +30,7 @@ import { verifyAuditChain } from '../../src/lib/audit-chain.ts';
 import { requireAuth, signJwt, JwtPayload } from '../middleware/auth.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
+import { exportTitularDataByIdentifier, anonymizeTitularDataByIdentifier } from '../utils/lgpd-titular.ts';
 import { GeradorComprovanteConclusao, EventoComprovante } from '../../src/lib/pades/GeradorComprovanteConclusao.ts';
 import type {
   Env,
@@ -1655,6 +1656,67 @@ adminRouter.post('/lgpd-requests/:id/respond', requireAuth(['admin_master', 'dpo
     success: true,
     message: 'Solicitação LGPD atualizada com o parecer do DPO.',
   });
+});
+
+const LgpdTitularLookupSchema = z.object({
+  identifier: z.string().trim().min(5, 'Informe um CPF válido ou e-mail válido.').max(200),
+});
+
+const LgpdTitularAnonymizeSchema = z.object({
+  identifier: z.string().trim().min(5, 'Informe um CPF válido ou e-mail válido.').max(200),
+  reason: z.string().trim().min(10, 'Informe o motivo ou protocolo da solicitação (mín. 10 caracteres).').max(1000),
+  confirmed: z.literal(true, {
+    errorMap: () => ({ message: 'Confirmação expressa obrigatória para anonimização de dados pessoais.' }),
+  }),
+});
+
+adminRouter.post('/lgpd/export', requireAuth(['admin_master', 'dpo']), async (c) => {
+  const user = c.get('user');
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = LgpdTitularLookupSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Identificador inválido.' }, 400);
+  }
+
+  const cfData = extractCloudflareClientData(c);
+  try {
+    const dossier = await exportTitularDataByIdentifier(
+      c.env.DB,
+      c.env,
+      parsed.data.identifier,
+      user,
+      cfData.ip,
+      cfData.userAgent
+    );
+    return c.json({ success: true, dossier });
+  } catch (err: any) {
+    return c.json({ success: false, error: err?.message || 'Não foi possível exportar os dados do titular.' }, 400);
+  }
+});
+
+adminRouter.post('/lgpd/anonymize', requireAuth(['admin_master', 'dpo']), async (c) => {
+  const user = c.get('user');
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = LgpdTitularAnonymizeSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Parâmetros inválidos.' }, 400);
+  }
+
+  const cfData = extractCloudflareClientData(c);
+  try {
+    const report = await anonymizeTitularDataByIdentifier(
+      c.env.DB,
+      c.env,
+      parsed.data.identifier,
+      parsed.data.reason,
+      user,
+      cfData.ip,
+      cfData.userAgent
+    );
+    return c.json({ success: true, report });
+  } catch (err: any) {
+    return c.json({ success: false, error: err?.message || 'Não foi possível anonimizar os dados do titular.' }, 400);
+  }
 });
 
 // ============================================================================

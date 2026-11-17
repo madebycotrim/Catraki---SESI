@@ -1,11 +1,17 @@
 import React from 'react';
-import { ArrowLeft, Printer, ShieldCheck, Mail, HeartHandshake } from 'lucide-react';
+import { ArrowLeft, Printer, ShieldCheck, Mail, HeartHandshake, Globe2 } from 'lucide-react';
+import {
+  PRIVACY_POLICY_VERSION,
+  PRIVACY_POLICY_UPDATED_AT,
+  EXTERNAL_SUBPROCESSORS,
+} from '../../lib/lgpd.ts';
 
 interface PrivacyPolicyProps {
   onBack?: () => void;
+  onNavigateToTitular?: () => void;
 }
 
-export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
+export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack, onNavigateToTitular }) => {
   const dataHoje = new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
     month: 'long',
@@ -59,6 +65,9 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             </p>
             <p className="text-xs sm:text-[9pt] text-slate-800 m-0 font-bold">
               Política de Privacidade e Proteção de Informações
+            </p>
+            <p className="text-[10px] sm:text-[8pt] text-slate-600 m-0 font-mono">
+              Versão {PRIVACY_POLICY_VERSION} • Atualizada em {PRIVACY_POLICY_UPDATED_AT}
             </p>
             <p className="text-[10px] sm:text-[8pt] text-slate-500 m-0">
               {dataHoje}
@@ -151,20 +160,55 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
             </div>
           </section>
 
-          {/* Seção 5 */}
-          <section className="space-y-2">
+          {/* Seção 5 — Serviços Externos e Transferência Internacional */}
+          <section className="space-y-2.5">
             <h2 className="text-xs sm:text-sm font-bold uppercase text-slate-900 flex items-center gap-2 m-0">
               <span className="w-5 h-5 rounded-full bg-blue-100 text-[#034b7f] font-extrabold flex items-center justify-center text-xs shrink-0">5</span>
-              <span>Seus Direitos e Como Falar Conosco</span>
+              <span>Serviços Externos e Transferência Internacional (Art. 33 da LGPD)</span>
             </h2>
             <p className="m-0 pl-7">
-              Você tem total controle sobre as autorizações concedidas. A qualquer momento, você pode:
+              Para operar com segurança, disponibilidade e envio de códigos por e-mail, a plataforma utiliza os seguintes provedores externos (suboperadores). Todos os serviços listados abaixo operam em infraestrutura localizada fora do Brasil, sob cláusulas contratuais de proteção de dados e criptografia:
+            </p>
+            <div className="ml-7 space-y-2.5">
+              {EXTERNAL_SUBPROCESSORS.map((sub) => (
+                <div key={sub.serviceName} className="p-3 sm:p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <strong className="text-slate-900 flex items-center gap-1.5">
+                      <Globe2 className="w-3.5 h-3.5 text-[#034b7f]" />
+                      <span>{sub.serviceName}</span>
+                    </strong>
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-semibold text-[10px]">
+                        {sub.country}
+                      </span>
+                      {sub.outsideBrazil && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[10px] uppercase">
+                          Fora do Brasil
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="m-0 text-slate-600"><strong>O que recebe:</strong> {sub.dataReceived}</p>
+                  <p className="m-0 text-slate-500 text-[11px]"><strong>Base / Garantia:</strong> {sub.legalMechanism}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Seção 6 */}
+          <section className="space-y-2">
+            <h2 className="text-xs sm:text-sm font-bold uppercase text-slate-900 flex items-center gap-2 m-0">
+              <span className="w-5 h-5 rounded-full bg-blue-100 text-[#034b7f] font-extrabold flex items-center justify-center text-xs shrink-0">6</span>
+              <span>Seus Direitos e Como Falar Conosco (Prazo de até 15 dias)</span>
+            </h2>
+            <p className="m-0 pl-7">
+              Você tem total controle sobre as autorizações concedidas (LGPD Art. 18). Pedidos de acesso/cópia completa dos dados são respondidos em até <strong>15 dias</strong> (Art. 19, II da LGPD). A qualquer momento, você pode:
             </p>
             <div className="ml-7 bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 space-y-2 text-xs sm:text-sm text-slate-700">
               <ul className="space-y-1.5 text-xs text-slate-600 list-disc list-inside m-0">
-                <li>Conferir a autenticidade e o status do termo assinado no validador público (<a href="https://catraki.com.br/validar" target="_blank" rel="noopener noreferrer" className="text-sesi-primary font-bold underline">catraki.com.br/validar</a>);</li>
-                <li>Solicitar a correção de dados cadastrais incorretos;</li>
-                <li>Solicitar a revogação de uma autorização concedida ou cancelamento de uso de imagem.</li>
+                <li>Conferir a autenticidade e o status do termo assinado no validador público (<a href="/validar" className="text-sesi-primary font-bold underline">/validar</a>);</li>
+                <li>Solicitar acesso/exportação completa, retificação, ou eliminação/anonimização dos seus dados pelo <strong>Portal de Direitos do Titular</strong> (<a href="/titular" onClick={(e) => { if (onNavigateToTitular) { e.preventDefault(); onNavigateToTitular(); } }} className="text-sesi-primary font-bold underline">/titular</a>);</li>
+                <li>Solicitar a revogação de uma autorização concedida (<a href="/revogar" className="text-sesi-primary font-bold underline">/revogar</a>).</li>
               </ul>
               <div className="pt-2 border-t border-slate-200 space-y-1">
                 <p className="font-bold text-slate-900 flex items-center gap-1.5 m-0">

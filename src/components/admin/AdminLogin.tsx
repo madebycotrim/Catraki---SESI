@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle, ArrowRight, Loader2, ShieldCheck, Lock, FileCheck2, Building2 } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
+import { PRIVACY_POLICY_VERSION } from '../../lib/lgpd.ts';
 
 interface AdminLoginProps {
   onLoginSuccess: (user: any) => void;
@@ -91,12 +92,15 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess: _onLogin
           )}
 
           {/* Cláusula e Declaração de Uso */}
-          <div className="bg-slate-50 border border-slate-200 border-l-4 border-l-[#034b7f] rounded-r-xl p-3.5 sm:p-4 mb-4 text-xs text-slate-700 leading-relaxed">
-            <p className="m-0 mb-1 font-bold text-[#034b7f] uppercase text-[11px]">
-              AUTENTICAÇÃO CORPORATIVA EXCLUSIVA
+          <div className="bg-slate-50 border border-slate-200 border-l-4 border-l-[#034b7f] rounded-r-xl p-3.5 sm:p-4 mb-4 text-xs text-slate-700 leading-relaxed space-y-1.5">
+            <p className="m-0 font-bold text-[#034b7f] uppercase text-[11px]">
+              AUTENTICAÇÃO CORPORATIVA EXCLUSIVA &amp; FINALIDADE (LGPD)
             </p>
             <p className="m-0 text-slate-600">
-              O acesso a este painel é restrito aos gestores credenciados responsáveis pela emissão, validação e auditoria dos termos de autorização do projeto Escola Cidadã — Saúde em Movimento.
+              O acesso a este painel é restrito aos gestores credenciados. Ao entrar com sua conta Microsoft, coletamos seu <strong>nome, e-mail institucional, IP e User-Agent</strong> exclusivamente para controle de acesso (RBAC) e trilha de auditoria de segurança (Art. 15 do Marco Civil e LGPD). Consulte a{' '}
+              <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-[#034b7f] font-bold underline">
+                Política de Privacidade (Versão {PRIVACY_POLICY_VERSION})
+              </a>.
             </p>
           </div>
 

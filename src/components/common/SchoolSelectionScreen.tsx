@@ -18,6 +18,8 @@ interface SchoolSelectionScreenProps {
   onNavigateToAdmin: () => void;
   onNavigateToPrivacy: () => void;
   onNavigateToTerms: () => void;
+  onNavigateToTitular?: () => void;
+  onNavigateToRevoke?: () => void;
 }
 
 /**
@@ -31,6 +33,8 @@ export const SchoolSelectionScreen: React.FC<SchoolSelectionScreenProps> = ({
   onNavigateToAdmin,
   onNavigateToPrivacy,
   onNavigateToTerms,
+  onNavigateToTitular,
+  onNavigateToRevoke,
 }) => {
   const {
     filteredInstitutions,
@@ -185,6 +189,28 @@ export const SchoolSelectionScreen: React.FC<SchoolSelectionScreenProps> = ({
           >
             Política de Privacidade (LGPD)
           </button>
+          {onNavigateToTitular && (
+            <>
+              <span>•</span>
+              <button
+                onClick={onNavigateToTitular}
+                className="hover:text-slate-800 hover:underline cursor-pointer transition-colors"
+              >
+                Meus Dados (LGPD)
+              </button>
+            </>
+          )}
+          {onNavigateToRevoke && (
+            <>
+              <span>•</span>
+              <button
+                onClick={onNavigateToRevoke}
+                className="hover:text-slate-800 hover:underline cursor-pointer transition-colors"
+              >
+                Revogar Autorização
+              </button>
+            </>
+          )}
           <span>•</span>
           <button
             onClick={onNavigateToAdmin}

@@ -149,7 +149,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   currentUser,
   onLogout,
 }) => {
-  const [activeTab, setActiveTab] = useState<'authorizations' | 'schools' | 'lgpd'>('authorizations');
+  const [activeTab, setActiveTab] = useState<'authorizations' | 'schools' | 'lgpd'>(
+    () => (currentUser?.role === 'dpo' ? 'lgpd' : 'authorizations')
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInstitution, setSelectedInstitution] = useState<string>('all');
   const [selectedImageOption, setSelectedImageOption] = useState<'all' | 'authorized' | 'not_authorized'>('all');
@@ -166,7 +168,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [showNewSchoolModal, setShowNewSchoolModal] = useState(false);
   const [editingSchoolId, setEditingSchoolId] = useState<string | null>(null);
-  const [showSchoolSelectModal, setShowSchoolSelectModal] = useState(true);
+  const [showSchoolSelectModal, setShowSchoolSelectModal] = useState(
+    () => currentUser?.role !== 'dpo'
+  );
   const [schoolModalSearch, setSchoolModalSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(25);

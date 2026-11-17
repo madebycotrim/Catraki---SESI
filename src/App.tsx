@@ -201,6 +201,8 @@ export function App() {
             onNavigateToAdmin={() => navegarParaView('admin', '/admin')}
             onNavigateToPrivacy={() => navegarParaView('privacy', '/privacidade')}
             onNavigateToTerms={() => navegarParaView('terms', '/termos')}
+            onNavigateToTitular={() => navegarParaView('titular', '/titular')}
+            onNavigateToRevoke={() => navegarParaView('revoke', '/revogar')}
           />
         )}
 

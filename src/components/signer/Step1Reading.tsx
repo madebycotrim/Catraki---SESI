@@ -61,7 +61,7 @@ export const Step1Reading: React.FC<Step1ReadingProps> = ({ document, institutio
         {/* Título Principal */}
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="text-sm sm:text-base md:text-[12pt] font-bold text-slate-900 uppercase leading-snug tracking-tight m-0">
-           CARTA DE BOAS-VINDAS — PROJETO ESCOLA CIDADÃ — SAÚDe EM MOVIMENTO
+           CARTA DE BOAS-VINDAS — PROJETO ESCOLA CIDADÃ — SAÚDE EM MOVIMENTO
           </h1>
           {institution?.name && (
             <p className="text-xs sm:text-sm font-semibold text-[#004b8d] mt-1.5">

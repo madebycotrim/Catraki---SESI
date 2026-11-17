@@ -504,7 +504,21 @@ export const Step4Success: React.FC<Step4SuccessProps> = ({
               <ExternalLink className="w-4 h-4" />
             </button>
 
-
+            <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-slate-500">
+              <a
+                href={`/revogar/${signResult.document_id}`}
+                className="hover:text-slate-800 underline font-semibold"
+              >
+                Revogar Autorização
+              </a>
+              <span>•</span>
+              <a
+                href="/titular"
+                className="hover:text-slate-800 underline font-semibold"
+              >
+                Direitos LGPD (Meus Dados)
+              </a>
+            </div>
           </div>
 
         </div>

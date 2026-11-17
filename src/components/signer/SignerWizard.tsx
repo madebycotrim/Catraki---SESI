@@ -187,7 +187,37 @@ export const SignerWizard: React.FC<SignerWizardProps> = ({
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-4 sm:space-y-6">
+      {/* Indicador de Progresso do Fluxo (Etapas 1 a 4) */}
+      <nav aria-label="Etapas da autorização" className="max-w-4xl mx-auto px-1 sm:px-4 no-print">
+        <ol className="grid grid-cols-4 gap-1.5 sm:gap-2 bg-white/90 border border-slate-200 rounded-xl p-1.5 shadow-2xs">
+          {[
+            { num: 1, label: 'Boas-vindas' },
+            { num: 2, label: 'Dados' },
+            { num: 3, label: 'Assinatura' },
+            { num: 4, label: 'Comprovante' },
+          ].map((item) => {
+            const isCurrent = step === item.num;
+            const isDone = step > item.num;
+            return (
+              <li
+                key={item.num}
+                className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[10px] sm:text-xs font-bold transition-colors ${
+                  isCurrent
+                    ? 'bg-[#034b7f] text-white shadow-2xs'
+                    : isDone
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      : 'text-slate-400'
+                }`}
+              >
+                <span className="font-mono">{item.num}.</span>
+                <span className="truncate">{item.label}</span>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+
       {/* Renderização Condicional da Etapa Atual */}
       {step === 1 && (
         <Step1Reading

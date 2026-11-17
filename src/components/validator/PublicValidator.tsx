@@ -337,8 +337,126 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
           </div>
         )}
 
-        {/* ─── CASO 2: RESULTADO DA VALIDAÇÃO (DOCUMENTO ÍNTEGRO E VÁLIDO) ─── */}
-        {validationResult && (
+        {/* ─── CASO 2A: DOCUMENTO REVOGADO, CANCELADO OU EXPIRADO (EXIBE APENAS O ESTRITAMENTE NECESSÁRIO) ─── */}
+        {validationResult && (validationResult.document_status !== 'signed' || !validationResult.valid) && (() => {
+          const isRevoked = validationResult.document_status === 'revoked';
+          const isCancelled =
+            validationResult.document_status === 'CANCELADO_POR_ERRO' ||
+            validationResult.document_status === 'cancelled_error';
+          const statusBadge = isRevoked ? 'REVOGADO' : isCancelled ? 'CANCELADO POR ERRO' : 'EXPIRADO / INVÁLIDO';
+          const statusTitle = isRevoked
+            ? 'CONSENTIMENTO REVOGADO'
+            : isCancelled
+            ? 'DOCUMENTO CANCELADO ADMINISTRATIVAMENTE'
+            : 'DOCUMENTO EXPIRADO OU SEM VALIDADE';
+          const statusSubtitle = isRevoked
+            ? 'Este termo foi revogado pelo responsável/titular e não possui mais validade para atendimento.'
+            : isCancelled
+            ? 'Este registro foi anulado por erro operacional e não possui validade jurídica.'
+            : 'Este documento encontra-se expirado ou inválido para atendimento.';
+          const eventDate = isRevoked
+            ? validationResult.revocation_info?.revoked_at
+            : isCancelled
+            ? validationResult.cancellation_info?.cancelled_at
+            : null;
+          const eventReason = isRevoked
+            ? validationResult.revocation_info?.revoked_reason
+            : isCancelled
+            ? validationResult.cancellation_info?.cancellation_reason
+            : null;
+
+          return (
+            <div className="space-y-4 pb-6 max-w-xl mx-auto">
+              <div className="text-center pb-3 border-b border-rose-200 space-y-1.5">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border bg-rose-50 text-rose-800 border-rose-200">
+                  <Ban className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Status: {statusBadge}</span>
+                </div>
+                <h2 className="text-sm sm:text-base font-extrabold text-rose-900 uppercase tracking-wide m-0">
+                  {statusTitle}
+                </h2>
+                <p className="text-xs text-slate-600 m-0 leading-relaxed">
+                  {statusSubtitle}
+                </p>
+              </div>
+
+              <div className="bg-rose-50/50 border border-rose-200 rounded-xl p-4 space-y-3 text-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-rose-200/70">
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Código de Protocolo
+                    </span>
+                    <strong className="text-sm sm:text-base font-mono font-extrabold text-slate-900 tracking-wider">
+                      {validationCode}
+                    </strong>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-800 bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-lg self-start sm:self-auto">
+                    <Ban className="w-3.5 h-3.5 text-rose-700" />
+                    <span>Sem Validade para Atendimento</span>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="bg-white border border-rose-100 rounded-lg p-2.5">
+                    <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                      Estudante (Iniciais LGPD)
+                    </span>
+                    <strong className="text-slate-900 font-bold text-xs">
+                      {validationResult.minor_name_initials || '—'}
+                    </strong>
+                  </div>
+
+                  <div className="bg-white border border-rose-100 rounded-lg p-2.5">
+                    <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                      Data do Registro de Invalidação
+                    </span>
+                    <strong className="text-slate-900 font-bold text-xs">
+                      {eventDate ? `${formatBrasiliaDateTime(eventDate)} (BRT)` : 'Registrado no sistema'}
+                    </strong>
+                  </div>
+                </div>
+
+                {eventReason && (
+                  <div className="bg-white border border-rose-100 rounded-lg p-2.5">
+                    <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                      Motivo Registrado
+                    </span>
+                    <p className="text-slate-700 text-xs m-0 leading-relaxed">{eventReason}</p>
+                  </div>
+                )}
+
+                <div className="bg-white border border-rose-100 rounded-lg p-2.5">
+                  <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                    Referência de Auditoria (Bloco #{validationResult.chain_position})
+                  </span>
+                  <span className="font-mono text-[10px] text-slate-600 break-all block">
+                    SHA-256: {validationResult.manifest_sha256}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setValidationResult(null);
+                    setHashInput('');
+                    setErrorMessage('');
+                    setPdfCheckStatus('idle');
+                    setPdfCheckedHash('');
+                    setPdfCheckedName('');
+                  }}
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition-colors cursor-pointer"
+                >
+                  Consultar Outro Código
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ─── CASO 2B: RESULTADO DA VALIDAÇÃO (DOCUMENTO ÍNTEGRO E VÁLIDO) ─── */}
+        {validationResult && validationResult.document_status === 'signed' && validationResult.valid && (
           <div className="space-y-3 sm:space-y-4 pb-6">
             
             {/* Status do Documento */}

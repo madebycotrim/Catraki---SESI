@@ -34,7 +34,6 @@ import {
   ChevronRight,
   RotateCcw,
   Sparkles,
-  SlidersHorizontal,
   HelpCircle,
   Trash2,
   Pencil,
@@ -894,7 +893,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, [authorizations, selectedInstitution]);
 
   const totalSigned = schoolScopedAuths.filter((a) => a.status === 'signed').length;
+  const totalPending = schoolScopedAuths.filter((a) => a.status === 'pending' || a.status === 'draft').length;
+  const totalCancelledOrRevoked = schoolScopedAuths.filter(
+    (a) => a.status === 'CANCELADO_POR_ERRO' || a.status === 'cancelled_error' || a.status === 'revoked'
+  ).length;
   const signedPercentage = schoolScopedAuths.length > 0 ? ((totalSigned / schoolScopedAuths.length) * 100).toFixed(1) : '0';
+  const todayBr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  const signedTodayCount = schoolScopedAuths.filter((a) => {
+    if (a.status !== 'signed' || !a.signedAtDate) return false;
+    try {
+      const d = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(a.signedAtDate));
+      return d === todayBr;
+    } catch {
+      return false;
+    }
+  }).length;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // ENGINE DE ALERTAS INTELIGENTES
@@ -1104,6 +1117,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, [excelFilteredAuths, sortColumn, sortDirection, extractors]);
 
   const totalImageAuthorized = schoolScopedAuths.filter((a) => a.authImage && a.status === 'signed').length;
+  const imageAuthorizedPercentage = totalSigned > 0 ? ((totalImageAuthorized / totalSigned) * 100).toFixed(1) : '0';
+  const schoolAlertsCount = schoolScopedAuths.filter((a) => (anomalyFlags.get(a.id)?.length ?? 0) > 0).length;
 
   // Paginação
   const totalPages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(filteredAuths.length / pageSize));
@@ -1341,31 +1356,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
-      {/* ━━ 2. CARDS DE MÉTRICAS / KPIS (HIGH-END) ━━ */}
+      {/* ━━ 2. CARDS DE MÉTRICAS / KPIS (4 CARDS — FUNIL OPERACIONAL) ━━ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Filtrados */}
-        <div className="stat-card-modern p-5 flex items-center justify-between gap-4">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Registros Filtrados</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-black text-slate-900">{filteredAuths.length}</span>
-              <span className="text-xs text-slate-500 font-semibold">de {schoolScopedAuths.length}</span>
-            </div>
-            <span className="text-[11px] text-blue-600 font-medium flex items-center gap-1">
-              <SlidersHorizontal className="w-3 h-3" />
-              {isFiltered ? 'Filtros ativos' : 'Visão completa'}
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 shadow-sm">
-            <Users className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* Card 2: Assinadas / Adesão */}
-        <div className="stat-card-modern p-5 flex items-center justify-between gap-4">
-          <div className="space-y-1">
+        {/* Card 1: Autorizações Assinadas / Adesão */}
+        <div
+          onClick={() => { setActiveTab('authorizations'); setSubTab('active'); setAlertFilter('all'); }}
+          className="stat-card-modern p-5 flex items-center justify-between gap-4 cursor-pointer hover:border-emerald-300 transition-colors"
+          title="Clique para ver apenas as autorizações assinadas"
+        >
+          <div className="space-y-1 flex-1 min-w-0">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Autorizações Assinadas</span>
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 flex-wrap">
               <span className="text-2xl sm:text-3xl font-black text-emerald-600">{totalSigned}</span>
               <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                 {signedPercentage}% adesão
@@ -1374,23 +1375,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
               <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${signedPercentage}%` }} />
             </div>
+            <span className="text-[11px] text-emerald-700 font-medium block">
+              {signedTodayCount > 0 ? `+${signedTodayCount} hoje • ` : ''}de {schoolScopedAuths.length} registros
+            </span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 shadow-sm">
             <CheckCircle2 className="w-6 h-6" />
           </div>
         </div>
 
-        {/* Card 3: Imagem & Voz */}
+        {/* Card 2: Aguardando Assinatura (Pendentes) */}
+        <div
+          onClick={() => { setActiveTab('authorizations'); setSubTab('pending'); setAlertFilter('all'); }}
+          className="stat-card-modern p-5 flex items-center justify-between gap-4 cursor-pointer hover:border-amber-300 transition-colors"
+          title="Clique para abrir a fila de assinaturas pendentes"
+        >
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Aguardando Assinatura</span>
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="text-2xl sm:text-3xl font-black text-amber-600">{totalPending}</span>
+              <span className="text-xs font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                {schoolScopedAuths.length > 0 ? ((totalPending / schoolScopedAuths.length) * 100).toFixed(1) : '0'}% pendente
+              </span>
+            </div>
+            <span className="text-[11px] text-amber-700 font-medium flex items-center gap-1">
+              <Clock className="w-3 h-3 text-amber-600" />
+              {totalPending > 0 ? 'Em aberto para conclusão' : 'Nenhuma pendência'}
+            </span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0 shadow-sm">
+            <Clock className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Card 3: Uso de Imagem & Voz */}
         <div className="stat-card-modern p-5 flex items-center justify-between gap-4">
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Uso de Imagem &amp; Voz</span>
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 flex-wrap">
               <span className="text-2xl sm:text-3xl font-black text-sky-700">{totalImageAuthorized}</span>
-              <span className="text-xs text-slate-500 font-semibold">alunos autorizados</span>
+              <span className="text-xs font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">
+                {imageAuthorizedPercentage}% dos assinados
+              </span>
             </div>
             <span className="text-[11px] text-sky-700 font-medium flex items-center gap-1">
               <Camera className="w-3 h-3 text-sky-600" />
-              Fotos institucionais
+              Fotos e vídeos institucionais
             </span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shrink-0 shadow-sm">
@@ -1398,21 +1428,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
 
-        {/* Card 4: Escolas / Unidades */}
-        <div className="stat-card-modern p-5 flex items-center justify-between gap-4">
+        {/* Card 4: Alertas & Revogações */}
+        <div
+          onClick={() => {
+            setActiveTab('authorizations');
+            if (schoolAlertsCount > 0) {
+              setSubTab('all');
+              setAlertFilter('any_alert');
+            } else {
+              setAlertFilter('all');
+              setSubTab('cancelled');
+            }
+          }}
+          className="stat-card-modern p-5 flex items-center justify-between gap-4 cursor-pointer hover:border-rose-300 transition-colors"
+          title="Clique para inspecionar alertas ou termos cancelados/revogados"
+        >
           <div className="space-y-1">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Escolas Ativas</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-black text-slate-800">{institutions.length}</span>
-              <span className="text-xs text-slate-500 font-semibold">unidades cadastradas</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Alertas &amp; Revogações</span>
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className={`text-2xl sm:text-3xl font-black ${schoolAlertsCount > 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+                {schoolAlertsCount}
+              </span>
+              <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                {totalCancelledOrRevoked} cancel./revog.
+              </span>
             </div>
-            <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-emerald-500" />
-              Rotas ativas 100%
+            <span className="text-[11px] text-rose-700 font-medium flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3 text-rose-600" />
+              {schoolAlertsCount > 0 ? 'Registros requerem atenção' : 'Sem alertas ativos'}
             </span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0 shadow-sm">
-            <Building2 className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0 shadow-sm">
+            <AlertTriangle className="w-6 h-6" />
           </div>
         </div>
       </div>

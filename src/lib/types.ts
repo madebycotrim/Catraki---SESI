@@ -232,9 +232,9 @@ export interface PublicValidationResponse {
   signer_name: string;
   signer_cpf_masked: string;
   signer_relationship: string;
-  ip_address: string;
-  geolocation: string;
-  user_agent: string;
+  ip_address?: string;
+  geolocation?: string;
+  user_agent?: string;
   identity_method: IdentityMethod;
   procedure_title: string;
   procedure_description: string;

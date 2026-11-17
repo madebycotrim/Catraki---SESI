@@ -13,14 +13,15 @@ import {
   Activity,
   Clock,
   Lock,
-  Sparkles,
   Ban,
-  HelpCircle
+  HelpCircle,
+  Copy,
+  Check
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { apiClient } from '../../lib/api.ts';
 import { sha256 } from '../../lib/crypto.ts';
-import { formatUserAgent, formatBrasiliaDateTime, formatStudentSeries } from '../../lib/schemas.ts';
+import { formatBrasiliaDateTime } from '../../lib/schemas.ts';
 import type { PublicValidationResponse } from '../../lib/types.ts';
 
 interface PublicValidatorProps {
@@ -455,485 +456,374 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
           );
         })()}
 
-        {/* ─── CASO 2B: RESULTADO DA VALIDAÇÃO (DOCUMENTO ÍNTEGRO E VÁLIDO) ─── */}
+        {/* ─── CASO 2B: RESULTADO DA VALIDAÇÃO (DOCUMENTO ÍNTEGRO E VÁLIDO — MINIMIZADO CONFORME LGPD) ─── */}
         {validationResult && validationResult.document_status === 'signed' && validationResult.valid && (
-          <div className="space-y-3 sm:space-y-4 pb-6">
-            
-            {/* Status do Documento */}
-            <div className="text-center pb-2 border-b border-slate-200 space-y-1">
-              <div className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${
-                validationResult.document_status === 'signed'
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                  : 'bg-amber-50 text-amber-800 border-amber-200'
-              }`}>
-                {validationResult.document_status === 'signed' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />}
-                <span>{validationResult.document_status === 'signed' ? 'Aceite Registrado com Sucesso' : 'Status: ' + validationResult.document_status}</span>
+          <div className="space-y-4 pb-6">
+
+            {/* Cabeçalho de Autenticidade */}
+            <div className="text-center pb-3 border-b border-slate-200 space-y-1.5">
+              <div className="inline-flex flex-wrap items-center justify-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border bg-emerald-50 text-emerald-800 border-emerald-200">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Documento Autêntico e Válido</span>
+                </span>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                  Bloco #{validationResult.chain_position}
+                </span>
               </div>
-              
-              <h2 className="text-xs sm:text-sm md:text-base font-extrabold text-slate-900 uppercase tracking-wide m-0">
-                {validationResult.document_status === 'signed' ? 'AUTORIZAÇÃO CONFIRMADA' : 'DOCUMENTO REVOGADO / EXPIRADO'}
+
+              <h2 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase tracking-wide m-0 pt-0.5">
+                AUTORIZAÇÃO CONFIRMADA
               </h2>
-              <p className="text-[11px] sm:text-xs text-slate-600 m-0">
-                Registro de Auditoria Eletrônica: Bloco #{validationResult.chain_position} • {validationResult.legal_notice}
+              <p className="text-[11px] sm:text-xs text-slate-500 m-0">
+                Assinatura Eletrônica Simples (Lei nº 14.063/2020, Art. 4º, I) • Consulta pública minimizada (LGPD Art. 6º, III)
               </p>
             </div>
 
-            {/* Destaque do Código Único de Validação */}
-            <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-2.5 sm:p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-xs">
-              <div>
-                <span className="block text-[9px] sm:text-[10px] font-bold text-blue-900 uppercase tracking-wider">
-                  Código de Protocolo do Aceite
-                </span>
-                <strong className="text-sm sm:text-lg font-mono font-extrabold text-sesi-primary tracking-wider break-all block mt-0.5">
-                  {validationCode}
-                </strong>
+            {/* Destaque Unificado: Protocolo + Data/Hora */}
+            <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-3.5 sm:p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 items-center shadow-2xs">
+              <div className="flex items-center justify-between gap-2 sm:pr-4 sm:border-r sm:border-blue-200/80">
+                <div className="min-w-0">
+                  <span className="block text-[10px] font-bold text-blue-900 uppercase tracking-wider">
+                    Código de Protocolo
+                  </span>
+                  <strong className="text-sm sm:text-base font-mono font-extrabold text-sesi-primary tracking-wider break-all block mt-0.5 select-all">
+                    {validationCode}
+                  </strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyCode}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-blue-100/60 border border-blue-200 text-[11px] text-sesi-primary font-bold rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs print:hidden"
+                >
+                  {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedCode ? 'Copiado' : 'Copiar'}</span>
+                </button>
               </div>
-              <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg shrink-0">
-                <Sparkles className="w-3 h-3 text-emerald-700" />
-                <span>Aceite Registrado Eletronicamente</span>
-              </span>
+
+              <div className="sm:pl-1">
+                <span className="block text-[10px] font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-sesi-primary" />
+                  Data e Hora do Registro
+                </span>
+                <strong className="font-mono text-sm text-slate-900 font-bold block mt-0.5">
+                  {formatBrasiliaDateTime(validationResult.signed_at_utc)}
+                </strong>
+                <span className="text-[10px] text-slate-500 block">
+                  Horário Oficial de Brasília (UTC-3)
+                </span>
+              </div>
             </div>
 
-            {/* 1. Dados da Autorização e Partes Envolvidas (Sem textos truncados) */}
-            <div className="space-y-1.5 sm:space-y-2">
-              <h3 className="text-[11px] sm:text-xs font-bold text-slate-900 uppercase tracking-wide m-0 border-b border-slate-200 pb-1 flex items-center gap-1.5">
+            {/* 1. Partes e Finalidade (Dados Minimizados — LGPD) */}
+            <div className="space-y-2">
+              <h3 className="text-[11px] sm:text-xs font-bold text-slate-900 uppercase tracking-wide m-0 border-b border-slate-200 pb-1.5 flex items-center gap-1.5">
                 <FileCheck2 className="w-3.5 h-3.5 text-sesi-primary" />
-                <span>1. Dados da Autorização e Partes Envolvidas</span>
+                <span>1. Partes Envolvidas e Finalidade</span>
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                
-                {/* Card 1: Projeto / Finalidade */}
-                <div className="bg-white border border-slate-200/90 rounded-xl p-2.5 sm:p-3 shadow-xs flex items-start gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-sesi-primary flex items-center justify-center shrink-0 border border-blue-100 mt-0.5">
-                    <Activity className="w-3.5 h-3.5 text-sesi-primary" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                {/* Finalidade / Atividade */}
+                <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-sesi-primary flex items-center justify-center shrink-0 border border-blue-100">
+                    <Activity className="w-4 h-4 text-sesi-primary" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                      Atividade
+                  <div className="min-w-0">
+                    <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">
+                      Finalidade / Atividade
                     </span>
-                    <strong className="text-slate-900 font-bold text-xs block leading-snug">
+                    <strong className="text-slate-900 font-bold text-xs block leading-snug mt-0.5">
                       {validationResult.procedure_title || 'Escola Cidadã — Saúde em Movimento'}
                     </strong>
                     <span className="text-[10px] text-slate-500 block mt-0.5">
-                      Plataforma Catraki
+                      Plataforma Catraki • SESI-DF / UnB
                     </span>
                   </div>
                 </div>
 
-                {/* Card 2: Estudante Beneficiado */}
-                <div className="bg-white border border-slate-200/90 rounded-xl p-2.5 sm:p-3 shadow-xs flex items-start gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100 mt-0.5">
-                    <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
+                {/* Estudante Beneficiado (Minimizado LGPD Art. 14) */}
+                <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+                    <GraduationCap className="w-4 h-4 text-emerald-600" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                  <div className="min-w-0">
+                    <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">
                       Estudante Beneficiado(a)
                     </span>
-                    <strong className="text-slate-900 font-bold text-xs block leading-snug">
+                    <strong className="text-slate-900 font-bold text-xs block leading-snug mt-0.5">
                       {validationResult.minor_name_initials}
                     </strong>
-                    {(validationResult.minor_series || validationResult.minor_class || validationResult.minor_turn) && (
-                      <span className="text-[10px] text-slate-600 block mt-0.5 font-medium">
-                        {[
-                          validationResult.minor_series ? `Série: ${formatStudentSeries(validationResult.minor_series)}` : '',
-                          validationResult.minor_class ? `Turma: ${validationResult.minor_class}` : '',
-                          validationResult.minor_turn ? `Turno: ${validationResult.minor_turn}` : ''
-                        ].filter(Boolean).join(' • ')}
-                      </span>
-                    )}
-                    <span className="text-[9px] text-emerald-700 font-semibold block mt-0.5">
-                      ✓ Autorização confirmada (nome abreviado para proteger a privacidade do estudante)
+                    <span className="text-[10px] text-emerald-700 font-medium block mt-0.5">
+                      ✓ Identificação abreviada (LGPD Art. 14)
                     </span>
                   </div>
                 </div>
 
-                {/* Card 3: Responsável Legal (Assinante) */}
-                <div className="sm:col-span-2 bg-white border border-slate-200/90 rounded-xl p-2.5 sm:p-3 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                {/* Signatário / Responsável Legal (Card único, sem duplicação) */}
+                <div className="sm:col-span-2 bg-white border border-slate-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <div className="flex items-start sm:items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-sky-50 text-sesi-primary flex items-center justify-center shrink-0 border border-sky-100 mt-0.5 sm:mt-0">
-                      <UserCheck className="w-3.5 h-3.5 text-sesi-primary" />
+                    <div className="w-8 h-8 rounded-lg bg-sky-50 text-sesi-primary flex items-center justify-center shrink-0 border border-sky-100">
+                      <UserCheck className="w-4 h-4 text-sesi-primary" />
                     </div>
                     <div>
-                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                        Responsável Legal (Signatário)
+                      <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">
+                        Signatário / Responsável Legal
                       </span>
-                      <strong className="text-slate-900 font-bold text-xs block">
-                        {validationResult.signer_name} {validationResult.signer_relationship ? `(${validationResult.signer_relationship})` : ''}
+                      <strong className="text-slate-900 font-bold text-xs sm:text-sm block mt-0.5">
+                        {validationResult.signer_name}
                       </strong>
-                      <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-slate-600">
-                        <span>CPF: <strong className="font-mono text-slate-700">{validationResult.signer_cpf_masked}</strong></span>
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-0.5 text-[11px] text-slate-600">
+                        <span>CPF: <strong className="font-mono text-slate-800">{validationResult.signer_cpf_masked}</strong></span>
                         {validationResult.signer_relationship && (
                           <>
                             <span className="text-slate-300">•</span>
-                            <span>Vínculo: <strong className="text-slate-700">{validationResult.signer_relationship}</strong></span>
+                            <span>Vínculo: <strong className="text-slate-800">{validationResult.signer_relationship}</strong></span>
                           </>
                         )}
                       </div>
-                      <span className="text-[9px] text-slate-500 block mt-0.5">
-                        ✓ Identidade do signatário parcialmente protegida nos termos da LGPD (Art. 14)
-                      </span>
                     </div>
                   </div>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-[10px] font-bold shrink-0 self-start sm:self-auto">
-                    <ShieldCheck className="w-3 h-3 text-sesi-primary" />
-                    <span>Titular / Representante Legal</span>
-                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5 shrink-0 self-start sm:self-center">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-[10px] font-bold">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      <span>Assinado Eletronicamente</span>
+                    </span>
+                  </div>
                 </div>
-
               </div>
             </div>
 
-            {/* 2. Escopo das Autorizações e Consentimento Clínico */}
-            <div className="space-y-1.5 sm:space-y-2">
-              <h3 className="text-[11px] sm:text-xs font-bold text-slate-900 uppercase tracking-wide m-0 border-b border-slate-200 pb-1 flex items-center gap-1.5">
+            {/* 2. Escopo do Consentimento (Lista Simétrica — LGPD Art. 8º) */}
+            <div className="space-y-2">
+              <h3 className="text-[11px] sm:text-xs font-bold text-slate-900 uppercase tracking-wide m-0 border-b border-slate-200 pb-1.5 flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>2. Escopo do Consentimento e Autorizações Concedidas</span>
+                <span>2. Escopo do Consentimento Concedido</span>
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-2 sm:p-2.5 flex items-start gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="text-emerald-950 font-bold block text-[11px]">Triagens e Avaliação Clínica</strong>
-                    <span className="text-emerald-800 text-[10px] block mt-0.5 leading-snug">
-                      Oftalmologia, Odontologia, Fonoaudiologia (Audiometria), Terapia Comunitária Integrativa e Oficinas de Alimentação Saudável (Nutrição).
-                    </span>
+              <div className="bg-white border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden">
+                <div className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-slate-900 font-bold block text-xs">
+                        Triagens e Avaliação Clínica
+                      </strong>
+                      <span className="text-slate-500 text-[11px] block leading-snug">
+                        Oftalmologia, Odontologia, Fonoaudiologia (Audiometria), Terapia Comunitária Integrativa e Nutrição.
+                      </span>
+                    </div>
                   </div>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0 self-start sm:self-center">
+                    Autorizado
+                  </span>
                 </div>
 
-                <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-2 sm:p-2.5 flex items-start gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="text-emerald-950 font-bold block text-[11px]">Tratamento de Dados (LGPD)</strong>
-                    <span className="text-emerald-800 text-[10px] block mt-0.5 leading-snug">
-                      Termo de consentimento e dados de autorização protegidos nos termos da Lei 13.709/18 (LGPD).
-                    </span>
+                <div className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-slate-900 font-bold block text-xs">
+                        Tratamento de Dados Pessoais (LGPD)
+                      </strong>
+                      <span className="text-slate-500 text-[11px] block leading-snug">
+                        Consentimento específico para atendimento no projeto conforme a Lei nº 13.709/2018.
+                      </span>
+                    </div>
                   </div>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0 self-start sm:self-center">
+                    Autorizado
+                  </span>
                 </div>
 
-
-
-                {/* Uso Institucional de Imagem / Voz - 3 estados */}
                 {(() => {
                   const authImg = validationResult.auth_image;
                   const isAuthorized = authImg === 'yes' || authImg === true;
                   const isDenied = authImg === 'no' || authImg === false;
-                  // null/undefined = doc antigo, não registrado
+
                   return (
-                    <div className={`border rounded-xl p-2 sm:p-2.5 flex items-start gap-2 ${
-                      isAuthorized ? 'bg-emerald-50/60 border-emerald-200/80' :
-                      isDenied ? 'bg-red-50 border-red-200' :
-                      'bg-slate-50 border-slate-200'
-                    }`}>
-                      {isAuthorized ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      ) : isDenied ? (
-                        <Ban className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
-                      ) : (
-                        <HelpCircle className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                      )}
-                      <div>
-                        <strong className={`font-bold block text-[11px] ${
-                          isAuthorized ? 'text-emerald-950' :
-                          isDenied ? 'text-red-900' :
-                          'text-slate-500'
-                        }`}>
-                          Uso Institucional de Imagem / Voz
-                        </strong>
-                        <span className={`text-[10px] block mt-0.5 leading-snug ${
-                          isAuthorized ? 'text-emerald-800' :
-                          isDenied ? 'text-red-700' :
-                          'text-slate-400'
-                        }`}>
-                          {isAuthorized
-                            ? 'Opção manifestada livremente pelo responsável (ECA Art. 17).'
-                            : isDenied
-                            ? 'Negado pelo responsável (Opção Opcional).'
-                            : 'Não registrado — autorização assinada antes desta versão do sistema.'}
-                        </span>
+                    <div className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-start gap-2.5">
+                        {isAuthorized ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        ) : isDenied ? (
+                          <Ban className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                        ) : (
+                          <HelpCircle className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                        )}
+                        <div>
+                          <strong className="text-slate-900 font-bold block text-xs">
+                            Uso Institucional de Imagem e Voz (ECA Art. 17)
+                          </strong>
+                          <span className="text-slate-500 text-[11px] block leading-snug">
+                            {isAuthorized
+                              ? 'Autorizado livremente pelo responsável legal.'
+                              : isDenied
+                              ? 'Não autorizado pelo responsável legal (opção facultativa).'
+                              : 'Não registrado nesta versão do termo.'}
+                          </span>
+                        </div>
                       </div>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border shrink-0 self-start sm:self-center ${
+                          isAuthorized
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : isDenied
+                            ? 'bg-red-50 text-red-700 border-red-200'
+                            : 'bg-slate-100 text-slate-600 border-slate-200'
+                        }`}
+                      >
+                        {isAuthorized ? 'Autorizado' : isDenied ? 'Não Autorizado' : 'Não Registrado'}
+                      </span>
                     </div>
                   );
                 })()}
-
               </div>
             </div>
 
-            {/* 3. Evidências Digitais de Validação & Trilha de Custódia (Padrão Profissional) */}
-            <div className="space-y-3">
-              <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide m-0 border-b border-slate-200 pb-2 flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-sesi-primary" />
-                  <span>3. Evidências Digitais e Trilha de Custódia</span>
+            {/* 3. Integridade Criptográfica e Conferência */}
+            <div className="space-y-2.5">
+              <h3 className="text-[11px] sm:text-xs font-bold text-slate-900 uppercase tracking-wide m-0 border-b border-slate-200 pb-1.5 flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-sesi-primary" />
+                  <span>3. Integridade Criptográfica e Conferência</span>
                 </span>
-                <span className="text-[11px] font-semibold text-slate-500 normal-case">
-                  Registro de Assinatura Simples
+                <span className="text-[10px] font-semibold text-slate-500 normal-case">
+                  Assinatura Eletrônica Simples
                 </span>
               </h3>
 
-              {/* Card Unificado do Signatário com Layout Profissional Padronizado */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
-                
-                {/* Header do Card com Nome do Signatário e Status */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-sesi-primary flex items-center justify-center font-bold text-sm border border-blue-100">
-                      <UserCheck className="w-5 h-5 text-sesi-primary" />
+              {/* Fatores de Autenticação (sem expor IP, navegador ou geolocalização) */}
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-lg text-[11px] font-semibold">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  E-mail confirmado (OTP)
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-lg text-[11px] font-semibold">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  Identidade declarada (Art. 299 CP)
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200/80 rounded-lg text-[11px] font-semibold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" />
+                  Integridade SHA-256
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-stretch">
+                <div className="lg:col-span-3 space-y-2.5">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      Hash SHA-256 do Registro Eletrônico
+                    </span>
+                    <div className="font-mono text-[10px] sm:text-[11px] font-bold text-slate-800 break-all select-all leading-relaxed bg-white p-2 rounded-lg border border-slate-200">
+                      {validationResult.manifest_sha256}
                     </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Signatário Autenticado
+                  </div>
+
+                  {validationResult.pdf_sha256 && (
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        Integridade do Arquivo PDF (SHA-256)
                       </span>
-                      <strong className="text-sm sm:text-base font-extrabold text-slate-900 block leading-tight">
-                        {validationResult.signer_name}
-                      </strong>
-                      {validationResult.signer_relationship && (
-                        <span className="inline-block mt-0.5 text-xs text-slate-600 font-medium">
-                          Vínculo: <strong className="text-slate-700">{validationResult.signer_relationship}</strong>
+                      <div className="font-mono text-[10px] font-bold text-slate-700 break-all select-all bg-white p-2 rounded-lg border border-slate-200">
+                        {validationResult.pdf_sha256}
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-0.5 print:hidden">
+                        <label className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 border border-blue-200 text-sesi-primary text-[11px] font-bold rounded-lg cursor-pointer transition-colors">
+                          <FileCheck2 className="w-3.5 h-3.5" />
+                          <span>Conferir Arquivo PDF Baixado</span>
+                          <input
+                            type="file"
+                            accept="application/pdf,.pdf"
+                            className="sr-only"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setPdfCheckedName(file.name);
+                              const buf = new Uint8Array(await file.arrayBuffer());
+                              const computed = await sha256(buf);
+                              setPdfCheckedHash(computed);
+                              if (!validationResult.pdf_sha256) {
+                                setPdfCheckStatus('unavailable');
+                              } else if (computed.toLowerCase() === validationResult.pdf_sha256.toLowerCase()) {
+                                setPdfCheckStatus('match');
+                              } else {
+                                setPdfCheckStatus('mismatch');
+                              }
+                            }}
+                          />
+                        </label>
+                        <span className="text-[10px] text-slate-400">
+                          Verificação local no navegador (o arquivo não é enviado).
                         </span>
+                      </div>
+                      {pdfCheckStatus === 'match' && (
+                        <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
+                          ✓ Arquivo <strong>{pdfCheckedName}</strong> íntegro e autêntico (SHA-256 idêntico ao PDF original).
+                        </div>
+                      )}
+                      {pdfCheckStatus === 'mismatch' && (
+                        <div className="p-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-[11px] font-semibold">
+                          ⚠ Atenção: o arquivo <strong>{pdfCheckedName}</strong> possui hash diferente ({pdfCheckedHash.slice(0, 16)}...) e não corresponde ao PDF original registrado.
+                        </div>
                       )}
                     </div>
-                  </div>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold shrink-0">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Assinatura Concluída</span>
+                  )}
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                  {qrCodeDataUrl ? (
+                    <img
+                      src={qrCodeDataUrl}
+                      alt="QR Code de Validação"
+                      className="w-24 h-24 block mx-auto rounded"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 bg-slate-100 flex items-center justify-center text-[10px] text-slate-400 rounded">
+                      Gerando QR...
+                    </div>
+                  )}
+                  <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider mt-1.5 block">
+                    Validação Online
                   </span>
                 </div>
-
-                {/* Grid com Linhas de Metadados Claros (Título acima, valor abaixo) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  
-                  {/* Token do Documento com Copiar */}
-                  <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Token do Documento
-                    </span>
-                    <div className="flex items-center justify-between gap-2">
-                      <strong className="font-mono text-xs sm:text-sm text-sesi-primary font-bold select-all break-all">
-                        {validationCode}
-                      </strong>
-                      <button
-                        onClick={handleCopyCode}
-                        className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-[10px] text-sesi-primary font-bold rounded-md transition-colors cursor-pointer shrink-0 shadow-2xs"
-                      >
-                        {copiedCode ? 'Copiado ✓' : 'Copiar'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Assinou em */}
-                  <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-sesi-primary" /> Data e Hora da Assinatura
-                    </span>
-                    <div>
-                      <strong className="font-mono text-xs sm:text-sm text-slate-800 font-bold block">
-                        {formatBrasiliaDateTime(validationResult.signed_at_utc)}
-                      </strong>
-                      <span className="text-[10px] text-slate-500 font-sans block mt-0.5">
-                        Horário Oficial de Brasília (UTC-3)
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* CPF do Signatário */}
-                  <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      CPF do Signatário
-                    </span>
-                    <strong className="font-mono text-xs sm:text-sm text-slate-800 font-bold block">
-                      {validationResult.signer_cpf_masked}
-                    </strong>
-                  </div>
-
-                  {/* Localização */}
-                  <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Localização (Borda Cloudflare)
-                    </span>
-                    <strong className="text-xs sm:text-sm text-slate-800 font-bold block">
-                      {validationResult.geolocation || 'Brasília, DF, Brasil'}
-                    </strong>
-                  </div>
-
-                  {/* Endereço IP */}
-                  <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Endereço IP Registrado
-                    </span>
-                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                      <strong className="font-mono text-xs sm:text-sm text-slate-800 font-bold break-all select-all">
-                        {validationResult.ip_address || 'Não registrado'}
-                      </strong>
-                      {validationResult.ip_address && (
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold font-sans border shrink-0 ${
-                          validationResult.ip_address.includes(':')
-                            ? 'bg-purple-50 text-purple-700 border-purple-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'
-                        }`}>
-                          {validationResult.ip_address.includes(':') ? 'IPv6' : 'IPv4'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Dispositivo */}
-                  <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-col justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Dispositivo do Signatário
-                    </span>
-                    <strong className="text-xs sm:text-sm text-slate-800 font-semibold truncate block">
-                      {formatUserAgent(validationResult.user_agent)}
-                    </strong>
-                  </div>
-
-                </div>
-
-                {/* Pontos de Autenticação em Badges Estilizados */}
-                <div className="pt-2">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    Pontos de Autenticação Registrados:
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-lg text-[11px] font-semibold">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      E-mail confirmado (Código OTP)
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-lg text-[11px] font-semibold">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      Identidade declarada (Art. 299 CP)
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200/80 rounded-lg text-[11px] font-semibold">
-                      <ShieldCheck className="w-3.5 h-3.5 text-sesi-primary" />
-                      Integridade criptográfica SHA-256
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-semibold">
-                      <Sparkles className="w-3.5 h-3.5 text-slate-500" />
-                      Rede de borda Cloudflare
-                    </span>
-                  </div>
-                </div>
-
-                {/* Quadro de Assinatura Eletrônica */}
-                <div className="p-3.5 bg-blue-50/40 border border-blue-200/70 rounded-xl space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-blue-900 uppercase tracking-wider">
-                      Assinatura Eletrônica Simples
-                    </span>
-                    <span className="text-[9.5px] font-bold text-slate-500">
-                      Lei Federal nº 14.063/2020 (Art. 4º, I) • Art. 10, § 2º MP 2.200-2/2001
-                    </span>
-                  </div>
-                  <div className="p-3 bg-white rounded-lg border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <p className="font-serif italic text-base sm:text-lg text-slate-800 m-0 tracking-wide font-medium">
-                        {validationResult.signer_name}
-                      </p>
-                      <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-                        Assinado eletronicamente via Catraki • {validationCode}
-                      </span>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                        ✓ Autenticado
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Trilha Técnica de Custódia (Hash SHA-256 & QR Code) */}
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 pt-2">
-                  <div className="lg:col-span-3 space-y-2">
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                        <Lock className="w-3.5 h-3.5 text-sesi-primary" /> Código Criptográfico de Integridade (Hash SHA-256)
-                      </span>
-                      <div className="font-mono text-[10px] sm:text-[11px] font-bold text-slate-800 break-all select-all leading-relaxed bg-white p-2 rounded-lg border border-slate-200">
-                        {validationResult.manifest_sha256}
-                      </div>
-                      <span className="text-[10px] text-slate-400 block mt-1.5 leading-snug">
-                        Resumo criptográfico imutável que garante a integridade e inviolabilidade do documento assinado.
-                      </span>
-                    </div>
-
-                    {validationResult.pdf_sha256 && (
-                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
-                        <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                          <FileCheck2 className="w-3.5 h-3.5 text-sesi-primary" /> Integridade do Arquivo PDF (SHA-256)
-                        </span>
-                        <div className="font-mono text-[10px] font-bold text-slate-700 break-all select-all bg-white p-2 rounded-lg border border-slate-200">
-                          {validationResult.pdf_sha256}
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1">
-                          <label className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 border border-blue-200 text-sesi-primary text-[11px] font-bold rounded-lg cursor-pointer transition-colors">
-                            <FileCheck2 className="w-3.5 h-3.5" />
-                            <span>Conferir Arquivo PDF Baixado</span>
-                            <input
-                              type="file"
-                              accept="application/pdf,.pdf"
-                              className="sr-only"
-                              onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                setPdfCheckedName(file.name);
-                                const buf = new Uint8Array(await file.arrayBuffer());
-                                const computed = await sha256(buf);
-                                setPdfCheckedHash(computed);
-                                if (!validationResult.pdf_sha256) {
-                                  setPdfCheckStatus('unavailable');
-                                } else if (computed.toLowerCase() === validationResult.pdf_sha256.toLowerCase()) {
-                                  setPdfCheckStatus('match');
-                                } else {
-                                  setPdfCheckStatus('mismatch');
-                                }
-                              }}
-                            />
-                          </label>
-                          <span className="text-[10px] text-slate-400">
-                            Verificação local no navegador (o arquivo não é enviado).
-                          </span>
-                        </div>
-                        {pdfCheckStatus === 'match' && (
-                          <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
-                            ✓ Arquivo <strong>{pdfCheckedName}</strong> íntegro e autêntico (SHA-256 idêntico ao PDF original).
-                          </div>
-                        )}
-                        {pdfCheckStatus === 'mismatch' && (
-                          <div className="p-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-[11px] font-semibold">
-                            ⚠ Atenção: o arquivo <strong>{pdfCheckedName}</strong> possui hash diferente ({pdfCheckedHash.slice(0, 16)}...) e não corresponde ao PDF original registrado.
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center text-center">
-                    {qrCodeDataUrl ? (
-                      <img
-                        src={qrCodeDataUrl}
-                        alt="QR Code de Validação"
-                        className="w-20 h-20 sm:w-24 sm:h-24 block mx-auto rounded"
-                      />
-                    ) : (
-                      <div className="w-20 h-20 bg-slate-100 flex items-center justify-center text-[10px] text-slate-400">
-                        Gerando QR...
-                      </div>
-                    )}
-                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider mt-1 block">
-                      Validação Online
-                    </span>
-                  </div>
-                </div>
-
-                {/* Disclaimer Institucional */}
-                <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-[10px] text-slate-500 leading-relaxed">
-                  <strong>Aviso Institucional:</strong> Os atendimentos clínicos e avaliações de saúde são de exclusiva responsabilidade das entidades realizadoras do projeto (SESI-DF e Faculdade de Ciências da Saúde da UnB). A Plataforma Catraki atua estritamente como ferramenta tecnológica para emissão e conferência eletrônica das autorizações.
-                </div>
-
               </div>
             </div>
 
+            {/* Nota LGPD (Minimização & Direitos do Titular) + Aviso Institucional */}
+            <div className="space-y-2 pt-1">
+              <div className="bg-blue-50/50 border border-blue-200/80 rounded-xl p-3 text-[10.5px] text-slate-600 leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <strong className="text-slate-800">Privacidade e Minimização (LGPD — Art. 6º, III e Art. 14):</strong> Dados de rede, dispositivo e identificação escolar completa são ocultados da consulta pública. O titular ou responsável legal pode solicitar acesso integral, correção ou revogação a qualquer momento (Art. 18).
+                </div>
+                <a
+                  href="/titular"
+                  className="inline-flex items-center justify-center px-3 py-1.5 bg-white hover:bg-blue-50 text-sesi-primary border border-blue-200 rounded-lg text-[10.5px] font-bold whitespace-nowrap transition-colors shrink-0 no-underline print:hidden"
+                >
+                  Portal do Titular (LGPD)
+                </a>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-[10px] text-slate-500 leading-relaxed">
+                <strong>Aviso Institucional:</strong> Os atendimentos clínicos e avaliações de saúde são de exclusiva responsabilidade das entidades realizadoras do projeto (SESI-DF e Faculdade de Ciências da Saúde da UnB). A Plataforma Catraki atua estritamente como ferramenta tecnológica para emissão e conferência eletrônica das autorizações.
+              </div>
+            </div>
+
+            <div className="text-center pt-1 print:hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  setValidationResult(null);
+                  setHashInput('');
+                  setErrorMessage('');
+                  setPdfCheckStatus('idle');
+                  setPdfCheckedHash('');
+                  setPdfCheckedName('');
+                }}
+                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition-colors cursor-pointer"
+              >
+                Consultar Outro Código
+              </button>
+            </div>
           </div>
         )}
 

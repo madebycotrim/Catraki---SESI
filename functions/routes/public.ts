@@ -410,18 +410,6 @@ publicRouter.get('/validate/:query', async (c) => {
       } catch {}
     }
 
-    const maskedIp = maskIpAddress(record.ip_address || '127.0.0.1');
-
-    let city = record.geo_city;
-    if (!city || city.toLowerCase() === 'local' || city.toLowerCase() === 'unknown') city = 'Brasília';
-    let region = record.geo_region;
-    if (!region || region === 'unknown') region = 'DF';
-    else if (region.toUpperCase().startsWith('BR-')) region = region.toUpperCase().replace('BR-', '');
-    let country = record.geo_country || 'Brasil';
-    if (country === 'BR') country = 'Brasil';
-
-    const geoStr = `${city}, ${region}, ${country}`;
-
     const isCancelledError = record.doc_status === 'CANCELADO_POR_ERRO' || record.doc_status === 'cancelled_error';
 
     const codePrefix = cleanUpper.startsWith('SESI') ? 'SESI' : 'CATRAKI';
@@ -443,7 +431,7 @@ publicRouter.get('/validate/:query', async (c) => {
     const response: PublicValidationResponse = {
       valid: !isCancelledError && record.doc_status !== 'revoked',
       validation_code: validationCode,
-      legal_notice: 'Assinatura Eletrônica Simples — Art. 10, § 2º, MP nº 2.200-2/2001 c/c Lei Federal nº 14.063/2020 (Art. 4º, I); Código Civil (Arts. 104 e 107); CPC (Arts. 190, 411 e 441); LGPD (Lei nº 13.709/2018); ECA Art. 17; Art. 299 CP',
+      legal_notice: 'Assinatura Eletrônica Simples — Art. 4º, I, Lei nº 14.063/2020 • Dados minimizados conforme LGPD (Art. 6º, III e Art. 14)',
       signature_type: 'Assinatura Eletrônica Simples — Art. 4º, I da Lei nº 14.063/2020 e Art. 10, § 2º da MP nº 2.200-2/2001',
       document_id: record.document_id || record.id || 'DOC-PENDENTE',
       manifest_sha256: record.manifest_sha256 || manifest,
@@ -454,18 +442,12 @@ publicRouter.get('/validate/:query', async (c) => {
       signer_name: maskName(record.signer_name || 'Responsável Legal'),
       signer_cpf_masked: record.signer_cpf_masked || '***.***.***-**',
       signer_relationship: record.signer_relationship || 'Responsável Legal',
-      ip_address: maskedIp,
-      geolocation: geoStr,
-      user_agent: record.user_agent && record.user_agent !== 'Navegador Web Padrão' && record.user_agent !== 'Não registrado'
-        ? record.user_agent
-        : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+      // Minimização LGPD (Art. 6º, III): IP, geolocalização e dispositivo não são expostos em consulta pública
       identity_method: record.identity_method || 'declaracao_responsavel',
       procedure_title: record.template_title || 'Autorização SESI Escola Cidadã',
       procedure_description: record.procedure_description || 'Autorização clínica escolar.',
       minor_name_initials: getInitials(record.minor_name || 'Estudante'),
-      minor_series: record.minor_series,
-      minor_class: record.minor_class,
-      minor_turn: record.minor_turn,
+      // Minimização LGPD (Art. 14): série, turma e turno do menor não são expostos em consulta pública
       document_status: record.doc_status || 'signed',
       chain_position: chainPos,
       prev_log_hash: record.prev_log_hash || 'GENESIS-HASH',

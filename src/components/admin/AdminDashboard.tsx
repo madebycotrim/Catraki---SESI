@@ -898,7 +898,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     // 1. CPF do aluno → lista de {id, name} (para detectar conflitos de nome)
     const cpfMap = new Map<string, { id: string; name: string }[]>();
     // 2. Nome normalizado do aluno + escola → lista de auths (para pendentes sem CPF)
-    const nameSchoolMap = new Map<string, string[]>();
+    const nameSchoolMap = new Map<string, Array<{ id: string; status: string }>>();
     // 3. CPF do responsável + nome do aluno → para detectar mesmo responsável,
     //    mesmo filho, registros duplicados (pai com 2 filhos é OK; mesmo filho 2x não)
     const parentChildMap = new Map<string, string[]>();
@@ -915,11 +915,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         cpfMap.set(cpf, list);
       }
 
-      // Chave nome normalizado + escola (para registros sem CPF)
-      const nameKey = `${auth.studentName.trim().toLowerCase()}|${auth.institutionId}`;
-      const nameList = nameSchoolMap.get(nameKey) || [];
-      nameList.push(auth.id);
-      nameSchoolMap.set(nameKey, nameList);
+      // Chave nome normalizado + escola (ignora placeholders genéricos)
+      const normalizedName = auth.studentName.trim().toLowerCase();
+      if (normalizedName && normalizedName !== 'estudante' && normalizedName !== 'aguardando preenchimento') {
+        const nameKey = `${normalizedName}|${auth.institutionId}`;
+        const nameList = nameSchoolMap.get(nameKey) || [];
+        nameList.push({ id: auth.id, status: auth.status });
+        nameSchoolMap.set(nameKey, nameList);
+      }
 
       // Mesmo responsável + mesmo aluno
       const parentCpf = auth.parentCpfMasked;
@@ -953,9 +956,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
       }
 
-      // ② Duplicata por nome+escola (para pendentes sem CPF)
-      const nameKey = `${auth.studentName.trim().toLowerCase()}|${auth.institutionId}`;
-      if ((nameSchoolMap.get(nameKey)?.length ?? 0) > 1 && !hasCpf) {
+      // ② Duplicata por nome+escola (somente quando envolve ao menos 1 termo assinado, evitando falsos positivos entre rascunhos pendentes)
+      const normalizedName = auth.studentName.trim().toLowerCase();
+      const nameKey = `${normalizedName}|${auth.institutionId}`;
+      const nameMatches = nameSchoolMap.get(nameKey) || [];
+      if (nameMatches.length > 1 && !hasCpf && nameMatches.some((m) => m.status === 'signed')) {
         alerts.push('DUPLICATE_NAME');
       }
 
@@ -1914,7 +1919,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/80">
                                     {auth.studentCpfMasked}
                                   </span>
-                                  {birthInfo && (
+                                  {birthInfo && !(auth.status === 'pending' && auth.birthDate === '2010-01-01' && auth.studentCpfMasked === 'Pendente') && (
                                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
                                       birthInfo.isAdult 
                                         ? 'bg-purple-50 text-purple-700 border border-purple-200' 

@@ -3,6 +3,7 @@ import { LgpdRequestPublicSchema, maskCPF, getInitials, maskName } from '../../s
 import { encryptAesGcm, maskIpAddress, hmacSha256, constantTimeEqual } from '../../src/lib/crypto.ts';
 import { rateLimiter } from '../middleware/ratelimit.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
+import { verifyTurnstileToken } from '../utils/turnstile.ts';
 import { PRIVACY_POLICY_VERSION, LGPD_RESPONSE_DEADLINE_DAYS } from '../../src/lib/lgpd.ts';
 import type { Env, PublicValidationResponse } from '../../src/lib/types.ts';
 
@@ -504,6 +505,19 @@ publicRouter.get('/validate/:query', async (c) => {
 publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, keyPrefix: 'lgpd_pub' }), async (c) => {
   try {
     const body = await c.req.json();
+    const cfData = extractCloudflareClientData(c);
+    const turnstileSecret = (c.env as any).TURNSTILE_SECRET_KEY;
+    if (turnstileSecret) {
+      const turnstileToken = c.req.header('cf-turnstile-token') || (body as any)?.turnstile_token;
+      const turnstileCheck = await verifyTurnstileToken(turnstileToken, turnstileSecret, cfData.ip, c.env.APP_ENV);
+      if (!turnstileCheck.success) {
+        return c.json({
+          success: false,
+          error: turnstileCheck.error || 'Verificação de segurança anti-robô falhou.',
+          code: 'TURNSTILE_FAILED',
+        }, 403);
+      }
+    }
     const parsed = LgpdRequestPublicSchema.safeParse(body);
 
     if (!parsed.success) {

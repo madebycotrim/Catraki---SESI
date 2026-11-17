@@ -14,6 +14,7 @@ import {
 import { apiClient } from '../../lib/api.ts';
 import { formatCPF, isValidCPF, isValidFullName } from '../../lib/schemas.ts';
 import { PRIVACY_POLICY_VERSION, LGPD_RESPONSE_DEADLINE_DAYS } from '../../lib/lgpd.ts';
+import { TurnstileWidget } from '../common/TurnstileWidget.tsx';
 import type { LgpdRequestType } from '../../lib/types.ts';
 
 interface TitularPortalProps {
@@ -61,6 +62,8 @@ export const TitularPortal: React.FC<TitularPortalProps> = ({ onBack, onNavigate
   const [details, setDetails] = useState('');
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [privacyAcceptedAt, setPrivacyAcceptedAt] = useState('');
+  const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [receipt, setReceipt] = useState<{
@@ -107,6 +110,7 @@ export const TitularPortal: React.FC<TitularPortalProps> = ({ onBack, onNavigate
         privacy_policy_accepted: true,
         privacy_policy_version: PRIVACY_POLICY_VERSION,
         privacy_policy_accepted_at: acceptedAt,
+        turnstile_token: turnstileToken || undefined,
       });
 
       if (resp.success) {
@@ -309,6 +313,17 @@ export const TitularPortal: React.FC<TitularPortalProps> = ({ onBack, onNavigate
                 </span>
               </label>
             </div>
+
+            {turnstileSiteKey && (
+              <div className="flex justify-center">
+                <TurnstileWidget
+                  siteKey={turnstileSiteKey}
+                  onVerify={(tk) => setTurnstileToken(tk)}
+                  onExpire={() => setTurnstileToken('')}
+                  onError={() => setTurnstileToken('')}
+                />
+              </div>
+            )}
 
             <div className="flex justify-end pt-2">
               <button

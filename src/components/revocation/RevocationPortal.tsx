@@ -3,6 +3,7 @@ import { AlertOctagon, CheckCircle2, Loader2, ArrowLeft, AlertTriangle } from 'l
 import { apiClient } from '../../lib/api.ts';
 import { formatCPF } from '../../lib/schemas.ts';
 import { PRIVACY_POLICY_VERSION } from '../../lib/lgpd.ts';
+import { TurnstileWidget } from '../common/TurnstileWidget.tsx';
 
 interface RevocationPortalProps {
   token: string;
@@ -16,6 +17,8 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
   const [confirmedConsequences, setConfirmedConsequences] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [privacyAcceptedAt, setPrivacyAcceptedAt] = useState('');
+  const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [revokedSuccess, setRevokedSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -50,6 +53,7 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
         privacy_policy_accepted: true,
         privacy_policy_version: PRIVACY_POLICY_VERSION,
         privacy_policy_accepted_at: privacyAcceptedAt || new Date().toISOString(),
+        turnstile_token: turnstileToken || undefined,
       });
       if (resp.success) {
         setRevokedSuccess(true);
@@ -238,6 +242,17 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                   </span>
                 </label>
               </div>
+
+              {turnstileSiteKey && (
+                <div className="flex justify-center">
+                  <TurnstileWidget
+                    siteKey={turnstileSiteKey}
+                    onVerify={(tk) => setTurnstileToken(tk)}
+                    onExpire={() => setTurnstileToken('')}
+                    onError={() => setTurnstileToken('')}
+                  />
+                </div>
+              )}
 
               <div className="pt-4 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
                 <button

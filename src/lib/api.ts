@@ -696,7 +696,12 @@ export const apiClient = {
     token: string,
     reason: string,
     signerCpf?: string,
-    privacyAcceptance?: { privacy_policy_accepted: boolean; privacy_policy_version: string; privacy_policy_accepted_at: string }
+    privacyAcceptance?: {
+      privacy_policy_accepted: boolean;
+      privacy_policy_version: string;
+      privacy_policy_accepted_at: string;
+      turnstile_token?: string;
+    }
   ): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/signer/revoke`, {

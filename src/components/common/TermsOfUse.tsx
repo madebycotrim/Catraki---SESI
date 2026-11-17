@@ -1,35 +1,29 @@
 import React from 'react';
 import { ArrowLeft, Printer, CheckCircle2 } from 'lucide-react';
+import { DocumentSheetLayout } from './DocumentSheetLayout.tsx';
 
 interface TermsOfUseProps {
   onBack?: () => void;
 }
 
 export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
-  const dataHoje = new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'America/Sao_Paulo',
-  }).format(new Date());
-
   return (
-    <div className="animate-in fade-in duration-500 max-w-4xl mx-auto px-1 sm:px-4 pb-10 pt-1 text-slate-800">
-      
-      {/* Botões de Ação Superior */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mb-4 px-1 no-print">
-        {onBack ? (
-          <button
-            type="button"
-            onClick={onBack}
-            className="text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Voltar ao Início</span>
-          </button>
-        ) : <div />}
+    <DocumentSheetLayout
+      kicker="PLATAFORMA CATRAKI"
+      subtitle="Termos e Condições de Uso"
+      topActions={
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Voltar ao Início</span>
+            </button>
+          ) : <div />}
 
-        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => window.print()}
@@ -39,32 +33,9 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
             <span>Imprimir / Salvar PDF</span>
           </button>
         </div>
-      </div>
-
-      {/* Folha A4 — Padrão ABNT / Leitura Limpa */}
-      <div className="document-sheet-a4 space-y-6">
-        
-        {/* Cabeçalho */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b-2 sm:border-b-3 border-[#034b7f]">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <img
-              src="/catraki.png"
-              alt="Catraki"
-              className="h-8 sm:h-10 w-auto object-contain rounded"
-            />
-          </div>
-          <div className="text-left sm:text-right">
-            <p className="text-[10px] sm:text-[8.5pt] text-slate-500 m-0 uppercase tracking-wider font-semibold">
-              PLATAFORMA CATRAKI
-            </p>
-            <p className="text-xs sm:text-[9pt] text-slate-800 m-0 font-bold">
-              Termos e Condições de Uso
-            </p>
-            <p className="text-[10px] sm:text-[8pt] text-slate-500 m-0">
-              {dataHoje}
-            </p>
-          </div>
-        </div>
+      }
+    >
+      <div className="space-y-6">
 
         {/* Título Principal */}
         <div className="text-center mb-6 sm:mb-8 pb-3 border-b border-slate-100">
@@ -167,11 +138,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ onBack }) => {
             Projeto Escola Cidadã: Saúde em Movimento • Cooperação SESI-DF e UnB
           </p>
         </div>
-
-        {/* Barra institucional azul sólida no final da folha */}
-        <div className="absolute bottom-0 left-0 right-0 h-2 sm:h-2.5 bg-[#034b7f] pointer-events-none z-10" />
-
       </div>
-    </div>
+    </DocumentSheetLayout>
   );
 };

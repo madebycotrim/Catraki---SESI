@@ -383,7 +383,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           parentName: realParentName,
           parentCpfMasked: log?.signer_cpf_masked || doc.audit_signer_cpf_masked || (isSigned ? '***.***.***-**' : 'Pendente'),
           parentCpfRaw: parentCpfDigits,
-          parentEmail: doc.parent_email || log?.signer_email || '',
+          parentEmail: doc.parent_email || doc.parent_email_masked || log?.signer_email || '',
+          hasParentEmail: typeof doc.has_parent_email === 'boolean'
+            ? doc.has_parent_email
+            : Boolean(doc.parent_email || doc.parent_email_masked || log?.signer_email || (doc.otp_email_message_id && String(doc.otp_email_message_id).includes('@'))),
           relationship: log?.signer_relationship || doc.audit_signer_relationship || (isSigned ? 'Responsável' : 'Aguardando'),
           activity: doc.template_title || 'Escola Cidadã — Saúde em Movimento',
           institutionId: instMatch ? instMatch.id : (doc.institution_id || 'outra'),
@@ -978,7 +981,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       // ⑤ Turma, série e turno são opcionais no fluxo de cadastro, logo não constam como incompletos
 
       // ⑥ Email ausente em pendente (não vai conseguir receber OTP se não informado no momento)
-      if ((auth.status === 'pending' || auth.status === 'draft') && !auth.parentEmail) {
+      if ((auth.status === 'pending' || auth.status === 'draft') && !auth.hasParentEmail && !auth.parentEmail) {
         alerts.push('MISSING_EMAIL');
       }
 

@@ -652,6 +652,15 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     deliveryStatus = 'sent';
   }
 
+  let parentEmailToSave: string | null = null;
+  let parentEmailBindexToSave: string | null = null;
+  if (providedEmail && (!doc.parent_email_encrypted || doc.parent_email_encrypted === 'ENC_INITIAL')) {
+    try {
+      parentEmailToSave = await encryptAesGcm(providedEmail.trim().toLowerCase(), masterKey, 1);
+      parentEmailBindexToSave = await hmacSha256(providedEmail.trim().toLowerCase(), pepper);
+    } catch {}
+  }
+
   await db.prepare(
     `UPDATE documents 
      SET otp_secret_hash = ?, 
@@ -660,9 +669,11 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
          otp_resend_count = otp_resend_count + 1,
          otp_requested_at = ?,
          otp_email_message_id = ?,
-         otp_delivery_status = ? 
+         otp_delivery_status = ?,
+         parent_email_encrypted = COALESCE(?, parent_email_encrypted),
+         parent_email_bindex_sha256 = COALESCE(?, parent_email_bindex_sha256)
      WHERE id = ?`
-  ).bind(otpHash, expiresAtIso, new Date().toISOString(), messageId, deliveryStatus, doc.id).run();
+  ).bind(otpHash, expiresAtIso, new Date().toISOString(), messageId, deliveryStatus, parentEmailToSave, parentEmailBindexToSave, doc.id).run();
 
   if (!emailSent) {
     console.warn(`[OTP_FALLBACK] E-mail de código OTP não enviado para o documento ${doc.id}. Verifique RESEND_API_KEY.`);

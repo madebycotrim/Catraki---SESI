@@ -8,6 +8,7 @@ import {
   generateUniqueDocId,
   formatCPF,
   maskCPF,
+  maskEmail,
   formatBrasiliaDateTime,
 } from '../../src/lib/schemas.ts';
 import {
@@ -314,6 +315,25 @@ adminRouter.get('/documents', async (c) => {
         }
       }
 
+      const hasStoredEmail = Boolean(
+        doc.parent_email_encrypted &&
+        doc.parent_email_encrypted !== 'ENC_INITIAL' &&
+        doc.parent_email_encrypted !== 'ENC'
+      );
+      let maskedParentEmail = '';
+      if (hasStoredEmail && c.env.ENCRYPTION_KEY_V1) {
+        try {
+          const decEmail = await decryptAesGcm(doc.parent_email_encrypted, c.env.ENCRYPTION_KEY_V1);
+          if (decEmail && decEmail.includes('@')) {
+            maskedParentEmail = maskEmail(decEmail);
+          }
+        } catch {}
+      }
+      doc.has_parent_email = hasStoredEmail || Boolean(doc.otp_email_message_id && String(doc.otp_email_message_id).includes('@'));
+      if (maskedParentEmail) {
+        doc.parent_email_masked = maskedParentEmail;
+      }
+
       // Nunca expõe hashes OTP ou envelopes criptografados brutos na listagem
       delete doc.otp_secret_hash;
       delete doc.parent_email_encrypted;
@@ -359,6 +379,12 @@ adminRouter.get('/documents', async (c) => {
             doc.institution_short_name = matchedInst.short_name;
           }
         }
+        const hasStoredEmail = Boolean(
+          doc.parent_email_encrypted &&
+          doc.parent_email_encrypted !== 'ENC_INITIAL' &&
+          doc.parent_email_encrypted !== 'ENC'
+        );
+        doc.has_parent_email = hasStoredEmail || Boolean(doc.otp_email_message_id && String(doc.otp_email_message_id).includes('@'));
         delete doc.otp_secret_hash;
         delete doc.parent_email_encrypted;
         delete doc.parent_phone_encrypted;

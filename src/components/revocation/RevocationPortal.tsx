@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { AlertOctagon, CheckCircle2, Loader2, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { AlertOctagon, CheckCircle2, Loader2, ArrowLeft, AlertTriangle, Printer, ShieldCheck } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
-import { formatCPF } from '../../lib/schemas.ts';
-import { PRIVACY_POLICY_VERSION } from '../../lib/lgpd.ts';
+import { formatCPF, formatBrasiliaDateTime } from '../../lib/schemas.ts';
+import { PRIVACY_POLICY_VERSION, LGPD_RESPONSE_DEADLINE_DAYS } from '../../lib/lgpd.ts';
 import { TurnstileWidget } from '../common/TurnstileWidget.tsx';
 
 interface RevocationPortalProps {
@@ -21,12 +21,13 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
   const [turnstileToken, setTurnstileToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [revokedSuccess, setRevokedSuccess] = useState(false);
+  const [revokedReceipt, setRevokedReceipt] = useState<{ revokedAt: string; emailDispatched?: boolean; targetEmail?: string } | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleRevoke = async () => {
     const cleanToken = docToken.trim();
-    if (!cleanToken || cleanToken.length < 16) {
-      setErrorMessage('Informe o protocolo do documento (DOC-...) ou token de acesso válido.');
+    if (!cleanToken || cleanToken.length < 12) {
+      setErrorMessage('Informe o protocolo (CATRAKI-XXXX-XXXX / DOC-...) ou token de acesso válido.');
       return;
     }
 
@@ -56,6 +57,11 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
         turnstile_token: turnstileToken || undefined,
       });
       if (resp.success) {
+        setRevokedReceipt({
+          revokedAt: resp.revoked_at || new Date().toISOString(),
+          emailDispatched: resp.email_dispatched,
+          targetEmail: resp.target_email,
+        });
         setRevokedSuccess(true);
       } else {
         setErrorMessage(resp.error || 'Não foi possível registrar a revogação. Por favor, tente novamente.');
@@ -164,13 +170,13 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                     type="text"
                     value={docToken}
                     onChange={(e) => setDocToken(e.target.value)}
-                    placeholder="Ex: DOC-20260904-120000-ABCD"
+                    placeholder="Ex: CATRAKI-A925-5DD4 ou DOC-..."
                     className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-base sm:text-sm font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sesi-primary focus:ring-2 focus:ring-sesi-primary/20"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label htmlFor="field-revocation-cpf" className="block text-xs font-bold uppercase text-slate-700">
-                    CPF do Responsável Signatário
+                    CPF do Signatário (Titular ou Responsável)
                   </label>
                   <input
                     id="field-revocation-cpf"
@@ -236,7 +242,7 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
                     com registro de data, hora e versão deste aceite. <span className="text-red-500 font-bold">*</span>
                     {privacyAccepted && privacyAcceptedAt && (
                       <span className="block mt-1 text-[11px] font-mono text-emerald-700 font-semibold">
-                        ✓ Aceite registrado em {new Date(privacyAcceptedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Versão {PRIVACY_POLICY_VERSION})
+                        ✓ Aceite registrado em {formatBrasiliaDateTime(privacyAcceptedAt)} (BRT) (Versão {PRIVACY_POLICY_VERSION})
                       </span>
                     )}
                   </span>
@@ -285,20 +291,74 @@ export const RevocationPortal: React.FC<RevocationPortalProps> = ({ token, onBac
             </div>
           </div>
         ) : (
-          <div className="space-y-6 text-center py-6 sm:py-8">
-            <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 uppercase">Autorização Revogada com Sucesso</h3>
-              <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-                Sua revogação foi registrada com sucesso no sistema. A autorização anterior não é mais válida e a participação do(a) estudante em novos atendimentos foi suspensa. A coordenação da escola e as equipes de saúde já foram notificadas.
+          <div className="space-y-4 py-4">
+            <div className="text-center pb-3 border-b border-slate-200 space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border bg-rose-50 text-rose-800 border-rose-200">
+                <CheckCircle2 className="w-3.5 h-3.5 text-rose-600" />
+                <span>Status: REVOGADO</span>
+              </div>
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase m-0">
+                COMPROVANTE DE REVOGAÇÃO DE CONSENTIMENTO
+              </h3>
+              <p className="text-xs text-slate-600 m-0">
+                Art. 8º, § 5º e Art. 18, VIII da Lei Geral de Proteção de Dados (Lei nº 13.709/2018)
               </p>
             </div>
-            <div className="pt-4">
+
+            <div className="bg-rose-50/50 border border-rose-200 rounded-xl p-4 space-y-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-white border border-rose-100 rounded-lg p-3">
+                  <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                    Protocolo / Documento Revogado
+                  </span>
+                  <strong className="font-mono text-xs sm:text-sm text-slate-900 break-all select-all">
+                    {docToken.trim().toUpperCase()}
+                  </strong>
+                </div>
+                <div className="bg-white border border-rose-100 rounded-lg p-3">
+                  <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                    Data e Hora da Revogação
+                  </span>
+                  <strong className="font-mono text-xs sm:text-sm text-slate-900">
+                    {formatBrasiliaDateTime(revokedReceipt?.revokedAt || new Date())} (BRT)
+                  </strong>
+                </div>
+              </div>
+              <div className="bg-white border border-rose-100 rounded-lg p-3">
+                <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                  Motivo Registrado
+                </span>
+                <p className="text-slate-700 m-0 leading-relaxed">{reason.trim()}</p>
+              </div>
+              <p className="text-[11px] text-rose-900 m-0 leading-relaxed">
+                A autorização anterior não possui mais validade e novos atendimentos foram suspensos imediatamente.
+                {revokedReceipt?.emailDispatched && revokedReceipt?.targetEmail
+                  ? ` Uma cópia deste comprovante foi enviada para ${revokedReceipt.targetEmail}.`
+                  : ''}
+              </p>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[10.5px] text-slate-600 leading-relaxed flex items-start gap-2">
+              <ShieldCheck className="w-4 h-4 text-[#034b7f] shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-slate-800">Controladores e DPO (LGPD Art. 9º e 41):</strong>{' '}
+                Universidade de Brasília (UnB — CNPJ 00.038.174/0001-43) e SESI-DF (CNPJ 03.777.341/0001-08). DPO: <strong>suporte@catraki.com.br</strong> (prazo legal: até {LGPD_RESPONSE_DEADLINE_DAYS} dias).
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2 no-print">
               <button
+                type="button"
+                onClick={() => window.print()}
+                className="w-full sm:w-auto px-5 py-2.5 bg-white hover:bg-slate-100 text-sesi-primary border border-slate-300 text-xs font-bold rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Imprimir / Salvar PDF (A4)</span>
+              </button>
+              <button
+                type="button"
                 onClick={onBack}
-                className="w-full sm:w-auto px-6 py-3 bg-sesi-primary hover:bg-blue-900 text-white text-xs sm:text-sm font-bold rounded-xl transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-6 py-2.5 bg-sesi-primary hover:bg-blue-900 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
               >
                 Voltar à Página Inicial
               </button>

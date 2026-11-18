@@ -1,5 +1,6 @@
 import React from 'react';
 import { PRIVACY_POLICY_VERSION } from '../../lib/lgpd.ts';
+import { formatBrasiliaDateTime } from '../../lib/schemas.ts';
 
 export interface ConsentOptionsProps {
   authHealth: boolean;
@@ -131,65 +132,8 @@ export const ConsentOptions: React.FC<ConsentOptionsProps> = ({
           </span>
         </label>
 
-        {/* Campo 3: Uso de Imagem e Voz (Art. 20 CC vs Art. 17 ECA) */}
-        <label className="flex items-start gap-3.5 cursor-pointer select-none group p-4 sm:p-5 hover:bg-slate-50/80 transition-colors">
-          <div className="relative pt-0.5 shrink-0">
-            <input
-              type="checkbox"
-              checked={authImage}
-              onChange={(e) => setAuthImage(e.target.checked)}
-              className="sr-only"
-            />
-            <div
-              className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors group-focus-within:ring-2 group-focus-within:ring-[#004b8d] group-focus-within:ring-offset-1 ${
-                authImage
-                  ? 'border-[#004b8d]'
-                  : 'border-slate-300 bg-white group-hover:border-[#004b8d]'
-              }`}
-            >
-              {authImage && <CheckmarkIcon />}
-            </div>
-          </div>
-          <span className="text-xs sm:text-[13px] text-slate-800 font-medium leading-relaxed">
-            <strong>SIM, AUTORIZO</strong> o registro fotográfico e/ou audiovisual do(a) estudante
-            para fins institucionais e de divulgação oficial do projeto Escola Cidadã — Saúde em
-            Movimento ({isMaiorDeIdade ? 'Art. 20 do Código Civil' : 'Art. 17 do ECA'}), em
-            materiais produzidos pelo SESI-DF e pela UnB.{' '}
-            <span className="text-slate-500 font-normal">
-              (Opcional — a recusa não impede a participação.)
-            </span>
-          </span>
-        </label>
-
-        {/* Campo 4: Declaração Geral de Aceite */}
-        <label className="flex items-start gap-3.5 cursor-pointer select-none p-4 sm:p-5 bg-slate-50/50 hover:bg-slate-50 transition-colors group">
-          <div className="relative pt-0.5 shrink-0">
-            <input
-              type="checkbox"
-              checked={readAndAccept}
-              onChange={(e) => setReadAndAccept(e.target.checked)}
-              className="sr-only"
-            />
-            <div
-              className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors group-focus-within:ring-2 group-focus-within:ring-[#004b8d] group-focus-within:ring-offset-1 ${
-                readAndAccept
-                  ? 'border-[#004b8d]'
-                  : 'border-slate-300 bg-white group-hover:border-[#004b8d]'
-              }`}
-            >
-              {readAndAccept && <CheckmarkIcon />}
-            </div>
-          </div>
-          <span className="text-xs sm:text-[13px] text-slate-900 font-bold leading-relaxed">
-            <strong>Declaro que li e concordo</strong> com este Termo de Consentimento e com o uso de
-            assinatura eletrônica simples (Art. 4º, I da Lei Federal nº 14.063/2020, Art. 10, § 2º da MP nº 2.200-2/2001 e Art. 190 do CPC),
-            confirmando a veracidade de todas as declarações prestadas, sob as penas da lei.{' '}
-            <span className="text-red-500 font-bold">* (Obrigatório)</span>
-          </span>
-        </label>
-
-        {/* Campo 5: Aceite da Política de Privacidade com Versão, Data e Hora */}
-        <label className="flex items-start gap-3.5 cursor-pointer select-none p-4 sm:p-5 bg-blue-50/40 hover:bg-blue-50/70 transition-colors group">
+        {/* Campo 3: Aceite da Política de Privacidade com Versão, Data e Hora (Obrigatório) */}
+        <label className="flex items-start gap-3.5 cursor-pointer select-none p-4 sm:p-5 bg-blue-50/30 hover:bg-blue-50/60 transition-colors group">
           <div className="relative pt-0.5 shrink-0">
             <input
               type="checkbox"
@@ -223,9 +167,69 @@ export const ConsentOptions: React.FC<ConsentOptionsProps> = ({
             <span className="text-red-500 font-bold">* (Obrigatório)</span>
             {privacyAccepted && privacyAcceptedAt && (
               <span className="block mt-1 text-[11px] font-mono text-emerald-700 font-semibold">
-                ✓ Aceite registrado em {new Date(privacyAcceptedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Versão {PRIVACY_POLICY_VERSION})
+                ✓ Aceite registrado em {formatBrasiliaDateTime(privacyAcceptedAt)} (BRT) (Versão {PRIVACY_POLICY_VERSION})
               </span>
             )}
+          </span>
+        </label>
+
+        {/* Campo 4: Declaração Geral de Aceite e Assinatura Eletrônica (Obrigatório) */}
+        <label className="flex items-start gap-3.5 cursor-pointer select-none p-4 sm:p-5 bg-slate-50/50 hover:bg-slate-50 transition-colors group">
+          <div className="relative pt-0.5 shrink-0">
+            <input
+              type="checkbox"
+              checked={readAndAccept}
+              onChange={(e) => setReadAndAccept(e.target.checked)}
+              className="sr-only"
+            />
+            <div
+              className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors group-focus-within:ring-2 group-focus-within:ring-[#004b8d] group-focus-within:ring-offset-1 ${
+                readAndAccept
+                  ? 'border-[#004b8d]'
+                  : 'border-slate-300 bg-white group-hover:border-[#004b8d]'
+              }`}
+            >
+              {readAndAccept && <CheckmarkIcon />}
+            </div>
+          </div>
+          <span className="text-xs sm:text-[13px] text-slate-900 font-bold leading-relaxed">
+            <strong>Declaro que li e concordo</strong> com este Termo de Consentimento e com o uso de
+            assinatura eletrônica simples (Art. 4º, I da Lei Federal nº 14.063/2020, Art. 10, § 2º da MP nº 2.200-2/2001 e Art. 190 do CPC),
+            confirmando a veracidade de todas as declarações prestadas, sob as penas da lei.{' '}
+            <span className="text-red-500 font-bold">* (Obrigatório)</span>
+          </span>
+        </label>
+
+        {/* Campo 5: Uso de Imagem e Voz (Opcional — separado ao final) */}
+        <label className="flex items-start gap-3.5 cursor-pointer select-none group p-4 sm:p-5 bg-slate-50/30 hover:bg-slate-50/80 transition-colors">
+          <div className="relative pt-0.5 shrink-0">
+            <input
+              type="checkbox"
+              checked={authImage}
+              onChange={(e) => setAuthImage(e.target.checked)}
+              className="sr-only"
+            />
+            <div
+              className={`flex h-[18px] w-[18px] border-2 rounded items-center justify-center transition-colors group-focus-within:ring-2 group-focus-within:ring-[#004b8d] group-focus-within:ring-offset-1 ${
+                authImage
+                  ? 'border-[#004b8d]'
+                  : 'border-slate-300 bg-white group-hover:border-[#004b8d]'
+              }`}
+            >
+              {authImage && <CheckmarkIcon />}
+            </div>
+          </div>
+          <span className="text-xs sm:text-[13px] text-slate-800 font-medium leading-relaxed">
+            <span className="inline-block mr-1.5 px-2 py-0.5 rounded bg-slate-200/80 text-slate-700 text-[10px] font-bold uppercase tracking-wider align-middle">
+              Opcional
+            </span>
+            <strong>SIM, AUTORIZO</strong> o registro fotográfico e/ou audiovisual do(a) estudante
+            para fins institucionais e de divulgação oficial do projeto Escola Cidadã — Saúde em
+            Movimento ({isMaiorDeIdade ? 'Art. 20 do Código Civil' : 'Art. 17 do ECA'}), em
+            materiais produzidos pelo SESI-DF e pela UnB.{' '}
+            <span className="text-slate-500 font-normal">
+              (A recusa não impede a participação.)
+            </span>
           </span>
         </label>
       </div>

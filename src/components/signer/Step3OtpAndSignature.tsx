@@ -112,6 +112,8 @@ export const Step3OtpAndSignature: React.FC<Step3OtpAndSignatureProps> = ({
   } = useOtpVerification({
     token,
     signerEmail: identityData.signerEmail,
+    signerName: identityData.signerName,
+    signerRelationship: identityData.signerRelationship,
     minorName,
     signerPhone: identityData.signerPhone,
     schoolSlug: schoolSlug || institutionId,

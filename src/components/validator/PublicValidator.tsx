@@ -22,7 +22,7 @@ import QRCode from 'qrcode';
 import { apiClient } from '../../lib/api.ts';
 import { sha256 } from '../../lib/crypto.ts';
 import { PRIVACY_POLICY_VERSION, LGPD_RESPONSE_DEADLINE_DAYS } from '../../lib/lgpd.ts';
-import { formatBrasiliaDateTime } from '../../lib/schemas.ts';
+import { formatBrasiliaDateTime, isProprioEstudante } from '../../lib/schemas.ts';
 import type { PublicValidationResponse } from '../../lib/types.ts';
 
 interface PublicValidatorProps {
@@ -525,55 +525,80 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
                   </div>
                 </div>
 
-                {/* Estudante Beneficiado (Minimizado LGPD Art. 14) */}
-                <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-start gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
-                    <GraduationCap className="w-4 h-4 text-emerald-600" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">
-                      Estudante Beneficiado(a)
-                    </span>
-                    <strong className="text-slate-900 font-bold text-xs block leading-snug mt-0.5">
-                      {validationResult.minor_name_initials}
-                    </strong>
-                    <span className="text-[10px] text-emerald-700 font-medium block mt-0.5">
-                      ✓ Identificação abreviada (LGPD Art. 14)
-                    </span>
-                  </div>
-                </div>
-
-                {/* Signatário / Responsável Legal (Card único, sem duplicação) */}
-                <div className="sm:col-span-2 bg-white border border-slate-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                  <div className="flex items-start sm:items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-sky-50 text-sesi-primary flex items-center justify-center shrink-0 border border-sky-100">
-                      <UserCheck className="w-4 h-4 text-sesi-primary" />
+                {isProprioEstudante(validationResult.signer_relationship) ? (
+                  /* Titular / Próprio Estudante (Maior de Idade) — sem card duplicado de Responsável Legal */
+                  <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+                      <UserCheck className="w-4 h-4 text-emerald-600" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">
-                        Signatário / Responsável Legal
+                        Titular / Estudante (Maior de Idade)
                       </span>
-                      <strong className="text-slate-900 font-bold text-xs sm:text-sm block mt-0.5">
+                      <strong className="text-slate-900 font-bold text-xs block leading-snug mt-0.5">
                         {validationResult.signer_name}
                       </strong>
-                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-0.5 text-[11px] text-slate-600">
-                        <span>CPF: <strong className="font-mono text-slate-800">{validationResult.signer_cpf_masked}</strong></span>
-                        {validationResult.signer_relationship && (
-                          <>
-                            <span className="text-slate-300">•</span>
-                            <span>Vínculo: <strong className="text-slate-800">{validationResult.signer_relationship}</strong></span>
-                          </>
-                        )}
-                      </div>
+                      <span className="text-[11px] text-slate-600 block mt-0.5">
+                        CPF: <strong className="font-mono text-slate-800">{validationResult.signer_cpf_masked}</strong>
+                      </span>
+                      <span className="text-[10px] text-emerald-700 font-medium block mt-0.5">
+                        ✓ Autorização em nome próprio (LGPD Art. 6º, III)
+                      </span>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-1.5 shrink-0 self-start sm:self-center">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-[10px] font-bold">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      <span>Assinado Eletronicamente</span>
-                    </span>
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    {/* Estudante Beneficiado (Minimizado LGPD Art. 14) */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-start gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+                        <GraduationCap className="w-4 h-4 text-emerald-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">
+                          Estudante Beneficiado(a)
+                        </span>
+                        <strong className="text-slate-900 font-bold text-xs block leading-snug mt-0.5">
+                          {validationResult.minor_name_initials}
+                        </strong>
+                        <span className="text-[10px] text-emerald-700 font-medium block mt-0.5">
+                          ✓ Identificação abreviada (LGPD Art. 14)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Signatário / Responsável Legal (Card único, sem duplicação) */}
+                    <div className="sm:col-span-2 bg-white border border-slate-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="flex items-start sm:items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-sky-50 text-sesi-primary flex items-center justify-center shrink-0 border border-sky-100">
+                          <UserCheck className="w-4 h-4 text-sesi-primary" />
+                        </div>
+                        <div>
+                          <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">
+                            Signatário / Responsável Legal
+                          </span>
+                          <strong className="text-slate-900 font-bold text-xs sm:text-sm block mt-0.5">
+                            {validationResult.signer_name}
+                          </strong>
+                          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-0.5 text-[11px] text-slate-600">
+                            <span>CPF: <strong className="font-mono text-slate-800">{validationResult.signer_cpf_masked}</strong></span>
+                            {validationResult.signer_relationship && (
+                              <>
+                                <span className="text-slate-300">•</span>
+                                <span>Vínculo: <strong className="text-slate-800">{validationResult.signer_relationship}</strong></span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 shrink-0 self-start sm:self-center">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-[10px] font-bold">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>Assinado Eletronicamente</span>
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -636,13 +661,17 @@ export const PublicValidator: React.FC<PublicValidatorProps> = ({ initialHash, o
                         )}
                         <div>
                           <strong className="text-slate-900 font-bold block text-xs">
-                            Uso Institucional de Imagem e Voz (ECA Art. 17)
+                            Uso Institucional de Imagem e Voz ({isProprioEstudante(validationResult.signer_relationship) ? 'CC Art. 20' : 'ECA Art. 17'})
                           </strong>
                           <span className="text-slate-500 text-[11px] block leading-snug">
                             {isAuthorized
-                              ? 'Autorizado livremente pelo responsável legal.'
+                              ? (isProprioEstudante(validationResult.signer_relationship)
+                                ? 'Autorizado livremente pelo titular.'
+                                : 'Autorizado livremente pelo responsável legal.')
                               : isDenied
-                              ? 'Não autorizado pelo responsável legal (opção facultativa).'
+                              ? (isProprioEstudante(validationResult.signer_relationship)
+                                ? 'Não autorizado pelo titular (opção facultativa).'
+                                : 'Não autorizado pelo responsável legal (opção facultativa).')
                               : 'Não registrado nesta versão do termo.'}
                           </span>
                         </div>

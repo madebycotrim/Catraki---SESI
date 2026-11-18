@@ -331,6 +331,19 @@ export function formatBrasiliaDateTime(
   return d.toLocaleString('pt-BR', defaultOpts);
 }
 
+/**
+ * Formata apenas a data (DD/MM/AAAA) no fuso oficial de Brasília (America/Sao_Paulo).
+ */
+export function formatBrasiliaDate(dateInput?: string | number | Date | null): string {
+  if (!dateInput) return '—';
+  return parseUtcDate(dateInput).toLocaleDateString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
 // ============================================================================
 // SCHEMAS DE VALIDAÇÃO ZOD
 // ============================================================================
@@ -392,6 +405,8 @@ export const OtpRequestSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   minor_name: z.string().optional(),
+  signer_name: z.string().optional(),
+  signer_relationship: z.string().optional(),
   school_slug: z.string().optional(),
   institution_id: z.string().optional(),
   institution_name: z.string().optional(),
@@ -472,7 +487,7 @@ export const LogAdminExportSchema = z.object({
 });
 
 export const RevokeConsentSchema = z.object({
-  token: z.string().min(16),
+  token: z.string().trim().min(12, 'Informe o protocolo ou token válido do documento'),
   reason: z.string().min(10, 'A justificativa de revogação deve conter no mínimo 10 caracteres').max(1000),
   confirm_legal_consequence: z.literal(true, {
     errorMap: () => ({ message: 'É obrigatório declarar ciência de que a revogação não desfaz atos médicos já executados' })
@@ -509,6 +524,9 @@ export const CancelDocumentErrorSchema = z.object({
 // ============================================================================
 // FORMATADORES DE SÉRIE E TURMA ESCOLAR
 // ============================================================================
+export const isProprioEstudante = (relationship?: string | null): boolean =>
+  Boolean(relationship && relationship.toLowerCase().includes('próprio estudante'));
+
 export function formatStudentSeries(series?: string | null): string {
   if (!series) return '';
   let s = series.trim();

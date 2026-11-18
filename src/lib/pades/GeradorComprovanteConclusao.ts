@@ -1,5 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import { formatBrasiliaDateTime } from '../schemas';
+import { formatBrasiliaDateTime, isProprioEstudante } from '../schemas';
 import { desenharQrCodeVetorial } from './qr-pdf.ts';
 
 // ============================================================================
@@ -142,31 +142,30 @@ export class GeradorComprovanteConclusao {
       page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness, color: COR_CINZA });
     };
 
-    // ── CABEÇALHO ──────────────────────────────────────────────────────────
-    page.drawRectangle({ x: 0, y: PAGE_H - 80, width: PAGE_W, height: 80, color: COR_AZUL_SESI });
-
+    // ── CABEÇALHO ABNT INSTITUCIONAL ────────────────────────────────────────
     page.drawText('PLATAFORMA CATRAKI', {
-      x: MARGIN, y: PAGE_H - 28, size: 9, font: fontBold, color: rgb(1, 1, 1),
+      x: MARGIN, y: PAGE_H - 42, size: 11, font: fontBold, color: COR_AZUL_SESI,
     });
-    page.drawText('COMPROVANTE DE ACEITE E ASSINATURA ELETRÔNICA', {
-      x: MARGIN, y: PAGE_H - 44, size: 8.5, font: fontBold, color: rgb(0.85, 0.92, 1),
+    page.drawText('COMPROVANTE DE CONCLUSÃO E AUDITORIA FORENSE', {
+      x: MARGIN, y: PAGE_H - 55, size: 8, font: fontRegular, color: COR_CINZA,
     });
-    page.drawText('Assinatura Eletrônica Simples — Lei Federal nº 14.063/2020 (Art. 4º, I) e MP nº 2.200-2/2001 (Art. 10, § 2º).', {
-      x: MARGIN, y: PAGE_H - 58, size: 6.5, font: fontRegular, color: rgb(0.75, 0.85, 1),
-    });
-
-    // Código de validação no cabeçalho
     const codeText = dados.validationCode;
-    page.drawText(codeText, {
-      x: PAGE_W - MARGIN - fontMono.widthOfTextAtSize(codeText, 9) - 4,
-      y: PAGE_H - 36, size: 9, font: fontMono, color: rgb(1, 1, 0.8),
+    page.drawText(`Protocolo: ${codeText}`, {
+      x: PAGE_W - MARGIN - fontMono.widthOfTextAtSize(`Protocolo: ${codeText}`, 8),
+      y: PAGE_H - 42, size: 8, font: fontMono, color: COR_AZUL_SESI,
     });
-    page.drawText('Protocolo Forense', {
-      x: PAGE_W - MARGIN - 80,
-      y: PAGE_H - 47, size: 6, font: fontRegular, color: rgb(0.75, 0.85, 1),
+    page.drawText('Folha 1', {
+      x: PAGE_W - MARGIN - fontBold.widthOfTextAtSize('Folha 1', 8),
+      y: PAGE_H - 55, size: 8, font: fontBold, color: COR_CINZA,
+    });
+    page.drawLine({
+      start: { x: MARGIN, y: PAGE_H - 64 },
+      end: { x: PAGE_W - MARGIN, y: PAGE_H - 64 },
+      thickness: 1.2,
+      color: COR_AZUL_SESI,
     });
 
-    y = PAGE_H - 80 - 16;
+    y = PAGE_H - 80;
 
     // ── STATUS DO DOCUMENTO E HASH SHA-256 ──────────────────────────────────
     const statusLabel = dados.documentStatus === 'signed' ? 'ASSINADO (CONCLUÍDO)'
@@ -182,29 +181,30 @@ export class GeradorComprovanteConclusao {
 
     novaLinha(36);
 
-    // ── DADOS DO DOCUMENTO E DO SIGNATÁRIO ─────────────────────────────────
-    page.drawText('IDENTIFICAÇÃO DO SIGNATÁRIO E DO PROCESSO', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
+    // ── 1. IDENTIFICAÇÃO DO SIGNATÁRIO E DO PROCESSO ───────────────────────
+    page.drawText('1. IDENTIFICAÇÃO DO SIGNATÁRIO E DO PROCESSO', { x: MARGIN, y, size: 8.5, font: fontBold, color: COR_AZUL_SESI });
     novaLinha(12);
     drawLine(MARGIN, y, PAGE_W - MARGIN, y);
     novaLinha(10);
 
     const formattedSignDate = dados.signedAt
-      ? formatBrasiliaDateTime(dados.signedAt) + ' UTC-3'
+      ? formatBrasiliaDateTime(dados.signedAt) + ' (BRT)'
       : 'Pendente';
 
+    const selfSigner = isProprioEstudante(dados.signerRelationship);
     // CPF completo na página de comprovante para prova jurídica irrefutável
     const cpfDisplay = dados.signerCpfFull || dados.signerCpfMasked;
     const userAgentVal = dados.signerUserAgent || dados.eventos.find(e => e.user_agent)?.user_agent || 'Navegador Web / Dispositivo Seguro';
 
     const fields: Array<[string, string | string[]]> = [
-      ['Nome do Signatário', dados.signerName],
+      [selfSigner ? 'Titular / Estudante' : 'Responsável Legal (Signatário)', dados.signerName],
       ['CPF do Signatário (Completo)', cpfDisplay],
+      ['Vínculo Declarado', selfSigner ? 'Próprio Estudante (Maior de Idade)' : dados.signerRelationship],
+      ...(!selfSigner ? [['Estudante Beneficiado(a)', dados.minorName] as [string, string]] : []),
       ['E-mail de Confirmação (OTP)', dados.signerEmail || 'Não informado'],
       ['IP do Acesso', dados.signerIp || dados.eventos.find(e => e.ip)?.ip || 'Não coletado'],
       ['Navegador / Dispositivo', quebrarTexto(userAgentVal, 60)],
       ['Data e Hora Exata', formattedSignDate],
-      ['Estudante Vinculado', dados.minorName],
-      ['Vínculo Declarado', dados.signerRelationship],
     ];
 
     for (const [label, value] of fields) {
@@ -224,9 +224,9 @@ export class GeradorComprovanteConclusao {
 
     novaLinha(6);
 
-    // ── HASHES CRIPTOGRÁFICOS ──────────────────────────────────────────────
+    // ── 2. HASHES CRIPTOGRÁFICOS ───────────────────────────────────────────
     checkPage(95);
-    page.drawText('REGISTRO CRIPTOGRÁFICO DE INTEGRIDADE (SHA-256)', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
+    page.drawText('2. REGISTRO CRIPTOGRÁFICO DE INTEGRIDADE (SHA-256)', { x: MARGIN, y, size: 8.5, font: fontBold, color: COR_AZUL_SESI });
     novaLinha(12);
     drawLine(MARGIN, y, PAGE_W - MARGIN, y);
     novaLinha(10);
@@ -248,9 +248,9 @@ export class GeradorComprovanteConclusao {
 
     novaLinha(6);
 
-    // ── LINHA DO TEMPO ─────────────────────────────────────────────────────
+    // ── 3. LINHA DO TEMPO ──────────────────────────────────────────────────
     checkPage(80);
-    page.drawText('LINHA DO TEMPO DE AÇÕES — CADEIA DE CUSTÓDIA ELETRÔNICA', { x: MARGIN, y, size: 8, font: fontBold, color: COR_AZUL_SESI });
+    page.drawText('3. LINHA DO TEMPO DE AÇÕES — CADEIA DE CUSTÓDIA ELETRÔNICA', { x: MARGIN, y, size: 8.5, font: fontBold, color: COR_AZUL_SESI });
     novaLinha(12);
     drawLine(MARGIN, y, PAGE_W - MARGIN, y);
     novaLinha(14);
@@ -315,19 +315,26 @@ export class GeradorComprovanteConclusao {
       novaLinha(10);
     }
 
-    // ── RODAPÉ JURÍDICO ENXUTO ─────────────────────────────────────────────
-    checkPage(65);
-    drawLine(MARGIN, y, PAGE_W - MARGIN, y);
+    // ── 4. TRANSPARÊNCIA E INFORMAÇÕES OBRIGATÓRIAS (LGPD ART. 9º, 18 E 41) ──
+    checkPage(95);
+    page.drawText('4. TRANSPARÊNCIA E CONFORMIDADE LGPD (LEI Nº 13.709/2018)', { x: MARGIN, y, size: 8.5, font: fontBold, color: COR_AZUL_SESI });
     novaLinha(12);
+    drawLine(MARGIN, y, PAGE_W - MARGIN, y);
+    novaLinha(11);
 
-    const disclaimer = [
-      'Comprovante gerado automaticamente com hash SHA-256 e registro temporal de confirmação por OTP.',
-      'Base legal: Lei nº 14.063/2020, MP nº 2.200-2/2001 (Art. 10, § 2º), LGPD (Lei nº 13.709/2018) e Marco Civil (Lei nº 12.965/2014).',
+    const lgpdLines = [
+      'Controladores (Art. 9º, III e VI): Universidade de Brasília (UnB — CNPJ 00.038.174/0001-43) e SESI-DF (CNPJ 03.777.341/0001-08).',
+      'Operadora Tecnológica: Plataforma Catraki (emissão, registro de log e custódia SHA-256, sem acesso a dados clínicos).',
+      'Guarda e Segurança (Art. 9º, II e Art. 46): Retenção legal de até 20 anos (Res. CFM nº 1.821/2007), sob criptografia AES-256-GCM.',
+      'DPO e Direitos (Art. 8º, § 5º; Art. 18; Art. 41): suporte@catraki.com.br (prazo: 15 dias) | https://www.catraki.com.br/titular e /revogar.',
+      'Base legal: Lei nº 14.063/2020 (Art. 4º, I), MP nº 2.200-2/2001 (Art. 10, § 2º), LGPD e Marco Civil (Lei nº 12.965/2014).',
     ];
 
-    for (const line of disclaimer) {
-      page.drawText(line, { x: MARGIN, y, size: 6.4, font: fontRegular, color: COR_CINZA });
-      novaLinha(10);
+    for (const line of lgpdLines) {
+      for (const wrapped of quebrarTexto(line, 96)) {
+        page.drawText(wrapped, { x: MARGIN, y, size: 6.4, font: fontRegular, color: COR_CINZA });
+        novaLinha(9);
+      }
     }
 
     novaLinha(4);

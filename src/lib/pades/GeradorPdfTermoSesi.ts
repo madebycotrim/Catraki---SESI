@@ -642,13 +642,16 @@ export class GeradorPdfTermoSesi {
     });
 
     // ========================================================================
-    // PÁGINA 2: REGISTRO DE AUDITORIA E CUSTÓDIA ELETRÔNICA (EVIDÊNCIAS FORENSES)
+    // PÁGINA 2: COMPROVANTE DE ASSINATURA ELETRÔNICA & CONFORMIDADE LGPD (ABNT)
     // ========================================================================
     if (dados.tipoAssinatura === 'ELETRONICA' || dados.ipAddress) {
       const page2 = pdfDoc.addPage([595.28, 841.89]);
+      const corFundoSuave = rgb(0.97, 0.98, 0.99);
+      const corDivisoria = rgb(0.88, 0.91, 0.95);
+      const larguraUtil = width - margemEsquerda - margemDireita;
       let y2 = height - 40;
 
-      // Cabeçalho da página 2 com Logo Catraki (preservando proporção original)
+      // Cabeçalho institucional ABNT da Página 2
       const logoDims2 = logoCatrakiImg ? logoCatrakiImg.scaleToFit(28, 28) : null;
       if (logoCatrakiImg && logoDims2) {
         page2.drawImage(logoCatrakiImg, {
@@ -661,24 +664,25 @@ export class GeradorPdfTermoSesi {
 
       const xCabecalho2 = logoDims2 ? margemEsquerda + logoDims2.width + 10 : margemEsquerda;
 
-      page2.drawText('COMPROVANTE DE REGISTRO DE ASSINATURA ELETRÔNICA', {
+      page2.drawText('PLATAFORMA CATRAKI', {
         x: xCabecalho2,
         y: y2 - 5,
-        size: 10.5,
+        size: 11,
         font: fontBold,
         color: corAzulSesi,
       });
 
-      page2.drawText('Assinatura eletrônica simples realizada nos termos da Lei Federal nº 14.063/2020 (Art. 4º, I) e Art. 10, § 2º da MP nº 2.200-2/2001.', {
+      page2.drawText('Comprovante de Assinatura Eletrônica e Conformidade LGPD', {
         x: xCabecalho2,
         y: y2 - 17,
-        size: 5.8,
+        size: 7.5,
         font: fontRegular,
         color: corCinzaEscuro,
       });
 
-      page2.drawText('Folha 2 / 2', {
-        x: width - margemDireita - 48,
+      const folha2Label = 'Folha 2 / 2';
+      page2.drawText(folha2Label, {
+        x: width - margemDireita - fontBold.widthOfTextAtSize(folha2Label, 8),
         y: y2 - 5,
         size: 8,
         font: fontBold,
@@ -694,52 +698,53 @@ export class GeradorPdfTermoSesi {
         color: corAzulSesi,
       });
 
-      // HASH IDENTIFICADOR (SHA-256) SEM TRUNCAMENTO
-      y2 -= 16;
-      page2.drawText('HASH IDENTIFICADOR DO MANIFESTO (SHA-256):', {
-        x: margemEsquerda,
+      // Título centralizado + Protocolo
+      y2 -= 18;
+      const tituloP2 = 'COMPROVANTE DE ASSINATURA ELETRÔNICA';
+      page2.drawText(tituloP2, {
+        x: (width - fontBold.widthOfTextAtSize(tituloP2, 11.5)) / 2,
         y: y2,
-        size: 8,
+        size: 11.5,
         font: fontBold,
         color: corPreto,
       });
-      y2 -= 11;
-      const fullManifestHash = dados.hashManifesto || 'Pendente de assinatura';
-      page2.drawText(fullManifestHash, {
-        x: margemEsquerda,
+
+      y2 -= 12;
+      const subtituloP2 = `Protocolo: ${validationCode}  •  Assinatura Eletrônica Simples (Lei nº 14.063/2020, Art. 4º, I e MP nº 2.200-2/2001, Art. 10, § 2º)`;
+      page2.drawText(subtituloP2, {
+        x: (width - fontRegular.widthOfTextAtSize(subtituloP2, 7.2)) / 2,
         y: y2,
-        size: 7,
-        font: fontMono,
-        color: corCinzaEscuro,
+        size: 7.2,
+        font: fontRegular,
+        color: corAzulSesi,
       });
 
-      // BLOCOS DE IDENTIFICAÇÃO (Tabela de Signatários)
+      // ----------------------------------------------------------------------
+      // 1. IDENTIFICAÇÃO DO SIGNATÁRIO E EVIDÊNCIAS TÉCNICAS
+      // ----------------------------------------------------------------------
       y2 -= 20;
-      page2.drawText('SIGNATÁRIO REGISTRADO', {
+      page2.drawText('1. IDENTIFICAÇÃO DO SIGNATÁRIO E EVIDÊNCIAS TÉCNICAS', {
         x: margemEsquerda,
         y: y2,
-        size: 9.5,
+        size: 9,
         font: fontBold,
-        color: corPreto,
+        color: corAzulSesi,
       });
 
-      y2 -= 14;
+      y2 -= 10;
       const dataHoraExata = dados.otpVerifiedAt
-        ? formatBrasiliaDateTime(dados.otpVerifiedAt) + ' UTC-3'
+        ? formatBrasiliaDateTime(dados.otpVerifiedAt) + ' (UTC-3)'
         : (dados.dataAssinatura
-            ? formatBrasiliaDateTime(dados.dataAssinatura) + ' UTC-3'
-            : dataHoraStr);
+            ? formatBrasiliaDateTime(dados.dataAssinatura) + ' (UTC-3)'
+            : `${dataHoraStr} (UTC-3)`);
 
-      // CPF Completo na Folha 2 para validade pericial material em juízo
       const cpfCompletoSignatario = isMaior
         ? (dados.minorCpfCompleto || dados.cpfResponsavelCompleto || dados.minorCpfMascarado || dados.cpfResponsavelMascarado || 'Não informado')
         : (dados.cpfResponsavelCompleto || dados.cpfResponsavelMascarado || 'Não informado');
 
       const nomeSignatarioFolha2 = isMaior ? dados.nomeMenor : dados.nomeResponsavel;
-
-      // Quebra de linha do User-Agent para impressão completa sem reticências
       const rawUserAgent = dados.userAgent || 'Navegador Web / Dispositivo Seguro';
-      const linhasUserAgent = this.quebrarTexto(rawUserAgent, 65);
+      const linhasUserAgent = this.quebrarTexto(rawUserAgent, 66);
 
       const ipFormatado = dados.ipAddress && dados.ipAddress !== 'Não coletado'
         ? `${dados.ipAddress} (${dados.ipVersion || (dados.ipAddress.includes(':') ? 'IPv6' : 'IPv4')})`
@@ -750,136 +755,159 @@ export class GeradorPdfTermoSesi {
         || 'Localização não informada';
 
       const modalidadeAssinatura = dados.assinaturaPngBase64 && dados.assinaturaPngBase64.startsWith('data:image/')
-        ? 'Assinatura Eletrônica (OTP 2FA + Rubrica Manual)'
-        : 'Assinatura Eletrônica (OTP 2FA via E-mail)';
+        ? 'Assinatura Eletrônica Simples (OTP 2FA + Rubrica Manual)'
+        : 'Assinatura Eletrônica Simples (OTP 2FA por E-mail)';
 
       const tableItems: Array<{ label: string; values: string[] }> = [
-        { label: 'Nome do Signatário', values: [nomeSignatarioFolha2] },
-        { label: 'CPF (Completo)', values: [cpfCompletoSignatario] },
-        { label: 'E-mail', values: [dados.signerEmail || 'Não informado'] },
-        { label: 'Estudante Vinculado', values: [dados.nomeMenor] },
-        ...(dados.nomeEscola ? [{ label: 'Unidade Escolar', values: this.quebrarTexto(dados.nomeEscola, 60) }] : []),
+        {
+          label: isMaior ? 'Titular / Estudante' : 'Responsável Legal',
+          values: [nomeSignatarioFolha2],
+        },
+        { label: 'CPF (Signatário)', values: [cpfCompletoSignatario] },
+        {
+          label: 'Vínculo Jurídico',
+          values: [isMaior ? 'Próprio Estudante (Maior de Idade)' : (dados.parentesco || 'Responsável Legal')],
+        },
+        { label: 'E-mail Confirmado', values: [dados.signerEmail || 'Não informado'] },
+        ...(!isMaior ? [{ label: 'Estudante Beneficiado(a)', values: [dados.nomeMenor] }] : []),
+        ...(dados.nomeEscola ? [{ label: 'Unidade Escolar', values: this.quebrarTexto(dados.nomeEscola, 64) }] : []),
         { label: 'Modalidade', values: [modalidadeAssinatura] },
-        { label: 'IP de Acesso', values: [ipFormatado] },
+        { label: 'Data e Hora Exata', values: [dataHoraExata] },
+        { label: 'Endereço IP', values: [ipFormatado] },
         { label: 'Geolocalização / Rede', values: [localizacaoStr] },
         ...(dados.provedorAsn ? [{ label: 'Provedor / ASN', values: [dados.provedorAsn] }] : []),
-        { label: 'Navegador / User-Agent', values: linhasUserAgent },
-        { label: 'Data e Hora Exata', values: [dataHoraExata] },
+        { label: 'Dispositivo / Navegador', values: linhasUserAgent },
       ];
 
-      // Calcula a altura dinâmica da tabela
-      let totalLinhasTabela = 0;
+      let alturaTabela = 10;
       for (const item of tableItems) {
-        totalLinhasTabela += Math.max(item.values.length, 1);
+        alturaTabela += Math.max(item.values.length * 9.5 + 4.5, 14);
       }
-      const alturaTabela = Math.max(totalLinhasTabela * 14 + 14, 110);
 
-      // Desenha caixa da tabela
       page2.drawRectangle({
         x: margemEsquerda,
-        y: y2 - alturaTabela + 10,
-        width: width - margemEsquerda - margemDireita,
+        y: y2 - alturaTabela,
+        width: larguraUtil,
         height: alturaTabela,
-        color: rgb(0.97, 0.98, 0.99),
+        color: corFundoSuave,
         borderColor: corAzulSesi,
-        borderWidth: 0.5,
+        borderWidth: 0.6,
       });
 
-      let currentLineY = y2 - 4;
-      for (const item of tableItems) {
+      let currentLineY = y2 - 12;
+      for (let i = 0; i < tableItems.length; i++) {
+        const item = tableItems[i];
         page2.drawText(`${item.label}:`, {
           x: margemEsquerda + 10,
           y: currentLineY,
-          size: 7.5,
+          size: 7.3,
           font: fontBold,
           color: corCinzaEscuro,
         });
 
         for (let idx = 0; idx < item.values.length; idx++) {
           page2.drawText(item.values[idx], {
-            x: margemEsquerda + 125,
-            y: currentLineY - (idx * 11),
+            x: margemEsquerda + 128,
+            y: currentLineY - (idx * 9.5),
             size: 7.2,
             font: fontRegular,
             color: corPreto,
           });
         }
-        currentLineY -= Math.max(item.values.length * 11 + 4, 15);
+
+        const rowAdvance = Math.max(item.values.length * 9.5 + 4.5, 14);
+        if (i < tableItems.length - 1) {
+          page2.drawLine({
+            start: { x: margemEsquerda + 8, y: currentLineY - (item.values.length - 1) * 9.5 - 3.5 },
+            end: { x: width - margemDireita - 8, y: currentLineY - (item.values.length - 1) * 9.5 - 3.5 },
+            thickness: 0.3,
+            color: corDivisoria,
+          });
+        }
+        currentLineY -= rowAdvance;
       }
 
-      y2 -= (alturaTabela + 12);
+      y2 -= (alturaTabela + 14);
 
-      // 3. REGISTROS DE AUTENTICAÇÃO (2FA OTP) E ACEITES
-      page2.drawText('HISTÓRICO DE CONSENTIMENTOS E AUTENTICAÇÃO (2FA OTP)', {
+      // ----------------------------------------------------------------------
+      // 2. REGISTRO DE CONSENTIMENTOS E AUTENTICAÇÃO (2FA OTP)
+      // ----------------------------------------------------------------------
+      page2.drawText('2. REGISTRO DE CONSENTIMENTOS E AUTENTICAÇÃO (2FA OTP)', {
         x: margemEsquerda,
         y: y2,
-        size: 9.5,
+        size: 9,
         font: fontBold,
-        color: corPreto,
+        color: corAzulSesi,
       });
 
-      y2 -= 13;
-      page2.drawText(
-        `[Passo 1] Aceites granulares registrados: Saúde (${dados.autorizacaoSaude ? 'Sim' : 'Não'}), Dados (${dados.autorizacaoDados ? 'Sim' : 'Não'}), Imagem (${dados.autorizacaoImagem ? 'Sim' : 'Não'}), Termo v${dados.termosVersao || '1.0.2026'}, Privacidade v${dados.privacyPolicyVersion || '1.1.2026'}`,
-        {
-          x: margemEsquerda,
-          y: y2,
-          size: 7.4,
+      y2 -= 8;
+      const reqDate = dados.otpRequestedAt ? formatBrasiliaDateTime(dados.otpRequestedAt) : 'Registrado no envio';
+      const passo1Linhas = this.quebrarTexto(
+        `[1] Consentimentos granulares: Atendimento de Saúde (${dados.autorizacaoSaude ? 'Autorizado' : 'Não'}), Tratamento de Dados LGPD (${dados.autorizacaoDados ? 'Autorizado' : 'Não'}), Uso de Imagem/Voz (${dados.autorizacaoImagem ? 'Autorizado' : 'Não'}), Termo v${dados.termosVersao || '1.0.2026'}, Política de Privacidade v${dados.privacyPolicyVersion || '1.1.2026'}.`,
+        92
+      );
+      const passo2Linhas = [`[2] Envio de código único (OTP 6 dígitos) para o e-mail do signatário em: ${reqDate}.`];
+      const passo3Linhas = [`[3] Autenticação confirmada, aceite formalizado e selo SHA-256 gerado em: ${dataHoraExata}.`];
+      const todosPassos = [...passo1Linhas, ...passo2Linhas, ...passo3Linhas];
+      const alturaPassos = todosPassos.length * 10 + 12;
+
+      page2.drawRectangle({
+        x: margemEsquerda,
+        y: y2 - alturaPassos,
+        width: larguraUtil,
+        height: alturaPassos,
+        color: rgb(1, 1, 1),
+        borderColor: corCinzaLinha,
+        borderWidth: 0.5,
+      });
+
+      let passoY = y2 - 12;
+      for (const linha of todosPassos) {
+        page2.drawText(linha, {
+          x: margemEsquerda + 10,
+          y: passoY,
+          size: 7.1,
           font: fontRegular,
           color: corPreto,
-        }
-      );
+        });
+        passoY -= 10;
+      }
 
-      y2 -= 11;
-      const reqDate = dados.otpRequestedAt ? formatBrasiliaDateTime(dados.otpRequestedAt) : 'Registrado no envio';
-      page2.drawText(`[Passo 2] Código de segurança de uso único (OTP 6 dígitos) enviado em: ${reqDate}`, {
+      y2 -= (alturaPassos + 14);
+
+      // ----------------------------------------------------------------------
+      // 3. INTEGRIDADE CRIPTOGRÁFICA E VALIDAÇÃO PÚBLICA (SHA-256 & QR CODE)
+      // ----------------------------------------------------------------------
+      page2.drawText('3. INTEGRIDADE CRIPTOGRÁFICA E VALIDAÇÃO PÚBLICA', {
         x: margemEsquerda,
         y: y2,
-        size: 7.6,
-        font: fontRegular,
-        color: corPreto,
+        size: 9,
+        font: fontBold,
+        color: corAzulSesi,
       });
 
-      y2 -= 11;
-      page2.drawText(`[Passo 3] Autenticação confirmada, assinatura registrada e selo SHA-256 gerado em: ${dataHoraExata}`, {
-        x: margemEsquerda,
-        y: y2,
-        size: 7.6,
-        font: fontRegular,
-        color: corPreto,
-      });
-
-      // 4. VALIDAÇÃO PÚBLICA / QR CODE (Card estruturado sem sobreposição)
-      y2 -= 18;
-      const QR_SIZE = 74;
-      const cardHeight = 90;
-      const cardWidth = width - margemEsquerda - margemDireita;
+      y2 -= 8;
+      const QR_SIZE = 72;
+      const cardHeight = 92;
       const cardBottomY = y2 - cardHeight;
 
       page2.drawRectangle({
         x: margemEsquerda,
         y: cardBottomY,
-        width: cardWidth,
+        width: larguraUtil,
         height: cardHeight,
-        color: rgb(0.97, 0.98, 0.99),
+        color: corFundoSuave,
         borderColor: corAzulSesi,
         borderWidth: 0.6,
       });
 
-      const qrX = width - margemDireita - QR_SIZE - 8;
+      const qrX = width - margemDireita - QR_SIZE - 9;
       const qrY = cardBottomY + (cardHeight - QR_SIZE) / 2;
+      const fullManifestHash = dados.hashManifesto || 'Pendente de assinatura';
+      const linkValidacao = `https://www.catraki.com.br/validar/${validationCode}`;
 
       let textY = y2 - 14;
-      page2.drawText('VALIDAÇÃO DE AUTENTICIDADE', {
-        x: margemEsquerda + 10,
-        y: textY,
-        size: 9,
-        font: fontBold,
-        color: corPreto,
-      });
-
-      textY -= 13;
-      page2.drawText(`Código de Validação Pública: ${validationCode}`, {
+      page2.drawText(`Código de Validação: ${validationCode}`, {
         x: margemEsquerda + 10,
         y: textY,
         size: 8.5,
@@ -888,26 +916,42 @@ export class GeradorPdfTermoSesi {
       });
 
       textY -= 12;
-      const linkValidacao = `https://www.catraki.com.br/validar/${validationCode}`;
-      const textoValidacao = this.quebrarTexto(
-        'Para confirmar a autenticidade deste documento, aponte a câmera para o QR Code ou acesse:',
+      page2.drawText('Hash SHA-256 do Manifesto (Inviolabilidade):', {
+        x: margemEsquerda + 10,
+        y: textY,
+        size: 7.1,
+        font: fontBold,
+        color: corCinzaEscuro,
+      });
+
+      textY -= 9.5;
+      page2.drawText(fullManifestHash, {
+        x: margemEsquerda + 10,
+        y: textY,
+        size: 6.3,
+        font: fontMono,
+        color: corPreto,
+      });
+
+      textY -= 12;
+      for (const linhaVal of this.quebrarTexto(
+        'Aponte a câmera para o QR Code ou acesse o validador público oficial:',
         64
-      );
-      for (const linhaVal of textoValidacao) {
+      )) {
         page2.drawText(linhaVal, {
           x: margemEsquerda + 10,
           y: textY,
-          size: 7.5,
+          size: 7.1,
           font: fontRegular,
-          color: corPreto,
+          color: corCinzaEscuro,
         });
-        textY -= 10;
+        textY -= 9.5;
       }
 
       page2.drawText(linkValidacao, {
         x: margemEsquerda + 10,
         y: textY,
-        size: 7.5,
+        size: 7.2,
         font: fontMono,
         color: corAzulSesi,
       });
@@ -927,80 +971,79 @@ export class GeradorPdfTermoSesi {
         console.warn('[PDF] Falha ao gerar QR Code vetorial da folha 2:', err);
       }
 
-      // 5. AVISO DE INTEGRIDADE JURÍDICA E LGPD (sempre abaixo do card de QR Code)
-      y2 = cardBottomY - 16;
-      page2.drawText('AVISO DE INTEGRIDADE E CONFORMIDADE LEGAL:', {
+      y2 = cardBottomY - 14;
+
+      // ----------------------------------------------------------------------
+      // 4. TRANSPARÊNCIA E INFORMAÇÕES OBRIGATÓRIAS (LGPD — LEI Nº 13.709/2018)
+      // ----------------------------------------------------------------------
+      page2.drawText('4. TRANSPARÊNCIA E CONFORMIDADE LGPD (ART. 8º, 9º, 18 E 41)', {
         x: margemEsquerda,
         y: y2,
-        size: 8,
+        size: 9,
         font: fontBold,
         color: corAzulSesi,
       });
 
-      y2 -= 11;
-      page2.drawText('Este documento foi selado criptograficamente com resumo SHA-256. Qualquer tentativa de alteração invalidará os hashes.', {
+      y2 -= 8;
+      const blocosLgpd: Array<{ titulo: string; texto: string }> = [
+        {
+          titulo: 'Controladores e Responsabilidades (Art. 9º, III e VI):',
+          texto: `${inst1Nome} (CNPJ ${inst1Cnpj}) e ${inst2Nome} (CNPJ ${inst2Cnpj}) são os controladores responsáveis pelo atendimento clínico e pelos dados assistenciais. A Plataforma Catraki atua exclusivamente como operadora tecnológica para registro de log e emissão de hash probatório (sem CNPJ e sem acesso a dados de saúde).`,
+        },
+        {
+          titulo: 'Finalidade, Base Legal e Compartilhamento (Art. 9º, I e V):',
+          texto: `Execução das triagens preventivas do projeto ${nomeProjeto} mediante consentimento específico e destacado (${isMaior ? 'LGPD Art. 7º, I e Art. 11, I' : 'LGPD Art. 7º, I, Art. 11, I e Art. 14, § 1º; ECA Art. 17'}). Acesso restrito às equipes clínicas e escolares da UnB/SESI-DF, sem cessão comercial a terceiros.`,
+        },
+        {
+          titulo: 'Forma, Duração e Segurança (Art. 9º, II e Art. 46):',
+          texto: `Armazenamento eletrônico criptografado (AES-256-GCM) com cadeia imutável SHA-256 e guarda legal por até 20 anos (Res. CFM nº 1.821/2007 • Política v${dados.privacyPolicyVersion || '1.1.2026'}). Qualquer alteração no arquivo invalida os hashes criptográficos.`,
+        },
+        {
+          titulo: 'Encarregado (DPO) e Direitos do Titular (Art. 8º, § 5º; Art. 9º, IV e VII; Art. 18 e 41):',
+          texto: 'Contato DPO: suporte@catraki.com.br (prazo legal de resposta: até 15 dias — Art. 19, II). O titular pode solicitar acesso, correção, portabilidade, eliminação ou revogar gratuitamente este consentimento a qualquer momento em https://www.catraki.com.br/titular ou https://www.catraki.com.br/revogar.',
+        },
+      ];
+
+      const linhasRenderLgpd: Array<{ isTitle: boolean; text: string }> = [];
+      for (const bloco of blocosLgpd) {
+        linhasRenderLgpd.push({ isTitle: true, text: bloco.titulo });
+        for (const l of this.quebrarTexto(bloco.texto, 96)) {
+          linhasRenderLgpd.push({ isTitle: false, text: l });
+        }
+      }
+
+      const alturaLgpdBox = blocosLgpd.length * 10 + linhasRenderLgpd.filter((l) => !l.isTitle).length * 8.5 + 12;
+      page2.drawRectangle({
         x: margemEsquerda,
-        y: y2,
-        size: 7.3,
-        font: fontRegular,
-        color: corPreto,
+        y: y2 - alturaLgpdBox,
+        width: larguraUtil,
+        height: alturaLgpdBox,
+        color: rgb(1, 1, 1),
+        borderColor: corCinzaLinha,
+        borderWidth: 0.5,
       });
 
-      y2 -= 10;
-      const textoIntegridadeLegal = isMaior
-        ? 'Em conformidade com o Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020, Arts. 104 e 107 do CC, Arts. 190, 411 e 441 do CPC, Arts. 7º, 11, I e 18 da LGPD, e Art. 20 do CC.'
-        : 'Em conformidade com o Art. 10, § 2º da MP 2.200-2/2001, Lei 14.063/2020, Arts. 104 e 107 do CC, Arts. 190, 411 e 441 do CPC, Arts. 7º, 11, 14 e 18 da LGPD, e Art. 17 do ECA.';
-
-      for (const linhaLegal of this.quebrarTexto(textoIntegridadeLegal, 96)) {
-        page2.drawText(linhaLegal, {
-          x: margemEsquerda,
-          y: y2,
-          size: 6.8,
-          font: fontRegular,
-          color: corCinzaEscuro,
+      let lgpdY = y2 - 11;
+      for (const item of linhasRenderLgpd) {
+        page2.drawText(item.text, {
+          x: margemEsquerda + 10,
+          y: lgpdY,
+          size: item.isTitle ? 7 : 6.6,
+          font: item.isTitle ? fontBold : fontRegular,
+          color: item.isTitle ? corAzulSesi : corCinzaEscuro,
         });
-        y2 -= 9.5;
+        lgpdY -= item.isTitle ? 9.5 : 8.5;
       }
 
-      for (const linhaConv of this.quebrarTexto(
-        'As partes admitem expressamente como válido este meio eletrônico de comprovação de autoria e integridade (MP 2.200-2/2001, Art. 10, § 2º e CPC, Art. 190).',
-        96
-      )) {
-        page2.drawText(linhaConv, {
-          x: margemEsquerda,
-          y: y2,
-          size: 6.8,
-          font: fontRegular,
-          color: corCinzaEscuro,
-        });
-        y2 -= 9.5;
-      }
-
-      // 6. DISCLAIMER OBRIGATÓRIO DA PLATAFORMA CATRAKI (MÓDULO 4)
-      y2 -= 16;
-      const disclaimerTexto = 'A Plataforma Catraki atua exclusivamente como operadora e infraestrutura tecnológica para registro de log e emissão de hash probatório, não possuindo CNPJ, acesso ou ingerência sobre os dados de saúde ou o conteúdo firmado entre as partes controladoras.';
-      const linhasDisclaimer = this.quebrarTexto(disclaimerTexto, 98);
-      for (const l of linhasDisclaimer) {
-        page2.drawText(l, {
-          x: margemEsquerda,
-          y: y2,
-          size: 6.2,
-          font: fontRegular,
-          color: corCinzaEscuro,
-        });
-        y2 -= 8.5;
-      }
-
-      // Rodapé da página 2
-      page2.drawText('PLATAFORMA CATRAKI — SISTEMA DE GESTÃO DE ASSINATURAS ELETRÔNICAS.', {
+      // Rodapé ABNT da página 2
+      page2.drawText('PLATAFORMA CATRAKI — ASSINATURA ELETRÔNICA SIMPLES (LEI Nº 14.063/2020 • MP Nº 2.200-2/2001 • LGPD)', {
         x: margemEsquerda,
-        y: 24,
-        size: 6.5,
+        y: 22,
+        size: 6.3,
         font: fontRegular,
         color: corCinzaEscuro,
       });
 
-      // Linha de rodapé estilizada Catraki folha 2
       page2.drawLine({
         start: { x: 0, y: 6 },
         end: { x: width, y: 6 },

@@ -10,9 +10,10 @@ import {
   AlertTriangle,
   Loader2,
   Clock,
+  Printer,
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
-import { formatCPF, isValidCPF, isValidFullName } from '../../lib/schemas.ts';
+import { formatCPF, isValidCPF, isValidFullName, formatBrasiliaDateTime, formatBrasiliaDate } from '../../lib/schemas.ts';
 import { PRIVACY_POLICY_VERSION, LGPD_RESPONSE_DEADLINE_DAYS } from '../../lib/lgpd.ts';
 import { TurnstileWidget } from '../common/TurnstileWidget.tsx';
 import type { LgpdRequestType } from '../../lib/types.ts';
@@ -267,11 +268,28 @@ export const TitularPortal: React.FC<TitularPortalProps> = ({ onBack, onNavigate
               <textarea
                 id="lgpd-details"
                 rows={4}
+                maxLength={2000}
                 value={details}
-                onChange={(e) => setDetails(e.target.value)}
+                onChange={(e) => setDetails(e.target.value.slice(0, 2000))}
                 placeholder="Informe o nome do estudante (se aplicável) e o que deseja consultar, corrigir ou anonimizar..."
                 className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-base sm:text-sm focus:outline-none focus:border-[#034b7f]"
               />
+              <div className="flex items-center justify-between text-[11px] pt-0.5">
+                <span className={details.trim().length > 0 && details.trim().length < 15 ? 'text-amber-700 font-medium' : 'text-slate-400'}>
+                  {details.trim().length < 15 ? `Mínimo 15 caracteres (faltam ${Math.max(0, 15 - details.trim().length)})` : '✓ Descrição válida'}
+                </span>
+                <span
+                  className={`font-mono font-semibold ${
+                    details.length >= 2000
+                      ? 'text-red-600'
+                      : details.length >= 1800
+                      ? 'text-amber-600'
+                      : 'text-slate-500'
+                  }`}
+                >
+                  {details.length} / 2000
+                </span>
+              </div>
             </div>
 
             <div className="bg-blue-50/50 border border-blue-200 rounded-xl p-3.5 sm:p-4">
@@ -307,7 +325,7 @@ export const TitularPortal: React.FC<TitularPortalProps> = ({ onBack, onNavigate
                   ), autorizando o registro de data, hora e versão deste aceite. <span className="text-red-500 font-bold">*</span>
                   {privacyAccepted && privacyAcceptedAt && (
                     <span className="block mt-1 text-[11px] font-mono text-emerald-700 font-semibold">
-                      ✓ Aceite registrado em {new Date(privacyAcceptedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Versão {PRIVACY_POLICY_VERSION})
+                      ✓ Aceite registrado em {formatBrasiliaDateTime(privacyAcceptedAt)} (BRT) (Versão {PRIVACY_POLICY_VERSION})
                     </span>
                   )}
                 </span>
@@ -346,31 +364,68 @@ export const TitularPortal: React.FC<TitularPortalProps> = ({ onBack, onNavigate
             </div>
           </form>
         ) : (
-          <div className="py-6 text-center space-y-4">
-            <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-8 h-8" />
+          <div className="space-y-4 py-4">
+            <div className="text-center pb-3 border-b border-slate-200 space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border bg-emerald-50 text-emerald-800 border-emerald-200">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Solicitação Registrada</span>
+              </div>
+              <h2 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase m-0">
+                COMPROVANTE DE SOLICITAÇÃO LGPD (ART. 18)
+              </h2>
+              <p className="text-xs text-slate-600 m-0">
+                Encaminhada ao Encarregado pelo Tratamento de Dados Pessoais (DPO) • Prazo legal: até <strong>{LGPD_RESPONSE_DEADLINE_DAYS} dias</strong>.
+              </p>
             </div>
-            <h2 className="text-base font-bold text-slate-900 m-0">Solicitação Registrada com Sucesso</h2>
-            <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
-              Seu pedido foi encaminhado ao Encarregado de Dados (DPO). O prazo legal de resposta é de até <strong>{LGPD_RESPONSE_DEADLINE_DAYS} dias</strong>.
-            </p>
-            <div className="max-w-md mx-auto bg-slate-50 border border-slate-200 rounded-xl p-4 text-left text-xs space-y-1.5 font-mono">
-              <div><strong>Protocolo:</strong> {receipt.protocol}</div>
-              {receipt.response_deadline_at && (
-                <div><strong>Prazo Limite:</strong> {new Date(receipt.response_deadline_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</div>
-              )}
-              <div><strong>Política Aceita:</strong> Versão {receipt.privacy_policy_version}</div>
-              {receipt.privacy_policy_accepted_at && (
-                <div><strong>Data/Hora do Aceite:</strong> {new Date(receipt.privacy_policy_accepted_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</div>
-              )}
+
+            <div className="max-w-lg mx-auto bg-slate-50 border border-slate-200 rounded-xl p-4 text-left text-xs space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="bg-white border border-slate-200 rounded-lg p-2.5">
+                  <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Protocolo LGPD</span>
+                  <strong className="font-mono text-slate-900 select-all">{receipt.protocol}</strong>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-lg p-2.5">
+                  <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Tipo de Solicitação</span>
+                  <strong className="text-slate-900">
+                    {REQUEST_TYPE_OPTIONS.find((o) => o.value === requestType)?.label || requestType}
+                  </strong>
+                </div>
+                {receipt.response_deadline_at && (
+                  <div className="bg-white border border-slate-200 rounded-lg p-2.5">
+                    <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Prazo Limite (Art. 19, II)</span>
+                    <strong className="font-mono text-slate-900">{formatBrasiliaDate(receipt.response_deadline_at)}</strong>
+                  </div>
+                )}
+                {receipt.privacy_policy_accepted_at && (
+                  <div className="bg-white border border-slate-200 rounded-lg p-2.5">
+                    <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Aceite Política v{receipt.privacy_policy_version}</span>
+                    <strong className="font-mono text-slate-900">{formatBrasiliaDateTime(receipt.privacy_policy_accepted_at)} (BRT)</strong>
+                  </div>
+                )}
+              </div>
+              <div className="bg-white border border-slate-200 rounded-lg p-2.5 text-[10.5px] text-slate-600 leading-relaxed">
+                <strong className="text-slate-800">Controladores e DPO (LGPD Art. 9º e 41):</strong>{' '}
+                Universidade de Brasília (UnB — CNPJ 00.038.174/0001-43) e SESI-DF (CNPJ 03.777.341/0001-08). DPO: <strong>suporte@catraki.com.br</strong>.
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={onBack}
-              className="px-6 py-2.5 bg-[#034b7f] text-white text-xs sm:text-sm font-bold rounded-xl cursor-pointer"
-            >
-              Voltar ao Início
-            </button>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2 no-print">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="w-full sm:w-auto px-5 py-2.5 bg-white hover:bg-slate-100 text-[#034b7f] border border-slate-300 text-xs font-bold rounded-xl inline-flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Imprimir / Salvar PDF (A4)</span>
+              </button>
+              <button
+                type="button"
+                onClick={onBack}
+                className="w-full sm:w-auto px-6 py-2.5 bg-[#034b7f] text-white text-xs sm:text-sm font-bold rounded-xl cursor-pointer"
+              >
+                Voltar ao Início
+              </button>
+            </div>
           </div>
         )}
 

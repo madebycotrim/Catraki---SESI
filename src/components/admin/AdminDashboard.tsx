@@ -42,7 +42,7 @@ import {
 import JSZip from 'jszip';
 import { GeradorPdfTermoSesi, GeradorCartazEscolaPdf } from '../../lib/pades/index.ts';
 import { apiClient } from '../../lib/api.ts';
-import { parseUtcDate, formatBrasiliaDateTime, formatCPF, formatStudentSeries, formatStudentSeriesClass } from '../../lib/schemas.ts';
+import { parseUtcDate, formatBrasiliaDateTime, formatCPF, formatStudentSeries, formatStudentSeriesClass, isProprioEstudante } from '../../lib/schemas.ts';
 import type { Institution } from '../../lib/types.ts';
 import { ExcelColumnFilter, type ExcelOption } from './ExcelColumnFilter.tsx';
 
@@ -609,7 +609,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       return { formattedDate: str, age: null, isAdult: false };
     }
 
-    const formattedDate = dateObj.toLocaleDateString('pt-BR');
+    const formattedDate = dateObj.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     const now = new Date();
     let age = now.getFullYear() - dateObj.getFullYear();
     const m = now.getMonth() - dateObj.getMonth();
@@ -2149,21 +2149,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                           </td>
 
-                          {/* Col 4: Responsável Legal */}
+                          {/* Col 4: Responsável Legal / Titular */}
                           <td className="px-4 py-4 align-top">
-                            <div className="space-y-1">
-                              <div className="font-bold text-slate-900 text-xs sm:text-sm leading-snug">
-                                {auth.parentName}
+                            {isProprioEstudante(auth.relationship) ? (
+                              <div className="space-y-1">
+                                <div className="font-bold text-slate-900 text-xs sm:text-sm leading-snug">
+                                  {auth.parentName}
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-[10px] font-mono text-slate-400">
+                                    {auth.parentCpfMasked}
+                                  </span>
+                                  <span className="text-[9px] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-bold text-emerald-800">
+                                    Titular (Maior de Idade) • Nome próprio
+                                  </span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-[10px] font-mono text-slate-400">
-                                  {auth.parentCpfMasked}
-                                </span>
-                                <span className="text-[9px] bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 font-bold text-slate-700 uppercase">
-                                  {auth.relationship}
-                                </span>
+                            ) : (
+                              <div className="space-y-1">
+                                <div className="font-bold text-slate-900 text-xs sm:text-sm leading-snug">
+                                  {auth.parentName}
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-[10px] font-mono text-slate-400">
+                                    {auth.parentCpfMasked}
+                                  </span>
+                                  <span className="text-[9px] bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 font-bold text-slate-700 uppercase">
+                                    {auth.relationship}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
+                            )}
                           </td>
 
                           {/* Col 5: Escola */}
@@ -2968,7 +2984,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <span className="font-bold text-slate-800 truncate block">{selectedAuthToRevoke.studentName}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Responsável Legal:</span>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">
+                    {isProprioEstudante(selectedAuthToRevoke.relationship) ? 'Titular (Maior de Idade):' : 'Responsável Legal:'}
+                  </span>
                   <span className="font-bold text-slate-800 truncate block">{selectedAuthToRevoke.parentName}</span>
                 </div>
                 <div>
@@ -3270,11 +3288,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Bloco 2: Responsável Legal */}
+              {/* Bloco 2: Responsável Legal / Titular */}
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 text-xs space-y-3">
                 <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
                   <Users className="w-4 h-4 text-slate-600" />
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Responsável Legal Cadastrado</span>
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    {isProprioEstudante(selectedAuthForDetails.relationship)
+                      ? 'Titular / Estudante (Maior de Idade) — Autorização em nome próprio'
+                      : 'Responsável Legal Cadastrado'}
+                  </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   <div>
@@ -3282,11 +3304,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <span className="font-black text-slate-900 text-sm mt-0.5 block">{selectedAuthForDetails.parentName}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">CPF do Responsável:</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">
+                      {isProprioEstudante(selectedAuthForDetails.relationship) ? 'CPF do Titular:' : 'CPF do Responsável:'}
+                    </span>
                     <span className="font-mono font-bold text-slate-800 mt-0.5 block">{selectedAuthForDetails.parentCpfMasked}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Grau de Parentesco:</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Vínculo:</span>
                     <span className="inline-block bg-white px-3 py-1 rounded-lg border border-slate-200 font-black text-slate-800 capitalize mt-0.5">
                       {selectedAuthForDetails.relationship}
                     </span>
@@ -3419,7 +3443,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <span className="font-bold text-slate-900 truncate block">{selectedAuthForResendEmail.studentName}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Responsável Legal:</span>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">
+                    {isProprioEstudante(selectedAuthForResendEmail.relationship) ? 'Titular (Maior de Idade):' : 'Responsável Legal:'}
+                  </span>
                   <span className="font-bold text-slate-800 truncate block">{selectedAuthForResendEmail.parentName}</span>
                 </div>
               </div>

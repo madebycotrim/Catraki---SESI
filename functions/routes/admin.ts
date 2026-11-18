@@ -26,7 +26,7 @@ import {
   getTransactionalCompletionEmailHtml,
   getTransactionalCompletionEmailText,
   getCompletionEmailSubject,
-  escapeHtml,
+  getTransactionalLgpdResponseEmailHtml,
 } from '../../src/lib/email-templates.ts';
 import { sendTransactionalEmail } from '../utils/email.ts';
 import { verifyAuditChain } from '../../src/lib/audit-chain.ts';
@@ -1741,11 +1741,12 @@ adminRouter.post('/lgpd-requests/:id/respond', requireAuth(['admin_master', 'dpo
       await sendTransactionalEmail(c.env, {
         to: titularEmail,
         subject: `[Catraki LGPD] Atualização do protocolo ${id} (${statusLabel})`,
-        html: `<p>Olá, <strong>${escapeHtml(existing.requester_name)}</strong>.</p>
-<p>Sua solicitação LGPD (protocolo <strong>${escapeHtml(id)}</strong>) foi atualizada pelo Encarregado de Dados (DPO).</p>
-<p><strong>Status:</strong> ${escapeHtml(statusLabel)}</p>
-<p><strong>Parecer do DPO:</strong><br/>${escapeHtml(response_notes)}</p>
-<p style="font-size:12px;color:#64748b;">Em caso de dúvidas, entre em contato pelo canal de governança: suporte@catraki.com.br.</p>`,
+        html: getTransactionalLgpdResponseEmailHtml({
+          requesterName: existing.requester_name,
+          protocol: id,
+          statusLabel,
+          responseNotes: response_notes,
+        }),
         text: `Protocolo LGPD ${id} - Status: ${statusLabel}\nParecer do DPO: ${response_notes}\nContato: suporte@catraki.com.br`,
       });
     } catch (mailErr) {

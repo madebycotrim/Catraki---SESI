@@ -4,6 +4,8 @@ import { apiClient } from '../lib/api.ts';
 interface UseOtpVerificationParams {
   token: string;
   signerEmail?: string;
+  signerName?: string;
+  signerRelationship?: string;
   minorName?: string;
   signerPhone?: string;
   schoolSlug?: string;
@@ -18,6 +20,8 @@ interface UseOtpVerificationParams {
 export function useOtpVerification({
   token,
   signerEmail,
+  signerName,
+  signerRelationship,
   minorName,
   signerPhone,
   schoolSlug,
@@ -61,7 +65,9 @@ export function useOtpVerification({
         turnstileToken || undefined,
         signerPhone || undefined,
         schoolSlug || undefined,
-        institutionName || undefined
+        institutionName || undefined,
+        signerName || undefined,
+        signerRelationship || undefined
       );
 
       if (resp.success) {

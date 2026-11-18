@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, AlertTriangle, AlertCircle, Loader2, FileSearch, UserCheck, GraduationCap } from 'lucide-react';
-import { isValidCPF, isValidFullName, calcularIdade, formatStudentSeries } from '../../lib/schemas.ts';
+import { isValidCPF, isValidFullName, calcularIdade, formatStudentSeries, formatBrasiliaDate } from '../../lib/schemas.ts';
 import { PRIVACY_POLICY_VERSION } from '../../lib/lgpd.ts';
 import { apiClient } from '../../lib/api.ts';
 import type { SignerRelationship, Institution, DuplicateStudentCheckResponse } from '../../lib/types.ts';
@@ -838,7 +838,7 @@ export const Step2FormData: React.FC<Step2FormDataProps> = ({
                   </div>
                   
                   <p className="text-xs sm:text-sm text-amber-900 leading-relaxed m-0">
-                    O(A) estudante <strong>{duplicateInfo.minorName || formData.minorName}</strong> já possui uma autorização para atendimento em saúde e termo de consentimento assinado e válido no sistema, emitido por <strong>{duplicateInfo.signerNameMasked || 'Responsável Legal'}</strong> em {new Date(duplicateInfo.signedAt || new Date()).toLocaleDateString('pt-BR')}.
+                    O(A) estudante <strong>{duplicateInfo.minorName || formData.minorName}</strong> já possui uma autorização para atendimento em saúde e termo de consentimento assinado e válido no sistema, emitido por <strong>{duplicateInfo.signerNameMasked || 'Responsável Legal'}</strong> em {formatBrasiliaDate(duplicateInfo.signedAt || new Date())}.
                   </p>
                   
                   <div className="p-2.5 bg-amber-100/70 rounded-xl border border-amber-200 text-[11px] sm:text-xs text-amber-900 leading-normal">

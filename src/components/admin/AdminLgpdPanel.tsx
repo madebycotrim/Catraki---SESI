@@ -8,16 +8,51 @@ import {
   CheckCircle2,
   Clock,
   RefreshCw,
+  Copy,
+  Check,
+  Search,
+  MessageSquare,
 } from 'lucide-react';
 import { apiClient } from '../../lib/api.ts';
+import { formatBrasiliaDateTime, formatBrasiliaDate, parseUtcDate } from '../../lib/schemas.ts';
 import type { LgpdRequestRecord } from '../../lib/types.ts';
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
+  access: 'Acesso e Exportação de Dados',
   access_export: 'Acesso e Exportação de Dados',
+  deletion: 'Eliminação / Anonimização',
   deletion_anonymization: 'Eliminação / Anonimização',
   rectification: 'Correção de Dados',
   revocation_appeal: 'Revisão / Esclarecimento',
 };
+
+const PARECER_TEMPLATES: Array<{ label: string; status: 'in_analysis' | 'completed' | 'rejected'; text: string }> = [
+  {
+    label: 'Dados exportados e enviados',
+    status: 'completed',
+    text: 'Solicitação atendida nos termos do Art. 18, II e V da LGPD. O dossiê completo dos dados vinculados foi exportado e encaminhado ao e-mail do titular.',
+  },
+  {
+    label: 'Dados anonimizados',
+    status: 'completed',
+    text: 'Dados cadastrais identificáveis anonimizados conforme Art. 18, VI da LGPD, preservando apenas os registros legais obrigatórios e a cadeia de auditoria.',
+  },
+  {
+    label: 'Dados retificados',
+    status: 'completed',
+    text: 'Correção cadastral realizada com sucesso nos registros indicados pelo titular, em conformidade com o Art. 18, III da LGPD.',
+  },
+  {
+    label: 'Em análise pela equipe',
+    status: 'in_analysis',
+    text: 'Solicitação recebida e em análise pelo Encarregado pelo Tratamento de Dados Pessoais (DPO). Retornaremos dentro do prazo legal de 15 dias.',
+  },
+  {
+    label: 'Indeferido (sem vínculo/dados)',
+    status: 'rejected',
+    text: 'Não foram localizados registros ativos vinculados aos dados informados ou não foi possível confirmar a titularidade. Caso necessário, abra nova solicitação com o protocolo.',
+  },
+];
 
 const REQUEST_STATUS_META: Record<string, { label: string; classes: string }> = {
   pending: { label: 'Pendente', classes: 'bg-amber-100 text-amber-900 border border-amber-200' },
@@ -46,6 +81,16 @@ export const AdminLgpdPanel: React.FC<AdminLgpdPanelProps> = ({ onRequestsUpdate
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [responseNotes, setResponseNotes] = useState('');
   const [responseStatus, setResponseStatus] = useState<'in_analysis' | 'completed' | 'rejected'>('completed');
+  const [savingResponse, setSavingResponse] = useState(false);
+  const [queueFilter, setQueueFilter] = useState<'all' | 'pending' | 'in_analysis' | 'completed' | 'rejected'>('all');
+  const [queueSearch, setQueueSearch] = useState('');
+  const [copiedValue, setCopiedValue] = useState<string | null>(null);
+
+  const handleCopyValue = (val: string) => {
+    navigator.clipboard.writeText(val);
+    setCopiedValue(val);
+    setTimeout(() => setCopiedValue(null), 2000);
+  };
 
   const loadRequests = async () => {
     setLoadingRequests(true);
@@ -138,21 +183,26 @@ export const AdminLgpdPanel: React.FC<AdminLgpdPanelProps> = ({ onRequestsUpdate
       return;
     }
     setFeedbackError('');
-    const res = await apiClient.respondLgpdRequest(id, responseStatus, responseNotes.trim());
-    if (res.success) {
-      setRespondingId(null);
-      setResponseNotes('');
-      await loadRequests();
-    } else {
-      setFeedbackError(res.error || 'Falha ao atualizar solicitação.');
+    setSavingResponse(true);
+    try {
+      const res = await apiClient.respondLgpdRequest(id, responseStatus, responseNotes.trim());
+      if (res.success) {
+        setRespondingId(null);
+        setResponseNotes('');
+        await loadRequests();
+      } else {
+        setFeedbackError(res.error || 'Falha ao atualizar solicitação.');
+      }
+    } finally {
+      setSavingResponse(false);
     }
   };
 
   const getDaysRemaining = (deadline?: string | null, createdAt?: string) => {
     const target = deadline
-      ? new Date(deadline)
+      ? parseUtcDate(deadline)
       : createdAt
-        ? new Date(new Date(createdAt).getTime() + 15 * 24 * 60 * 60 * 1000)
+        ? new Date(parseUtcDate(createdAt).getTime() + 15 * 24 * 60 * 60 * 1000)
         : null;
     if (!target || Number.isNaN(target.getTime())) return null;
     return Math.ceil((target.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
@@ -279,154 +329,320 @@ export const AdminLgpdPanel: React.FC<AdminLgpdPanelProps> = ({ onRequestsUpdate
 
       {/* Fila de Solicitações LGPD com Prazo de 15 dias */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-xs space-y-4">
-        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-[#034b7f]" />
-            <h3 className="text-sm font-bold text-slate-900 m-0">
-              Solicitações de Titulares Recebidas (Prazo Legal: 15 dias)
-            </h3>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 m-0">
+                Solicitações de Titulares Recebidas (Prazo Legal: 15 dias)
+              </h3>
+              <p className="text-[11px] text-slate-500 m-0">
+                Gerencie pedidos do Art. 18 da LGPD, exporte dossiês e registre o parecer do DPO (notificação automática por e-mail).
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={loadRequests}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loadingRequests ? 'animate-spin' : ''}`} />
             <span>Atualizar</span>
           </button>
         </div>
 
-        {requests.length === 0 ? (
-          <p className="text-xs text-slate-500 m-0">Nenhuma solicitação LGPD registrada até o momento.</p>
-        ) : (
-          <div className="space-y-3">
-            {requests.map((req) => {
-              const daysLeft = getDaysRemaining(req.response_deadline_at, req.created_at);
-              const statusMeta = REQUEST_STATUS_META[req.status] || {
-                label: req.status,
-                classes: 'bg-slate-200 text-slate-800',
-              };
-              const typeLabel = REQUEST_TYPE_LABELS[req.request_type] || req.request_type;
+        {/* Barra de Filtros e Busca da Fila LGPD */}
+        {requests.length > 0 && (() => {
+          const counts = {
+            all: requests.length,
+            pending: requests.filter((r) => r.status === 'pending').length,
+            in_analysis: requests.filter((r) => r.status === 'in_analysis').length,
+            completed: requests.filter((r) => r.status === 'completed').length,
+            rejected: requests.filter((r) => r.status === 'rejected').length,
+          };
+          const filterTabs: Array<{ key: typeof queueFilter; label: string }> = [
+            { key: 'all', label: `Todas (${counts.all})` },
+            { key: 'pending', label: `Pendentes (${counts.pending})` },
+            { key: 'in_analysis', label: `Em Análise (${counts.in_analysis})` },
+            { key: 'completed', label: `Concluídas (${counts.completed})` },
+            { key: 'rejected', label: `Indeferidas (${counts.rejected})` },
+          ];
+          return (
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+              <div className="flex flex-wrap gap-1.5">
+                {filterTabs.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => setQueueFilter(t.key)}
+                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer border ${
+                      queueFilter === t.key
+                        ? 'bg-[#034b7f] text-white border-[#034b7f]'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <div className="relative w-full lg:w-72">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={queueSearch}
+                  onChange={(e) => setQueueSearch(e.target.value)}
+                  placeholder="Filtrar por nome, protocolo ou e-mail..."
+                  className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-[#034b7f]"
+                />
+              </div>
+            </div>
+          );
+        })()}
 
-              return (
-                <div key={req.id} className="p-3.5 sm:p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2 text-xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-mono text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded">
-                        {req.id}
-                      </span>
-                      <strong className="text-slate-900">{req.requester_name}</strong>
-                      <span className="font-mono text-slate-500">({req.requester_cpf_masked})</span>
-                      {req.requester_email && (
-                        <span className="font-mono text-[11px] text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded">
-                          {req.requester_email}
-                        </span>
-                      )}
-                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 font-bold text-[10px]">
-                        {typeLabel}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {(req.status === 'pending' || req.status === 'in_analysis') && daysLeft !== null && (
-                        <span
-                          className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                            daysLeft <= 3 ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
-                          }`}
+        {(() => {
+          const searchLower = queueSearch.trim().toLowerCase();
+          const filteredRequests = requests.filter((req) => {
+            if (queueFilter !== 'all' && req.status !== queueFilter) return false;
+            if (!searchLower) return true;
+            return (
+              req.id.toLowerCase().includes(searchLower) ||
+              req.requester_name.toLowerCase().includes(searchLower) ||
+              (req.requester_email && req.requester_email.toLowerCase().includes(searchLower)) ||
+              req.details.toLowerCase().includes(searchLower)
+            );
+          });
+
+          if (requests.length === 0) {
+            return <p className="text-xs text-slate-500 m-0">Nenhuma solicitação LGPD registrada até o momento.</p>;
+          }
+
+          if (filteredRequests.length === 0) {
+            return <p className="text-xs text-slate-500 m-0">Nenhuma solicitação corresponde aos filtros aplicados.</p>;
+          }
+
+          return (
+            <div className="space-y-3">
+              {filteredRequests.map((req) => {
+                const daysLeft = getDaysRemaining(req.response_deadline_at, req.created_at);
+                const statusMeta = REQUEST_STATUS_META[req.status] || {
+                  label: req.status,
+                  classes: 'bg-slate-200 text-slate-800',
+                };
+                const typeLabel = REQUEST_TYPE_LABELS[req.request_type] || req.request_type;
+
+                return (
+                  <div key={req.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3 text-xs">
+                    {/* Cabeçalho do Card */}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyValue(req.id)}
+                          title="Copiar protocolo"
+                          className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 px-2 py-0.5 rounded cursor-pointer"
                         >
-                          {daysLeft >= 0 ? `${daysLeft} dia(s) restante(s)` : 'Prazo vencido'}
+                          <span>{req.id}</span>
+                          {copiedValue === req.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                        </button>
+                        <strong className="text-slate-900 text-xs sm:text-sm">{req.requester_name}</strong>
+                        <span className="font-mono text-slate-500">({req.requester_cpf_masked})</span>
+                        {req.requester_email && (
+                          <button
+                            type="button"
+                            onClick={() => handleCopyValue(req.requester_email || '')}
+                            title="Copiar e-mail do solicitante"
+                            className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 px-2 py-0.5 rounded cursor-pointer"
+                          >
+                            <span>{req.requester_email}</span>
+                            {copiedValue === req.requester_email ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                          </button>
+                        )}
+                        <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 font-bold text-[10px]">
+                          {typeLabel}
                         </span>
-                      )}
-                      <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase ${statusMeta.classes}`}>
-                        {statusMeta.label}
-                      </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {(req.status === 'pending' || req.status === 'in_analysis') && daysLeft !== null && (
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
+                              daysLeft <= 3 ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
+                            {daysLeft >= 0 ? `${daysLeft} dia(s) restante(s)` : 'Prazo vencido'}
+                          </span>
+                        )}
+                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase ${statusMeta.classes}`}>
+                          {statusMeta.label}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <p className="m-0 text-slate-700 leading-relaxed">{req.details}</p>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
-                    <span>
-                      Recebida em: <strong>{req.created_at ? new Date(req.created_at).toLocaleString('pt-BR') : '-'}</strong>
-                    </span>
-                    {req.privacy_policy_version && (
-                      <span className="font-mono">
-                        Política v{req.privacy_policy_version} ({req.privacy_policy_accepted_at ? new Date(req.privacy_policy_accepted_at).toLocaleString('pt-BR') : '-'})
+
+                    {/* Descrição Completa */}
+                    <div className="bg-white border border-slate-200/80 rounded-lg p-3">
+                      <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Detalhes da Solicitação
                       </span>
+                      <p className="m-0 text-slate-800 leading-relaxed whitespace-pre-wrap">{req.details}</p>
+                    </div>
+
+                    {/* Grade de Metadados */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-slate-600">
+                      <div className="bg-white border border-slate-200/70 rounded-lg px-2.5 py-1.5">
+                        <span className="text-[9.5px] font-bold text-slate-400 uppercase block">Recebida em</span>
+                        <strong className="font-mono text-slate-800">
+                          {req.created_at ? `${formatBrasiliaDateTime(req.created_at)} (BRT)` : '-'}
+                        </strong>
+                      </div>
+                      <div className="bg-white border border-slate-200/70 rounded-lg px-2.5 py-1.5">
+                        <span className="text-[9.5px] font-bold text-slate-400 uppercase block">Prazo Limite (Art. 19, II)</span>
+                        <strong className="font-mono text-slate-800">
+                          {req.response_deadline_at ? formatBrasiliaDate(req.response_deadline_at) : '15 dias'}
+                        </strong>
+                      </div>
+                      <div className="bg-white border border-slate-200/70 rounded-lg px-2.5 py-1.5">
+                        <span className="text-[9.5px] font-bold text-slate-400 uppercase block">Aceite da Política</span>
+                        <strong className="font-mono text-slate-800">
+                          {req.privacy_policy_version
+                            ? `v${req.privacy_policy_version} (${req.privacy_policy_accepted_at ? formatBrasiliaDateTime(req.privacy_policy_accepted_at) : '-'})`
+                            : '-'}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {req.response_notes && (
+                      <div className="p-3 bg-emerald-50/50 border border-emerald-200 rounded-lg text-[11px] text-slate-800 space-y-0.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <strong className="text-emerald-950">Parecer Registrado do DPO:</strong>
+                          {req.resolved_at && (
+                            <span className="font-mono text-[10px] text-emerald-700">
+                              Atualizado em {formatBrasiliaDateTime(req.resolved_at)} (BRT)
+                            </span>
+                          )}
+                        </div>
+                        <p className="m-0 whitespace-pre-wrap">{req.response_notes}</p>
+                      </div>
                     )}
-                  </div>
-                  {req.response_notes && (
-                    <div className="p-2.5 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-700">
-                      <strong className="text-slate-900">Parecer do DPO:</strong> {req.response_notes}
-                    </div>
-                  )}
 
-                  {respondingId === req.id ? (
-                    <div className="pt-2 space-y-2 border-t border-slate-200">
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <select
-                          value={responseStatus}
-                          onChange={(e) => setResponseStatus(e.target.value as any)}
-                          className="px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white"
-                        >
-                          <option value="in_analysis">Em Análise</option>
-                          <option value="completed">Concluído</option>
-                          <option value="rejected">Indeferido</option>
-                        </select>
-                        <input
-                          type="text"
-                          value={responseNotes}
-                          onChange={(e) => setResponseNotes(e.target.value)}
-                          placeholder="Parecer do DPO..."
-                          className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white"
-                        />
+                    {/* Área de Resposta / Ações */}
+                    {respondingId === req.id ? (
+                      <div className="pt-3 space-y-2.5 border-t border-slate-200 bg-white rounded-xl p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-[10.5px] font-bold text-slate-700 uppercase tracking-wider">
+                            Modelos rápidos de parecer (1 clique):
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {PARECER_TEMPLATES.map((tpl) => (
+                              <button
+                                key={tpl.label}
+                                type="button"
+                                onClick={() => {
+                                  setResponseStatus(tpl.status);
+                                  setResponseNotes(tpl.text);
+                                }}
+                                className="px-2 py-1 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-[#034b7f] border border-slate-200 rounded-md text-[10px] font-semibold cursor-pointer transition-colors"
+                              >
+                                {tpl.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Novo Status</label>
+                            <select
+                              value={responseStatus}
+                              onChange={(e) => setResponseStatus(e.target.value as any)}
+                              className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-xs bg-white font-semibold"
+                            >
+                              <option value="in_analysis">Em Análise</option>
+                              <option value="completed">Concluído</option>
+                              <option value="rejected">Indeferido</option>
+                            </select>
+                          </div>
+                          <div className="sm:col-span-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase">Parecer do DPO</label>
+                              <span className="text-[10px] font-mono text-slate-400">{responseNotes.length} / 2000</span>
+                            </div>
+                            <textarea
+                              rows={3}
+                              maxLength={2000}
+                              value={responseNotes}
+                              onChange={(e) => setResponseNotes(e.target.value)}
+                              placeholder="Descreva a providência adotada ou justificativa do DPO (mín. 5 caracteres)..."
+                              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:border-[#034b7f]"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                          <span className="text-[10.5px] text-slate-500">
+                            Ao salvar, o titular será notificado automaticamente por e-mail com o status e o parecer.
+                          </span>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setRespondingId(null)}
+                              disabled={savingResponse}
+                              className="px-3.5 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-lg font-bold cursor-pointer hover:bg-slate-50"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRespondRequest(req.id)}
+                              disabled={savingResponse}
+                              className="px-4 py-1.5 bg-[#034b7f] hover:bg-blue-900 text-white rounded-lg font-bold cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
+                            >
+                              {savingResponse && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                              <span>{savingResponse ? 'Salvando...' : 'Salvar e Notificar Titular'}</span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleRespondRequest(req.id)}
-                          className="px-3 py-1.5 bg-[#034b7f] text-white rounded-lg font-bold cursor-pointer"
-                        >
-                          Salvar Parecer
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setRespondingId(null)}
-                          className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-lg font-bold cursor-pointer"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-3 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRespondingId(req.id);
-                          setResponseNotes(req.response_notes || '');
-                        }}
-                        className="text-[#034b7f] font-bold underline cursor-pointer"
-                      >
-                        Responder / Atualizar Parecer
-                      </button>
-                      {req.requester_email && (
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
                         <button
                           type="button"
                           onClick={() => {
-                            setIdentifier(req.requester_email || '');
-                            setAnonymizeReason(req.id);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            setRespondingId(req.id);
+                            setResponseStatus(
+                              req.status === 'rejected'
+                                ? 'rejected'
+                                : req.status === 'in_analysis'
+                                ? 'in_analysis'
+                                : 'completed'
+                            );
+                            setResponseNotes(req.response_notes || '');
                           }}
-                          className="text-emerald-700 font-bold underline cursor-pointer"
+                          className="px-3.5 py-1.5 bg-[#034b7f] hover:bg-blue-900 text-white rounded-lg font-bold text-[11px] inline-flex items-center gap-1.5 cursor-pointer transition-colors"
                         >
-                          Carregar E-mail na Busca (Exportar / Anonimizar)
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Responder / Dar Parecer</span>
                         </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+                        {req.requester_email && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIdentifier(req.requester_email || '');
+                              setAnonymizeReason(req.id);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="px-3.5 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold text-[11px] inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                          >
+                            <FileDown className="w-3.5 h-3.5" />
+                            <span>Carregar E-mail na Busca (Exportar / Anonimizar)</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

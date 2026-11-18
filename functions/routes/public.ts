@@ -4,7 +4,10 @@ import { encryptAesGcm, maskIpAddress, hmacSha256, constantTimeEqual } from '../
 import { rateLimiter } from '../middleware/ratelimit.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
 import { sendTransactionalEmail } from '../utils/email.ts';
-import { escapeHtml } from '../../src/lib/email-templates.ts';
+import {
+  getTransactionalLgpdConfirmationEmailHtml,
+  getTransactionalLgpdAdminAlertEmailHtml,
+} from '../../src/lib/email-templates.ts';
 import { PRIVACY_POLICY_VERSION, LGPD_RESPONSE_DEADLINE_DAYS } from '../../src/lib/lgpd.ts';
 import type { Env, PublicValidationResponse } from '../../src/lib/types.ts';
 
@@ -539,7 +542,7 @@ publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, 
         requester_email_encrypted, requester_email_bindex_sha256,
         request_type, details, privacy_policy_version, privacy_policy_accepted_at,
         response_deadline_at, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now'))`;
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`;
     const insertArgs = [
       requestId,
       requester_name,
@@ -552,6 +555,7 @@ publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, 
       policyVersion,
       policyAcceptedAt,
       deadlineIso,
+      nowIso,
     ];
 
     try {
@@ -584,27 +588,37 @@ publicRouter.post('/lgpd-request', rateLimiter({ limit: 10, windowSeconds: 300, 
     const sendNotifications = async () => {
       try {
         const dpoEmail = (c.env as any)?.SUPPORT_EMAIL || 'suporte@catraki.com.br';
+        const typeLabels: Record<string, string> = {
+          access_export: 'Acesso e Exportação de Dados',
+          deletion_anonymization: 'Eliminação / Anonimização',
+          rectification: 'Correção de Dados',
+          revocation_appeal: 'Revisão / Esclarecimento',
+        };
+        const requestTypeLabel = typeLabels[request_type] || request_type;
+
         await sendTransactionalEmail(c.env, {
           to: cleanEmail,
           subject: `[Catraki LGPD] Protocolo ${requestId} recebido`,
-          html: `<p>Olá, <strong>${escapeHtml(requester_name)}</strong>.</p>
-<p>Sua solicitação fundamentada na LGPD (Art. 18) foi registrada sob o protocolo <strong>${escapeHtml(requestId)}</strong>.</p>
-<p>Prazo legal de resposta: <strong>até ${LGPD_RESPONSE_DEADLINE_DAYS} dias</strong>.</p>`,
-          text: `Protocolo LGPD ${requestId} registrado. Prazo legal de resposta: ate ${LGPD_RESPONSE_DEADLINE_DAYS} dias.`,
+          html: getTransactionalLgpdConfirmationEmailHtml({
+            requesterName: requester_name,
+            protocol: requestId,
+            requestTypeLabel,
+            deadlineDays: LGPD_RESPONSE_DEADLINE_DAYS,
+          }),
+          text: `Protocolo LGPD ${requestId} registrado (${requestTypeLabel}). Prazo legal de resposta: ate ${LGPD_RESPONSE_DEADLINE_DAYS} dias.`,
         });
         if (dpoEmail && dpoEmail.toLowerCase() !== cleanEmail) {
           await sendTransactionalEmail(c.env, {
             to: dpoEmail,
             subject: `[Catraki Admin • LGPD] Nova solicitação de titular (${requestId})`,
-            html: `<p>Nova solicitação LGPD recebida no Portal do Titular:</p>
-<ul>
-  <li><strong>Protocolo:</strong> ${escapeHtml(requestId)}</li>
-  <li><strong>Solicitante:</strong> ${escapeHtml(requester_name)} (${escapeHtml(cpfMasked)})</li>
-  <li><strong>Tipo:</strong> ${escapeHtml(request_type)}</li>
-  <li><strong>Prazo Legal:</strong> ${LGPD_RESPONSE_DEADLINE_DAYS} dias</li>
-</ul>
-<p>Acesse o painel administrativo na aba <strong>LGPD / Titulares</strong> para analisar e responder.</p>`,
-            text: `Nova solicitacao LGPD ${requestId} de ${requester_name} (${request_type}). Acesse a aba LGPD / Titulares no painel administrativo.`,
+            html: getTransactionalLgpdAdminAlertEmailHtml({
+              protocol: requestId,
+              requesterName: requester_name,
+              cpfMasked,
+              requestTypeLabel,
+              deadlineDays: LGPD_RESPONSE_DEADLINE_DAYS,
+            }),
+            text: `Nova solicitacao LGPD ${requestId} de ${requester_name} (${requestTypeLabel}). Acesse a aba LGPD / Titulares no painel administrativo.`,
           });
         }
       } catch (mailErr) {

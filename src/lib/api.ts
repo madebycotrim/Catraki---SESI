@@ -397,13 +397,26 @@ export const apiClient = {
     turnstile_token?: string,
     phone?: string,
     school_slug?: string,
-    institution_name?: string
+    institution_name?: string,
+    signer_name?: string,
+    signer_relationship?: string
   ): Promise<any> {
     try {
       const resp = await fetch(`${API_BASE}/signer/otp/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, channel, email, minor_name, turnstile_token, phone, school_slug, institution_name }),
+        body: JSON.stringify({
+          token,
+          channel,
+          email,
+          minor_name,
+          turnstile_token,
+          phone,
+          school_slug,
+          institution_name,
+          signer_name,
+          signer_relationship,
+        }),
         signal: AbortSignal.timeout(15000),
       });
       return await resp.json();

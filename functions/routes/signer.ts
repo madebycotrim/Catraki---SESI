@@ -26,7 +26,6 @@ import {
 } from '../../src/lib/crypto.ts';
 import { extractCloudflareClientData } from '../utils/cloudflare.ts';
 import { sendTransactionalEmail } from '../utils/email.ts';
-import { escapeHtml } from '../../src/lib/email-templates.ts';
 import { GeradorPdfTermoSesi } from '../../src/lib/pades/GeradorPdfTermoSesi.ts';
 import { computeLogRowHash } from '../../src/lib/audit-chain.ts';
 import {
@@ -34,6 +33,7 @@ import {
   getTransactionalCompletionEmailText,
   getCompletionEmailSubject,
   getTransactionalOtpEmailHtml,
+  getTransactionalRevocationEmailHtml,
 } from '../../src/lib/email-templates.ts';
 import { rateLimiter, checkOtpBruteForceBlock, setOtpBruteForceBlock, clearOtpBruteForceBlock } from '../middleware/ratelimit.ts';
 import type { Env, AuditLogRowInput, DocumentRecord } from '../../src/lib/types.ts';
@@ -474,7 +474,7 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     return c.json({ success: false, error: parsed.error.errors[0]?.message || 'Parâmetros inválidos.', code: 'VALIDATION_ERROR' }, 400);
   }
 
-  const { token, email: providedEmail, minor_name: providedMinorName, school_slug, institution_id } = parsed.data;
+  const { token, email: providedEmail, minor_name: providedMinorName, signer_name: providedSignerName, signer_relationship: providedRelationship, school_slug, institution_id } = parsed.data;
 
   const db = c.env.DB;
   const pepper = c.env.OTP_PEPPER;
@@ -559,7 +559,12 @@ signerRouter.post('/otp/request', rateLimiter({ limit: 5, windowSeconds: 300, ke
     const resendApiKey = (c.env as any).RESEND_API_KEY;
     const fromAddress = (c.env as any).EMAIL_FROM || 'Escola Cidadã — Saúde em Movimento <autorizacoes@catraki.com.br>';
 
-    const otpHtml = getTransactionalOtpEmailHtml({ studentName, otpCode });
+    const otpHtml = getTransactionalOtpEmailHtml({
+      studentName,
+      otpCode,
+      signerName: providedSignerName || doc.parent_name || undefined,
+      signerRelationship: providedRelationship || undefined,
+    });
 
     if (resendApiKey && resendApiKey !== 're_sua_chave_aqui') {
       try {
@@ -1418,6 +1423,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       
       const emailHtml = getTransactionalCompletionEmailHtml({
         signerName: signer_name,
+        signerRelationship: signer_relationship,
         documentTitle: docTitle,
         downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
         minorName: parsed.data.minor_name || doc.minor_name,
@@ -1430,6 +1436,7 @@ signerRouter.post('/sign', rateLimiter({ limit: 10, windowSeconds: 60, keyPrefix
       });
       const emailText = getTransactionalCompletionEmailText({
         signerName: signer_name,
+        signerRelationship: signer_relationship,
         documentTitle: docTitle,
         downloadUrl: `https://www.catraki.com.br/validar/${validationCode}`,
         minorName: parsed.data.minor_name || doc.minor_name,
@@ -1556,14 +1563,54 @@ signerRouter.post('/revoke', rateLimiter({ limit: 10, windowSeconds: 300, keyPre
     return c.json({ success: false, error: 'Serviço de banco de dados indisponível.', code: 'DB_UNAVAILABLE' }, 503);
   }
 
-  // Busca prioritariamente pelo access_token secreto; se buscar por id público, exige confirmação de CPF do signatário
-  let doc = await db.prepare('SELECT * FROM documents WHERE access_token = ?').bind(token).first<DocumentRecord>();
+  // Busca prioritariamente pelo access_token secreto; se buscar por id público, código CATRAKI/SESI ou SHA-256, exige confirmação de CPF do signatário
+  let cleanToken = token.trim();
+  if (cleanToken.includes('/validar/')) {
+    cleanToken = cleanToken.split('/validar/').pop()?.split('?')[0]?.split('#')[0] || cleanToken;
+  }
+
+  let doc = await db.prepare('SELECT * FROM documents WHERE access_token = ?').bind(cleanToken).first<DocumentRecord>();
   if (!doc) {
-    const byId = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(token).first<DocumentRecord>();
-    if (byId) {
+    let byPublicRef = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(cleanToken).first<DocumentRecord>();
+
+    if (!byPublicRef) {
+      const codeMatch = cleanToken.toUpperCase().match(/^(CATRAKI|SESI)-([A-F0-9]{4})-([A-F0-9]{4})$/);
+      const isSha256 = /^[a-f0-9]{64}$/i.test(cleanToken);
+
+      if (codeMatch) {
+        const hexPrefix = codeMatch[2].toLowerCase();
+        const hexSuffix = codeMatch[3].toLowerCase();
+        const auditMatch = await db.prepare(
+          'SELECT document_id FROM audit_logs WHERE manifest_sha256 LIKE ? AND manifest_sha256 LIKE ? LIMIT 1'
+        ).bind(`${hexPrefix}%`, `%${hexSuffix}`).first<{ document_id: string }>().catch(() => null);
+
+        if (auditMatch?.document_id) {
+          byPublicRef = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(auditMatch.document_id).first<DocumentRecord>();
+        }
+        if (!byPublicRef) {
+          byPublicRef = await db.prepare(
+            'SELECT * FROM documents WHERE content_sha256 LIKE ? AND content_sha256 LIKE ? LIMIT 1'
+          ).bind(`${hexPrefix}%`, `%${hexSuffix}`).first<DocumentRecord>();
+        }
+      } else if (isSha256) {
+        const lowerHash = cleanToken.toLowerCase();
+        const auditMatch = await db.prepare(
+          'SELECT document_id FROM audit_logs WHERE manifest_sha256 = ? LIMIT 1'
+        ).bind(lowerHash).first<{ document_id: string }>().catch(() => null);
+
+        if (auditMatch?.document_id) {
+          byPublicRef = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(auditMatch.document_id).first<DocumentRecord>();
+        }
+        if (!byPublicRef) {
+          byPublicRef = await db.prepare('SELECT * FROM documents WHERE content_sha256 = ? LIMIT 1').bind(lowerHash).first<DocumentRecord>();
+        }
+      }
+    }
+
+    if (byPublicRef) {
       const masterKeyCheck = c.env.ENCRYPTION_KEY_V1;
       const auditRow = await db.prepare('SELECT signer_cpf_encrypted FROM audit_logs WHERE document_id = ? LIMIT 1')
-        .bind(byId.id)
+        .bind(byPublicRef.id)
         .first<{ signer_cpf_encrypted: string }>();
       let cpfVerified = false;
       if (providedSignerCpf.length === 11 && auditRow?.signer_cpf_encrypted && masterKeyCheck) {
@@ -1574,14 +1621,20 @@ signerRouter.post('/revoke', rateLimiter({ limit: 10, windowSeconds: 300, keyPre
           console.warn('[REVOKE_CPF_VERIFY_WARN]', err?.message || err);
         }
       }
+      if (!cpfVerified && providedSignerCpf.length === 11 && (byPublicRef as any).parent_cpf) {
+        const legacyCpf = String((byPublicRef as any).parent_cpf).replace(/\D/g, '');
+        if (legacyCpf.length === 11) {
+          cpfVerified = constantTimeEqual(providedSignerCpf, legacyCpf);
+        }
+      }
       if (!cpfVerified) {
         return c.json({
           success: false,
-          error: 'Para revogar usando o protocolo do documento, informe o CPF do responsável signatário para validação de identidade.',
+          error: 'Para revogar usando o protocolo do documento, informe o CPF do signatário (titular ou responsável) para validação de identidade.',
           code: 'IDENTITY_VERIFICATION_REQUIRED',
         }, 403);
       }
-      doc = byId;
+      doc = byPublicRef;
     }
   }
   if (!doc) {
@@ -1684,48 +1737,17 @@ signerRouter.post('/revoke', rateLimiter({ limit: 10, windowSeconds: 300, keyPre
       ? `CATRAKI-${doc.content_sha256.substring(0, 4).toUpperCase()}-${doc.content_sha256.substring(doc.content_sha256.length - 4).toUpperCase()}`
       : `DOC-${doc.id.substring(0, 8).toUpperCase()}`;
 
-    const revokeHtml = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: Arial, sans-serif; color: #1e293b;">
-  <div style="background-color: #f8fafc; padding: 24px 10px;">
-    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px 28px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
-      <div style="border-bottom: 2px solid #034b7f; padding-bottom: 16px; margin-bottom: 20px;">
-        <h2 style="color: #034b7f; margin: 0; font-size: 15px; font-weight: 800; text-transform: uppercase;">
-          Escola Cidadã — Saúde em Movimento
-        </h2>
-        <span style="color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase;">
-          Comprovante de Revogação de Consentimento (LGPD Art. 18)
-        </span>
-      </div>
-      <p style="font-size: 13px; line-height: 1.6; margin: 0 0 14px 0;">
-        Prezado(a) <strong>${escapeHtml(doc.parent_name || 'Responsável Legal')}</strong>,
-      </p>
-      <p style="font-size: 13px; line-height: 1.6; margin: 0 0 16px 0;">
-        Confirmamos que o consentimento previamente outorgado referente ao(à) estudante <strong>${escapeHtml(doc.minor_name || 'Estudante')}</strong> foi <strong>REVOGADO</strong> com sucesso em nossos registros.
-      </p>
-      <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 14px; margin-bottom: 18px; font-size: 12px;">
-        <p style="margin: 0 0 6px 0;"><strong>Identificador:</strong> <span style="font-family: monospace;">${escapeHtml(validationCode)}</span></p>
-        <p style="margin: 0 0 6px 0;"><strong>Data/Hora do Cancelamento:</strong> ${escapeHtml(formattedDate)}</p>
-        <p style="margin: 0;"><strong>Motivo Declarado:</strong> ${escapeHtml(reason)}</p>
-      </div>
-      <p style="font-size: 12px; color: #475569; line-height: 1.6;">
-        A partir deste momento, nenhum novo atendimento médico preventivo ou triagem clínica será realizado para o estudante sem uma nova autorização formal.
-      </p>
-      <div style="border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 14px; font-size: 10.5px; color: #94a3b8; text-align: center;">
-        Plataforma Catraki
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
+    const revokeHtml = getTransactionalRevocationEmailHtml({
+      signerName: doc.parent_name || 'Responsável Legal',
+      minorName: doc.minor_name,
+      validationCode,
+      revokedAtFormatted: formattedDate,
+      reason,
+    });
 
     const emailRes = await sendTransactionalEmail(c.env, {
       to: targetEmail,
-      subject: `Escola Cidadã — Consentimento Revogado`,
+      subject: `Escola Cidadã — Consentimento Revogado (${validationCode})`,
       html: revokeHtml,
     });
     emailDispatched = emailRes.sent;

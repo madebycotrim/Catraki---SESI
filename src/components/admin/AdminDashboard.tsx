@@ -70,28 +70,37 @@ interface AdminDashboardProps {
  * @param termo - Texto digitado no campo de busca rápida
  * @returns boolean indicando se há correspondência
  */
+const normalizarTextoBusca = (valor: string): string =>
+  valor
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
 export const verificarCorrespondenciaBusca = (auth: any, termo: string): boolean => {
   if (!termo || !termo.trim()) return true;
 
   const termoLimpo = termo.trim().toLowerCase();
+  const termoNormalizado = normalizarTextoBusca(termo.trim());
   const apenasDigitosTermo = termo.replace(/\D/g, '');
 
-  // 1. Busca textual direta nos nomes, e-mail e dados escolares
+  // 1. Busca textual direta (insensível a acentos) nos nomes, e-mail e dados escolares
   const camposTexto = [
     auth.studentName,
     auth.parentName,
     auth.parentEmail,
+    auth.parentEmailMasked,
     auth.validationCode,
     auth.minorSeries,
     formatStudentSeries(auth.minorSeries),
     formatStudentSeriesClass(auth.minorSeries, auth.minorClass),
     auth.minorClass,
     auth.minorTurn,
+    auth.minorBirthDate,
     auth.institutionName,
   ];
 
   for (const campo of camposTexto) {
-    if (typeof campo === 'string' && campo.toLowerCase().includes(termoLimpo)) {
+    if (typeof campo === 'string' && normalizarTextoBusca(campo).includes(termoNormalizado)) {
       return true;
     }
   }
@@ -454,6 +463,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     fetchData();
     fetchInstitutions();
     fetchLgpdBadgeCount();
+  }, []);
+
+  useEffect(() => {
+    const handleSlashShortcut = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || target?.isContentEditable) return;
+      e.preventDefault();
+      document.getElementById('admin-search-input')?.focus();
+    };
+    window.addEventListener('keydown', handleSlashShortcut);
+    return () => window.removeEventListener('keydown', handleSlashShortcut);
   }, []);
 
   const handleCopySchoolLink = (slug: string) => {
@@ -1607,25 +1629,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   name="adminSearchTerm"
                   type="text"
                   aria-label="Buscar por aluno, responsável ou código"
-                  placeholder="Buscar aluno, responsável, CPF ou protocolo..."
+                  placeholder="Buscar aluno, responsável, e-mail, CPF, turma ou protocolo..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full pl-12 pr-10 py-3 text-sm text-slate-800 bg-slate-50/50 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] transition-all placeholder:text-slate-400 font-medium"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => {
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape' && searchTerm) {
                       setSearchTerm('');
                       setCurrentPage(1);
-                    }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
+                    }
+                  }}
+                  className="w-full pl-12 pr-28 py-3 text-sm text-slate-800 bg-slate-50/70 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] transition-all placeholder:text-slate-400 font-medium"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  {searchTerm ? (
+                    <>
+                      <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-[#004b8d] border border-blue-200">
+                        {filteredAuths.length} {filteredAuths.length === 1 ? 'resultado' : 'resultados'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchTerm('');
+                          setCurrentPage(1);
+                        }}
+                        title="Limpar busca (Esc)"
+                        className="text-slate-400 hover:text-slate-700 p-1 rounded-full hover:bg-slate-200/70 transition-colors cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <kbd className="hidden sm:inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-mono font-bold text-slate-400 bg-white border border-slate-200 rounded-md shadow-2xs pointer-events-none">
+                      /
+                    </kbd>
+                  )}
+                </div>
               </div>
 
               {/* Ações (Expirar Rascunhos / Limpar Filtros) */}
@@ -1765,54 +1806,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {/* Filtros Dropdown */}
-              <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 w-full xl:w-auto justify-start xl:justify-end">
-                
+              <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-start xl:justify-end">
+
                 {/* Filtro de Status */}
-                <div className="relative min-w-[140px] flex-1 lg:flex-none">
-                  <FileCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <div className="relative min-w-[135px] flex-1 sm:flex-none">
+                  <FileCheck className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none ${selectedStatus !== 'all' ? 'text-[#004b8d]' : 'text-slate-400'}`} />
                   <select
                     value={selectedStatus}
                     onChange={(e) => handleStatusFilterChange(e.target.value as any)}
-                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] appearance-none cursor-pointer"
+                    className={`w-full pl-9 pr-7 py-2 rounded-xl text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] appearance-none cursor-pointer border ${
+                      selectedStatus !== 'all'
+                        ? 'bg-blue-50/80 border-[#004b8d]/40 text-[#004b8d]'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
                   >
-                    <option value="all">Todos os Status</option>
+                    <option value="all">Status: Todos</option>
                     <option value="signed">✅ Autorizadas</option>
                     <option value="pending">⏳ Pendentes</option>
                     <option value="revoked">🚫 Revogadas</option>
                     <option value="CANCELADO_POR_ERRO">⚠️ Canceladas</option>
                   </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
                 </div>
 
                 {/* Filtro de Escola */}
-                <div className="relative min-w-[160px] flex-1 lg:flex-none">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <div className="relative min-w-[155px] flex-1 sm:flex-none">
+                  <Building2 className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none ${selectedInstitution !== 'all' ? 'text-[#004b8d]' : 'text-slate-400'}`} />
                   <select
                     value={selectedInstitution}
                     onChange={(e) => {
                       setSelectedInstitution(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] appearance-none cursor-pointer truncate"
+                    className={`w-full pl-9 pr-7 py-2 rounded-xl text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] appearance-none cursor-pointer truncate border ${
+                      selectedInstitution !== 'all'
+                        ? 'bg-blue-50/80 border-[#004b8d]/40 text-[#004b8d]'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
                   >
-                    <option value="all">Todas as Escolas</option>
+                    <option value="all">Escola: Todas</option>
                     {institutions.map((inst) => (
                       <option key={inst.id} value={inst.id}>{inst.short_name} - {inst.city}/{inst.state}</option>
                     ))}
                   </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
                 </div>
 
                 {/* Filtro de Série */}
-                <div className="relative min-w-[130px] flex-1 lg:flex-none">
-                  <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <div className="relative min-w-[125px] flex-1 sm:flex-none">
+                  <GraduationCap className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none ${selectedSeries !== 'all' ? 'text-[#004b8d]' : 'text-slate-400'}`} />
                   <select
                     value={selectedSeries}
                     onChange={(e) => {
                       setSelectedSeries(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] appearance-none cursor-pointer"
+                    className={`w-full pl-9 pr-7 py-2 rounded-xl text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] appearance-none cursor-pointer border ${
+                      selectedSeries !== 'all'
+                        ? 'bg-blue-50/80 border-[#004b8d]/40 text-[#004b8d]'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
                   >
                     <option value="all">Série: Todas</option>
                     <option value="7º Ano">7º Ano</option>
@@ -1822,7 +1875,53 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <option value="2º Ano">2º Ano E.M.</option>
                     <option value="3º Ano">3º Ano E.M.</option>
                   </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                </div>
+
+                {/* Filtro de Turno */}
+                <div className="relative min-w-[120px] flex-1 sm:flex-none">
+                  <Clock className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none ${selectedTurn !== 'all' ? 'text-[#004b8d]' : 'text-slate-400'}`} />
+                  <select
+                    value={selectedTurn}
+                    onChange={(e) => {
+                      setSelectedTurn(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className={`w-full pl-9 pr-7 py-2 rounded-xl text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] appearance-none cursor-pointer border ${
+                      selectedTurn !== 'all'
+                        ? 'bg-blue-50/80 border-[#004b8d]/40 text-[#004b8d]'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <option value="all">Turno: Todos</option>
+                    <option value="Matutino">Matutino</option>
+                    <option value="Vespertino">Vespertino</option>
+                    <option value="Noturno">Noturno</option>
+                    <option value="Integral">Integral</option>
+                  </select>
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+                </div>
+
+                {/* Filtro de Uso de Imagem */}
+                <div className="relative min-w-[130px] flex-1 sm:flex-none">
+                  <Camera className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none ${selectedImageOption !== 'all' ? 'text-[#004b8d]' : 'text-slate-400'}`} />
+                  <select
+                    value={selectedImageOption}
+                    onChange={(e) => {
+                      setSelectedImageOption(e.target.value as any);
+                      setCurrentPage(1);
+                    }}
+                    className={`w-full pl-9 pr-7 py-2 rounded-xl text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#004b8d] appearance-none cursor-pointer border ${
+                      selectedImageOption !== 'all'
+                        ? 'bg-blue-50/80 border-[#004b8d]/40 text-[#004b8d]'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <option value="all">Imagem: Todas</option>
+                    <option value="authorized">Autorizada</option>
+                    <option value="not_authorized">Não Autorizada</option>
+                  </select>
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
                 </div>
 
               </div>

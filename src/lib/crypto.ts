@@ -430,35 +430,6 @@ export function maskIpAddress(ip?: string): string {
 }
 
 // ============================================================================
-// UUID v4 CRIPTOGRAFICAMENTE SEGURO (RFC 4122 §4.4)
-// Vincula cada documento ao seu hash SHA-256 de forma única e não reutilizável
-// Conformidade: Lei 14.063/2020 — Identidade e Imutabilidade de Documentos Digitais
-// ============================================================================
-
-/**
- * Gera UUID v4 criptograficamente seguro via CSPRNG (RFC 4122 §4.4).
- * Usado para vincular documentos ao seu hash SHA-256 de forma única.
- */
-export function generateUuidV4(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-
-  // Versão 4: bits 12-15 do byte 6 devem ser 0100 (0x40)
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  // Variante RFC 4122: bits 6-7 do byte 8 devem ser 10xxxxxx (0x80)
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-  const hex = bytesToHex(bytes);
-  return [
-    hex.slice(0, 8),
-    hex.slice(8, 12),
-    hex.slice(12, 16),
-    hex.slice(16, 20),
-    hex.slice(20, 32),
-  ].join('-');
-}
-
-// ============================================================================
 // VERIFICAÇÃO DE INTEGRIDADE DOCUMENTAL (Lei 14.063/2020 + LGPD Art. 46)
 // Detecta adulteração em nível de bit entre o hash armazenado e o conteúdo atual
 // ============================================================================

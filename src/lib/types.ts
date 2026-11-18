@@ -89,21 +89,6 @@ export interface DocumentRecord {
   token_ttl_days?: number;       // Prazo de validade do link em dias (padrão: 3)
 }
 
-export interface DocumentCancellationAudit {
-  id: string;
-  document_id: string;
-  cancelled_at: string;
-  ip_address: string;
-  user_agent: string;
-  cancelled_by_user_id: string;
-  cancelled_by_user_email: string;
-  cancelled_by_role: string;
-  justification: string;
-  document_manifest_sha256?: string;
-  log_row_hash: string;
-  created_at?: string;
-}
-
 export interface AuditLogRow {
   id: string;
   document_id: string;
@@ -176,49 +161,6 @@ export interface LgpdRequestRecord {
   resolved_at?: string | null;
 }
 
-export interface AdminAuditLogRecord {
-  id: string;
-  event_type: string;
-  actor_user_id: string;
-  actor_user_email: string;
-  actor_user_role: string;
-  ip_address: string;
-  user_agent: string;
-  target_resource: string;
-  action_details: string;
-  log_row_hash: string;
-  created_at: string;
-}
-
-export interface ApplicationAccessLogRecord {
-  id: string;
-  ip_address: string;
-  user_agent: string;
-  endpoint_path: string;
-  http_method: string;
-  status_code: number;
-  session_token_hash?: string | null;
-  retention_until: string;
-  created_at: string;
-}
-
-export interface SpecialtiesConsent {
-  oftalmologia: boolean;
-  audiometria: boolean;
-  odontologia: boolean;
-  psicologia: boolean;
-  nutricao: boolean;
-}
-
-export interface AdminUser {
-  id: string;
-  name: string;
-  email: string;
-  role: AdminRole;
-  is_active: boolean;
-  created_at: string;
-}
-
 export interface PublicValidationResponse {
   valid: boolean;
   validation_code?: string;
@@ -276,25 +218,6 @@ export interface ChainVerificationResult {
   corruptedBlockId?: string;
   error?: string;
   merkleRoot: string;
-}
-
-// ============================================================================
-// CRIPTOGRAFIA DE DADOS (LGPD Art. 46)
-// ============================================================================
-
-/**
- * Versão de Chave de Criptografia AES-256 (Key Rotation - Privacy by Design)
- * Conformidade: LGPD Art. 46 (medidas de segurança técnicas)
- */
-export interface EncryptionKeyVersion {
-  version: number;
-  key_sha256_fingerprint: string; // Fingerprint da chave (NUNCA a chave em si)
-  algorithm: string;              // 'AES-GCM-256'
-  status: 'active' | 'retired' | 'compromised';
-  activated_at: string;
-  retired_at?: string | null;
-  created_by: string;
-  notes?: string | null;
 }
 
 export interface Env {

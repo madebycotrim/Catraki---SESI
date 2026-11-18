@@ -17,9 +17,6 @@ export interface EventoComprovante {
   geo?: string | null;
 }
 
-// Alias de retrocompatibilidade
-export type EventoCertificado = EventoComprovante;
-
 export interface IDadosComprovanteConclusao {
   // Identificadores
   documentId: string;
@@ -50,9 +47,6 @@ export interface IDadosComprovanteConclusao {
   // URL de validação pública
   validationBaseUrl?: string;
 }
-
-// Alias de retrocompatibilidade
-export type IDadosCertificadoConclusao = IDadosComprovanteConclusao;
 
 const COR_AZUL_SESI = rgb(3 / 255, 75 / 255, 127 / 255);   // #034b7f
 const COR_PRETO = rgb(0.04, 0.04, 0.04);

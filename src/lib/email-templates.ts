@@ -339,20 +339,6 @@ export interface CancellationEmailParams {
   projectOwners?: string;
 }
 
-export interface RevocationEmailParams {
-  parentName: string;
-  minorName: string;
-  documentId: string;
-  validationCode?: string;
-  revokedAtFormatted: string;
-  institutionName: string;
-  reason: string;
-  supportEmail?: string;
-  dpoContact?: string;
-  documentHashSha256?: string;
-  projectOwners?: string;
-}
-
 export interface CompletionEmailParams {
   signerName: string;
   documentTitle: string;
@@ -376,10 +362,6 @@ export interface CompletionEmailParams {
 // ---------------------------------------------------------------------------
 export function getCancellationEmailSubject(documentTitle?: string): string {
   return `Comunicado Oficial: Atualização no documento ${documentTitle ? `"${documentTitle}"` : 'eletrônico'}`;
-}
-
-export function getRevocationEmailSubject(minorName?: string): string {
-  return `Confirmação de Revogação de Consentimento (LGPD)${minorName ? ` — ${minorName}` : ''}`;
 }
 
 export function getCompletionEmailSubject(documentTitle: string): string {
@@ -419,19 +401,6 @@ export function getTransactionalOtpEmailHtml(params: { studentName: string; otpC
   `;
 
   return buildEmailShell('Código de Confirmação e Autenticação (2FA)', body, 'Mensagem transacional gerada automaticamente para validação criptográfica de autoria.', projectOwners);
-}
-
-export function getTransactionalOtpEmailText(params: { studentName: string; otpCode: string }): string {
-  const { studentName, otpCode } = params;
-  return `[Plataforma Catraki] Código de Autenticação: ${otpCode}
-
-Prezado(a),
-Para concluir a assinatura eletrônica do Termo de Consentimento do(a) estudante ${studentName}, utilize o código de segurança abaixo:
-
-${otpCode}
-
-Este código expira em 5 minutos e não deve ser compartilhado com terceiros.
-Base Legal: MP nº 2.200-2/2001 e Lei nº 14.063/2020.`;
 }
 
 // ============================================================================
@@ -560,117 +529,6 @@ Acesse o documento online: ${downloadUrl}
 
 BASE LEGAL: Lei Federal nº 14.063/2020 e MP nº 2.200-2/2001.
 Atenciosamente, Equipe ${companyName} | ${supportEmail}`;
-}
-
-// ============================================================================
-// 3. REVOGAÇÃO DE CONSENTIMENTO (LGPD Art. 18 — Iniciado pelo Titular)
-// ============================================================================
-export function getRevocationEmailHtml(params: RevocationEmailParams): string {
-  const {
-    parentName,
-    minorName,
-    documentId,
-    validationCode,
-    revokedAtFormatted,
-    institutionName,
-    reason,
-    supportEmail = 'suporte@catraki.com.br',
-    dpoContact = 'suporte@catraki.com.br',
-    documentHashSha256,
-    projectOwners,
-  } = params;
-
-  const docCode = validationCode || `CATRAKI-${documentId.substring(0, 4).toUpperCase()}-${documentId.substring(Math.max(0, documentId.length - 4)).toUpperCase()}`;
-
-  const body = `
-    <p>Prezado(a) <strong>${escapeHtml(parentName || 'Responsável Legal')}</strong>,</p>
-
-    <p>
-      Confirmamos o recebimento e o processamento da sua solicitação de <strong>revogação de consentimento</strong>. 
-      Este procedimento atende integralmente ao exercício de direitos garantido pelo 
-      <strong>Artigo 18, inciso VIII, c/c Artigo 8º, § 5º da Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)</strong>.
-    </p>
-
-    <p>
-      Informamos que a autorização vinculada ao(à) estudante <strong>${escapeHtml(minorName)}</strong>
-      na instituição <strong>${escapeHtml(institutionName)}</strong> foi 
-      <strong>formalmente revogada e encerrada</strong> em nossos sistemas.
-    </p>
-
-    <table class="details-table">
-      <tr>
-        <td class="label">Código do Documento</td>
-        <td class="value"><span style="font-family:monospace;font-weight:800;color:#034b7f;">${escapeHtml(docCode)}</span></td>
-      </tr>
-      <tr>
-        <td class="label">Estudante</td>
-        <td class="value">${escapeHtml(minorName)}</td>
-      </tr>
-      <tr>
-        <td class="label">Instituição / Unidade</td>
-        <td class="value">${escapeHtml(institutionName)}</td>
-      </tr>
-      <tr>
-        <td class="label">Data Efetiva da Revogação</td>
-        <td class="value">${escapeHtml(revokedAtFormatted)}</td>
-      </tr>
-      <tr>
-        <td class="label">Status Regulatório</td>
-        <td class="value"><span class="badge badge-blue">CONSENTIMENTO REVOGADO</span></td>
-      </tr>
-      <tr>
-        <td class="label">Justificativa Registrada</td>
-        <td class="value" style="font-style:italic;color:#475569;">"${escapeHtml(reason)}"</td>
-      </tr>
-    </table>
-
-    ${documentHashSha256 ? `
-    <div class="hash-box">
-      <strong>🔐 Trilha Criptográfica SHA-256 do Histórico:</strong><br>
-      ${escapeHtml(documentHashSha256)}<br>
-      <span style="font-size:10px;color:#64748b;">Identificador imutável associado ao termo original e ao evento de revogação.</span>
-    </div>` : ''}
-
-    <div class="highlight-box">
-      ℹ️ <strong>O que acontece agora?</strong><br>
-      • Os links de acesso anteriores foram desativados com total segurança e nenhum novo procedimento será realizado com base nesta autorização.<br>
-      • Os registros cronológicos e a trilha de auditoria são mantidos em ambiente seguro estritamente para o <strong>cumprimento de obrigações legais e regulatórias (Art. 16 da LGPD)</strong>.
-    </div>
-
-    <p style="font-size:12.5px;color:#64748b;">
-      Para esclarecimentos adicionais sobre privacidade ou dados pessoais, contate o Encarregado de Dados (DPO):<br>
-      E-mail de Governança: <a href="mailto:${escapeHtml(dpoContact || supportEmail)}" style="color:#034b7f;font-weight:bold;">${escapeHtml(dpoContact || supportEmail)}</a>
-    </p>
-
-    <p style="margin-top:20px;font-size:13px;color:#334155;">
-      Atenciosamente,<br><br>
-      <strong>Equipe de Governança — Plataforma Catraki</strong>
-    </p>
-  `;
-
-  return buildEmailShell('Confirmação de Revogação de Consentimento', body, 'Registro imutável emitido em conformidade com o Art. 18 da LGPD (Lei nº 13.709/2018) e o Marco Civil da Internet.', projectOwners);
-}
-
-export function getRevocationEmailText(params: RevocationEmailParams): string {
-  const { parentName, minorName, documentId, validationCode, revokedAtFormatted, institutionName, reason, dpoContact, supportEmail, documentHashSha256 } = params;
-  const docCode = validationCode || `CATRAKI-${documentId.substring(0, 4).toUpperCase()}`;
-
-  return `[Plataforma Catraki] Confirmação de Revogação (LGPD Art. 18)
-
-Prezado(a) ${parentName || 'Responsável Legal'},
-Confirmamos o exercício do direito de revogação de consentimento (LGPD, Art. 18, VIII). A autorização vinculada ao(à) estudante ${minorName} na instituição "${institutionName}" foi REVOGADA COM SUCESSO.
-
-DETALHES:
-- Código: ${docCode}
-- Estudante: ${minorName}
-- Unidade: ${institutionName}
-- Data: ${revokedAtFormatted}
-- Motivo: ${reason}
-${documentHashSha256 ? `\nHASH SHA-256: ${documentHashSha256}\n` : ''}
-Os links anteriores foram desativados. Os registros históricos são preservados conforme o Art. 16 da LGPD para fins de auditoria legal.
-
-DPO / Contato: ${dpoContact || supportEmail}
-Plataforma Catraki`;
 }
 
 // ============================================================================

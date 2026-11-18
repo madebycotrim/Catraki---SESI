@@ -43,20 +43,6 @@ body {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-.glass-panel {
-  background: rgba(255, 255, 255, 0.93);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(226, 232, 240, 0.7);
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-.glass-card {
-  background: #ffffff;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
-}
-
 /* ━━ THEAD ULTRA-PREMIUM ━━ */
 .table-thead-ultra {
   background: #f1f5f9;
@@ -137,34 +123,11 @@ body {
   box-shadow: 0 1px 4px rgba(0, 75, 141, 0.2);
 }
 
-/* ━━ FILTER BAR REFINADA ━━ */
-.filter-input-modern {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-}
-
-.filter-input-modern:focus {
-  background: #ffffff;
-  border-color: #004b8d;
-  box-shadow: 0 0 0 3px rgba(0, 75, 141, 0.12);
-  outline: none;
-}
-
 /* ━━ SCROLLBAR REFINADA ━━ */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 ::-webkit-scrollbar-thumb { background: #c4cdd8; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-/* ━━ ANIMAÇÃO FADE-IN (Tailwind animate-in) ━━ */
-@keyframes slide-in-from-bottom {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
 
 /* ━━ FOLHA A4 ━━ */
 .document-sheet-a4 {
@@ -249,7 +212,7 @@ body {
     print-color-adjust: exact !important;
   }
 
-  .no-print, header, nav, .print-hide { display: none !important; }
+  .no-print, header, nav { display: none !important; }
 
   .document-sheet-a4, .document-sheet-a5 {
     box-shadow: none !important;
@@ -268,14 +231,7 @@ body {
     break-after: avoid !important;
   }
 
-  .glass-card, .glass-panel {
-    background: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
-    color: #000000 !important;
-    box-shadow: none !important;
-  }
-
-  .page-break-avoid, tr, table, .avoid-break {
+  tr, table {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
